@@ -272,6 +272,22 @@ def _latent_dl3dv_train_preset(num_input_views: int, num_views: int) -> Options:
     )
 
 
+config_doc["train_dl3dv_latent_base"] = (
+    "Scratch DL3DV latent-bottleneck training base. Uses pointmap scene "
+    "rescaling, the 12-layer encoder latent architecture, and no checkpoint "
+    "initialization."
+)
+config_defaults["train_dl3dv_latent_base"] = Options(
+    data_mode=(("dl3dv_scaled_1.0", 6),),
+    num_epochs=178,
+    pct_start_steps=2000,
+    use_input_supervision=True,
+    rgb_loss_type="l1",
+    lambda_rgb=0.8,
+    **{**_LATENT_D12_ARCH, "camera_scale_method": "pointmap"},
+)
+
+
 def _latent_dl3dv_eval_preset(num_input_views: int, evaluation_json: str) -> Options:
     return Options(
         data_mode=(("dl3dv_eval_scaled_0.15", 1),),
