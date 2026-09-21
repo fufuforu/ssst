@@ -232,6 +232,11 @@ def shared_gradient_diagnostic(
 
     Uses its own forward pass and `torch.autograd.grad`, so the optimizer's
     `.grad` buffers are never touched and no optimizer step is performed.
+
+    Both the raw understanding gradient and the effective one are reported:
+    the joint objective is ``L = L_recon + lambda_u(step) * L_understanding``,
+    so only ``lambda_u * grad(L_understanding)`` competes with ``grad(L_recon)``
+    on the shared parameters.
     """
     parameters = shared_parameters(model)
     inputs = [parameter for _, parameter in parameters]
@@ -250,16 +255,22 @@ def shared_gradient_diagnostic(
     vector_recon = _flatten_gradients(grad_recon)
     vector_understanding = _flatten_gradients(grad_understanding)
     norm_recon = float(vector_recon.norm())
-    norm_understanding = float(vector_understanding.norm())
-    if norm_recon > 0 and norm_understanding > 0:
+    norm_understanding_raw = float(vector_understanding.norm())
+    lambda_understanding = float(metrics["lambda_understanding"].detach())
+    norm_understanding_effective = lambda_understanding * norm_understanding_raw
+    if norm_recon > 0 and norm_understanding_raw > 0:
         cosine = float(
             torch.dot(vector_recon, vector_understanding).item()
-            / (norm_recon * norm_understanding)
+            / (norm_recon * norm_understanding_raw)
         )
         cosine_defined = True
     else:
         cosine = float("nan")
         cosine_defined = False
+    if norm_recon > 0:
+        effective_ratio = norm_understanding_effective / norm_recon
+    else:
+        effective_ratio = float("nan")
 
     reachability = {}
     for name in SPATIAL_GROUNDING_PARAMETERS:
@@ -274,7 +285,14 @@ def shared_gradient_diagnostic(
     shared_names = [name for name, _ in parameters]
     return {
         "grad_recon_norm": norm_recon,
-        "grad_understanding_norm": norm_understanding,
+        # Raw gradient of L_understanding and the gradient that actually enters
+        # the joint objective through the curriculum weight.
+        "grad_understanding_raw_norm": norm_understanding_raw,
+        "grad_understanding_effective_norm": norm_understanding_effective,
+        "grad_understanding_to_recon_ratio": effective_ratio,
+        "lambda_understanding": lambda_understanding,
+        # Backwards-compatible alias for the raw understanding gradient.
+        "grad_understanding_norm": norm_understanding_raw,
         "grad_recon_understanding_cosine": cosine,
         "grad_cosine_defined": cosine_defined,
         "grad_shared_parameter_count": len(shared_names),

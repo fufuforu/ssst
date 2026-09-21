@@ -721,5 +721,131 @@ class WarmStartTests(unittest.TestCase):
         )
 
 
+class TrainerCliTests(unittest.TestCase):
+    """The trainer CLI must never feed `None` into numeric comparisons."""
+
+    MINIMAL = [
+        "--workspace", "/tmp/ssst_cli_test",
+        "--num-steps", "1",
+    ]
+
+    @staticmethod
+    def _options(argv):
+        from scripts.run_ssst_joint import build_options, parse_args
+
+        return parse_args(argv), build_options(parse_args(argv))
+
+    def test_gradient_diagnostic_freq_defaults_to_the_option_value(self):
+        args, opt = self._options(self.MINIMAL)
+        # argparse may leave the flag unset ...
+        self.assertIsNone(args.gradient_diagnostic_freq)
+        # ... but the effective value must come from Options, never None.
+        self.assertEqual(int(opt.gradient_diagnostic_freq), 200)
+        self.assertGreater(int(opt.gradient_diagnostic_freq), 0)
+        # This is exactly the comparison the training loop performs.
+        self.assertTrue(int(opt.gradient_diagnostic_freq) > 0)
+
+    def test_gradient_diagnostic_freq_can_be_disabled_and_overridden(self):
+        _, opt = self._options(self.MINIMAL + ["--gradient-diagnostic-freq", "0"])
+        self.assertEqual(int(opt.gradient_diagnostic_freq), 0)
+        _, opt = self._options(self.MINIMAL + ["--gradient-diagnostic-freq", "25"])
+        self.assertEqual(int(opt.gradient_diagnostic_freq), 25)
+
+    def test_ray_bias_flags_are_accepted_and_default_unchanged(self):
+        _, default_opt = self._options(self.MINIMAL)
+        self.assertEqual(default_opt.anchor_ray_sigma0, 0.1)
+        self.assertEqual(default_opt.anchor_ray_bias_clamp, -20.0)
+        self.assertEqual(default_opt.anchor_ray_bias_init, -6.0)
+        _, opt = self._options(
+            self.MINIMAL
+            + [
+                "--anchor-ray-sigma0", "1.0",
+                "--anchor-ray-bias-clamp", "-15",
+                "--anchor-ray-bias-init", "-8",
+            ]
+        )
+        self.assertEqual(opt.anchor_ray_sigma0, 1.0)
+        self.assertEqual(opt.anchor_ray_bias_clamp, -15.0)
+        self.assertEqual(opt.anchor_ray_bias_init, -8.0)
+
+    def test_parsed_options_build_a_valid_model_configuration(self):
+        _, opt = self._options(self.MINIMAL)
+        small = tiny_options()
+        tiny = opt.evolve(
+            **{
+                field: getattr(small, field)
+                for field in (
+                    "img_size",
+                    "patch_size",
+                    "dec_patch_size",
+                    "enc_depth",
+                    "dec_depth",
+                    "enc_embed_dim",
+                    "enc_num_heads",
+                    "num_gs_tokens",
+                    "token_dim",
+                    "num_object_query_layers",
+                )
+            }
+        )
+        model = model_registry[tiny.model_type](tiny)
+        self.assertEqual(
+            float(model.spatial_decoder.ray_bias_sigma0), tiny.anchor_ray_sigma0
+        )
+        self.assertTrue(model.spatial_decoder.use_ray_bias)
+
+
+class GradientDiagnosticReportingTests(unittest.TestCase):
+    def test_ddp_audit_key_is_scene_plus_frame_ids(self):
+        from scripts.run_ssst_joint import assert_distinct_records
+
+        # Same frame numbering in two different scenes is legitimate.
+        keys = assert_distinct_records(
+            [
+                {"rank": 0, "scene_name": "scene0000_00", "frame_ids": [10, 20, 11, 15]},
+                {"rank": 1, "scene_name": "scene0001_00", "frame_ids": [10, 20, 11, 15]},
+            ]
+        )
+        self.assertEqual(
+            keys,
+            [
+                ("scene0000_00", (10, 20, 11, 15)),
+                ("scene0001_00", (10, 20, 11, 15)),
+            ],
+        )
+        # The same scene with the same frames is a real duplicate.
+        with self.assertRaises(RuntimeError):
+            assert_distinct_records(
+                [
+                    {"rank": 0, "scene_name": "scene0000_00", "frame_ids": [10, 20, 11, 15]},
+                    {"rank": 1, "scene_name": "scene0000_00", "frame_ids": [10, 20, 11, 15]},
+                ]
+            )
+
+    def test_reports_raw_and_effective_understanding_gradients(self):
+        opt = tiny_options().evolve(understanding_final_weight=1.0)
+        model = model_registry["siu3r_joint_ssst"](opt).train()
+        model.gs = FakeRenderer(opt.img_size)
+        batch = synthetic_batch(opt)
+        report = shared_gradient_diagnostic(model, batch, step=0, phase="train")
+        raw = report["grad_understanding_raw_norm"]
+        effective = report["grad_understanding_effective_norm"]
+        self.assertGreater(raw, 0.0)
+        self.assertAlmostEqual(
+            effective, report["lambda_understanding"] * raw, places=6
+        )
+        self.assertAlmostEqual(
+            report["grad_understanding_norm"], raw, places=6
+        )
+        self.assertAlmostEqual(
+            report["grad_understanding_to_recon_ratio"],
+            effective / report["grad_recon_norm"],
+            places=6,
+        )
+        self.assertGreater(report["grad_understanding_to_recon_ratio"], 0.0)
+        # The curriculum weight is the step-0 value and is not modified here.
+        self.assertAlmostEqual(report["lambda_understanding"], opt.understanding_start_weight, places=6)
+
+
 if __name__ == "__main__":
     unittest.main()

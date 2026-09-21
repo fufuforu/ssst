@@ -108,6 +108,24 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--anchor-extent", type=float, default=None)
     parser.add_argument("--anchor-init-radius", type=float, default=None)
     parser.add_argument("--anchor-local-offset-bound", type=float, default=None)
+    parser.add_argument(
+        "--anchor-ray-sigma0",
+        type=float,
+        default=None,
+        help="Width of the anchor-to-ray geometric bias (softplus/r-adaptive scale).",
+    )
+    parser.add_argument(
+        "--anchor-ray-bias-clamp",
+        type=float,
+        default=None,
+        help="Lower clamp of the geometric bias before the learnable per-layer gamma.",
+    )
+    parser.add_argument(
+        "--anchor-ray-bias-init",
+        type=float,
+        default=None,
+        help="Initial raw gamma; softplus(-6) ~ 2.5e-3 keeps the warm start intact.",
+    )
     parser.add_argument("--allow-completed-workspace", action="store_true")
     return parser.parse_args(argv)
 
@@ -134,6 +152,9 @@ def build_options(args: argparse.Namespace) -> Options:
         "anchor_extent": args.anchor_extent,
         "anchor_init_radius": args.anchor_init_radius,
         "anchor_local_offset_bound": args.anchor_local_offset_bound,
+        "anchor_ray_sigma0": args.anchor_ray_sigma0,
+        "anchor_ray_bias_clamp": args.anchor_ray_bias_clamp,
+        "anchor_ray_bias_init": args.anchor_ray_bias_init,
     }
     return opt.evolve(**{k: v for k, v in overrides.items() if v is not None})
 
@@ -356,6 +377,23 @@ def accumulate_microbatches(
         epoch += 1
 
 
+def record_keys_for_ranks(gathered: list[dict]) -> list[tuple[str, tuple[int, ...]]]:
+    """Identity of the record each rank consumed, for the DDP audit.
+
+    The key is ``(scene_name, frame_ids)``: different ScanNet scenes can share
+    the same frame numbering, so frame ids alone would raise false alarms.
+    """
+    return [(str(item["scene_name"]), tuple(int(x) for x in item["frame_ids"])) for item in gathered]
+
+
+def assert_distinct_records(gathered: list[dict]) -> list[tuple[str, tuple[int, ...]]]:
+    """Fail only if two ranks really consumed the same scene+frames record."""
+    keys = record_keys_for_ranks(gathered)
+    if len(set(keys)) != len(keys):
+        raise RuntimeError(f"two ranks received the identical record (scene, frame ids): {keys}")
+    return keys
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     rank, local_rank, world_size, device, distributed = setup_distributed()
@@ -427,6 +465,12 @@ def main(argv: list[str] | None = None) -> int:
 
     use_amp = opt.mixed_precision in ("bf16", "fp16")
     amp_dtype = torch.bfloat16 if opt.mixed_precision == "bf16" else torch.float16
+    # Single source of truth for the low-frequency shared-gradient diagnostic:
+    # the CLI flag is optional and the option default (200) applies when it is
+    # omitted, so the loop must never compare the raw argparse value.
+    if opt.gradient_diagnostic_freq is None:
+        raise ValueError("gradient_diagnostic_freq must be set (Options default is 200)")
+    gradient_diagnostic_freq = int(opt.gradient_diagnostic_freq)
     history: list[dict] = []
     accumulator = max(1, int(opt.gradient_accumulation_steps))
     start_time = time.time()
@@ -506,8 +550,8 @@ def main(argv: list[str] | None = None) -> int:
                         float(x) for x in per_layer.detach().cpu()
                     ]
         if (
-            args.gradient_diagnostic_freq > 0
-            and step % args.gradient_diagnostic_freq == 0
+            gradient_diagnostic_freq > 0
+            and step % gradient_diagnostic_freq == 0
             and is_main
         ):
             with torch.autocast(device_type=device.type, dtype=amp_dtype, enabled=use_amp):
@@ -535,7 +579,10 @@ def main(argv: list[str] | None = None) -> int:
             log(
                 "[gradient] "
                 f"step {step} recon_norm {diagnostic['grad_recon_norm']:.4g} "
-                f"und_norm {diagnostic['grad_understanding_norm']:.4g} "
+                f"und_raw {diagnostic['grad_understanding_raw_norm']:.4g} "
+                f"und_eff {diagnostic['grad_understanding_effective_norm']:.4g} "
+                f"(lambda_u {diagnostic['lambda_understanding']:.4g}, "
+                f"ratio {diagnostic['grad_understanding_to_recon_ratio']:.4g}) "
                 f"cosine {diagnostic['grad_recon_understanding_cosine']:.4f} "
                 f"reached {diagnostic['grad_spatial_grounding_reached']}"
             )
@@ -560,20 +607,24 @@ def main(argv: list[str] | None = None) -> int:
             if distributed:
                 dist.barrier()
         if distributed and step == 1:
-            # Verify that the sampled scenes/frames actually differ per rank.
+            # Verify that the sampled records actually differ per rank.  Compare
+            # (scene, frame ids): different ScanNet scenes can legitimately share
+            # the same frame numbering, so frame ids alone would false-positive.
+            scene_names = batch["scene_name"]
+            if isinstance(scene_names, (list, tuple)):
+                scene_name = scene_names[0]
+            else:
+                scene_name = str(scene_names)
             local = {
                 "rank": rank,
+                "scene_name": str(scene_name),
                 "frame_ids": batch["frame_ids"][0].detach().cpu().tolist(),
             }
             gathered: list = [None] * world_size
             dist.all_gather_object(gathered, local)
             if is_main:
-                order = [item["frame_ids"] for item in gathered]
-                log(f"[ddp] per-rank frame ids at step 1: {order}")
-                if len({tuple(ids) for ids in order}) != len(order):
-                    raise RuntimeError(
-                        f"two ranks received identical frame ids: {order}"
-                    )
+                order = assert_distinct_records(gathered)
+                log(f"[ddp] per-rank (scene, frame ids) at step 1: {order}")
 
     if is_main:
         with open(workspace / "training_log.json", "w", encoding="utf-8") as handle:
