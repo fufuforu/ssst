@@ -54,6 +54,7 @@ from tokengs.data.siu3r_processed import (
     validate_batch_frame_order,
 )
 from tokengs.models import model_registry
+from tokengs.models.ssst_diagnostics import shared_gradient_diagnostic
 from tokengs.options import Options, config_defaults
 
 
@@ -96,6 +97,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser.add_argument("--understanding-final-weight", type=float, default=None)
     parser.add_argument("--spatial-compactness-weight", type=float, default=None)
     parser.add_argument("--spatial-radius-weight", type=float, default=None)
+    parser.add_argument(
+        "--gradient-diagnostic-freq",
+        type=int,
+        default=None,
+        help="Steps between shared-task gradient diagnostics (0 disables).",
+    )
     parser.add_argument("--num-object-queries", type=int, default=None)
     parser.add_argument("--anchor-center-z", type=float, default=None)
     parser.add_argument("--anchor-extent", type=float, default=None)
@@ -121,6 +128,7 @@ def build_options(args: argparse.Namespace) -> Options:
         "understanding_final_weight": args.understanding_final_weight,
         "spatial_compactness_weight": args.spatial_compactness_weight,
         "spatial_radius_weight": args.spatial_radius_weight,
+        "gradient_diagnostic_freq": args.gradient_diagnostic_freq,
         "num_object_queries": args.num_object_queries,
         "anchor_center_z": args.anchor_center_z,
         "anchor_extent": args.anchor_extent,
@@ -308,6 +316,46 @@ def run_validation(raw_model, provider, opt, args, device, log, step):
     return averaged
 
 
+def accumulate_microbatches(
+    epoch_batches,
+    *,
+    num_steps: int,
+    grad_accum: int,
+    start_step: int = 0,
+):
+    """Yield micro-batches with an accumulation window that spans epochs.
+
+    ``epoch_batches(epoch)`` returns the iterable of micro-batches for one
+    epoch.  The caller performs one optimizer step exactly every
+    ``grad_accum`` micro-batches, so an epoch whose batch count is not divisible
+    by ``grad_accum`` neither loses its partial gradient nor borrows the next
+    window: the window simply continues into the next epoch.
+
+    Yields:
+        ``(step, epoch, batch, do_optimizer_step)`` where ``step`` is the number
+        of completed optimizer steps (1-based for the first completed step).
+    """
+    if grad_accum < 1:
+        raise ValueError("grad_accum must be >= 1")
+    step = int(start_step)
+    micro_step = 0
+    epoch = 0
+    while step < num_steps:
+        epoch_batch_count = 0
+        for batch in epoch_batches(epoch):
+            epoch_batch_count += 1
+            micro_step += 1
+            do_step = micro_step % grad_accum == 0
+            if do_step:
+                step += 1
+            yield step, epoch, batch, do_step
+            if step >= num_steps:
+                return
+        if epoch_batch_count == 0:
+            raise RuntimeError(f"no training batches in epoch {epoch}")
+        epoch += 1
+
+
 def main(argv: list[str] | None = None) -> int:
     args = parse_args(argv)
     rank, local_rank, world_size, device, distributed = setup_distributed()
@@ -381,96 +429,151 @@ def main(argv: list[str] | None = None) -> int:
     amp_dtype = torch.bfloat16 if opt.mixed_precision == "bf16" else torch.float16
     history: list[dict] = []
     accumulator = max(1, int(opt.gradient_accumulation_steps))
-    micro_step = 0
-    epoch = 0
     start_time = time.time()
     raw_model = model.module if distributed else model
 
-    while step < args.num_steps:
+    def epoch_batches(epoch: int):
         train_provider.set_rng_epoch(epoch)
         train_provider.pair_rng.seed(int(opt.seed) + 7919 * epoch + 100003 * rank)
         if hasattr(train_loader, "sampler") and isinstance(train_loader.sampler, DistributedSampler):
             train_loader.sampler.set_epoch(epoch)
-        epoch_batches = 0
-        for batch in train_loader:
-            epoch_batches += 1
-            batch = move_to_device(batch, device)
-            if opt.num_workers == 0:
-                validate_batch_frame_order(batch, train_provider.last_pair, phase="train")
-            # The curriculum needs the global optimizer step; stamp it on the
-            # unwrapped module so the DDP forward can stay the single graph.
-            raw_model.set_step_context(step, "train")
-            with torch.autocast(device_type=device.type, dtype=amp_dtype, enabled=use_amp):
-                output = model(batch)
-            metrics = output["metrics"]
-            loss = output["loss"]
-            if not torch.isfinite(loss):
-                raise FloatingPointError(
-                    f"non-finite joint loss at step {step}: "
-                    + " ".join(f"{k}={float(v):.4f}" for k, v in metrics.items() if torch.is_tensor(v) and v.ndim == 0)
+        return train_loader
+
+    # A clean accumulation state before the first window.  The window then runs
+    # continuously across epoch boundaries: an epoch whose batch count is not a
+    # multiple of grad_accum hands its partial gradients to the next epoch
+    # instead of losing them at the epoch boundary.
+    optimizer.zero_grad(set_to_none=True)
+    for completed_step, epoch, batch, do_step in accumulate_microbatches(
+        epoch_batches,
+        num_steps=args.num_steps,
+        grad_accum=accumulator,
+        start_step=step,
+    ):
+        del epoch
+        batch = move_to_device(batch, device)
+        if opt.num_workers == 0:
+            validate_batch_frame_order(batch, train_provider.last_pair, phase="train")
+        # Everything inside a window shares the same curriculum / LR step: the
+        # number of optimizer steps completed before this window.
+        step_for_schedule = completed_step - 1 if do_step else completed_step
+        raw_model.set_step_context(step_for_schedule, "train")
+        with torch.autocast(device_type=device.type, dtype=amp_dtype, enabled=use_amp):
+            output = model(batch)
+        metrics = output["metrics"]
+        loss = output["loss"]
+        if not torch.isfinite(loss):
+            raise FloatingPointError(
+                f"non-finite joint loss at step {completed_step}: "
+                + " ".join(
+                    f"{k}={float(v):.4f}"
+                    for k, v in metrics.items()
+                    if torch.is_tensor(v) and v.ndim == 0
                 )
-            (loss / accumulator).backward()
-            micro_step += 1
-            if micro_step % accumulator != 0:
-                continue
-
-            lr = lr_at(step, args, opt.lr)
-            for group in optimizer.param_groups:
-                group["lr"] = lr
-            grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), opt.gradient_clip)
-            optimizer.step()
-            optimizer.zero_grad(set_to_none=True)
-            step += 1
-
-            if step % args.log_freq == 0 or step == 1:
-                elapsed = time.time() - start_time
-                start_time = time.time()
-                log(format_metrics(metrics, step, lr, elapsed) + f" grad_norm {float(grad_norm):.3f}")
-                if is_main:
-                    history.append(
-                        {
-                            "step": step,
-                            **{
-                                key: float(value)
-                                for key, value in metrics.items()
-                                if torch.is_tensor(value) and value.ndim == 0
-                            },
-                            "grad_norm": float(grad_norm),
-                            "lr": lr,
-                        }
-                    )
-                    per_layer = metrics.get("spatial/anchor_update_norm_per_layer")
-                    if torch.is_tensor(per_layer):
-                        history[-1]["anchor_update_norm_per_layer"] = [
-                            float(x) for x in per_layer.detach().cpu()
-                        ]
-            if val_provider is not None and args.val_freq > 0 and step % args.val_freq == 0:
-                validation = run_validation(raw_model, val_provider, opt, args, device, log, step)
-                if is_main and history:
-                    history[-1]["validation"] = validation
-            if step % args.ckpt_freq == 0 or step == args.num_steps:
-                if is_main:
-                    save_checkpoint(
-                        raw_model,
-                        optimizer,
-                        step,
-                        workspace,
-                        opt,
-                        args,
-                        extra={"loss": float(loss.detach())},
-                    )
-                    log(f"[checkpoint] saved step {step} to {workspace}/checkpoints/step_{step:08d}")
-                if distributed:
-                    dist.barrier()
-            if step >= args.num_steps:
-                break
-        if epoch_batches == 0:
-            raise RuntimeError(
-                f"no training batches in epoch {epoch}: {len(train_provider)} samples, "
-                f"batch_size {opt.batch_size}, world_size {world_size}, drop_last=True"
             )
+        (loss / accumulator).backward()
+        if not do_step:
+            continue
+
+        lr = lr_at(step_for_schedule, args, opt.lr)
+        for group in optimizer.param_groups:
+            group["lr"] = lr
+        grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), opt.gradient_clip)
+        optimizer.step()
         optimizer.zero_grad(set_to_none=True)
-        epoch += 1
+        step = completed_step
+
+        if step % args.log_freq == 0 or step == 1:
+            elapsed = time.time() - start_time
+            start_time = time.time()
+            log(format_metrics(metrics, step, lr, elapsed) + f" grad_norm {float(grad_norm):.3f}")
+            if is_main:
+                history.append(
+                    {
+                        "step": step,
+                        **{
+                            key: float(value)
+                            for key, value in metrics.items()
+                            if torch.is_tensor(value) and value.ndim == 0
+                        },
+                        "grad_norm": float(grad_norm),
+                        "lr": lr,
+                    }
+                )
+                per_layer = metrics.get("spatial/anchor_update_norm_per_layer")
+                if torch.is_tensor(per_layer):
+                    history[-1]["anchor_update_norm_per_layer"] = [
+                        float(x) for x in per_layer.detach().cpu()
+                    ]
+        if (
+            args.gradient_diagnostic_freq > 0
+            and step % args.gradient_diagnostic_freq == 0
+            and is_main
+        ):
+            with torch.autocast(device_type=device.type, dtype=amp_dtype, enabled=use_amp):
+                diagnostic = shared_gradient_diagnostic(
+                    raw_model, batch, step=step_for_schedule, phase="train"
+                )
+            reachability = diagnostic.pop("grad_spatial_grounding")
+            diagnostic["grad_spatial_grounding_reached"] = {
+                "anchor_pre": bool(
+                    reachability.get("spatial_decoder.anchor_pre", {}).get(
+                        "received_understanding_grad", False
+                    )
+                ),
+                "radius_pre": bool(
+                    reachability.get("spatial_decoder.radius_pre", {}).get(
+                        "received_understanding_grad", False
+                    )
+                ),
+                "refine_heads": bool(
+                    reachability.get("spatial_decoder.refine_heads.0.weight", {}).get(
+                        "received_understanding_grad", False
+                    )
+                ),
+            }
+            log(
+                "[gradient] "
+                f"step {step} recon_norm {diagnostic['grad_recon_norm']:.4g} "
+                f"und_norm {diagnostic['grad_understanding_norm']:.4g} "
+                f"cosine {diagnostic['grad_recon_understanding_cosine']:.4f} "
+                f"reached {diagnostic['grad_spatial_grounding_reached']}"
+            )
+            if history:
+                history[-1]["gradient_diagnostic"] = diagnostic
+        if val_provider is not None and args.val_freq > 0 and step % args.val_freq == 0:
+            validation = run_validation(raw_model, val_provider, opt, args, device, log, step)
+            if is_main and history:
+                history[-1]["validation"] = validation
+        if step % args.ckpt_freq == 0 or step == args.num_steps:
+            if is_main:
+                save_checkpoint(
+                    raw_model,
+                    optimizer,
+                    step,
+                    workspace,
+                    opt,
+                    args,
+                    extra={"loss": float(loss.detach())},
+                )
+                log(f"[checkpoint] saved step {step} to {workspace}/checkpoints/step_{step:08d}")
+            if distributed:
+                dist.barrier()
+        if distributed and step == 1:
+            # Verify that the sampled scenes/frames actually differ per rank.
+            local = {
+                "rank": rank,
+                "frame_ids": batch["frame_ids"][0].detach().cpu().tolist(),
+            }
+            gathered: list = [None] * world_size
+            dist.all_gather_object(gathered, local)
+            if is_main:
+                order = [item["frame_ids"] for item in gathered]
+                log(f"[ddp] per-rank frame ids at step 1: {order}")
+                if len({tuple(ids) for ids in order}) != len(order):
+                    raise RuntimeError(
+                        f"two ranks received identical frame ids: {order}"
+                    )
 
     if is_main:
         with open(workspace / "training_log.json", "w", encoding="utf-8") as handle:

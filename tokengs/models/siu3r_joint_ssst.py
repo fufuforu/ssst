@@ -38,6 +38,7 @@ from tokengs.models.input_types import (
 from tokengs.models.spatial_grounded_tokens import (
     LocalGaussianHead,
     SpatiallyGroundedTokenDecoder,
+    patch_rays,
 )
 from tokengs.models.ssst_contracts import (
     QUERY_COUNT,
@@ -49,6 +50,13 @@ from tokengs.models.ssst_contracts import (
 from tokengs.models.ssst_loss import build_context_segments, compute_joint_loss
 from tokengs.models.tokengs import TokenGS
 from tokengs.models.unified_object_queries import UnifiedObjectQueryHead
+
+# The legacy TokenGS head predicts absolute XYZ in raw channels 0:3; the SSST
+# head uses the very same channels as bounded local offsets around the anchor
+# (`x = mu + r * bound * tanh(raw[0:3])`).  They are shape-compatible but not
+# semantically compatible, so warm starts must skip them.
+LEGACY_ABSOLUTE_XYZ_CHANNELS = 3
+PARTIALLY_LOADED_KEYS = ("activation_head.deconv.weight", "activation_head.deconv.bias")
 
 
 class SIU3RJointSSST(TokenGS):
@@ -112,7 +120,12 @@ class SIU3RJointSSST(TokenGS):
         """Encode the context views and produce spatially grounded shared tokens."""
         encoder_latent = self.forward_encoder(model_input.encoder)
         base_tokens = self.get_gs_tokens(batch_size=model_input.batch_size)
-        spatial = self.spatial_decoder(base_tokens, encoder_latent)
+        ray_inputs = patch_rays(
+            model_input.encoder.rays_os,
+            model_input.encoder.rays_ds,
+            patch_size=int(self.opt.patch_size),
+        )
+        spatial = self.spatial_decoder(base_tokens, encoder_latent, patch_rays=ray_inputs)
         return spatial
 
     def forward_reconstruction(self, model_input: ModelInput) -> Reconstruction:
@@ -171,7 +184,12 @@ class SIU3RJointSSST(TokenGS):
             spatial.tokens, anchors=spatial.anchors, radii=spatial.radii
         )
         reconstruction = self._reconstruction_from_gaussians(gaussians)
-        queries = self.object_queries(spatial.tokens, batch_size=model_input.batch_size)
+        queries = self.object_queries(
+            spatial.tokens,
+            spatial.anchors,
+            spatial.radii,
+            batch_size=model_input.batch_size,
+        )
         validate_query_outputs(queries.class_logits, queries.assignment_logits)
 
         render_decoder = render_decoder_input or model_input.decoder
@@ -284,8 +302,11 @@ class SIU3RJointSSST(TokenGS):
     def init_from_checkpoint(self, path: str, log=print) -> dict:
         """Load only name- and shape-compatible keys, reporting everything.
 
-        New parameters (anchors, refinement, queries, assignment) always keep
-        their fresh initialization.
+        `activation_head.deconv.*` is loaded channel-aware: raw channels 0:3 of
+        the legacy head are absolute XYZ and are skipped, while channels 3:14
+        (RGB, scale, rotation, opacity) keep their learned values.  New
+        parameters (anchors, refinement, queries, assignment) always keep their
+        fresh initialization.
         """
         resolved = Path(path)
         if resolved.is_dir():
@@ -303,7 +324,8 @@ class SIU3RJointSSST(TokenGS):
             raise ValueError(f"unsupported checkpoint payload at {resolved}")
 
         state = self.state_dict()
-        loaded, missing, unexpected, mismatched = [], [], [], []
+        loaded, partially_loaded, skipped, unexpected, mismatched = [], [], [], [], []
+        deconv_channel_count = int(self.activation_head.output_dims)
         with torch.no_grad():
             for key, value in source.items():
                 if "lpips_loss" in key:
@@ -314,9 +336,28 @@ class SIU3RJointSSST(TokenGS):
                 if state[key].shape != value.shape:
                     mismatched.append((key, tuple(value.shape), tuple(state[key].shape)))
                     continue
+                if key in PARTIALLY_LOADED_KEYS:
+                    target = state[key]
+                    channel = torch.arange(value.shape[0]) % deconv_channel_count
+                    keep = (channel >= LEGACY_ABSOLUTE_XYZ_CHANNELS).to(target.device)
+                    moved = value.to(device=target.device, dtype=target.dtype)
+                    target[keep] = moved[keep]
+                    partially_loaded.append(key)
+                    skipped.append(
+                        {
+                            "key": key,
+                            "reason": "legacy absolute-XYZ channels",
+                            "skipped_channels_per_gaussian": list(
+                                range(LEGACY_ABSOLUTE_XYZ_CHANNELS)
+                            ),
+                            "skipped_rows": int((~keep).sum()),
+                            "kept_rows": int(keep.sum()),
+                        }
+                    )
+                    continue
                 state[key].copy_(value.to(state[key].dtype))
                 loaded.append(key)
-        loaded_set = set(loaded)
+        loaded_set = set(loaded) | set(partially_loaded)
         missing = [
             (key, tuple(value.shape))
             for key, value in state.items()
@@ -327,6 +368,22 @@ class SIU3RJointSSST(TokenGS):
         log(f"[init] loaded keys ({len(loaded)}):")
         for key in loaded:
             log(f"    loaded      {key} {tuple(state[key].shape)}")
+        log(f"[init] partially loaded keys ({len(partially_loaded)}):")
+        for entry in skipped:
+            log(
+                f"    partial     {entry['key']} kept {entry['kept_rows']} rows, "
+                f"skipped {entry['skipped_rows']} rows"
+            )
+        if partially_loaded:
+            log(
+                "[init] skipped legacy absolute-XYZ channels for LocalGaussianHead "
+                f"(channels {list(range(LEGACY_ABSOLUTE_XYZ_CHANNELS))} of each "
+                f"{deconv_channel_count} raw Gaussian channels); the local offset "
+                "channels keep the new initialization"
+            )
+        log(f"[init] skipped ({len(skipped)}):")
+        for entry in skipped:
+            log(f"    skipped     {entry['key']} {entry['reason']}")
         log(f"[init] missing keys ({len(missing)}):")
         for key, shape in missing:
             log(f"    missing     {key} {shape}")
@@ -339,6 +396,8 @@ class SIU3RJointSSST(TokenGS):
         return {
             "checkpoint": str(resolved),
             "loaded": [key for key in loaded],
+            "partially_loaded": list(partially_loaded),
+            "skipped": skipped,
             "missing": [key for key, _ in missing],
             "unexpected": [key for key, _ in unexpected],
             "shape_mismatch": [

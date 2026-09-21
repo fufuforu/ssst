@@ -152,11 +152,19 @@ class Options:
     anchor_radius_soft_min: float = 0.01
     anchor_radius_soft_max: float = 0.25
     anchor_local_offset_bound: float = 1.0
+    # LocusGS-style anchor-to-ray geometric attention bias (SSST decoder only).
+    anchor_ray_bias: bool = True
+    anchor_ray_sigma0: float = 0.1
+    anchor_ray_bias_clamp: float = -20.0
+    # Raw parameter of softplus(raw) = gamma; -6 keeps the bias a small
+    # perturbation at initialization so a warm start stays meaningful.
+    anchor_ray_bias_init: float = -6.0
     num_object_queries: int = 100
     semantic_class_count: int = 20
     num_object_query_layers: int = 2
     query_seed_std: float = 0.02
     query_block_init_values: float = 0.01
+    query_spatial_pe_std: float = 0.02
     assignment_temperature_init: float = 5.0
     use_instance_labels: bool = False
     # --- joint one-stage loss curriculum and spatial regularization ---
@@ -165,6 +173,7 @@ class Options:
     understanding_final_weight: float = 1.0
     spatial_compactness_weight: float = 1e-3
     spatial_radius_weight: float = 1e-3
+    gradient_diagnostic_freq: int = 200
     init_checkpoint: str | None = None
 
     def __post_init__(self) -> None:

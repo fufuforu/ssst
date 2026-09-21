@@ -34,6 +34,7 @@ from einops import rearrange
 from torch.nn.init import trunc_normal_
 
 from tokengs.models.enc_dec import DecoderBlock
+from tokengs.models.spatial_grounded_tokens import build_anchor_encoding
 
 
 @dataclass
@@ -83,6 +84,15 @@ class UnifiedObjectQueryHead(nn.Module):
         self.class_head = nn.Linear(dim, self.num_classes + 1)
         self.query_proj = nn.Linear(dim, dim, bias=False)
         self.token_proj = nn.Linear(dim, dim, bias=False)
+        # Explicit spatial state of every token: T_i = (f_i, mu_i, r_i).  The
+        # query head is new (never warm-started), so it consumes the geometry
+        # from the first forward instead of starting as a no-op.
+        spatial_dim = 4 + 6 * int(opt.anchor_num_freqs)
+        self.spatial_proj = nn.Linear(spatial_dim, dim)
+        trunc_normal_(self.spatial_proj.weight, std=float(opt.query_spatial_pe_std))
+        nn.init.zeros_(self.spatial_proj.bias)
+        self.anchor_extent = float(opt.anchor_extent)
+        self.anchor_num_freqs = int(opt.anchor_num_freqs)
         self.log_temperature = nn.Parameter(
             torch.tensor(float(opt.assignment_temperature_init)).log()
         )
@@ -102,13 +112,41 @@ class UnifiedObjectQueryHead(nn.Module):
         )
         return self.token_k_norm(keys), values
 
-    def forward(self, tokens: torch.Tensor, batch_size: int = 1) -> UnifiedQueryOutput:
+    def spatial_tokens(
+        self,
+        tokens: torch.Tensor,
+        anchors: torch.Tensor,
+        radii: torch.Tensor,
+    ) -> torch.Tensor:
+        """Token feature augmented with its anchor/radius positional encoding."""
+        if anchors.shape != tokens.shape[:2] + (3,) or radii.shape != tokens.shape[:2]:
+            raise ValueError(
+                f"spatial state must match tokens {tuple(tokens.shape)}: "
+                f"anchors {tuple(anchors.shape)}, radii {tuple(radii.shape)}"
+            )
+        return tokens + self.spatial_proj(
+            build_anchor_encoding(
+                anchors,
+                radii,
+                num_freqs=self.anchor_num_freqs,
+                extent=self.anchor_extent,
+            )
+        )
+
+    def forward(
+        self,
+        tokens: torch.Tensor,
+        anchors: torch.Tensor,
+        radii: torch.Tensor,
+        batch_size: int | None = None,
+    ) -> UnifiedQueryOutput:
         if tokens.ndim != 3:
             raise ValueError(f"tokens must be [B,N,C], got {tuple(tokens.shape)}")
         batch = tokens.shape[0]
-        if batch_size != batch:
+        if batch_size is not None and batch_size != batch:
             raise ValueError(f"batch_size {batch_size} does not match tokens {batch}")
 
+        tokens = self.spatial_tokens(tokens, anchors, radii)
         keys, values = self._token_kv(tokens)
         queries = self.query_seed.unsqueeze(0).expand(batch, -1, -1).contiguous()
         for block in self.blocks:

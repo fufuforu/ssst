@@ -282,6 +282,11 @@ def spatial_regularization(
     offsets = positions - anchors.unsqueeze(2)
     offset_norm = offsets.norm(dim=-1)
     ratios = offset_norm / (radii.unsqueeze(-1) + 1e-8)
+    # Diagnostic only: the largest Gaussian axis relative to the token radius.
+    # A large value means the token's footprint is carried by scale rather than
+    # by the anchor support, which would weaken the locality claim.
+    scales = gaussians[..., 4:7].reshape(batch, num_tokens, gaussians_per_token, 3)
+    scale_over_radius = scales.max(dim=-1).values / (radii.unsqueeze(-1) + 1e-8)
 
     zero = gaussians.sum() * 0.0
     loss_compactness = (
@@ -298,6 +303,9 @@ def spatial_regularization(
         "local_offset_norm_p95": offset_norm.detach().flatten().quantile(0.95),
         "local_offset_norm_max": offset_norm.detach().max(),
         "local_offset_ratio_mean": ratios.detach().mean(),
+        "gs_scale_over_radius_mean": scale_over_radius.detach().mean(),
+        "gs_scale_over_radius_p95": scale_over_radius.detach().flatten().quantile(0.95),
+        "gs_scale_over_radius_max": scale_over_radius.detach().max(),
     }
     return {
         "loss": loss_compactness + loss_radius,
@@ -404,6 +412,9 @@ def compute_joint_loss(
                 "local_offset_norm_p95": spatial["local_offset_norm_p95"],
                 "local_offset_norm_max": spatial["local_offset_norm_max"],
                 "local_offset_ratio_mean": spatial["local_offset_ratio_mean"],
+                "gs_scale_over_radius_mean": spatial["gs_scale_over_radius_mean"],
+                "gs_scale_over_radius_p95": spatial["gs_scale_over_radius_p95"],
+                "gs_scale_over_radius_max": spatial["gs_scale_over_radius_max"],
             }
         )
     for key in ("loss_rgb", "loss_ssim", "loss_visibility", "loss_opacity", "psnr"):

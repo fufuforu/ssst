@@ -44,7 +44,11 @@ LOSS_WEIGHT_MASK_BCE = 5.0
 LOSS_WEIGHT_DICE = 5.0
 NO_OBJECT_CE_WEIGHT = 0.1
 OUTER_SEGMENTATION_WEIGHT = 0.05
-INSTANCE_DEPTH_SMOOTHNESS_WEIGHT = 0.05
+# Disabled for the first joint experiment: ScanNet stuff/void pixels share
+# instance ID 0, so the "same instance" test cannot separate wall/floor/void and
+# would smooth depth across real boundaries.  The term stays implemented for a
+# later mutual-benefit ablation.
+INSTANCE_DEPTH_SMOOTHNESS_WEIGHT = 0.0
 POINT_SAMPLE_COUNT = 4096
 
 
@@ -101,10 +105,16 @@ def validate_query_outputs(
 
 
 def query_semantic_maps(class_logits: torch.Tensor, mask_prob: torch.Tensor):
-    """Class-aware aggregation of the query bank into semantic probabilities."""
-    class_prob = torch.softmax(class_logits[..., :SEMANTIC_CLASS_COUNT].float(), dim=-1)
-    semantic_prob = torch.einsum("bqc,bqvhw->bcvhw", class_prob, mask_prob.float())
-    return semantic_prob, class_prob
+    """Class-aware aggregation of the query bank into semantic probabilities.
+
+    The softmax runs over all 21 logits first, so the no-object probability
+    suppresses that query's semantic contribution instead of being renormalized
+    away by a 20-class softmax.
+    """
+    full_prob = torch.softmax(class_logits.float(), dim=-1)
+    semantic_prob_per_query = full_prob[..., :SEMANTIC_CLASS_COUNT]
+    semantic_prob = torch.einsum("bqc,bqvhw->bcvhw", semantic_prob_per_query, mask_prob.float())
+    return semantic_prob, semantic_prob_per_query
 
 
 __all__ = [

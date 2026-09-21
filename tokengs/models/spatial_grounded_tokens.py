@@ -86,6 +86,107 @@ class SpatialTokenRefinement:
     stats: dict[str, torch.Tensor]
 
 
+def patch_rays(
+    rays_o: torch.Tensor,
+    rays_d: torch.Tensor,
+    *,
+    patch_size: int,
+) -> tuple[torch.Tensor, torch.Tensor]:
+    """Pool dense per-pixel rays into the encoder patch grid.
+
+    The encoder consumes ``(b v) n c -> b (v n) c`` with ``n`` the row-major
+    patch grid of `PatchEmbed(patch_size)`, so the pooled rays use exactly the
+    same ordering (view major, then row major patches).
+
+    Args:
+        rays_o: [B, V, 3, H, W] ray origins in the normalized world frame.
+        rays_d: [B, V, 3, H, W] ray directions in the normalized world frame.
+
+    Returns:
+        ([B, V*P, 3] pooled origins, [B, V*P, 3] pooled directions) with
+        ``P = (H/patch_size) * (W/patch_size)``.
+    """
+    if rays_o.shape != rays_d.shape or rays_o.ndim != 5:
+        raise ValueError(
+            f"rays_o/rays_d must both be [B,V,3,H,W], got "
+            f"{tuple(rays_o.shape)} / {tuple(rays_d.shape)}"
+        )
+    batch, views, _, height, width = rays_o.shape
+    if height % patch_size or width % patch_size:
+        raise ValueError(
+            f"ray grid {(height, width)} is not divisible by patch_size {patch_size}"
+        )
+    pooled = []
+    for value in (rays_o, rays_d):
+        flat = value.reshape(batch * views, 3, height, width)
+        pooled.append(
+            F.avg_pool2d(flat, kernel_size=patch_size, stride=patch_size)
+            .reshape(batch, views, 3, -1)
+            .permute(0, 1, 3, 2)  # [B, V, P, 3]
+            .reshape(batch, -1, 3)
+        )
+    return pooled[0], pooled[1]
+
+
+def anchor_ray_distance(
+    anchors: torch.Tensor,
+    rays_o: torch.Tensor,
+    rays_d: torch.Tensor,
+    *,
+    eps: float = 1e-8,
+) -> torch.Tensor:
+    """Point-to-ray distance ``D_ij = || (mu_i - o_j) x d_hat_j ||``.
+
+    Args:
+        anchors: [B, N, 3] anchor centers.
+        rays_o: [B, P, 3] patch ray origins.
+        rays_d: [B, P, 3] patch ray directions (need not be normalized).
+
+    Returns:
+        [B, N, P] non-negative distances.
+    """
+    if anchors.ndim != 3 or anchors.shape[-1] != 3:
+        raise ValueError(f"anchors must be [B,N,3], got {tuple(anchors.shape)}")
+    if rays_o.shape != rays_d.shape or rays_o.ndim != 3 or rays_o.shape[-1] != 3:
+        raise ValueError(
+            f"patch rays must be [B,P,3], got {tuple(rays_o.shape)} / {tuple(rays_d.shape)}"
+        )
+    if rays_o.shape[0] != anchors.shape[0]:
+        raise ValueError(
+            f"batch mismatch between anchors {anchors.shape[0]} and rays {rays_o.shape[0]}"
+        )
+    direction = rays_d / rays_d.norm(dim=-1, keepdim=True).clamp_min(eps)
+    offset = anchors.unsqueeze(2) - rays_o.unsqueeze(1)  # [B, N, P, 3]
+    perpendicular = torch.cross(offset, direction.unsqueeze(1).expand_as(offset), dim=-1)
+    return perpendicular.norm(dim=-1)
+
+
+def anchor_ray_bias(
+    distance: torch.Tensor,
+    radii: torch.Tensor,
+    *,
+    sigma0: float,
+    clamp_min: float = -20.0,
+) -> torch.Tensor:
+    """Radius-adaptive geometric attention bias ``-0.5 (D / (sigma0 r))^2``.
+
+    Args:
+        distance: [B, N, P] point-to-ray distances.
+        radii: [B, N] token support radii.
+
+    Returns:
+        [B, 1, N, P] bias, clamped to ``[clamp_min, 0]`` so a token can never
+        gain attention weight from geometry alone.
+    """
+    if distance.ndim != 3:
+        raise ValueError(f"distance must be [B,N,P], got {tuple(distance.shape)}")
+    if radii.shape != distance.shape[:2]:
+        raise ValueError(f"radii must be [B,N], got {tuple(radii.shape)}")
+    scale = sigma0 * radii.unsqueeze(-1) + 1e-8
+    bias = -0.5 * (distance / scale).pow(2)
+    return bias.clamp(min=float(clamp_min), max=0.0).unsqueeze(1)
+
+
 class SpatiallyGroundedTokenDecoder(nn.Module):
     """Iterative anchor refinement around the shared TokenGS decoder layers.
 
@@ -127,6 +228,17 @@ class SpatiallyGroundedTokenDecoder(nn.Module):
             nn.init.zeros_(head.weight)
             nn.init.zeros_(head.bias)
 
+        # Per-layer non-negative strength of the anchor-to-ray geometric bias.
+        # `anchor_ray_bias_init` (-6 => gamma ~ 2.5e-3) keeps the bias a small
+        # perturbation at initialization so a warm-started reconstruction keeps
+        # its behavior while the bias can still grow if it helps.
+        self.ray_bias_raw = nn.Parameter(
+            torch.full((len(self.decoder_blocks),), float(opt.anchor_ray_bias_init))
+        )
+        self.use_ray_bias = bool(opt.anchor_ray_bias)
+        self.ray_bias_sigma0 = float(opt.anchor_ray_sigma0)
+        self.ray_bias_clamp = float(opt.anchor_ray_bias_clamp)
+
     def _decode_pre(self, pre_anchors: torch.Tensor, pre_radius: torch.Tensor):
         """Map unconstrained parameters to bounded anchors and positive radii."""
         center = torch.tensor(
@@ -138,7 +250,12 @@ class SpatiallyGroundedTokenDecoder(nn.Module):
         )
         return anchors, radii
 
-    def forward(self, tokens: torch.Tensor, encoder_latent) -> SpatialTokenRefinement:
+    def forward(
+        self,
+        tokens: torch.Tensor,
+        encoder_latent,
+        patch_rays: tuple[torch.Tensor, torch.Tensor] | None = None,
+    ) -> SpatialTokenRefinement:
         if tokens.ndim != 3:
             raise ValueError(f"tokens must be [B,N,C], got {tuple(tokens.shape)}")
         batch = tokens.shape[0]
@@ -148,6 +265,28 @@ class SpatiallyGroundedTokenDecoder(nn.Module):
             )
         if any(block is None for block in self.decoder_blocks):
             raise ValueError("decoder blocks are required for anchor refinement")
+        if patch_rays is not None:
+            if bool(getattr(self.opt, "use_latent_bottleneck", False)):
+                raise ValueError(
+                    "anchor-to-ray bias requires the image patch tokens themselves; "
+                    "it is incompatible with use_latent_bottleneck=True"
+                )
+            rays_o, rays_d = patch_rays
+            expected = int(encoder_latent.keys.shape[-2])
+            if rays_o.shape != rays_d.shape or rays_o.ndim != 3:
+                raise ValueError(
+                    f"patch rays must be [B,P,3], got {tuple(rays_o.shape)} / {tuple(rays_d.shape)}"
+                )
+            if rays_o.shape[0] != batch or rays_o.shape[1] != expected:
+                raise ValueError(
+                    f"patch ray count {rays_o.shape[1]} (batch {rays_o.shape[0]}) does not "
+                    f"match encoder keys {expected} (batch {batch})"
+                )
+        elif self.use_ray_bias:
+            raise ValueError(
+                "anchor_ray_bias is enabled but no patch rays were provided; pass "
+                "patch_rays or disable anchor_ray_bias"
+            )
 
         pre_anchors = self.anchor_pre.unsqueeze(0).expand(batch, -1, -1).contiguous()
         pre_radius = self.radius_pre.unsqueeze(0).expand(batch, -1).contiguous()
@@ -155,14 +294,34 @@ class SpatiallyGroundedTokenDecoder(nn.Module):
 
         update_norms: list[torch.Tensor] = []
         radius_update_norms: list[torch.Tensor] = []
-        for block, head in zip(self.decoder_blocks, self.refine_heads):
+        ray_bias_means: list[torch.Tensor] = []
+        ray_bias_clamped: list[torch.Tensor] = []
+        for index, (block, head) in enumerate(zip(self.decoder_blocks, self.refine_heads)):
             pe = build_anchor_encoding(
                 anchors, radii, num_freqs=int(self.opt.anchor_num_freqs), extent=self.extent
             )
+            attn_bias = None
+            if patch_rays is not None and self.use_ray_bias:
+                distance = anchor_ray_distance(anchors, patch_rays[0], patch_rays[1])
+                geometric_bias = anchor_ray_bias(
+                    distance,
+                    radii,
+                    sigma0=self.ray_bias_sigma0,
+                    clamp_min=self.ray_bias_clamp,
+                )
+                gamma = F.softplus(self.ray_bias_raw[index])
+                attn_bias = gamma * geometric_bias
+                ray_bias_means.append(attn_bias.detach().mean())
+                # Fraction of (token, patch) pairs whose geometric term hit the
+                # clamp, i.e. pairs that are effectively excluded from attention.
+                ray_bias_clamped.append(
+                    (geometric_bias.detach() <= self.ray_bias_clamp + 1e-6).float().mean()
+                )
             tokens = block(
                 gs_tokens=tokens + self.anchor_pe_proj(pe),
                 keys=encoder_latent.keys,
                 values=encoder_latent.values,
+                attn_bias=attn_bias,
             )
             delta = head(tokens)
             pre_anchors = pre_anchors + float(self.opt.anchor_refine_step) * torch.tanh(
@@ -192,6 +351,10 @@ class SpatiallyGroundedTokenDecoder(nn.Module):
             "radius_min": radii.detach().min(),
             "radius_max": radii.detach().max(),
         }
+        if ray_bias_means:
+            stats["ray_bias_mean"] = torch.stack(ray_bias_means).mean()
+            stats["ray_bias_gamma_mean"] = F.softplus(self.ray_bias_raw).detach().mean()
+            stats["ray_bias_clamped_fraction"] = torch.stack(ray_bias_clamped).mean()
         return SpatialTokenRefinement(tokens=tokens, anchors=anchors, radii=radii, stats=stats)
 
 
@@ -247,5 +410,8 @@ __all__ = [
     "LocalGaussianHead",
     "SpatialTokenRefinement",
     "SpatiallyGroundedTokenDecoder",
+    "anchor_ray_bias",
+    "anchor_ray_distance",
     "build_anchor_encoding",
+    "patch_rays",
 ]

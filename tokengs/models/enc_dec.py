@@ -68,13 +68,24 @@ class DecoderBlock(nn.Module):
             self.out_proj = nn.Linear(dim, dim)
 
         def forward(
-            self, gs_tokens: torch.Tensor, keys: torch.Tensor, values: torch.Tensor
+            self,
+            gs_tokens: torch.Tensor,
+            keys: torch.Tensor,
+            values: torch.Tensor,
+            attn_bias: torch.Tensor | None = None,
         ) -> torch.Tensor:
             gs_tokens_normed = self.gs_token_norm(gs_tokens)
             q = rearrange(self.q_proj(gs_tokens_normed), "b n (h d) -> b h n d", h=self.num_heads)
             q = self.q_norm(q)
 
-            cross_attn_output = F.scaled_dot_product_attention(q, keys, values)
+            if attn_bias is None:
+                # Unchanged TokenGS path: no bias, no extra arguments.
+                cross_attn_output = F.scaled_dot_product_attention(q, keys, values)
+            else:
+                # Additive bias on the attention logits, broadcast over heads.
+                cross_attn_output = F.scaled_dot_product_attention(
+                    q, keys, values, attn_mask=attn_bias.to(q.dtype)
+                )
             cross_attn_output = rearrange(cross_attn_output, "b h n d -> b n (h d)")
             return self.out_proj(cross_attn_output)
 
@@ -124,9 +135,15 @@ class DecoderBlock(nn.Module):
         self.mlp_scale = make_scale()
 
     def forward(
-        self, gs_tokens: torch.Tensor, keys: torch.Tensor, values: torch.Tensor
+        self,
+        gs_tokens: torch.Tensor,
+        keys: torch.Tensor,
+        values: torch.Tensor,
+        attn_bias: torch.Tensor | None = None,
     ) -> torch.Tensor:
-        gs_tokens = gs_tokens + self.gs_cross_attn_scale(self.gs_cross_attn(gs_tokens, keys, values))
+        gs_tokens = gs_tokens + self.gs_cross_attn_scale(
+            self.gs_cross_attn(gs_tokens, keys, values, attn_bias=attn_bias)
+        )
         gs_tokens = gs_tokens + self.gs_self_attn_scale(self.gs_self_attn(gs_tokens))
         gs_tokens = gs_tokens + self.mlp_scale(self.mlp(gs_tokens))
 
