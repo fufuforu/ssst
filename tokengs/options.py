@@ -137,6 +137,36 @@ class Options:
     # --- augmentation
     random_reflect: bool = True
 
+    # --- SSST: spatially grounded shared tokens + unified object queries ---
+    # Anchor prior in the TokenGS normalized world frame (first context camera
+    # at the origin, dataset scene scale applied to camera translations). The
+    # defaults follow the measured SIU3R processed-ScanNet scale: the visible
+    # surface sits around z ~ 0.1..0.5 with p95 |x| ~ 0.2.
+    anchor_center_z: float = 0.25
+    anchor_extent: float = 0.3
+    anchor_init_radius: float = 0.05
+    anchor_num_freqs: int = 4
+    anchor_refine_step: float = 0.25
+    anchor_radius_min: float = 0.005
+    anchor_radius_max: float = 1.0
+    anchor_radius_soft_min: float = 0.01
+    anchor_radius_soft_max: float = 0.25
+    anchor_local_offset_bound: float = 1.0
+    num_object_queries: int = 100
+    semantic_class_count: int = 20
+    num_object_query_layers: int = 2
+    query_seed_std: float = 0.02
+    query_block_init_values: float = 0.01
+    assignment_temperature_init: float = 5.0
+    use_instance_labels: bool = False
+    # --- joint one-stage loss curriculum and spatial regularization ---
+    understanding_warmup_steps: int = 2000
+    understanding_start_weight: float = 0.1
+    understanding_final_weight: float = 1.0
+    spatial_compactness_weight: float = 1e-3
+    spatial_radius_weight: float = 1e-3
+    init_checkpoint: str | None = None
+
     def __post_init__(self) -> None:
         if self.dec_patch_size is None:
             self.dec_patch_size = self.patch_size
@@ -421,5 +451,97 @@ config_doc["finetune_dl3dv_kubric_dyn_v3"] = (
     "Backward-compatible alias for finetune_dl3dv_kubric_dyn_release."
 )
 config_defaults["finetune_dl3dv_kubric_dyn_v3"] = _kubric_dyn_release
+
+# ----- SSST: spatially grounded shared tokens (local reconstruction unit +
+# local understanding unit) with unified object queries -----
+_SSST_ARCH = {
+    "img_size": (256, 256),
+    "patch_size": 8,
+    "dec_patch_size": 8,
+    "enc_depth": 3,
+    "dec_depth": 12,
+    "enc_embed_dim": 1024,
+    "enc_num_heads": 16,
+    "num_gs_tokens": 1024,
+    "token_dim": 1024,
+    "gs_token_std": 0.01,
+    # The anchors already sit where the normalized SIU3R scene is, so the
+    # legacy random-initialization z offset is not applied.
+    "gaussian_z_offset": 0.0,
+    "random_reflect": False,
+    "camera_normalization_method": "first_cam",
+    "camera_scale_method": "constant",
+    "use_instance_labels": True,
+    "num_input_views": 2,
+    "num_views": 4,
+}
+
+_SSST_LOSS = {
+    "rgb_loss_type": "l2",
+    "lambda_rgb": 1.0,
+    "lambda_ssim": 0.0,
+    "lambda_lpips": 0.5,
+    "lambda_visibility": 0.0,
+    "lambda_mask": 0.0,
+    "lambda_opacity": 0.0,
+}
+
+_SSST_DATA = {
+    "data_mode": (("siu3r_processed_scannet", 1),),
+    "dataset_kwargs": {"data_root": "/space/mawb/SIU3R/data/scannet"},
+}
+
+config_doc["train_siu3r_ssst"] = (
+    "One-stage SIU3R joint training with spatially grounded shared tokens "
+    "(2 context views, 4 supervised records) and 100 unified object queries. "
+    "Curriculum: the understanding loss ramps from 0.1 to 1.0 over 2000 steps."
+)
+config_defaults["train_siu3r_ssst"] = Options(
+    model_type="siu3r_joint_ssst",
+    workspace="/space/mawb/ssst/workspace/siu3r_ssst_joint_v1",
+    experiment_name="siu3r_ssst_joint_v1",
+    project_name="TokenGS-SSST",
+    num_epochs=20,
+    max_iters_per_epoch=1_000_000,
+    batch_size=1,
+    gradient_accumulation_steps=3,
+    lr=1e-4,
+    pct_start_steps=1000,
+    gradient_clip=1.0,
+    mixed_precision="bf16",
+    # In-process loading keeps the pair-order audit active and avoids many
+    # readers on the shared filesystem; raise it for throughput if needed.
+    num_workers=0,
+    seed=42,
+    **_SSST_ARCH,
+    **_SSST_LOSS,
+    **_SSST_DATA,
+)
+
+config_doc["train_siu3r_ssst_re10k"] = (
+    "Same as train_siu3r_ssst but warm-started from the released RE10K "
+    "reconstruction checkpoint. Only name/shape-compatible tokens are loaded; "
+    "anchors, refinement, queries and the understanding head stay fresh."
+)
+config_defaults["train_siu3r_ssst_re10k"] = config_defaults["train_siu3r_ssst"].evolve(
+    workspace="/space/mawb/ssst/workspace/siu3r_ssst_joint_re10k_init_v1",
+    experiment_name="siu3r_ssst_joint_re10k_init_v1",
+    init_checkpoint=(
+        "/space/mawb/tokengs_siu3r_joint_v1/workspace/"
+        "siu3r_joint_re10k_init_context_order_fixed_v1_v3/checkpoints/step_00001000"
+    ),
+)
+
+config_doc["eval_siu3r_ssst"] = (
+    "SSST validation configuration (2 context + 4 novel records) used when a "
+    "checkpoint directory does not ship its own config.yaml."
+)
+config_defaults["eval_siu3r_ssst"] = config_defaults["train_siu3r_ssst"].evolve(
+    evaluating=True,
+    num_views=6,
+    batch_size=1,
+    mixed_precision="no",
+    random_reflect=False,
+)
 
 AllConfigs = tyro.extras.subcommand_type_from_defaults(config_defaults, config_doc)

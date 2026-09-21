@@ -23,10 +23,12 @@ from .input_types import (
     split_data,
 )
 from .tokengs import TokenGS
+from .siu3r_joint_ssst import SIU3RJointSSST
 
 # Model registry
 model_registry = {
     'tokengs': TokenGS,
+    'siu3r_joint_ssst': SIU3RJointSSST,
 }
 
 # Export for convenience
@@ -39,5 +41,6 @@ __all__ = [
     'ModelSupervision',
     'Reconstruction',
     'EncoderLatent',
+    'SIU3RJointSSST',
     'model_registry',
 ]

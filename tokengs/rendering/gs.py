@@ -125,6 +125,84 @@ class GaussianRenderer:
         else:
             return self.render_standard(means3D, opacity, scales, rotations, rgbs, viewmat, Ks, backgrounds, H, W, near_plane, far_plane)
 
+    def render_feature_channels(
+        self,
+        gaussians,
+        features,
+        cam_view,
+        intrinsics,
+        opacity_scale: float = 1.0,
+    ):
+        """Alpha-composite arbitrary per-Gaussian channels over the same geometry.
+
+        The Gaussian tensor supplies position/scale/rotation/opacity unchanged, so
+        RGB rendering and channel rendering (e.g. per-token object-query
+        probabilities) describe exactly the same geometry. `features` is
+        [B, N, D] and the result is [B, V, D, H, W] plus the composited alpha.
+        Requires deferred_bp=False.
+        """
+        if getattr(self.opt, "deferred_bp", False):
+            raise ValueError("feature-channel rendering requires deferred_bp=False")
+        if features.ndim != 3 or features.shape[:2] != gaussians.shape[:2]:
+            raise ValueError(
+                f"features must be [B,N,D] matching gaussians [B,N,14], "
+                f"got {tuple(features.shape)} for {tuple(gaussians.shape)}"
+            )
+        B, V = cam_view.shape[:2]
+        means3D = gaussians[..., 0:3].contiguous().float()
+        opacity = gaussians[..., 3:4].contiguous().float().squeeze(-1)
+        if opacity_scale != 1.0:
+            opacity = 1.0 - (1.0 - opacity).clamp(0.0, 1.0).pow(float(opacity_scale))
+        scales = gaussians[..., 4:7].contiguous().float()
+        rotations = gaussians[..., 7:11].contiguous().float()
+        colors = features.contiguous().float()
+        feature_dim = colors.shape[-1]
+
+        viewmat = cam_view.float().transpose(3, 2)  # [B, V, 4, 4]
+        Ks = torch.tensor(
+            [
+                [
+                    [
+                        [view_intrinsic[0], 0.0, view_intrinsic[2]],
+                        [0.0, view_intrinsic[1], view_intrinsic[3]],
+                        [0.0, 0.0, 1.0],
+                    ]
+                    for view_intrinsic in batch_intrinsic
+                ]
+                for batch_intrinsic in intrinsics
+            ],
+            dtype=means3D.dtype,
+            device=means3D.device,
+        )
+        backgrounds = torch.zeros(B, V, feature_dim, dtype=colors.dtype, device=colors.device)
+        H, W = self.opt.img_size
+        near_plane, far_plane = self.opt.znear, self.opt.zfar
+
+        images, alphas = [], []
+        for b in range(B):
+            rendered_all, rendered_alpha_all, _ = rasterization(
+                means=means3D[b],
+                quats=rotations[b],
+                scales=scales[b],
+                opacities=opacity[b],
+                colors=colors[b],
+                viewmats=viewmat[b],
+                Ks=Ks[b],
+                width=W,
+                height=H,
+                near_plane=near_plane,
+                far_plane=far_plane,
+                backgrounds=backgrounds[b],
+                render_mode="RGB",
+                packed=False,
+            )
+            for rendered, rendered_alpha in zip(rendered_all, rendered_alpha_all):
+                images.append(rendered.permute(2, 0, 1))
+                alphas.append(rendered_alpha.permute(2, 0, 1))
+        images = torch.stack(images).view(B, V, feature_dim, H, W)
+        alphas = torch.stack(alphas).view(B, V, 1, H, W)
+        return {"images_pred": images, "alphas_pred": alphas}
+
 
     def render_deferred(self, means3D, opacity, scales, rotations, rgbs, viewmat, Ks, backgrounds, H, W, near_plane, far_plane):
         images, alphas, depths, means2ds = DeferredBP.apply(means3D, rgbs, scales, rotations, opacity, viewmat, Ks, W, H, near_plane, far_plane, backgrounds)

@@ -23,3 +23,14 @@ DF_CAMERA_INTRINSICS = "camera_intrinsics"
 DF_FOREGROUND_MASK = "foreground_mask"
 # [B, H, W, 1], float32, depth map.
 DF_DEPTH = "depth"
+
+# --- optional scene/instance supervision fields (only read by datasets that set
+# `has_semantic_labels` / `has_instance_labels`) ---
+# [V], int64, dataset frame IDs in the same order as the returned view tensors.
+DF_FRAME_IDS = "frame_ids"
+# str, dataset scene identifier.
+DF_SCENE_NAME = "scene_name"
+# [V, H, W], int64, per-pixel semantic label (255 = void).
+DF_SEMANTIC_LABEL = "semantic_label"
+# [V, H, W], int64, per-pixel instance ID (0 = no instance).
+DF_INSTANCE_LABEL = "instance_label"
