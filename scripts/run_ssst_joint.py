@@ -104,6 +104,15 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
         help="Steps between shared-task gradient diagnostics (0 disables).",
     )
     parser.add_argument("--num-object-queries", type=int, default=None)
+    parser.add_argument(
+        "--reconstruction-only",
+        action="store_true",
+        default=None,
+        help=(
+            "Experiment 1: train only the spatial reconstruction path. The unified "
+            "object-query branch is frozen and never executed."
+        ),
+    )
     parser.add_argument("--anchor-center-z", type=float, default=None)
     parser.add_argument("--anchor-extent", type=float, default=None)
     parser.add_argument("--anchor-init-radius", type=float, default=None)
@@ -148,6 +157,7 @@ def build_options(args: argparse.Namespace) -> Options:
         "spatial_radius_weight": args.spatial_radius_weight,
         "gradient_diagnostic_freq": args.gradient_diagnostic_freq,
         "num_object_queries": args.num_object_queries,
+        "reconstruction_only": args.reconstruction_only,
         "anchor_center_z": args.anchor_center_z,
         "anchor_extent": args.anchor_extent,
         "anchor_init_radius": args.anchor_init_radius,
@@ -447,6 +457,12 @@ def main(argv: list[str] | None = None) -> int:
     if opt.init_checkpoint:
         log(f"[setup] warm start from {opt.init_checkpoint}")
         model.init_from_checkpoint(opt.init_checkpoint, log=log)
+    if opt.reconstruction_only:
+        frozen = model.freeze_object_queries()
+        log(
+            f"[setup] reconstruction-only: froze {len(frozen)} object-query parameters "
+            "(no query forward, no mask rendering, no Hungarian, no understanding loss)"
+        )
     optimizer = torch.optim.AdamW(
         [parameter for parameter in model.parameters() if parameter.requires_grad],
         lr=opt.lr,
@@ -471,6 +487,9 @@ def main(argv: list[str] | None = None) -> int:
     if opt.gradient_diagnostic_freq is None:
         raise ValueError("gradient_diagnostic_freq must be set (Options default is 200)")
     gradient_diagnostic_freq = int(opt.gradient_diagnostic_freq)
+    if opt.reconstruction_only and gradient_diagnostic_freq > 0:
+        log("[setup] reconstruction-only: shared-gradient diagnostic disabled (no understanding loss)")
+        gradient_diagnostic_freq = 0
     history: list[dict] = []
     accumulator = max(1, int(opt.gradient_accumulation_steps))
     start_time = time.time()

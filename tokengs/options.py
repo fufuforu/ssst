@@ -167,6 +167,10 @@ class Options:
     query_spatial_pe_std: float = 0.02
     assignment_temperature_init: float = 5.0
     use_instance_labels: bool = False
+    # Experiment 1: train only the spatial reconstruction path.  The unified
+    # object-query branch is frozen and never executed (no query forward, no
+    # mask rendering, no Hungarian matching, no understanding loss).
+    reconstruction_only: bool = False
     # --- joint one-stage loss curriculum and spatial regularization ---
     understanding_warmup_steps: int = 2000
     understanding_start_weight: float = 0.1

@@ -28,7 +28,18 @@ SIU3R_COMMIT = "8ea80166be76854f938e90521f1a5b688b755c87"
 SIU3R_PYTHON = "/space/mawb/SIU3R/.venv_gpu_v4/bin/python"
 
 
-def evaluate(eval_path: str | Path, *, device: str = "cuda") -> dict:
+def evaluate(
+    eval_path: str | Path,
+    *,
+    device: str = "cuda",
+    segmentation: bool = True,
+) -> dict:
+    """Run the pinned SIU3R evaluator.
+
+    ``segmentation=False`` keeps only image/depth quality metrics, which is the
+    reconstruction-only protocol (the prediction directory then has no
+    semantic/instance maps).
+    """
     sys.path.insert(0, SIU3R_REPO)
     try:
         from src.config import EvaluatorCfg
@@ -46,12 +57,12 @@ def evaluate(eval_path: str | Path, *, device: str = "cuda") -> dict:
 
     cfg = EvaluatorCfg(
         dataset_name="scannet",
-        eval_context_miou=True,
-        eval_context_pq=True,
-        eval_context_map=True,
-        eval_target_miou=True,
-        eval_target_pq=True,
-        eval_target_map=True,
+        eval_context_miou=segmentation,
+        eval_context_pq=segmentation,
+        eval_context_map=segmentation,
+        eval_target_miou=segmentation,
+        eval_target_pq=segmentation,
+        eval_target_map=segmentation,
         eval_image_quality=True,
         eval_depth_quality=True,
         id2label=PANOPTIC_SEMANTIC2NAME,
@@ -70,8 +81,15 @@ def main() -> int:
     parser.add_argument("--eval-path", required=True)
     parser.add_argument("--output", required=True)
     parser.add_argument("--device", default="cuda")
+    parser.add_argument(
+        "--recon-only",
+        action="store_true",
+        help="Image/depth quality metrics only (reconstruction-only predictions).",
+    )
     args = parser.parse_args()
-    result = evaluate(args.eval_path, device=args.device)
+    result = evaluate(
+        args.eval_path, device=args.device, segmentation=not args.recon_only
+    )
     Path(args.output).parent.mkdir(parents=True, exist_ok=True)
     Path(args.output).write_text(
         json.dumps(

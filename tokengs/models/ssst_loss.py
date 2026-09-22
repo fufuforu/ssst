@@ -423,10 +423,93 @@ def compute_joint_loss(
     return results
 
 
+def compute_reconstruction_only_loss(
+    *,
+    opt,
+    img_size,
+    render_results: dict,
+    supervision,
+    decoder_input,
+    gaussians: torch.Tensor,
+    lpips_loss,
+    anchors: torch.Tensor | None = None,
+    radii: torch.Tensor | None = None,
+    gaussians_per_token: int = 1,
+) -> dict[str, torch.Tensor]:
+    """Reconstruction-only objective: ``L = L_reconstruction + L_spatial``.
+
+    Identical to the reconstruction part of `compute_joint_loss`; no query bank,
+    no mask rendering, no Hungarian matching and no understanding term exist on
+    this path.
+    """
+    # Same structure as `compute_joint_loss`: the per-scene vmap must not see
+    # the frozen VGG trunk (dropout vs vmap randomness-error mode), so LPIPS is
+    # evaluated outside the vmap and added with the same weight.
+    recon = compute_tokengs_loss(
+        opt=opt,
+        img_size=img_size,
+        render_results=render_results,
+        supervision=supervision,
+        decoder_input=decoder_input,
+        gaussians=gaussians,
+        lpips_loss=None,
+    )
+    loss_lpips = recon["loss"] * 0.0
+    if float(getattr(opt, "lambda_lpips", 0.0)) > 0 and lpips_loss is not None:
+        loss_lpips = torch.stack(
+            [
+                lpips_loss(
+                    supervision.images_output[:, view],
+                    render_results["images_pred"][:, view],
+                    normalize=True,
+                ).mean()
+                for view in range(render_results["images_pred"].shape[1])
+            ]
+        ).mean()
+    lambda_lpips = float(getattr(opt, "lambda_lpips", 0.0))
+    total = recon["loss"] + lambda_lpips * loss_lpips
+    results = {
+        "loss": total,
+        "loss_recon": recon["loss"] + lambda_lpips * loss_lpips,
+        "loss_lpips": loss_lpips,
+    }
+    if anchors is not None and radii is not None:
+        spatial = spatial_regularization(
+            gaussians,
+            anchors,
+            radii,
+            gaussians_per_token=gaussians_per_token,
+            compactness_weight=float(opt.spatial_compactness_weight),
+            radius_weight=float(opt.spatial_radius_weight),
+            radius_soft_min=float(opt.anchor_radius_soft_min),
+            radius_soft_max=float(opt.anchor_radius_soft_max),
+        )
+        results.update(
+            {
+                "loss_spatial": spatial["loss"],
+                "loss_spatial_compactness": spatial["loss_compactness"],
+                "loss_spatial_radius": spatial["loss_radius"],
+                "local_offset_norm_mean": spatial["local_offset_norm_mean"],
+                "local_offset_norm_p95": spatial["local_offset_norm_p95"],
+                "local_offset_norm_max": spatial["local_offset_norm_max"],
+                "local_offset_ratio_mean": spatial["local_offset_ratio_mean"],
+                "gs_scale_over_radius_mean": spatial["gs_scale_over_radius_mean"],
+                "gs_scale_over_radius_p95": spatial["gs_scale_over_radius_p95"],
+                "gs_scale_over_radius_max": spatial["gs_scale_over_radius_max"],
+            }
+        )
+        results["loss"] = total + spatial["loss"]
+    for key in ("loss_rgb", "loss_ssim", "loss_visibility", "loss_opacity", "psnr"):
+        if key in recon:
+            results[key] = recon[key]
+    return results
+
+
 __all__ = [
     "build_context_segments",
     "class_aware_context_loss",
     "compute_joint_loss",
+    "compute_reconstruction_only_loss",
     "hungarian_match",
     "spatial_regularization",
     "understanding_weight",

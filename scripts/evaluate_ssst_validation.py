@@ -158,6 +158,11 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--text-manifest", default=None)
     parser.add_argument("--limit", type=int, default=None, help="Evaluate only the first N records.")
     parser.add_argument("--device", default="cuda")
+    parser.add_argument(
+        "--reconstruction-only",
+        action="store_true",
+        help="Reconstruction-only checkpoint: write RGB/depth only (no query branch).",
+    )
     parser.add_argument("--run-official", action="store_true", help="Invoke the pinned SIU3R evaluator in-process.")
     args = parser.parse_args(argv)
 
@@ -173,6 +178,9 @@ def main(argv: list[str] | None = None) -> int:
     device = torch.device(args.device)
     opt = load_options(checkpoint_dir, args.config)
     opt = opt.evolve(evaluating=True, use_input_supervision=False, num_views=6)
+    if args.reconstruction_only:
+        opt = opt.evolve(reconstruction_only=True)
+    reconstruction_only = bool(opt.reconstruction_only)
 
     model = load_model(checkpoint_dir, opt, device, log)
     provider = SIU3RProcessedProvider(
@@ -202,15 +210,20 @@ def main(argv: list[str] | None = None) -> int:
             cam_view=batch["cam_view_all"], intrinsics=batch["intrinsics_all"]
         )
         with torch.no_grad():
-            output = model.forward_joint(
-                ModelInput(model_input.encoder, decoder),
-                mask_decoder_input=decoder,
-                render_decoder_input=decoder,
-            )
+            if reconstruction_only:
+                output = model.forward_reconstruction_only(
+                    ModelInput(model_input.encoder, decoder), render_decoder_input=decoder
+                )
+            else:
+                output = model.forward_joint(
+                    ModelInput(model_input.encoder, decoder),
+                    mask_decoder_input=decoder,
+                    render_decoder_input=decoder,
+                )
         predicted_rgb = output["render"]["images_pred"][0]
         predicted_depth = output["render"]["depths_pred"][0]
-        class_logits = output["query_class_logits"][0]
-        mask_prob = output["query_mask_prob"][0]
+        class_logits = None if reconstruction_only else output["query_class_logits"][0]
+        mask_prob = None if reconstruction_only else output["query_mask_prob"][0]
 
         scene = record_scene(records[index])
         context = [int(x) for x in records[index]["context_ids"]]
@@ -219,21 +232,21 @@ def main(argv: list[str] | None = None) -> int:
             f"{scene}_context" + "_".join(str(x) for x in context)
         )
         log(f"[eval] scene {scene} context {context}")
-        for sub in (
-            "rgb",
-            "rgb_gt",
-            "depth",
-            "depth_gt",
-            "context_seg_pred",
-            "context_seg_gt",
-            "target_seg_pred",
-            "target_seg_gt",
-        ):
+        subdirs = ["rgb", "rgb_gt", "depth", "depth_gt"]
+        if not reconstruction_only:
+            subdirs += [
+                "context_seg_pred",
+                "context_seg_gt",
+                "target_seg_pred",
+                "target_seg_gt",
+            ]
+        for sub in subdirs:
             (scene_dir / sub).mkdir(parents=True, exist_ok=True)
 
-        semantic_pred, instance_pred, pred_info = predict_maps(class_logits, mask_prob)
-        write_json(scene_dir / "context_seg_pred" / "pred.json", pred_info)
-        write_json(scene_dir / "target_seg_pred" / "pred.json", pred_info)
+        if not reconstruction_only:
+            semantic_pred, instance_pred, pred_info = predict_maps(class_logits, mask_prob)
+            write_json(scene_dir / "context_seg_pred" / "pred.json", pred_info)
+            write_json(scene_dir / "target_seg_pred" / "pred.json", pred_info)
         for view, frame_id in enumerate(target):
             save_rgb(scene_dir / "rgb" / f"{scene}_{frame_id}.png", predicted_rgb[view])
             save_rgb(scene_dir / "rgb_gt" / f"{scene}_{frame_id}.png", batch["images_all"][0, view])
@@ -245,6 +258,8 @@ def main(argv: list[str] | None = None) -> int:
                 scene_dir / "depth_gt" / f"{scene}_{frame_id}.png",
                 torch.from_numpy(depth_gt).unsqueeze(0),
             )
+            if reconstruction_only:
+                continue
             sem_gt, ins_gt = gt_maps(
                 batch["semantic_label_all"][0, view], batch["instance_label_all"][0, view]
             )
@@ -266,46 +281,53 @@ def main(argv: list[str] | None = None) -> int:
                     scene_dir / "context_seg_gt" / f"{scene}_gt{frame_id}.png", sem_gt, ins_gt
                 )
 
-        assignment = output["query_assignment_prob"][0].detach()
-        records_report.append(
-            {
-                "record_index": index,
-                "scene": scene,
-                "context_ids": context,
-                "target_ids": target,
-                "query_class_logits_shape": list(class_logits.shape),
-                "query_mask_prob_shape": list(mask_prob.shape),
-                "assignment_shape": list(assignment.shape),
-                "assignment_entropy": float(
-                    -(assignment.clamp_min(1e-8).log() * assignment).sum(0).mean()
-                ),
-                "active_query_count": int(
-                    (assignment.mean(1) > 1.0 / (2.0 * assignment.shape[1])).sum()
-                ),
-                "no_object_query_count": int(
-                    (class_logits.argmax(-1) == SEMANTIC_CLASS_COUNT).sum()
-                ),
-                "all_outputs_finite": bool(
-                    all(
-                        torch.isfinite(value).all().item()
-                        for value in (predicted_rgb, predicted_depth, class_logits, mask_prob)
-                    )
-                ),
-                "query_class_logits_sha256": sha256_tensor(class_logits),
-                "rgb_sha256": sha256_tensor(predicted_rgb),
-                "depth_sha256": sha256_tensor(predicted_depth),
-            }
-        )
+        entry = {
+            "record_index": index,
+            "scene": scene,
+            "context_ids": context,
+            "target_ids": target,
+            "rgb_sha256": sha256_tensor(predicted_rgb),
+            "depth_sha256": sha256_tensor(predicted_depth),
+            "all_outputs_finite": bool(
+                all(
+                    torch.isfinite(value).all().item()
+                    for value in (predicted_rgb, predicted_depth)
+                )
+            ),
+        }
+        if not reconstruction_only:
+            assignment = output["query_assignment_prob"][0].detach()
+            entry.update(
+                {
+                    "query_class_logits_shape": list(class_logits.shape),
+                    "query_mask_prob_shape": list(mask_prob.shape),
+                    "assignment_shape": list(assignment.shape),
+                    "assignment_entropy": float(
+                        -(assignment.clamp_min(1e-8).log() * assignment).sum(0).mean()
+                    ),
+                    "active_query_count": int(
+                        (assignment.mean(1) > 1.0 / (2.0 * assignment.shape[1])).sum()
+                    ),
+                    "no_object_query_count": int(
+                        (class_logits.argmax(-1) == SEMANTIC_CLASS_COUNT).sum()
+                    ),
+                    "query_class_logits_sha256": sha256_tensor(class_logits),
+                }
+            )
+            if not torch.isfinite(class_logits).all() or not torch.isfinite(mask_prob).all():
+                entry["all_outputs_finite"] = False
+        records_report.append(entry)
     report = {
         "checkpoint_dir": str(checkpoint_dir),
         "manifest": str(Path(args.manifest).resolve()),
         "records": len(records_report),
         "config": {"model_type": opt.model_type, "num_views": opt.num_views},
+        "reconstruction_only": reconstruction_only,
         "predictions": records_report,
         "protocol": {
             "context_views": 2,
             "target_records": 6,
-            "native_query_count": 100,
+            "native_query_count": 0 if reconstruction_only else 100,
             "target_rgb_to_encoder": False,
             "gt_to_forward": False,
             "optimizer_steps": 0,

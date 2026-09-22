@@ -47,7 +47,11 @@ from tokengs.models.ssst_contracts import (
     validate_query_outputs,
     validate_variable_target_batch,
 )
-from tokengs.models.ssst_loss import build_context_segments, compute_joint_loss
+from tokengs.models.ssst_loss import (
+    build_context_segments,
+    compute_joint_loss,
+    compute_reconstruction_only_loss,
+)
 from tokengs.models.ssst_diagnostics import query_mask_pairwise_similarity
 from tokengs.models.tokengs import TokenGS
 from tokengs.models.unified_object_queries import UnifiedObjectQueryHead
@@ -98,6 +102,44 @@ class SIU3RJointSSST(TokenGS):
         # (gradient accumulation calls forward several times per step).
         self.understanding_step = 0
         self.understanding_phase = "train"
+        self.reconstruction_only = bool(getattr(opt, "reconstruction_only", False))
+
+    def freeze_object_queries(self) -> list[str]:
+        """Freeze the unified-query branch (reconstruction-only pretraining).
+
+        The parameters stay in the module (and therefore in the checkpoint) but
+        receive no gradient and are excluded from the optimizer.
+        """
+        frozen = []
+        for name, parameter in self.object_queries.named_parameters():
+            parameter.requires_grad_(False)
+            frozen.append(f"object_queries.{name}")
+        return frozen
+
+    def forward_reconstruction_only(
+        self,
+        model_input: ModelInput,
+        *,
+        render_decoder_input: ModelInputDecoder | None = None,
+    ) -> dict:
+        """Spatial tokens -> local Gaussians -> RGB/depth.  No query branch."""
+        spatial = self.forward_spatial_tokens(model_input)
+        gaussians = self.activation_head(
+            spatial.tokens, anchors=spatial.anchors, radii=spatial.radii
+        )
+        reconstruction = self._reconstruction_from_gaussians(gaussians)
+        render_decoder = render_decoder_input or model_input.decoder
+        render = self.render_reconstruction(reconstruction, render_decoder)
+        return {
+            "reconstruction": reconstruction,
+            "gaussians": gaussians,
+            "spatial_tokens": spatial.tokens,
+            "anchors": spatial.anchors,
+            "radii": spatial.radii,
+            "render": render,
+            "spatial_stats": spatial.stats,
+            "query_stats": {},
+        }
 
     def set_step_context(self, step: int, phase: str) -> None:
         if phase not in ("train", "validation"):
@@ -180,6 +222,11 @@ class SIU3RJointSSST(TokenGS):
         render_decoder_input: ModelInputDecoder | None = None,
     ) -> dict:
         """Full forward pass: tokens -> Gaussians -> RGB/depth and query masks."""
+        if self.reconstruction_only:
+            raise RuntimeError(
+                "forward_joint must not be used in reconstruction-only mode; "
+                "call forward_reconstruction_only"
+            )
         spatial = self.forward_spatial_tokens(model_input)
         gaussians = self.activation_head(
             spatial.tokens, anchors=spatial.anchors, radii=spatial.radii
@@ -245,6 +292,10 @@ class SIU3RJointSSST(TokenGS):
         render_decoder = ModelInputDecoder(
             cam_view=batch["cam_view_all"], intrinsics=batch["intrinsics_all"]
         )
+        if self.reconstruction_only:
+            return self._compute_reconstruction_step(
+                batch, model_input, render_decoder, phase=phase
+            )
         mask_decoder = render_decoder.select_batch(slice(None), slice(0, TRAIN_CONTEXT_VIEWS))
         output = self.forward_joint(
             ModelInput(model_input.encoder, render_decoder),
@@ -300,6 +351,50 @@ class SIU3RJointSSST(TokenGS):
         )
         return output, metrics
 
+    def _compute_reconstruction_step(
+        self,
+        batch: dict,
+        model_input: ModelInput,
+        render_decoder: ModelInputDecoder,
+        *,
+        phase: str,
+    ) -> tuple[dict, dict]:
+        """Reconstruction-only forward + ``L = L_reconstruction + L_spatial``."""
+        del phase
+        output = self.forward_reconstruction_only(
+            ModelInput(model_input.encoder, render_decoder),
+            render_decoder_input=render_decoder,
+        )
+        has_mask = batch["has_mask"]
+        if not torch.is_tensor(has_mask):
+            has_mask = torch.tensor([bool(has_mask)], device=batch["images_all"].device)
+        elif has_mask.ndim == 0:
+            has_mask = has_mask.expand(batch["images_all"].shape[0])
+        supervision = ModelSupervision(
+            images_output=batch["images_all"].detach(),
+            masks_output=batch["masks_all"].detach(),
+            has_mask=has_mask,
+            rays_os=batch["rays_os"],
+            rays_ds=batch["rays_ds"],
+        )
+        metrics = compute_reconstruction_only_loss(
+            opt=self.opt,
+            img_size=self.img_size,
+            render_results=output["render"],
+            supervision=supervision,
+            decoder_input=render_decoder,
+            gaussians=output["gaussians"],
+            lpips_loss=self.lpips_loss,
+            anchors=output["anchors"],
+            radii=output["radii"],
+            gaussians_per_token=self.gaussians_per_token,
+        )
+        metrics = dict(metrics)
+        metrics.update(
+            {f"spatial/{key}": value for key, value in output["spatial_stats"].items()}
+        )
+        return output, metrics
+
     def joint_step(self, batch: dict, *, step: int, phase: str):
         """Loss-carrying forward for validation and non-DDP callers."""
         output, metrics = self.compute_joint_step(batch, step=step, phase=phase)
@@ -311,14 +406,23 @@ class SIU3RJointSSST(TokenGS):
     # ------------------------------------------------------------------ #
     # initialization
     # ------------------------------------------------------------------ #
-    def init_from_checkpoint(self, path: str, log=print) -> dict:
+    def init_from_checkpoint(
+        self,
+        path: str,
+        log=print,
+        *,
+        exclude_prefixes: tuple[str, ...] = (),
+    ) -> dict:
         """Load only name- and shape-compatible keys, reporting everything.
 
         `activation_head.deconv.*` is loaded channel-aware: raw channels 0:3 of
         the legacy head are absolute XYZ and are skipped, while channels 3:14
         (RGB, scale, rotation, opacity) keep their learned values.  New
         parameters (anchors, refinement, queries, assignment) always keep their
-        fresh initialization.
+        fresh initialization.  `exclude_prefixes` lists parameter-name prefixes
+        that must keep their fresh initialization (used to initialize a joint
+        model from a reconstruction-only checkpoint while keeping the unified
+        object-query branch random).
         """
         resolved = Path(path)
         if resolved.is_dir():
@@ -341,6 +445,9 @@ class SIU3RJointSSST(TokenGS):
         with torch.no_grad():
             for key, value in source.items():
                 if "lpips_loss" in key:
+                    continue
+                if exclude_prefixes and key.startswith(tuple(exclude_prefixes)):
+                    skipped.append({"key": key, "reason": "excluded by policy"})
                     continue
                 if key not in state:
                     unexpected.append((key, tuple(value.shape)))
@@ -382,6 +489,8 @@ class SIU3RJointSSST(TokenGS):
             log(f"    loaded      {key} {tuple(state[key].shape)}")
         log(f"[init] partially loaded keys ({len(partially_loaded)}):")
         for entry in skipped:
+            if "kept_rows" not in entry:
+                continue
             log(
                 f"    partial     {entry['key']} kept {entry['kept_rows']} rows, "
                 f"skipped {entry['skipped_rows']} rows"
@@ -417,6 +526,17 @@ class SIU3RJointSSST(TokenGS):
                 for key, ckpt_shape, model_shape in mismatched
             ],
         }
+
+    def init_from_reconstruction_checkpoint(self, path: str, log=print) -> dict:
+        """Initialize a joint model from a reconstruction-only checkpoint.
+
+        Everything except the unified object-query branch is loaded, so the
+        subsequent joint finetune starts from the pre-trained spatial
+        reconstruction representation with a fresh query head.
+        """
+        return self.init_from_checkpoint(
+            path, log=log, exclude_prefixes=("object_queries.",)
+        )
 
     # ------------------------------------------------------------------ #
     # compatibility entry points

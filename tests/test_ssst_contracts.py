@@ -11,7 +11,7 @@ import torch
 import torch.nn.functional as F
 
 from tokengs.models import model_registry
-from tokengs.models.input_types import ModelInputDecoder
+from tokengs.models.input_types import ModelInputDecoder, split_data
 from tokengs.models.enc_dec import DecoderBlock
 from tokengs.models.spatial_grounded_tokens import (
     anchor_ray_bias,
@@ -1021,6 +1021,149 @@ class QueryGroupingDiagnosticTests(unittest.TestCase):
         ):
             self.assertIn(name, metrics, name)
             self.assertTrue(torch.isfinite(metrics[name]).all(), name)
+
+
+class ReconstructionOnlyTests(unittest.TestCase):
+    """Experiment 1: the understanding branch must never run."""
+
+    def _setup(self):
+        opt = tiny_options().evolve(reconstruction_only=True)
+        model = model_registry["siu3r_joint_ssst"](opt).train()
+        model.gs = FakeRenderer(opt.img_size)
+        frozen = model.freeze_object_queries()
+        optimizer = torch.optim.AdamW(
+            [p for p in model.parameters() if p.requires_grad], lr=1e-4
+        )
+        optimizer_ids = {
+            id(p) for group in optimizer.param_groups for p in group["params"]
+        }
+        return opt, model, frozen, optimizer, optimizer_ids
+
+    def test_reconstruction_only_step_never_calls_the_query_branch(self):
+        import tokengs.models.ssst_loss as ssst_loss
+        from tokengs.models.siu3r_joint_ssst import SIU3RJointSSST
+        from tokengs.models.unified_object_queries import UnifiedObjectQueryHead
+
+        opt, model, _, _, _ = self._setup()
+        originals = (
+            UnifiedObjectQueryHead.forward,
+            SIU3RJointSSST.forward_joint,
+            SIU3RJointSSST.render_query_masks,
+            ssst_loss.build_context_segments,
+            ssst_loss.hungarian_match,
+            ssst_loss.class_aware_context_loss,
+        )
+
+        def guard(name):
+            def _guard(*args, **kwargs):
+                raise AssertionError(f"reconstruction-only violated: {name} called")
+
+            return _guard
+
+        try:
+            UnifiedObjectQueryHead.forward = guard("query forward")
+            SIU3RJointSSST.forward_joint = guard("forward_joint")
+            SIU3RJointSSST.render_query_masks = guard("render_query_masks")
+            ssst_loss.build_context_segments = guard("build_context_segments")
+            ssst_loss.hungarian_match = guard("hungarian_match")
+            ssst_loss.class_aware_context_loss = guard("class_aware_context_loss")
+            _, metrics = model.joint_step(synthetic_batch(opt), step=0, phase="train")
+            metrics["loss"].backward()
+        finally:
+            (
+                UnifiedObjectQueryHead.forward,
+                SIU3RJointSSST.forward_joint,
+                SIU3RJointSSST.render_query_masks,
+                ssst_loss.build_context_segments,
+                ssst_loss.hungarian_match,
+                ssst_loss.class_aware_context_loss,
+            ) = originals
+
+        # L = L_recon + L_spatial, nothing else.
+        expected = metrics["loss_recon"] + metrics["loss_spatial"]
+        self.assertAlmostEqual(float(metrics["loss"]), float(expected), places=5)
+        self.assertNotIn("loss_understanding", metrics)
+        self.assertNotIn("lambda_understanding", metrics)
+        self.assertFalse(any("understanding" in key for key in metrics))
+
+    def test_query_parameters_are_frozen_and_have_no_gradients(self):
+        opt, model, frozen, optimizer, optimizer_ids = self._setup()
+        self.assertTrue(frozen)
+        query_parameters = dict(model.object_queries.named_parameters())
+        for name, parameter in query_parameters.items():
+            self.assertFalse(parameter.requires_grad, name)
+            self.assertNotIn(id(parameter), optimizer_ids, name)
+        _, metrics = model.joint_step(synthetic_batch(opt), step=0, phase="train")
+        metrics["loss"].backward()
+        for name, parameter in query_parameters.items():
+            self.assertIsNone(parameter.grad, name)
+        # The reconstruction path does receive gradients.
+        self.assertIsNotNone(model.spatial_decoder.anchor_pre.grad)
+        self.assertIsNotNone(model.activation_head.deconv.weight.grad)
+
+    def test_joint_forward_is_refused_in_reconstruction_only_mode(self):
+        opt = tiny_options().evolve(reconstruction_only=True)
+        model = model_registry["siu3r_joint_ssst"](opt).eval()
+        model.gs = FakeRenderer(opt.img_size)
+        batch = synthetic_batch(opt)
+        model_input, _ = split_data(batch, opt)
+        with self.assertRaises(RuntimeError):
+            model.forward_joint(model_input)
+
+    def test_reconstruction_checkpoint_initializes_joint_model_fresh_queries(self):
+        opt, model, _, _, _ = self._setup()
+        _, metrics = model.joint_step(synthetic_batch(opt), step=0, phase="train")
+        metrics["loss"].backward()
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "model.pt"
+            torch.save(model.state_dict(), path)
+            joint_opt = tiny_options().evolve(reconstruction_only=False)
+            torch.manual_seed(7)
+            joint = model_registry["siu3r_joint_ssst"](joint_opt)
+            query_before = {
+                name: parameter.detach().clone()
+                for name, parameter in joint.object_queries.named_parameters()
+            }
+            head_before = joint.activation_head.deconv.weight.detach().clone()
+            report = joint.init_from_reconstruction_checkpoint(str(path), log=lambda m: None)
+        excluded = [
+            entry["key"]
+            for entry in report["skipped"]
+            if entry.get("reason") == "excluded by policy"
+        ]
+        self.assertTrue(excluded)
+        self.assertTrue(all(key.startswith("object_queries.") for key in excluded))
+        for name, parameter in joint.object_queries.named_parameters():
+            self.assertTrue(torch.equal(query_before[name], parameter.detach()), name)
+        # Channels 3:14 of the Gaussian head are loaded; channels 0:3 (local
+        # offset) intentionally keep the target model's own initialization.
+        rows = model.activation_head.deconv.weight.shape[0]
+        channel = torch.arange(rows) % int(model.activation_head.output_dims)
+        loaded_rows = channel >= 3
+        self.assertTrue(
+            torch.equal(
+                joint.activation_head.deconv.weight.detach()[loaded_rows],
+                model.activation_head.deconv.weight.detach()[loaded_rows],
+            )
+        )
+        self.assertTrue(
+            torch.equal(
+                joint.activation_head.deconv.weight.detach()[~loaded_rows],
+                head_before[~loaded_rows],
+            )
+        )
+        self.assertTrue(
+            torch.equal(
+                joint.spatial_decoder.anchor_pre.detach(),
+                model.spatial_decoder.anchor_pre.detach(),
+            )
+        )
+        self.assertTrue(
+            torch.equal(
+                joint.enc_dec_backbone.encoder_norm.weight.detach(),
+                model.enc_dec_backbone.encoder_norm.weight.detach(),
+            )
+        )
 
 
 if __name__ == "__main__":
