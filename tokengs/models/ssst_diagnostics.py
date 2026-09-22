@@ -41,6 +41,148 @@ SPATIAL_GROUNDING_PARAMETERS = (
 )
 
 
+def _pairwise_stats(values: torch.Tensor) -> dict[str, torch.Tensor]:
+    """Mean/p95 of a square similarity matrix with the diagonal excluded."""
+    if values.ndim != 2 or values.shape[0] != values.shape[1]:
+        raise ValueError(f"expected a square matrix, got {tuple(values.shape)}")
+    count = values.shape[0]
+    if count < 2:
+        zero = values.new_zeros(()).float()
+        return {"mean": zero, "p95": zero}
+    mask = ~torch.eye(count, dtype=torch.bool, device=values.device)
+    # bfloat16 autocast promotes matmul-like ops, but quantile() only accepts
+    # float32/float64, so aggregate explicitly in float32.
+    off_diagonal = values[mask].float()
+    return {
+        "mean": off_diagonal.mean(),
+        "p95": off_diagonal.quantile(0.95),
+    }
+
+
+def query_pairwise_cosine(query_features: torch.Tensor) -> dict[str, torch.Tensor]:
+    """Pairwise cosine similarity between query features (diagonal excluded).
+
+    Args:
+        query_features: [B, M, C] final (LayerNorm-ed) query representations.
+
+    Returns:
+        ``{"mean": ..., "p95": ...}`` averaged over the batch.  Values close to
+        1 mean the query bank has collapsed onto near-identical vectors.
+    """
+    if query_features.ndim != 3:
+        raise ValueError(f"query_features must be [B,M,C], got {tuple(query_features.shape)}")
+    normalized = F.normalize(query_features.detach().float(), dim=-1, eps=1e-6)
+    similarity = torch.einsum("bmc,bnc->bmn", normalized, normalized)
+    per_batch = [_pairwise_stats(similarity[index]) for index in range(similarity.shape[0])]
+    return {
+        "mean": torch.stack([item["mean"] for item in per_batch]).mean(),
+        "p95": torch.stack([item["p95"] for item in per_batch]).mean(),
+    }
+
+
+def query_scene_update(
+    query_features: torch.Tensor,
+    query_seed: torch.Tensor,
+) -> dict[str, torch.Tensor]:
+    """How far the decoder moved the queries away from the learnable seed.
+
+    ``query_features`` is the final LayerNorm-ed query output and
+    ``query_seed`` is the same seed expanded to the batch, so the reported norm
+    includes the effect of that final LayerNorm.  A value near 0 means the
+    scene-conditioned blocks did not change the queries at all.
+    """
+    if query_features.ndim != 3 or query_seed.ndim != 3:
+        raise ValueError("query features and seed must both be [B,M,C]")
+    if query_features.shape != query_seed.shape:
+        raise ValueError(
+            f"query feature/seed shape mismatch: {tuple(query_features.shape)} vs "
+            f"{tuple(query_seed.shape)}"
+        )
+    delta = (query_features.detach().float() - query_seed.detach().float()).norm(dim=-1).float()
+    return {
+        "mean": delta.mean(),
+        "p95": delta.flatten().quantile(0.95),
+    }
+
+
+def query_mask_pairwise_similarity(
+    mask_prob: torch.Tensor,
+    *,
+    sample_count: int = 4096,
+) -> dict[str, dict[str, torch.Tensor]]:
+    """Pairwise similarity between different query masks (diagonal excluded).
+
+    ``mask_prob`` is [B, M, V, H, W].  For determinism and cost the [V, H, W]
+    tail is flattened and a fixed evenly spaced pixel subset of
+    ``sample_count`` positions is used for every query.
+
+    Two variants are returned because raw soft Dice on probabilities is
+    dominated by mask magnitude: when every query receives an equal share of the
+    token mass the masks are all the same tiny field, yet
+    ``dice = 2 sum(p_i p_j) / (sum(p_i) + sum(p_j))`` collapses towards
+    ``mean(p)`` (~1/M) instead of revealing the identical shape.
+
+    * ``cosine``: cosine similarity of the sampled mask vectors.  This is the
+      scale-invariant "same field?" measure: exactly 1 for identical shapes and
+      ~0 for disjoint masks, independent of magnitude.
+    * ``dice``: the literally requested raw soft Dice on the probabilities.
+
+    Values near 1 mean the query masks are the same field, which is what
+    destroys instance structure at argmax time.
+    """
+    if mask_prob.ndim != 5:
+        raise ValueError(f"mask_prob must be [B,M,V,H,W], got {tuple(mask_prob.shape)}")
+    probability = mask_prob.detach().float()
+    flat = probability.reshape(probability.shape[0], probability.shape[1], -1)
+    positions = min(int(sample_count), flat.shape[-1])
+    if positions <= 0:
+        raise ValueError("mask_prob has no pixels to sample")
+    if positions < flat.shape[-1]:
+        index = torch.linspace(
+            0, flat.shape[-1] - 1, positions, device=flat.device, dtype=torch.float32
+        ).round().long()
+        flat = flat.index_select(-1, index)
+
+    def _summarize(matrix: torch.Tensor) -> dict[str, torch.Tensor]:
+        per_batch = [_pairwise_stats(matrix[index]) for index in range(matrix.shape[0])]
+        return {
+            "mean": torch.stack([item["mean"] for item in per_batch]).mean(),
+            "p95": torch.stack([item["p95"] for item in per_batch]).mean(),
+        }
+
+    numerator = torch.einsum("bmp,bnp->bmn", flat, flat)
+    mass = flat.sum(-1)
+    dice = 2.0 * numerator / (mass.unsqueeze(2) + mass.unsqueeze(1)).clamp_min(1e-8)
+    normalized = F.normalize(flat, dim=-1, eps=1e-6)
+    cosine = torch.einsum("bmp,bnp->bmn", normalized, normalized)
+    return {"cosine": _summarize(cosine), "dice": _summarize(dice)}
+
+
+def query_layer_scale_stats(blocks) -> dict[str, torch.Tensor]:
+    """LayerScale magnitudes of the query decoder blocks.
+
+    ``DecoderBlock`` applies ``gs_cross_attn_scale`` (scene-conditioned
+    cross-attention), ``gs_self_attn_scale`` (query self-attention) and
+    ``mlp_scale``.  Each is a per-channel LayerScale whose gamma starts at
+    ``query_block_init_values``; a value that stayed at the initialization means
+    the block never became active.
+    """
+    stats: dict[str, torch.Tensor] = {}
+    for index, block in enumerate(blocks):
+        for name, attribute in (
+            ("cross", "gs_cross_attn_scale"),
+            ("self", "gs_self_attn_scale"),
+            ("mlp", "mlp_scale"),
+        ):
+            scale = getattr(block, attribute, None)
+            gamma = getattr(scale, "gamma", None) if scale is not None else None
+            if gamma is None:
+                continue
+            stats[f"query_layer{index}_{name}_scale_mean"] = gamma.detach().float().mean()
+            stats[f"query_layer{index}_{name}_scale_max"] = gamma.detach().float().max()
+    return stats
+
+
 def shared_parameters(model) -> list[tuple[str, torch.nn.Parameter]]:
     """Parameters shared by the reconstruction and understanding objectives."""
     selected = []
@@ -307,6 +449,10 @@ def shared_gradient_diagnostic(
 __all__ = [
     "SHARED_PARAMETER_PREFIXES",
     "SPATIAL_GROUNDING_PARAMETERS",
+    "query_layer_scale_stats",
+    "query_mask_pairwise_similarity",
+    "query_pairwise_cosine",
+    "query_scene_update",
     "shared_gradient_diagnostic",
     "shared_parameters",
     "token_instance_mass",

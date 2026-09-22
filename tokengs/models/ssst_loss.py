@@ -300,11 +300,11 @@ def spatial_regularization(
         loss_radius = zero
     stats = {
         "local_offset_norm_mean": offset_norm.detach().mean(),
-        "local_offset_norm_p95": offset_norm.detach().flatten().quantile(0.95),
+        "local_offset_norm_p95": offset_norm.detach().float().flatten().quantile(0.95),
         "local_offset_norm_max": offset_norm.detach().max(),
         "local_offset_ratio_mean": ratios.detach().mean(),
         "gs_scale_over_radius_mean": scale_over_radius.detach().mean(),
-        "gs_scale_over_radius_p95": scale_over_radius.detach().flatten().quantile(0.95),
+        "gs_scale_over_radius_p95": scale_over_radius.detach().float().flatten().quantile(0.95),
         "gs_scale_over_radius_max": scale_over_radius.detach().max(),
     }
     return {

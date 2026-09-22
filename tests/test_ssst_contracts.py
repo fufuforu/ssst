@@ -2,11 +2,13 @@
 
 from __future__ import annotations
 
+import math
 import tempfile
 import unittest
 from pathlib import Path
 
 import torch
+import torch.nn.functional as F
 
 from tokengs.models import model_registry
 from tokengs.models.input_types import ModelInputDecoder
@@ -26,6 +28,7 @@ from tokengs.models.ssst_contracts import (
     validate_view_protocol,
 )
 from tokengs.models.ssst_diagnostics import (
+    query_layer_scale_stats,
     shared_gradient_diagnostic,
     token_purity_metrics,
 )
@@ -845,6 +848,179 @@ class GradientDiagnosticReportingTests(unittest.TestCase):
         self.assertGreater(report["grad_understanding_to_recon_ratio"], 0.0)
         # The curriculum weight is the step-0 value and is not modified here.
         self.assertAlmostEqual(report["lambda_understanding"], opt.understanding_start_weight, places=6)
+
+
+class AssignmentTemperatureTests(unittest.TestCase):
+    """softplus(raw) must equal the configured initial temperature."""
+
+    def _head(self, init):
+        opt = tiny_options().evolve(assignment_temperature_init=init)
+        return model_registry["siu3r_joint_ssst"](opt).object_queries
+
+    def _first_forward_temperature(self, head, opt):
+        tokens = torch.randn(1, opt.num_gs_tokens, opt.enc_embed_dim)
+        anchors = torch.zeros(1, opt.num_gs_tokens, 3)
+        radii = torch.full((1, opt.num_gs_tokens), 0.05)
+        with torch.no_grad():
+            output = head(tokens, anchors, radii)
+        return float(output.stats["assignment_temperature"])
+
+    def test_initial_temperature_matches_configuration(self):
+        from tokengs.models.unified_object_queries import inverse_softplus
+
+        for init in (1.0, 5.0, 10.0):
+            with self.subTest(init=init):
+                opt = tiny_options().evolve(assignment_temperature_init=init)
+                head = self._head(init)
+                self.assertAlmostEqual(
+                    float(F.softplus(head.raw_temperature)), init, places=4
+                )
+                self.assertAlmostEqual(
+                    inverse_softplus(init), float(head.raw_temperature), places=4
+                )
+                self.assertAlmostEqual(
+                    self._first_forward_temperature(head, opt), init, places=3
+                )
+
+    def test_default_temperature_is_not_the_old_log_parameterisation(self):
+        opt = tiny_options().evolve(assignment_temperature_init=5.0)
+        head = self._head(5.0)
+        observed = self._first_forward_temperature(head, opt)
+        self.assertAlmostEqual(observed, 5.0, places=3)
+        # The previous implementation produced softplus(log(5)) = log(6).
+        self.assertGreater(abs(observed - math.log(6.0)), 1.0)
+
+    def test_legacy_log_temperature_key_still_loads(self):
+        opt = tiny_options().evolve(assignment_temperature_init=5.0)
+        model = model_registry["siu3r_joint_ssst"](opt)
+        state = model.state_dict()
+        legacy = state.pop("object_queries.raw_temperature").clone()
+        state["object_queries.log_temperature"] = legacy
+        result = model.load_state_dict(state, strict=True)
+        self.assertEqual(list(result.missing_keys), [])
+        self.assertEqual(list(result.unexpected_keys), [])
+        self.assertTrue(torch.equal(model.object_queries.raw_temperature.data, legacy))
+
+
+class QueryGroupingDiagnosticTests(unittest.TestCase):
+    def test_pairwise_cosine_excludes_the_diagonal(self):
+        from tokengs.models.ssst_diagnostics import query_pairwise_cosine
+
+        # Two identical directions and one orthogonal one: the six off-diagonal
+        # pairs are 1, 0, 1, 0, 0, 0 -> mean 1/3.
+        queries = torch.tensor([[[1.0, 0.0], [1.0, 0.0], [0.0, 1.0]]])
+        stats = query_pairwise_cosine(queries)
+        self.assertAlmostEqual(float(stats["mean"]), 1.0 / 3.0, places=5)
+        identical = torch.tensor([[[1.0, 2.0], [1.0, 2.0], [1.0, 2.0]]])
+        self.assertAlmostEqual(float(query_pairwise_cosine(identical)["mean"]), 1.0, places=5)
+        self.assertTrue(torch.isfinite(stats["p95"]))
+
+    def test_pairwise_mask_similarity_excludes_the_diagonal_and_is_deterministic(self):
+        from tokengs.models.ssst_diagnostics import query_mask_pairwise_similarity
+
+        masks = torch.zeros(1, 3, 1, 4, 4)
+        masks[0, 0] = 1.0  # query 0 and 1 identical, query 2 disjoint
+        masks[0, 1] = 1.0
+        first = query_mask_pairwise_similarity(masks, sample_count=16)
+        second = query_mask_pairwise_similarity(masks, sample_count=16)
+        # Off-diagonal pairs: (0,1)=1, (0,2)=0, (1,0)=1, (1,2)=0, (2,0)=0, (2,1)=0
+        for variant in ("cosine", "dice"):
+            self.assertAlmostEqual(float(first[variant]["mean"]), 1.0 / 3.0, places=5)
+            self.assertAlmostEqual(
+                float(first[variant]["p95"]), float(second[variant]["p95"]), places=6
+            )
+            self.assertTrue(torch.isfinite(first[variant]["mean"]))
+            self.assertTrue(torch.isfinite(first[variant]["p95"]))
+
+    def test_mask_cosine_is_shape_only_while_dice_scales_with_magnitude(self):
+        from tokengs.models.ssst_diagnostics import query_mask_pairwise_similarity
+
+        pattern = torch.zeros(1, 2, 1, 4, 4)
+        pattern[0, 0, 0, :2, :] = 1.0  # two queries with the same shape ...
+        pattern[0, 1, 0, :2, :] = 1.0
+        tiny = query_mask_pairwise_similarity(pattern * 0.01, sample_count=16)
+        large = query_mask_pairwise_similarity(pattern, sample_count=16)
+        # ... cosine is exactly 1 for identical shapes at any magnitude ...
+        self.assertAlmostEqual(float(tiny["cosine"]["mean"]), 1.0, places=5)
+        self.assertAlmostEqual(float(large["cosine"]["mean"]), 1.0, places=5)
+        # ... while raw soft Dice scales with the mask magnitude.
+        self.assertAlmostEqual(float(large["dice"]["mean"]), 1.0, places=5)
+        self.assertLess(float(tiny["dice"]["mean"]), 0.02)
+
+    def test_layer_scale_stats_report_every_query_block(self):
+        opt = tiny_options()
+        model = model_registry["siu3r_joint_ssst"](opt)
+        stats = query_layer_scale_stats(model.object_queries.blocks)
+        for layer in range(int(opt.num_object_query_layers)):
+            for name in ("cross", "self", "mlp"):
+                key = f"query_layer{layer}_{name}_scale_mean"
+                self.assertIn(key, stats)
+                self.assertAlmostEqual(
+                    float(stats[key]), opt.query_block_init_values, places=6
+                )
+
+    def test_query_diagnostics_are_detached_and_do_not_change_predictions(self):
+        opt = tiny_options()
+        model = model_registry["siu3r_joint_ssst"](opt).eval()
+        model.gs = FakeRenderer(opt.img_size)
+        batch = synthetic_batch(opt)
+        tokens = torch.randn(1, opt.num_gs_tokens, opt.enc_embed_dim)
+        anchors = torch.zeros(1, opt.num_gs_tokens, 3)
+        radii = torch.full((1, opt.num_gs_tokens), 0.05)
+        with torch.no_grad():
+            first = model.object_queries(tokens, anchors, radii)
+            second = model.object_queries(tokens, anchors, radii)
+            output_a = model(batch, skip_loss=True)
+            output_b = model(batch, skip_loss=True)
+        for name in (
+            "query_scene_update_norm_mean",
+            "query_scene_update_norm_p95",
+            "query_pairwise_cosine_mean",
+            "query_pairwise_cosine_p95",
+        ):
+            self.assertTrue(torch.isfinite(first.stats[name]).all(), name)
+            self.assertFalse(first.stats[name].requires_grad, name)
+        self.assertTrue(torch.equal(first.class_logits, second.class_logits))
+        self.assertTrue(torch.equal(first.assignment_logits, second.assignment_logits))
+        self.assertTrue(
+            torch.equal(output_a["query_class_logits"], output_b["query_class_logits"])
+        )
+        self.assertTrue(
+            torch.equal(output_a["query_mask_prob"], output_b["query_mask_prob"])
+        )
+        for name in (
+            "query_mask_pairwise_cosine_mean",
+            "query_mask_pairwise_cosine_p95",
+            "query_mask_pairwise_dice_mean",
+            "query_mask_pairwise_dice_p95",
+        ):
+            self.assertIn(name, output_a["query_stats"])
+            self.assertTrue(torch.isfinite(output_a["query_stats"][name]).all(), name)
+            self.assertFalse(output_a["query_stats"][name].requires_grad, name)
+        for name in (
+            "assignment_entropy",
+            "assignment_temperature",
+            "no_object_ratio",
+            "token_max_assignment_mean",
+            "query_usage_mean",
+        ):
+            self.assertIn(name, output_a["query_stats"], name)
+
+    def test_grouping_metrics_appear_in_joint_step_metrics(self):
+        opt = tiny_options()
+        model = model_registry["siu3r_joint_ssst"](opt).train()
+        model.gs = FakeRenderer(opt.img_size)
+        _, metrics = model.joint_step(synthetic_batch(opt), step=0, phase="train")
+        for name in (
+            "spatial/query_scene_update_norm_mean",
+            "spatial/query_pairwise_cosine_mean",
+            "spatial/query_mask_pairwise_cosine_mean",
+            "spatial/query_mask_pairwise_dice_mean",
+            "spatial/assignment_temperature",
+            "spatial/assignment_entropy",
+        ):
+            self.assertIn(name, metrics, name)
+            self.assertTrue(torch.isfinite(metrics[name]).all(), name)
 
 
 if __name__ == "__main__":

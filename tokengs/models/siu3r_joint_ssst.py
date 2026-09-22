@@ -48,6 +48,7 @@ from tokengs.models.ssst_contracts import (
     validate_variable_target_batch,
 )
 from tokengs.models.ssst_loss import build_context_segments, compute_joint_loss
+from tokengs.models.ssst_diagnostics import query_mask_pairwise_similarity
 from tokengs.models.tokengs import TokenGS
 from tokengs.models.unified_object_queries import UnifiedObjectQueryHead
 
@@ -199,6 +200,17 @@ class SIU3RJointSSST(TokenGS):
             gaussians, queries.assignment_prob, mask_decoder
         )
         validate_query_outputs(queries.class_logits, queries.assignment_logits, mask_logits)
+        # Diagnostic only: how similar the rendered query masks are to each
+        # other.  Detached, never part of the loss, and it does not alter any
+        # tensor returned below.
+        mask_similarity = query_mask_pairwise_similarity(mask_prob)
+        query_stats = dict(queries.stats)
+        # Cosine is the scale-invariant "same mask field?" measure; the raw soft
+        # Dice is reported as requested and is magnitude sensitive.
+        query_stats["query_mask_pairwise_cosine_mean"] = mask_similarity["cosine"]["mean"]
+        query_stats["query_mask_pairwise_cosine_p95"] = mask_similarity["cosine"]["p95"]
+        query_stats["query_mask_pairwise_dice_mean"] = mask_similarity["dice"]["mean"]
+        query_stats["query_mask_pairwise_dice_p95"] = mask_similarity["dice"]["p95"]
         return {
             "reconstruction": reconstruction,
             "gaussians": gaussians,
@@ -213,7 +225,7 @@ class SIU3RJointSSST(TokenGS):
             "query_mask_logits": mask_logits,
             "render": render,
             "spatial_stats": spatial.stats,
-            "query_stats": queries.stats,
+            "query_stats": query_stats,
         }
 
     # ------------------------------------------------------------------ #

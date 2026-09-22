@@ -25,6 +25,7 @@ head exists.
 
 from __future__ import annotations
 
+import math
 from dataclasses import dataclass
 
 import torch
@@ -35,6 +36,22 @@ from torch.nn.init import trunc_normal_
 
 from tokengs.models.enc_dec import DecoderBlock
 from tokengs.models.spatial_grounded_tokens import build_anchor_encoding
+from tokengs.models.ssst_diagnostics import (
+    query_layer_scale_stats,
+    query_pairwise_cosine,
+    query_scene_update,
+)
+
+
+def inverse_softplus(value: float) -> float:
+    """Numerically stable inverse of ``softplus`` (double precision).
+
+    ``softplus(inverse_softplus(t)) == t`` for ``t > 0``; the computation runs
+    in float64 so large temperatures do not overflow before the log.
+    """
+    if not value > 0:
+        raise ValueError(f"inverse_softplus expects a positive value, got {value}")
+    return math.log(math.expm1(float(value)))
 
 
 @dataclass
@@ -93,11 +110,39 @@ class UnifiedObjectQueryHead(nn.Module):
         nn.init.zeros_(self.spatial_proj.bias)
         self.anchor_extent = float(opt.anchor_extent)
         self.anchor_num_freqs = int(opt.anchor_num_freqs)
-        self.log_temperature = nn.Parameter(
-            torch.tensor(float(opt.assignment_temperature_init)).log()
+        # The assignment logits are scaled by softplus(raw_temperature), so the
+        # raw value must be the *inverse* softplus of the configured initial
+        # temperature; storing log(init) would make the first forward use
+        # softplus(log(init)) = log(1 + init) instead of init.
+        self.raw_temperature = nn.Parameter(
+            torch.tensor(inverse_softplus(float(opt.assignment_temperature_init)))
         )
         trunc_normal_(self.class_head.weight, std=0.02)
         nn.init.zeros_(self.class_head.bias)
+        # Checkpoints written before the rename stored the same raw value under
+        # `log_temperature`; the functional form (softplus) never changed, so
+        # the value can be copied across unchanged.
+        self.register_load_state_dict_pre_hook(self._remap_legacy_temperature)
+
+    @staticmethod
+    def _remap_legacy_temperature(
+        module,
+        state_dict,
+        prefix,
+        local_metadata,
+        strict,
+        missing_keys,
+        unexpected_keys,
+        error_msgs,
+    ) -> None:
+        legacy = prefix + "log_temperature"
+        current = prefix + "raw_temperature"
+        if legacy in state_dict and current not in state_dict:
+            state_dict[current] = state_dict.pop(legacy)
+        if legacy in unexpected_keys:
+            unexpected_keys.remove(legacy)
+        if current in missing_keys:
+            missing_keys.remove(current)
 
     @property
     def no_object_index(self) -> int:
@@ -148,13 +193,14 @@ class UnifiedObjectQueryHead(nn.Module):
 
         tokens = self.spatial_tokens(tokens, anchors, radii)
         keys, values = self._token_kv(tokens)
-        queries = self.query_seed.unsqueeze(0).expand(batch, -1, -1).contiguous()
+        query_seed = self.query_seed.unsqueeze(0).expand(batch, -1, -1).contiguous()
+        queries = query_seed
         for block in self.blocks:
             queries = block(gs_tokens=queries, keys=keys, values=values)
         queries = self.query_norm(queries)
 
         class_logits = self.class_head(queries)
-        temperature = F.softplus(self.log_temperature).clamp(1.0, 100.0)
+        temperature = F.softplus(self.raw_temperature).clamp(1.0, 100.0)
         query_embed = F.normalize(self.query_proj(queries).float(), dim=-1, eps=1e-6)
         token_embed = F.normalize(self.token_proj(self.token_norm(tokens)).float(), dim=-1, eps=1e-6)
         assignment_logits = temperature * torch.einsum("bmd,bnd->bmn", query_embed, token_embed)
@@ -166,6 +212,9 @@ class UnifiedObjectQueryHead(nn.Module):
             entropy = -(prob.clamp_min(1e-8).log() * prob).sum(dim=1).mean()
             used = prob.max(dim=1).values
             no_object = (class_logits.detach().argmax(dim=-1) == self.no_object_index).float().mean()
+            # Query-grouping diagnostics (detached, never part of the loss).
+            scene_update = query_scene_update(queries, query_seed)
+            pairwise_cosine = query_pairwise_cosine(queries)
         stats = {
             "assignment_entropy": entropy,
             "query_usage_mean": prob.mean(dim=(0, 2)).mean(),
@@ -174,7 +223,12 @@ class UnifiedObjectQueryHead(nn.Module):
             "no_object_ratio": no_object,
             "token_max_assignment_mean": used.mean(),
             "assignment_temperature": temperature.detach(),
+            "query_scene_update_norm_mean": scene_update["mean"],
+            "query_scene_update_norm_p95": scene_update["p95"],
+            "query_pairwise_cosine_mean": pairwise_cosine["mean"],
+            "query_pairwise_cosine_p95": pairwise_cosine["p95"],
         }
+        stats.update(query_layer_scale_stats(self.blocks))
         return UnifiedQueryOutput(
             query_features=queries,
             class_logits=class_logits,
@@ -184,4 +238,4 @@ class UnifiedObjectQueryHead(nn.Module):
         )
 
 
-__all__ = ["UnifiedObjectQueryHead", "UnifiedQueryOutput"]
+__all__ = ["UnifiedObjectQueryHead", "UnifiedQueryOutput", "inverse_softplus"]
