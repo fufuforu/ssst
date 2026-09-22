@@ -171,6 +171,27 @@ class Options:
     # object-query branch is frozen and never executed (no query forward, no
     # mask rendering, no Hungarian matching, no understanding loss).
     reconstruction_only: bool = False
+    # --- LocusGS-faithful reconstruction (arXiv:2608.12825), ScanNet adaptation ---
+    # Values the paper does not specify are marked "unspecified" with our choice.
+    locusgs_sigma0: float = 0.1                      # paper App. A.3: sigma_0 = 0.1
+    locusgs_bandwidth_floor: float = 1e-6            # paper: "squared bandwidth is lower-bounded"
+    locusgs_bias_clamp: float = -20.0                # paper App. A.5: clamp [-20, 0]
+    locusgs_ray_bias_scale: float = 1.0              # 0 disables the geometric bias (ablation)
+    locusgs_pe_num_freqs: int = 4                    # sinusoidal PE bands (unspecified)
+    locusgs_pe_hidden_dim: int = 1024                # PE MLP hidden dim (unspecified)
+    # "Predefined initial support radius" (unspecified by the paper).  Chosen so
+    # sigma_0 * r0 is commensurate with the measured ScanNet anchor-to-ray
+    # distances (median 0.030, p95 0.050): r0 = 0.15 keeps the geometric bias
+    # informative instead of fully clamped.
+    locusgs_radius_init: float = 0.15
+    locusgs_radius_epsilon: float = 1e-4
+    # Random anchor init box (unspecified by the paper); we use the measured
+    # ScanNet normalized surface extent (|x|,|y| p99 ~ 0.2).
+    locusgs_anchor_init_extent: float = 0.2
+    locusgs_anchor_init_center_z: float = 0.25
+    locusgs_supervised_layers: tuple[int, ...] = (6, 12)   # paper Table 5: {6, 12} is best
+    canonical_gaussian_visibility_weight: float = 1.0      # paper: lambda_G = 1.0
+    canonical_anchor_visibility_weight: float = 0.1        # paper: lambda_A = 0.1
     # --- joint one-stage loss curriculum and spatial regularization ---
     understanding_warmup_steps: int = 2000
     understanding_start_weight: float = 0.1
@@ -555,6 +576,64 @@ config_defaults["eval_siu3r_ssst"] = config_defaults["train_siu3r_ssst"].evolve(
     batch_size=1,
     mixed_precision="no",
     random_reflect=False,
+)
+
+# ----- LocusGS-faithful ScanNet reconstruction + plain TokenGS control -----
+# Canonical reconstruction objective (arXiv:2608.12825 Eq. 26-30): MSE +
+# 0.2*(1-SSIM)/2 + 1.0*L_vis(Gaussians) + 0.1*L_vis(anchors), no LPIPS, no GT
+# depth, no spatial hinge/compactness terms.  Optimizer kept identical to the
+# previous ScanNet runs (lr 1e-4, warmup 1000, wd 0.05) so the only change is
+# architecture + objective (Variant B of the audit).
+_CANONICAL_RECON = {
+    "rgb_loss_type": "l2",
+    "lambda_rgb": 1.0,
+    "lambda_ssim": 0.2,
+    "lambda_lpips": 0.0,
+    "lambda_visibility": 0.0,   # visibility is added explicitly (Gaussians + anchors)
+    "lambda_mask": 0.0,
+    "lambda_opacity": 0.0,
+    # The paper adopts "the visibility regularization used in TokenGS", whose
+    # implementation clips the per-point penalty at this threshold.  Without the
+    # clip, anchors that project behind the camera give an unbounded phi.
+    "visibility_distance_threshold": 1.0,
+    "spatial_compactness_weight": 0.0,      # our own terms are removed for faithfulness
+    "spatial_radius_weight": 0.0,
+    "reconstruction_only": True,
+    # TokenGS's canonical z offset: the free-XYZ head predicts positions near the
+    # origin at initialization, so without it nothing renders (alpha = 0) and the
+    # RGB objective has no gradient.  LocusGS keeps 0.0 because its randomly
+    # initialized anchors already lie in the normalized scene box.
+    "gaussian_z_offset": 1.0,
+}
+
+config_doc["train_siu3r_locusgs_recon"] = (
+    "LocusGS-faithful ScanNet reconstruction (2 context + 2 novel): learnable "
+    "anchor centers + softplus radii, anchor PE before self-attention, "
+    "anchor-to-ray bias (sigma0=0.1, clamp [-20,0], learnable gamma), raw "
+    "residual anchor refinement, anchor-centered Gaussian decoding, and "
+    "multi-layer supervision at decoder layers {6,12} with weights {1/3, 2/3}."
+)
+config_defaults["train_siu3r_locusgs_recon"] = config_defaults["train_siu3r_ssst"].evolve(
+    model_type="siu3r_locusgs_recon",
+    workspace="/space/mawb/ssst/workspace/siu3r_locusgs_faithful_recon_v1",
+    experiment_name="siu3r_locusgs_faithful_recon_v1",
+    project_name="TokenGS-LocusGS",
+    **{**_CANONICAL_RECON, "gaussian_z_offset": 0.0},
+)
+
+config_doc["train_siu3r_plain_tokengs_canonical_recon"] = (
+    "Plain TokenGS (free-XYZ ClipActivationHead, no anchors/radius/refinement/"
+    "ray-bias, final layer only) under the same canonical reconstruction "
+    "objective and the same ScanNet 2+2 protocol: the controlled baseline."
+)
+config_defaults["train_siu3r_plain_tokengs_canonical_recon"] = config_defaults[
+    "train_siu3r_ssst"
+].evolve(
+    model_type="siu3r_plain_tokengs_canonical_recon",
+    workspace="/space/mawb/ssst/workspace/siu3r_plain_tokengs_canonical_recon_v1",
+    experiment_name="siu3r_plain_tokengs_canonical_recon_v1",
+    project_name="TokenGS-LocusGS",
+    **_CANONICAL_RECON,
 )
 
 AllConfigs = tyro.extras.subcommand_type_from_defaults(config_defaults, config_doc)

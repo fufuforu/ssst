@@ -65,6 +65,15 @@ VAL_ROOT = str(Path(DEFAULT_DATA_ROOT) / "val")
 def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument("--workspace", required=True, help="Output workspace directory.")
+    parser.add_argument(
+        "--preset",
+        default="train_siu3r_ssst",
+        help=(
+            "Base Options preset from tokengs.options.config_defaults, e.g. "
+            "train_siu3r_ssst (joint), train_siu3r_locusgs_recon, "
+            "train_siu3r_plain_tokengs_canonical_recon."
+        ),
+    )
     parser.add_argument("--num-steps", type=int, required=True, help="Optimizer steps to run.")
     parser.add_argument("--train-root", default=TRAIN_ROOT)
     parser.add_argument("--val-root", default=VAL_ROOT)
@@ -140,7 +149,12 @@ def parse_args(argv: list[str] | None = None) -> argparse.Namespace:
 
 
 def build_options(args: argparse.Namespace) -> Options:
-    opt = config_defaults["train_siu3r_ssst"].evolve(workspace=args.workspace)
+    if args.preset not in config_defaults:
+        raise ValueError(
+            f"unknown preset {args.preset!r}; available: "
+            + ", ".join(sorted(k for k in config_defaults if k.startswith(("train_", "eval_"))))
+        )
+    opt = config_defaults[args.preset].evolve(workspace=args.workspace)
     overrides = {
         "batch_size": args.batch_size,
         "gradient_accumulation_steps": args.grad_accum,

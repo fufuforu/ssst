@@ -1344,5 +1344,201 @@ class CheckpointProvenanceTests(unittest.TestCase):
             self.assertLess(difference, 1e-6, f"{key} differs by {difference}")
 
 
+def locusgs_options(**overrides):
+    opt = tiny_options().evolve(
+        dec_depth=12,
+        model_type="siu3r_locusgs_recon",
+        reconstruction_only=True,
+        lambda_lpips=0.0,
+        lambda_ssim=0.2,
+        lambda_rgb=1.0,
+        lambda_visibility=0.0,
+        visibility_distance_threshold=0.0,
+        canonical_gaussian_visibility_weight=1.0,
+        canonical_anchor_visibility_weight=0.1,
+    )
+    return opt.evolve(**overrides) if overrides else opt
+
+
+class LocusGSFormulaTests(unittest.TestCase):
+    """Phase 14: paper formulas (arXiv:2608.12825)."""
+
+    def test_plucker_distance_and_bias(self):
+        from tokengs.models.locusgs_recon import (
+            anchor_ray_geometric_bias,
+            plucker_point_distance,
+        )
+
+        # one ray along +z through the origin: m = o x d = 0
+        moment = torch.zeros(1, 2, 3)
+        direction = torch.tensor([[[0.0, 0.0, 1.0], [0.0, 1.0, 0.0]]])
+        on_ray = torch.tensor([[[0.0, 0.0, 0.5]]])
+        off_ray = torch.tensor([[[0.3, 0.0, 0.5]]])
+        self.assertLess(float(plucker_point_distance(on_ray, moment, direction)[0, 0, 0]), 1e-6)
+        self.assertAlmostEqual(
+            float(plucker_point_distance(off_ray, moment, direction)[0, 0, 0]), 0.3, places=5
+        )
+        radii = torch.full((1, 1), 0.05)
+        bias = anchor_ray_geometric_bias(
+            off_ray, radii, moment, direction,
+            sigma0=0.1, bandwidth_floor=1e-6, clamp_min=-20.0,
+        )
+        # expected: -0.5 * (0.3 / (0.1*0.05))^2 -> clamped to -20
+        self.assertEqual(tuple(bias.shape), (1, 1, 1, 2))
+        self.assertAlmostEqual(float(bias.min()), -20.0, places=5)
+        bias_near = anchor_ray_geometric_bias(
+            torch.tensor([[[0.0005, 0.0, 0.5]]]), radii, moment, direction,
+            sigma0=0.1, bandwidth_floor=1e-6, clamp_min=-20.0,
+        )
+        self.assertGreater(float(bias_near[0, 0, 0, 0]), -1.0)
+        # larger radius => smoother (less negative) bias at the same distance
+        small = anchor_ray_geometric_bias(
+            off_ray, radii, moment, direction, sigma0=0.1, bandwidth_floor=1e-6, clamp_min=-1e9
+        )
+        large = anchor_ray_geometric_bias(
+            off_ray, radii * 10, moment, direction, sigma0=0.1, bandwidth_floor=1e-6, clamp_min=-1e9
+        )
+        self.assertLess(float(small[0, 0, 0, 0]), float(large[0, 0, 0, 0]))
+        self.assertGreater(float(large[0, 0, 0, 0]), float(small[0, 0, 0, 0]))
+
+    def test_visibility_zero_inside_and_positive_outside(self):
+        from tokengs.models.canonical_recon import visibility_loss_from_points
+
+        cam_view = torch.eye(4).unsqueeze(0).unsqueeze(0)  # identity world->cam
+        intrinsics = torch.tensor([[[100.0, 100.0, 32.0, 32.0]]])
+        inside = torch.tensor([[[0.0, 0.0, 1.0]]])  # projects to the principal point
+        outside = torch.tensor([[[5.0, 5.0, 1.0]]])
+        self.assertAlmostEqual(
+            float(visibility_loss_from_points(inside, cam_view, intrinsics, (64, 64))), 0.0, places=6
+        )
+        self.assertGreater(
+            float(visibility_loss_from_points(outside, cam_view, intrinsics, (64, 64))), 0.0
+        )
+
+    def test_supervised_layer_weights_match_eq30(self):
+        from tokengs.models.canonical_recon import supervised_layer_weights
+
+        self.assertEqual(supervised_layer_weights((6, 12)), [1 / 3, 2 / 3])
+        self.assertEqual(supervised_layer_weights((12,)), [1.0])
+
+
+class LocusGSModelTests(unittest.TestCase):
+    def _model(self, **overrides):
+        opt = locusgs_options(**overrides)
+        model = model_registry[opt.model_type](opt)
+        model.gs = FakeRenderer(opt.img_size)
+        return opt, model
+
+    def test_anchor_refinement_is_raw_additive_and_radius_unclamped(self):
+        opt, model = self._model()
+        model.eval()
+        batch = synthetic_batch(opt)
+        model_input, _ = split_data(batch, opt)
+        from tokengs.models.canonical_recon_models import patch_plucker_rays
+
+        with torch.no_grad():
+            latent = model.forward_encoder(model_input.encoder)
+            rays = patch_plucker_rays(
+                model_input.encoder.rays_os, model_input.encoder.rays_ds,
+                patch_size=opt.patch_size,
+            )
+            states, _ = model.anchor_decoder(model.get_gs_tokens(batch_size=1), latent, rays)
+        layer0 = states[0]
+        expected_mu = model.anchor_decoder.mu.unsqueeze(0) + model.anchor_decoder.refine_mu[0](layer0["tokens"])
+        self.assertTrue(torch.allclose(layer0["mu"], expected_mu, atol=1e-6))
+        expected_rho = model.anchor_decoder.rho.unsqueeze(0) + model.anchor_decoder.refine_rho[0](
+            layer0["tokens"]
+        ).squeeze(-1)
+        expected_r = torch.nn.functional.softplus(expected_rho) + model.anchor_decoder.epsilon
+        self.assertTrue(torch.allclose(layer0["radii"], expected_r, atol=1e-6))
+        # no clamp: a large raw radius stays large
+        self.assertGreater(float(model.anchor_decoder.activated_radius(torch.tensor([8.0]))), 8.0)
+
+    def test_anchor_centers_are_free_not_box_bounded(self):
+        opt, model = self._model()
+        with torch.no_grad():
+            model.anchor_decoder.mu.add_(5.0)
+        self.assertGreater(float(model.anchor_decoder.mu.max()), 5.0)
+
+    def test_intermediate_layers_produce_gradients_and_losses(self):
+        opt, model = self._model()
+        model.train()
+        output, metrics = model.joint_step(synthetic_batch(opt), step=0, phase="train")
+        self.assertIn("loss_layer6", metrics)
+        self.assertIn("loss_layer12", metrics)
+        for key in (
+            "loss_rgb_layer6", "loss_rgb_layer12", "loss_ssim_layer6", "loss_ssim_layer12",
+            "loss_gaussian_visibility_layer6", "loss_gaussian_visibility_layer12",
+            "loss_anchor_visibility_layer6", "loss_anchor_visibility_layer12",
+        ):
+            self.assertIn(key, metrics, key)
+        self.assertNotIn("loss_lpips", metrics)
+        expected = metrics["loss_layer6"] / 3 + 2 * metrics["loss_layer12"] / 3
+        self.assertAlmostEqual(float(metrics["loss"]), float(expected), places=5)
+        metrics["loss"].backward()
+        for name in (
+            "anchor_decoder.mu",
+            "anchor_decoder.rho",
+            "anchor_decoder.pe_mlp.0.weight",
+            "anchor_decoder.refine_mu.0.weight",
+            "activation_head.deconv.weight",
+        ):
+            parameter = dict(model.named_parameters())[name]
+            self.assertIsNotNone(parameter.grad, name)
+            self.assertGreater(float(parameter.grad.abs().sum()), 0.0, name)
+
+    def test_reconstruction_only_signature(self):
+        opt, model = self._model()
+        self.assertEqual(model.freeze_object_queries(), [])
+        model.set_step_context(3, "train")
+        output = model(synthetic_batch(opt))
+        self.assertIn("loss", output)
+
+    def test_no_understanding_branch_is_touched(self):
+        import tokengs.models.ssst_loss as ssst_loss
+
+        opt, model = self._model()
+        guards = {}
+        originals = ssst_loss.class_aware_context_loss
+
+        def _guard(*args, **kwargs):
+            raise AssertionError("understanding path was called in a reconstruction-only model")
+
+        try:
+            ssst_loss.class_aware_context_loss = _guard
+            _, metrics = model.joint_step(synthetic_batch(opt), step=0, phase="train")
+            metrics["loss"].backward()
+        finally:
+            ssst_loss.class_aware_context_loss = originals
+        self.assertFalse(any("understanding" in key for key in metrics))
+        self.assertFalse(any("class" in key for key in metrics))
+        del guards
+
+    def test_plain_baseline_is_free_xyz_without_anchor_state(self):
+        opt = locusgs_options(model_type="siu3r_plain_tokengs_canonical_recon")
+        model = model_registry[opt.model_type](opt)
+        model.gs = FakeRenderer(opt.img_size)
+        self.assertFalse(hasattr(model, "anchor_decoder"))
+        keys = set(model.state_dict())
+        self.assertFalse(any("anchor" in key or "gamma_raw" in key or "refine" in key for key in keys))
+        model.eval()
+        batch = synthetic_batch(opt)
+        with torch.no_grad():
+            out = model(batch)
+        self.assertIn("loss", out)
+        # free XYZ: positions come straight from the ClipActivationHead
+        from tokengs.models.input_types import ModelInput, split_data
+
+        model_input, _ = split_data(batch, opt)
+        with torch.no_grad():
+            latent = model.forward_encoder(model_input.encoder)
+            tokens = model.get_gs_tokens(batch_size=1)
+            for block in model.enc_dec_backbone.decoder_blocks:
+                tokens = block(gs_tokens=tokens, keys=latent.keys, values=latent.values)
+            expected = model.activation_head(tokens)
+            expected[..., 2] = expected[..., 2] + opt.gaussian_z_offset
+        self.assertTrue(torch.allclose(out["gaussians"], expected, atol=1e-6))
+
+
 if __name__ == "__main__":
     unittest.main()
