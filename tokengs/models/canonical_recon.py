@@ -72,12 +72,21 @@ def project_points_means2d(
     points: torch.Tensor,
     cam_view: torch.Tensor,
     intrinsics: torch.Tensor,
-) -> torch.Tensor:
+    *,
+    znear: float | None = None,
+):
     """Project 3D points with the renderer's camera convention -> [B, V, N, 2].
 
     ``cam_view`` is the world-to-camera matrix in the same layout the Gaussian
     renderer consumes (it transposes it internally), and ``intrinsics`` are
     ``[fx, fy, cx, cy]`` per view.
+
+    When ``znear`` is given the function also returns a validity mask
+    ``z_cam > znear``.  A point at or behind the near plane is culled by the
+    rasterizer, so clamping the camera depth and projecting it would fabricate a
+    legal ``(u, v)`` (for a point on the optical axis it lands exactly on the
+    principal point and is then judged *visible*).  Callers that care about
+    visibility must use the mask instead of the projected coordinate.
     """
     if points.ndim != 3 or points.shape[-1] != 3:
         raise ValueError(f"points must be [B,N,3], got {tuple(points.shape)}")
@@ -86,14 +95,18 @@ def project_points_means2d(
     ones = points.new_ones(points.shape[0], points.shape[1], 1)
     homogeneous = torch.cat([points, ones], dim=-1)  # [B,N,4]
     camera = torch.einsum("bvij,bnj->bvni", viewmat, homogeneous)  # [B,V,N,4]
-    depth = camera[..., 2].clamp_min(1e-6)
+    z_cam = camera[..., 2]
+    depth = z_cam.clamp_min(1e-6)
     fx = intrinsics[..., 0].unsqueeze(-1)
     fy = intrinsics[..., 1].unsqueeze(-1)
     cx = intrinsics[..., 2].unsqueeze(-1)
     cy = intrinsics[..., 3].unsqueeze(-1)
     u = fx * camera[..., 0] / depth + cx
     v = fy * camera[..., 1] / depth + cy
-    return torch.stack([u, v], dim=-1)
+    uv = torch.stack([u, v], dim=-1)
+    if znear is None:
+        return uv
+    return uv, z_cam > float(znear)
 
 
 def visibility_loss_from_points(
@@ -103,14 +116,26 @@ def visibility_loss_from_points(
     img_size,
     *,
     clamp_max: float = 0.0,
+    znear: float = 0.0,
 ) -> torch.Tensor:
-    """Eq. 27-28 applied to raw 3D points (anchor centers)."""
-    means2d = project_points_means2d(points, cam_view, intrinsics)
+    """Eq. 27-28 applied to raw 3D points (anchor centers).
+
+    Points with ``z_cam <= znear`` are culled by the renderer and are therefore
+    scored as fully invisible (the maximum penalty) instead of being projected
+    with a clamped depth.  The penalty clamp used for in-frustum points is kept
+    unchanged, so the only behavioural change is that culled points can no longer
+    be reported as visible.
+    """
+    means2d, valid = project_points_means2d(points, cam_view, intrinsics, znear=znear)
     height, width = int(img_size[0]), int(img_size[1])
     uv = torch.stack(
         [means2d[..., 0] / width * 2 - 1, means2d[..., 1] / height * 2 - 1], dim=-1
     )
     out_of_bounds = F.relu(uv.abs() - 1.0).sum(-1)  # [B,V,N]
+    max_penalty = float(clamp_max) if clamp_max > 0 else 1e4
+    out_of_bounds = torch.where(
+        valid, out_of_bounds, torch.full_like(out_of_bounds, max_penalty)
+    )
     loss = out_of_bounds.min(dim=1).values  # min over supervision views
     if clamp_max > 0:
         loss = loss.clamp(max=float(clamp_max))
@@ -171,7 +196,12 @@ def canonical_layer_loss(
     anchor_visibility = None
     if anchor_centers is not None and anchor_weight > 0 and camera is not None:
         anchor_visibility = visibility_loss_from_points(
-            anchor_centers, camera, intrinsics, img_size, clamp_max=visibility_clip
+            anchor_centers,
+            camera,
+            intrinsics,
+            img_size,
+            clamp_max=visibility_clip,
+            znear=float(getattr(opt, "znear", 0.0)),
         )
 
     total = recon["loss"] + lambda_ssim * ssim_term

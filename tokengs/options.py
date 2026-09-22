@@ -179,6 +179,15 @@ class Options:
     locusgs_ray_bias_scale: float = 1.0              # 0 disables the geometric bias (ablation)
     locusgs_pe_num_freqs: int = 4                    # sinusoidal PE bands (unspecified)
     locusgs_pe_hidden_dim: int = 1024                # PE MLP hidden dim (unspecified)
+    # Both are unspecified by the paper; they are the two switches audited in the
+    # stability matrix (gamma init and how the anchor embedding enters the layer).
+    locusgs_gamma_raw_init: float = 0.0               # 0 -> gamma = softplus(0) = 0.693
+    # Eq. 2 is written as a single `q_tilde = q + p` before self-attention.  The
+    # stability audit showed the "persistent" reading (adding the anchor PE to the
+    # residual stream every layer) inflates ||tokens|| 4.2 -> 50 and destabilizes
+    # anchors, so the formal default is the non-persistent "injected" reading:
+    # `tokens = tokens + self_attn(tokens + p)`.
+    locusgs_pe_mode: Literal["persistent", "injected"] = "injected"
     # "Predefined initial support radius" (unspecified by the paper).  Chosen so
     # sigma_0 * r0 is commensurate with the measured ScanNet anchor-to-ray
     # distances (median 0.030, p95 0.050): r0 = 0.15 keeps the geometric bias
@@ -608,7 +617,8 @@ _CANONICAL_RECON = {
 
 config_doc["train_siu3r_locusgs_recon"] = (
     "LocusGS-faithful ScanNet reconstruction (2 context + 2 novel): learnable "
-    "anchor centers + softplus radii, anchor PE before self-attention, "
+    "anchor centers + softplus radii, anchor PE injected as the self-attention "
+    "input only (pe_mode=injected, not accumulated into the residual stream), "
     "anchor-to-ray bias (sigma0=0.1, clamp [-20,0], learnable gamma), raw "
     "residual anchor refinement, anchor-centered Gaussian decoding, and "
     "multi-layer supervision at decoder layers {6,12} with weights {1/3, 2/3}."
@@ -618,7 +628,12 @@ config_defaults["train_siu3r_locusgs_recon"] = config_defaults["train_siu3r_ssst
     workspace="/space/mawb/ssst/workspace/siu3r_locusgs_faithful_recon_v1",
     experiment_name="siu3r_locusgs_faithful_recon_v1",
     project_name="TokenGS-LocusGS",
-    **{**_CANONICAL_RECON, "gaussian_z_offset": 0.0},
+    # Paper-reported optimisation scale (Sec. 4 / App.: AdamW, base lr 4e-4, 2000-step
+    # warmup then cosine).  The ScanNet adaptation keeps the same scale; the
+    # effective batch differs from the paper, so this is a recipe adaptation.
+    lr=4e-4,
+    pct_start_steps=2000,
+    **{**_CANONICAL_RECON, "gaussian_z_offset": 0.0, "locusgs_pe_mode": "injected"},
 )
 
 config_doc["train_siu3r_plain_tokengs_canonical_recon"] = (

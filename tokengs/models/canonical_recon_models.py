@@ -183,6 +183,9 @@ class LocusGSRecon(_ReconstructionOnlyMixin, TokenGS):
         supervision = _full_supervision(batch)
         metrics: dict[str, torch.Tensor] = {}
         total = None
+        final_gaussians = None
+        final_render = None
+        final_state = None
         for layer, weight in zip(self.supervised_layers, self.layer_weights):
             state = states[layer - 1]
             gaussians = self.activation_head(state["tokens"], state["mu"], state["radii"])
@@ -203,15 +206,21 @@ class LocusGSRecon(_ReconstructionOnlyMixin, TokenGS):
             for key in ("loss_rgb", "loss_ssim", "loss_gaussian_visibility", "loss_anchor_visibility", "psnr"):
                 if key in layer_loss:
                     metrics[f"{key}_layer{layer}"] = layer_loss[key]
+            final_gaussians = gaussians
+            final_render = render
+            final_state = state
         metrics["loss"] = total
         metrics["psnr"] = metrics[f"psnr_layer{self.supervised_layers[-1]}"]
         final = states[-1]
+        radii_final = state["radii"].detach()
         metrics.update(
             {
-                "radius_mean": state["radii"].detach().mean(),
+                "radius_mean": radii_final.mean(),
                 "radius_std": final["radii"].detach().std(),
-                "radius_min": final["radii"].detach().min(),
-                "radius_max": final["radii"].detach().max(),
+                "radius_min": radii_final.min(),
+                "radius_max": radii_final.max(),
+                "radius_p50": radii_final.flatten().quantile(0.5),
+                "radius_p95": radii_final.flatten().quantile(0.95),
                 "anchor_min": final["mu"].detach().min(),
                 "anchor_max": final["mu"].detach().max(),
                 "anchor_std": final["mu"].detach().std(dim=(0, 1)).mean(),
@@ -219,6 +228,39 @@ class LocusGSRecon(_ReconstructionOnlyMixin, TokenGS):
                 "radius_update_abs": final["radius_update"],
             }
         )
+        # Detached geometry diagnostics for the final supervised layer.  The head
+        # returns centres as `mu + r * delta` (plus the variant's z offset, which is
+        # 0.0 for this reconstruction model), so the local offset is recoverable.
+        if final_gaussians is not None and final_state is not None:
+            with torch.no_grad():
+                gaussians_detached = final_gaussians.detach()
+                mu = final_state["mu"].detach()
+                radii = final_state["radii"].detach()
+                patches = max(1, gaussians_detached.shape[1] // mu.shape[1])
+                mu_expanded = mu.repeat_interleave(patches, dim=1)
+                radii_expanded = radii.repeat_interleave(patches, dim=1)
+                delta = (gaussians_detached[..., 0:3] - mu_expanded) / (
+                    radii_expanded.unsqueeze(-1) + float(self.opt.locusgs_radius_epsilon)
+                )
+                delta_norm = delta.norm(dim=-1).flatten()
+                centres = gaussians_detached[..., 0:3]
+                alphas = final_render["alphas_pred"].detach()
+                depths = final_render["depths_pred"].detach()
+                metrics.update(
+                    {
+                        "delta_norm_mean": delta_norm.mean(),
+                        "delta_norm_p95": delta_norm.quantile(0.95),
+                        "delta_norm_max": delta_norm.max(),
+                        "gaussian_xyz_min": centres.min(),
+                        "gaussian_xyz_max": centres.max(),
+                        "gaussian_z_p01": centres[..., 2].flatten().quantile(0.01),
+                        "gaussian_z_p50": centres[..., 2].flatten().quantile(0.5),
+                        "gaussian_z_p99": centres[..., 2].flatten().quantile(0.99),
+                        "alpha_mean": alphas.mean(),
+                        "alpha_nonzero_fraction": (alphas > 0).float().mean(),
+                        "depth_nonzero_fraction": (depths > 0).float().mean(),
+                    }
+                )
         if ray_stats:
             metrics["ray_bias_mean"] = torch.stack([r["ray_bias_mean"] for r in ray_stats]).mean()
             metrics["ray_bias_clamped_fraction"] = torch.stack(

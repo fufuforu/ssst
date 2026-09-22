@@ -156,9 +156,17 @@ class LocusGSAnchorDecoder(nn.Module):
             nn.init.zeros_(head.weight)
             nn.init.zeros_(head.bias)
         # learnable non-negative geometric bias scale (Eq. 4).  The paper gives no
-        # initialization; we start at softplus(0) = 0.693.
-        self.gamma_raw = nn.Parameter(torch.zeros(len(decoder_blocks)))
-
+        # initialization; `locusgs_gamma_raw_init` selects it (0 -> gamma 0.693,
+        # -6 -> gamma ~2.5e-3).
+        self.gamma_raw = nn.Parameter(
+            torch.full((len(decoder_blocks),), float(opt.locusgs_gamma_raw_init))
+        )
+        # Eq. 2 is written as one residual step; the paper does not say whether the
+        # anchor embedding stays in the residual stream ("persistent") or is only
+        # the self-attention input ("injected").
+        self.pe_mode = str(opt.locusgs_pe_mode)
+        if self.pe_mode not in ("persistent", "injected"):
+            raise ValueError(f"unknown locusgs_pe_mode {self.pe_mode!r}")
         # referenced, never re-registered: these live in `enc_dec_backbone`
         self.decoder_blocks = tuple(decoder_blocks)
 
@@ -215,8 +223,15 @@ class LocusGSAnchorDecoder(nn.Module):
                     tokens, encoder_latent.keys, encoder_latent.values, attn_bias=attn_bias
                 )
             )
-            tokens = tokens + anchor_pe
-            tokens = tokens + block.gs_self_attn_scale(block.gs_self_attn(tokens))
+            if self.pe_mode == "persistent":
+                # anchor embedding stays in the residual stream
+                tokens = tokens + anchor_pe
+                tokens = tokens + block.gs_self_attn_scale(block.gs_self_attn(tokens))
+            else:
+                # anchor embedding only conditions the self-attention input
+                tokens = tokens + block.gs_self_attn_scale(
+                    block.gs_self_attn(tokens + anchor_pe)
+                )
             tokens = tokens + block.mlp_scale(block.mlp(tokens))
             # Eq. 6-7: raw additive residual refinement
             previous_mu = mu

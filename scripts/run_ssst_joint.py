@@ -329,6 +329,33 @@ def format_metrics(metrics: dict, step: int, lr: float, elapsed: float) -> str:
         "ent": metrics.get("spatial/assignment_entropy"),
         "qact": metrics.get("spatial/active_query_count"),
         "noobj": metrics.get("spatial/no_object_ratio"),
+        # Corrected LocusGS reconstruction diagnostics (detached, per log interval).
+        "l6_rgb": metrics.get("loss_rgb_layer6"),
+        "l6_ssim": metrics.get("loss_ssim_layer6"),
+        "l6_gvis": metrics.get("loss_gaussian_visibility_layer6"),
+        "l6_avis": metrics.get("loss_anchor_visibility_layer6"),
+        "l12_rgb": metrics.get("loss_rgb_layer12"),
+        "l12_ssim": metrics.get("loss_ssim_layer12"),
+        "l12_gvis": metrics.get("loss_gaussian_visibility_layer12"),
+        "l12_avis": metrics.get("loss_anchor_visibility_layer12"),
+        "mu_min": metrics.get("anchor_min"),
+        "mu_max": metrics.get("anchor_max"),
+        "mu_std": metrics.get("anchor_std"),
+        "r_p50": metrics.get("radius_p50"),
+        "r_p95": metrics.get("radius_p95"),
+        "d_mean": metrics.get("delta_norm_mean"),
+        "d_p95": metrics.get("delta_norm_p95"),
+        "d_max": metrics.get("delta_norm_max"),
+        "gs_xyz_min": metrics.get("gaussian_xyz_min"),
+        "gs_xyz_max": metrics.get("gaussian_xyz_max"),
+        "gs_z_p01": metrics.get("gaussian_z_p01"),
+        "gs_z_p50": metrics.get("gaussian_z_p50"),
+        "gs_z_p99": metrics.get("gaussian_z_p99"),
+        "alpha": metrics.get("alpha_mean"),
+        "alpha_nz": metrics.get("alpha_nonzero_fraction"),
+        "depth_nz": metrics.get("depth_nonzero_fraction"),
+        "gamma": metrics.get("gamma_mean"),
+        "bclip": metrics.get("ray_bias_clamped_fraction"),
     }
     parts = [f"step {step}", f"lr {lr:.2e}", f"dt {elapsed:.2f}s"]
     for name, value in fields.items():
@@ -468,6 +495,27 @@ def main(argv: list[str] | None = None) -> int:
         log(f"[setup] validation records={len(val_provider)}")
 
     model = model_registry[opt.model_type](opt).to(device)
+    if opt.model_type == "siu3r_locusgs_recon":
+        anchor_decoder = getattr(model, "anchor_decoder", None)
+        if anchor_decoder is None:
+            raise RuntimeError("LocusGS preset selected but the model has no anchor decoder")
+        pe_mode = str(getattr(anchor_decoder, "pe_mode", "?"))
+        log(
+            f"[setup] LocusGS pe_mode={pe_mode} (persistent PE is forbidden for the "
+            f"formal run) | gamma_raw_init={float(opt.locusgs_gamma_raw_init)} "
+            f"gamma_init={float(torch.nn.functional.softplus(torch.tensor(float(opt.locusgs_gamma_raw_init)))):.6f} "
+            f"r_init={float(opt.locusgs_radius_init)} sigma0={float(opt.locusgs_sigma0)} "
+            f"clamp={float(opt.locusgs_bias_clamp)}"
+        )
+        log(
+            f"[setup] anchor mu init range=[{float(anchor_decoder.mu.min()):.4f}, "
+            f"{float(anchor_decoder.mu.max()):.4f}] "
+            f"radii init mean={float(anchor_decoder.activated_radius(anchor_decoder.rho).mean()):.4f}"
+        )
+        if pe_mode != "injected":
+            raise RuntimeError(
+                f"formal LocusGS runs require locusgs_pe_mode='injected', got {pe_mode!r}"
+            )
     if opt.init_checkpoint:
         log(f"[setup] warm start from {opt.init_checkpoint}")
         model.init_from_checkpoint(opt.init_checkpoint, log=log)
@@ -477,11 +525,26 @@ def main(argv: list[str] | None = None) -> int:
             f"[setup] reconstruction-only: froze {len(frozen)} object-query parameters "
             "(no query forward, no mask rendering, no Hungarian, no understanding loss)"
         )
-    optimizer = torch.optim.AdamW(
-        [parameter for parameter in model.parameters() if parameter.requires_grad],
-        lr=opt.lr,
-        betas=(0.9, 0.95),
-        weight_decay=args.weight_decay,
+    # TokenGS-style parameter grouping: 1-D parameters (norms, biases, LayerScale
+    # gammas) and any tensor flagged `_no_weight_decay` (the whole activation head)
+    # are excluded from weight decay; only the remaining >=2-D weights decay.
+    decay_params, nodecay_params = [], []
+    for name, parameter in model.named_parameters():
+        if not parameter.requires_grad:
+            continue
+        if parameter.dim() == 1 or getattr(parameter, "_no_weight_decay", False):
+            nodecay_params.append(parameter)
+        else:
+            decay_params.append(parameter)
+    groups = []
+    if decay_params:
+        groups.append({"params": decay_params, "weight_decay": float(args.weight_decay)})
+    if nodecay_params:
+        groups.append({"params": nodecay_params, "weight_decay": 0.0})
+    optimizer = torch.optim.AdamW(groups, lr=opt.lr, betas=(0.9, 0.95))
+    log(
+        f"[setup] optimizer groups: decay(wd={args.weight_decay})={sum(p.numel() for p in decay_params):,} params "
+        f"| nodecay(wd=0)={sum(p.numel() for p in nodecay_params):,} params"
     )
     step = load_resume(model, optimizer, args, device, log)
     if distributed:

@@ -1363,6 +1363,57 @@ def locusgs_options(**overrides):
 class LocusGSFormulaTests(unittest.TestCase):
     """Phase 14: paper formulas (arXiv:2608.12825)."""
 
+    def test_formal_preset_uses_injected_pe(self):
+        """The corrected PE semantics must be the formal default and preset value."""
+        from tokengs.options import Options, config_defaults
+
+        self.assertEqual(Options().locusgs_pe_mode, "injected")
+        preset = config_defaults["train_siu3r_locusgs_recon"]
+        self.assertEqual(preset.locusgs_pe_mode, "injected")
+        self.assertEqual(preset.model_type, "siu3r_locusgs_recon")
+        # paper-reported optimisation scale of this round
+        self.assertAlmostEqual(preset.lr, 4e-4, places=12)
+
+    def test_injected_pe_does_not_accumulate_into_residual_stream(self):
+        """`injected` keeps ||tokens|| bounded; `persistent` inflates it every layer."""
+        from tokengs.models.locusgs_recon import LocusGSAnchorDecoder
+
+        class _Block(torch.nn.Module):
+            """Stub with zero-returning sub-blocks so only the PE path matters."""
+
+            def __init__(self, dim):
+                super().__init__()
+                self.gs_cross_attn = lambda x, k, v, attn_bias=None: torch.zeros_like(x)
+                self.gs_self_attn = lambda x: torch.zeros_like(x)
+                self.mlp = lambda x: torch.zeros_like(x)
+                self.gs_cross_attn_scale = lambda x: x
+                self.gs_self_attn_scale = lambda x: x
+                self.mlp_scale = lambda x: x
+
+        dim, tokens = 16, 8
+        norms, init_norms = {}, {}
+        for mode in ("injected", "persistent"):
+            opt = locusgs_options(
+                enc_embed_dim=dim,
+                num_gs_tokens=tokens,
+                dec_patch_size=2,
+                locusgs_pe_hidden_dim=dim,
+                locusgs_pe_mode=mode,
+            )
+            torch.manual_seed(7)
+            decoder = LocusGSAnchorDecoder(opt, [_Block(dim) for _ in range(4)])
+            gs = torch.randn(1, tokens, dim)
+            init_norms[mode] = float(gs.norm())
+            latent = type("L", (), {"keys": torch.randn(1, 16, dim), "values": torch.randn(1, 16, dim)})()
+            rays = (torch.randn(1, 16, 3), torch.nn.functional.normalize(torch.randn(1, 16, 3), dim=-1))
+            with torch.no_grad():
+                states, _ = decoder(gs, latent, rays)
+            norms[mode] = float(states[-1]["tokens"].norm())
+        # zero sub-blocks: injected leaves the residual stream untouched, persistent
+        # adds one anchor embedding per layer
+        self.assertAlmostEqual(norms["injected"], init_norms["injected"], delta=1e-3 * init_norms["injected"])
+        self.assertGreater(norms["persistent"], 1.2 * init_norms["persistent"])
+
     def test_plucker_distance_and_bias(self):
         from tokengs.models.locusgs_recon import (
             anchor_ray_geometric_bias,
@@ -1414,6 +1465,53 @@ class LocusGSFormulaTests(unittest.TestCase):
         self.assertGreater(
             float(visibility_loss_from_points(outside, cam_view, intrinsics, (64, 64))), 0.0
         )
+
+    def test_anchor_visibility_projection_validity(self):
+        """Culled anchors must never be reported as visible.
+
+        `z_cam <= znear` (including anything behind the camera) is not rendered, so
+        the penalty must be the maximum allowed value instead of a principal-point
+        projection of a depth-clamped point.
+        """
+        from tokengs.models.canonical_recon import project_points_means2d, visibility_loss_from_points
+
+        cam_view = torch.eye(4).unsqueeze(0).unsqueeze(0)
+        intrinsics = torch.tensor([[[100.0, 100.0, 32.0, 32.0]]])
+        znear, img_size, clip = 0.025, (64, 64), 1.0
+        cases = {
+            "front_inside": torch.tensor([[[0.0, 0.0, 1.0]]]),
+            "front_outside": torch.tensor([[[5.0, 5.0, 1.0]]]),
+            "near_plane": torch.tensor([[[0.0, 0.0, 0.01]]]),
+            "behind_camera": torch.tensor([[[0.0, 0.0, -1.0]]]),
+            "on_axis_behind": torch.tensor([[[0.0, 0.0, -0.5]]]),
+        }
+        values = {}
+        for name, points in cases.items():
+            points = points.clone().requires_grad_(True)
+            loss = visibility_loss_from_points(
+                points, cam_view, intrinsics, img_size, clamp_max=clip, znear=znear
+            )
+            self.assertTrue(torch.isfinite(loss), name)
+            grad = torch.autograd.grad(loss, points)[0]
+            self.assertTrue(torch.isfinite(grad).all(), name)
+            values[name] = float(loss)
+
+        self.assertAlmostEqual(values["front_inside"], 0.0, places=6)
+        self.assertGreater(values["front_outside"], 0.0)
+        # culled points: fully penalised (clipped at the TokenGS threshold)
+        self.assertAlmostEqual(values["near_plane"], clip, places=6)
+        self.assertAlmostEqual(values["behind_camera"], clip, places=6)
+        self.assertAlmostEqual(values["on_axis_behind"], clip, places=6)
+
+        _, valid = project_points_means2d(
+            torch.cat([cases["front_inside"], cases["near_plane"], cases["behind_camera"]], dim=1),
+            cam_view,
+            intrinsics,
+            znear=znear,
+        )
+        self.assertTrue(bool(valid[0, 0, 0]))
+        self.assertFalse(bool(valid[0, 0, 1]))
+        self.assertFalse(bool(valid[0, 0, 2]))
 
     def test_supervised_layer_weights_match_eq30(self):
         from tokengs.models.canonical_recon import supervised_layer_weights
