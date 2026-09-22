@@ -207,9 +207,6 @@ def main(argv: list[str] | None = None) -> int:
         name: parameter.detach().clone()
         for name, parameter in joint.object_queries.named_parameters()
     }
-    head_rows = model.activation_head.deconv.weight.shape[0]
-    head_channel = torch.arange(head_rows) % int(model.activation_head.output_dims)
-    head_loaded_rows = (head_channel >= 3).to(model.activation_head.deconv.weight.device)
     load_report = joint.init_from_reconstruction_checkpoint(
         str(checkpoint_dir), log=lambda message: None
     )
@@ -224,12 +221,6 @@ def main(argv: list[str] | None = None) -> int:
         "query_branch_unchanged": all(
             torch.equal(query_before[name], query_after[name]) for name in query_before
         ),
-        # The Gaussian head is loaded channel-aware: channels 3:14 come from the
-        # checkpoint, channels 0:3 (local offsets) keep the new model's init.
-        "gaussian_head_channels_3to14_loaded": torch.equal(
-            joint.activation_head.deconv.weight.detach()[head_loaded_rows],
-            model.activation_head.deconv.weight.detach()[head_loaded_rows],
-        ),
         "spatial_backbone_loaded": torch.equal(
             joint.spatial_decoder.anchor_pre.detach(),
             model.spatial_decoder.anchor_pre.detach(),
@@ -238,7 +229,54 @@ def main(argv: list[str] | None = None) -> int:
             joint.enc_dec_backbone.encoder_norm.weight.detach(),
             model.enc_dec_backbone.encoder_norm.weight.detach(),
         ),
+        # The Gaussian head must be loaded verbatim (all 14 raw channels): a
+        # reconstruction-only checkpoint shares the local-offset semantics.
+        "gaussian_head_full_load": torch.equal(
+            joint.activation_head.deconv.weight.detach(),
+            model.activation_head.deconv.weight.detach(),
+        )
+        and torch.equal(
+            joint.activation_head.deconv.bias.detach(),
+            model.activation_head.deconv.bias.detach(),
+        ),
+        "gaussian_head_partially_loaded": len(load_report["partially_loaded"]),
     }
+
+    # ---- functional equality: same batch, same reconstruction path --------
+    model.eval()
+    joint.eval()
+    functional_input, _ = split_data(batch, opt)
+    functional_decoder = ModelInputDecoder(
+        cam_view=batch["cam_view_all"], intrinsics=batch["intrinsics_all"]
+    )
+    with torch.no_grad():
+        source_out = model.forward_reconstruction_only(
+            ModelInput(functional_input.encoder, functional_decoder),
+            render_decoder_input=functional_decoder,
+        )
+        target_out = joint.forward_reconstruction_only(
+            ModelInput(functional_input.encoder, functional_decoder),
+            render_decoder_input=functional_decoder,
+        )
+    report["functional_reconstruction_equality"] = {
+        "gaussians_bitwise_equal": bool(
+            torch.equal(source_out["gaussians"], target_out["gaussians"])
+        ),
+        "gaussians_max_abs_diff": float(
+            (source_out["gaussians"] - target_out["gaussians"]).abs().max()
+        ),
+        "rgb_max_abs_diff": float(
+            (source_out["render"]["images_pred"] - target_out["render"]["images_pred"])
+            .abs()
+            .max()
+        ),
+        "depth_max_abs_diff": float(
+            (source_out["render"]["depths_pred"] - target_out["render"]["depths_pred"])
+            .abs()
+            .max()
+        ),
+    }
+    model.train()
     joint.eval()
     joint_input, _ = split_data(batch, joint_opt)
     joint_decoder = ModelInputDecoder(

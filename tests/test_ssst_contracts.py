@@ -11,7 +11,7 @@ import torch
 import torch.nn.functional as F
 
 from tokengs.models import model_registry
-from tokengs.models.input_types import ModelInputDecoder, split_data
+from tokengs.models.input_types import ModelInput, ModelInputDecoder, split_data
 from tokengs.models.enc_dec import DecoderBlock
 from tokengs.models.spatial_grounded_tokens import (
     anchor_ray_bias,
@@ -1135,23 +1135,21 @@ class ReconstructionOnlyTests(unittest.TestCase):
         self.assertTrue(all(key.startswith("object_queries.") for key in excluded))
         for name, parameter in joint.object_queries.named_parameters():
             self.assertTrue(torch.equal(query_before[name], parameter.detach()), name)
-        # Channels 3:14 of the Gaussian head are loaded; channels 0:3 (local
-        # offset) intentionally keep the target model's own initialization.
-        rows = model.activation_head.deconv.weight.shape[0]
-        channel = torch.arange(rows) % int(model.activation_head.output_dims)
-        loaded_rows = channel >= 3
+        # A reconstruction-only SSST checkpoint has the same local-offset head
+        # semantics, so every channel (including 0:3) is loaded verbatim.
         self.assertTrue(
             torch.equal(
-                joint.activation_head.deconv.weight.detach()[loaded_rows],
-                model.activation_head.deconv.weight.detach()[loaded_rows],
+                joint.activation_head.deconv.weight.detach(),
+                model.activation_head.deconv.weight.detach(),
             )
         )
         self.assertTrue(
             torch.equal(
-                joint.activation_head.deconv.weight.detach()[~loaded_rows],
-                head_before[~loaded_rows],
+                joint.activation_head.deconv.bias.detach(),
+                model.activation_head.deconv.bias.detach(),
             )
         )
+        del head_before
         self.assertTrue(
             torch.equal(
                 joint.spatial_decoder.anchor_pre.detach(),
@@ -1164,6 +1162,186 @@ class ReconstructionOnlyTests(unittest.TestCase):
                 model.enc_dec_backbone.encoder_norm.weight.detach(),
             )
         )
+
+
+class CheckpointProvenanceTests(unittest.TestCase):
+    """Two checkpoint provenances need two different Gaussian-head policies."""
+
+    @staticmethod
+    def _known_head(source, channels: int, rows: int, weight_width: int):
+        weight = torch.arange(rows, dtype=torch.float32).reshape(rows, 1).repeat(1, weight_width)
+        bias = torch.arange(rows, dtype=torch.float32) + 1000.0
+        return weight, bias
+
+    def test_legacy_warm_start_keeps_channels_0to3_fresh(self):
+        """Test A: legacy TokenGS warm start behaviour is unchanged."""
+        opt = tiny_options()
+        model = model_registry["siu3r_joint_ssst"](opt)
+        rows = model.activation_head.deconv.weight.shape[0]
+        channels = int(model.activation_head.output_dims)
+        fresh_weight = model.activation_head.deconv.weight.detach().clone()
+        fresh_bias = model.activation_head.deconv.bias.detach().clone()
+        weight, bias = self._known_head(
+            model, channels, rows, model.activation_head.deconv.weight.shape[1]
+        )
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "model.pt"
+            torch.save(
+                {
+                    "activation_head.deconv.weight": weight,
+                    "activation_head.deconv.bias": bias,
+                },
+                path,
+            )
+            report = model.init_from_checkpoint(
+                str(path), log=lambda m: None, partial_legacy_head=True
+            )
+        row_channel = torch.arange(rows) % channels
+        legacy_rows = row_channel < 3
+        self.assertTrue(
+            torch.equal(
+                model.activation_head.deconv.weight.detach()[legacy_rows],
+                fresh_weight[legacy_rows],
+            )
+        )
+        self.assertTrue(
+            torch.equal(
+                model.activation_head.deconv.bias.detach()[legacy_rows],
+                fresh_bias[legacy_rows],
+            )
+        )
+        self.assertTrue(
+            torch.equal(
+                model.activation_head.deconv.weight.detach()[~legacy_rows],
+                weight[~legacy_rows],
+            )
+        )
+        self.assertEqual(sorted(report["partially_loaded"]), [
+            "activation_head.deconv.bias",
+            "activation_head.deconv.weight",
+        ])
+        self.assertTrue(report["partial_legacy_head"])
+
+    def test_recon_to_joint_loads_all_gaussian_head_channels(self):
+        """Test B: a reconstruction-only checkpoint loads channels 0:14."""
+        opt = tiny_options()
+        target = model_registry["siu3r_joint_ssst"](opt)
+        source = model_registry["siu3r_joint_ssst"](opt)
+        rows = source.activation_head.deconv.weight.shape[0]
+        channels = int(source.activation_head.output_dims)
+        weight = (torch.arange(rows, dtype=torch.float32).reshape(rows, 1)
+                  .repeat(1, source.activation_head.deconv.weight.shape[1]) * 0.5 - 7.0)
+        bias = torch.arange(rows, dtype=torch.float32) * 0.25 - 3.0
+        with torch.no_grad():
+            source.activation_head.deconv.weight.copy_(weight)
+            source.activation_head.deconv.bias.copy_(bias)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "model.pt"
+            torch.save(source.state_dict(), path)
+            report = target.init_from_reconstruction_checkpoint(str(path), log=lambda m: None)
+
+        self.assertEqual(report["partially_loaded"], [])
+        self.assertFalse(report["partial_legacy_head"])
+        self.assertIn("activation_head.deconv.weight", report["loaded"])
+        self.assertIn("activation_head.deconv.bias", report["loaded"])
+        self.assertTrue(
+            torch.equal(target.activation_head.deconv.weight.detach(), weight)
+        )
+        self.assertTrue(torch.equal(target.activation_head.deconv.bias.detach(), bias))
+        row_channel = torch.arange(rows) % channels
+        local_rows = row_channel < 3
+        self.assertTrue(
+            torch.equal(
+                target.activation_head.deconv.weight.detach()[local_rows],
+                weight[local_rows],
+            ),
+            "local-offset channels 0:3 must be loaded from a recon checkpoint",
+        )
+
+    def test_recon_to_joint_loads_full_backbone_and_keeps_queries_fresh(self):
+        """Test C: full reconstruction backbone equality, query branch fresh."""
+        opt, model, _, _, _ = ReconstructionOnlyTests()._setup()
+        _, metrics = model.joint_step(synthetic_batch(opt), step=0, phase="train")
+        metrics["loss"].backward()
+
+        backbone_keys = [
+            name
+            for name, _ in model.named_parameters()
+            if not name.startswith("object_queries.")
+        ]
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "model.pt"
+            torch.save(model.state_dict(), path)
+            joint_opt = tiny_options().evolve(reconstruction_only=False)
+            torch.manual_seed(11)
+            joint = model_registry["siu3r_joint_ssst"](joint_opt)
+            fresh_queries = {
+                name: parameter.detach().clone()
+                for name, parameter in joint.object_queries.named_parameters()
+            }
+            report = joint.init_from_reconstruction_checkpoint(str(path), log=lambda m: None)
+
+        for name in backbone_keys:
+            self.assertTrue(
+                torch.equal(
+                    dict(joint.named_parameters())[name].detach(),
+                    dict(model.named_parameters())[name].detach(),
+                ),
+                f"{name} was not restored exactly",
+            )
+        for name, parameter in joint.object_queries.named_parameters():
+            self.assertTrue(
+                torch.equal(fresh_queries[name], parameter.detach()),
+                f"{name} must stay at its fresh initialization",
+            )
+        self.assertEqual(report["shape_mismatch"], [])
+        self.assertEqual(report["unexpected"], [])
+        excluded = [
+            entry["key"]
+            for entry in report["skipped"]
+            if entry.get("reason") == "excluded by policy"
+        ]
+        self.assertTrue(excluded)
+        self.assertTrue(all(key.startswith("object_queries.") for key in excluded))
+
+    def test_recon_to_joint_preserves_reconstruction_function(self):
+        """Functional smoke: identical Gaussians/RGB/depth after loading."""
+        opt, model, _, _, _ = ReconstructionOnlyTests()._setup()
+        _, metrics = model.joint_step(synthetic_batch(opt), step=0, phase="train")
+        metrics["loss"].backward()
+        batch = synthetic_batch(opt)
+        with tempfile.TemporaryDirectory() as tmp:
+            path = Path(tmp) / "model.pt"
+            torch.save(model.state_dict(), path)
+            joint_opt = tiny_options().evolve(reconstruction_only=False)
+            torch.manual_seed(3)
+            joint = model_registry["siu3r_joint_ssst"](joint_opt)
+            joint.init_from_reconstruction_checkpoint(str(path), log=lambda m: None)
+
+        model.eval()
+        joint.eval()
+        model.gs = FakeRenderer(opt.img_size)
+        joint.gs = FakeRenderer(opt.img_size)
+        model_input, _ = split_data(batch, opt)
+        decoder = ModelInputDecoder(
+            cam_view=batch["cam_view_all"], intrinsics=batch["intrinsics_all"]
+        )
+        with torch.no_grad():
+            source = model.forward_reconstruction_only(
+                ModelInput(model_input.encoder, decoder), render_decoder_input=decoder
+            )
+            target = joint.forward_reconstruction_only(
+                ModelInput(model_input.encoder, decoder), render_decoder_input=decoder
+            )
+        self.assertTrue(
+            torch.equal(source["gaussians"], target["gaussians"]),
+            "Gaussian tensors must match exactly after recon->joint initialization",
+        )
+        for key in ("images_pred", "depths_pred"):
+            difference = float(
+                (source["render"][key] - target["render"][key]).abs().max()
+            )
+            self.assertLess(difference, 1e-6, f"{key} differs by {difference}")
 
 
 if __name__ == "__main__":

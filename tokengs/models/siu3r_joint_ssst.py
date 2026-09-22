@@ -412,17 +412,26 @@ class SIU3RJointSSST(TokenGS):
         log=print,
         *,
         exclude_prefixes: tuple[str, ...] = (),
+        partial_legacy_head: bool = True,
     ) -> dict:
         """Load only name- and shape-compatible keys, reporting everything.
 
-        `activation_head.deconv.*` is loaded channel-aware: raw channels 0:3 of
-        the legacy head are absolute XYZ and are skipped, while channels 3:14
-        (RGB, scale, rotation, opacity) keep their learned values.  New
+        `activation_head.deconv.*` needs an explicit provenance policy because
+        two different sources can share the same parameter name and shape:
+
+        * ``partial_legacy_head=True`` (legacy TokenGS -> SSST warm start): the
+          source head predicts absolute XYZ in raw channels 0:3, so those
+          channels are skipped and only 3:14 (RGB, scale, rotation, opacity) are
+          loaded.  The local-offset channels keep this model's initialization.
+        * ``partial_legacy_head=False`` (SSST reconstruction-only -> SSST
+          joint): the source head already has the local-offset semantics
+          (``x = mu + r * delta``), so all 14 channels are loaded unchanged.
+
+        `exclude_prefixes` lists parameter-name prefixes that must keep their
+        fresh initialization (used to keep the unified object-query branch
+        random when initializing from a reconstruction-only checkpoint).  New
         parameters (anchors, refinement, queries, assignment) always keep their
-        fresh initialization.  `exclude_prefixes` lists parameter-name prefixes
-        that must keep their fresh initialization (used to initialize a joint
-        model from a reconstruction-only checkpoint while keeping the unified
-        object-query branch random).
+        fresh initialization.
         """
         resolved = Path(path)
         if resolved.is_dir():
@@ -455,7 +464,7 @@ class SIU3RJointSSST(TokenGS):
                 if state[key].shape != value.shape:
                     mismatched.append((key, tuple(value.shape), tuple(state[key].shape)))
                     continue
-                if key in PARTIALLY_LOADED_KEYS:
+                if partial_legacy_head and key in PARTIALLY_LOADED_KEYS:
                     target = state[key]
                     channel = torch.arange(value.shape[0]) % deconv_channel_count
                     keep = (channel >= LEGACY_ABSOLUTE_XYZ_CHANNELS).to(target.device)
@@ -516,6 +525,7 @@ class SIU3RJointSSST(TokenGS):
             log(f"    mismatch    {key} ckpt{ckpt_shape} != model{model_shape}")
         return {
             "checkpoint": str(resolved),
+            "partial_legacy_head": bool(partial_legacy_head),
             "loaded": [key for key in loaded],
             "partially_loaded": list(partially_loaded),
             "skipped": skipped,
@@ -532,10 +542,16 @@ class SIU3RJointSSST(TokenGS):
 
         Everything except the unified object-query branch is loaded, so the
         subsequent joint finetune starts from the pre-trained spatial
-        reconstruction representation with a fresh query head.
+        reconstruction representation with a fresh query head.  The Gaussian
+        head is loaded in full: a reconstruction-only SSST checkpoint has the
+        same local-offset head semantics as the joint model, unlike the legacy
+        TokenGS head whose channels 0:3 are absolute XYZ.
         """
         return self.init_from_checkpoint(
-            path, log=log, exclude_prefixes=("object_queries.",)
+            path,
+            log=log,
+            exclude_prefixes=("object_queries.",),
+            partial_legacy_head=False,
         )
 
     # ------------------------------------------------------------------ #
