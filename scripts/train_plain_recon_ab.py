@@ -166,8 +166,8 @@ def main() -> int:
         ),
     )
     parser.add_argument("--scene", default="scene0048_01")
-    parser.add_argument("--context", type=int, nargs=2, default=[654, 664])
-    parser.add_argument("--novel", type=int, nargs=2, default=[655, 659])
+    parser.add_argument("--context", type=int, nargs="+", default=[654, 664])
+    parser.add_argument("--novel", type=int, nargs="+", default=[655, 659])
     parser.add_argument("--scans-root", default=str(DEFAULT_SCANS_ROOT))
     parser.add_argument("--total-steps", type=int, default=4000)
     parser.add_argument("--mid-step", type=int, default=2000)
@@ -188,6 +188,15 @@ def main() -> int:
                         help="comma list of 'mid'/'final' checkpoints to write; 'none' to skip")
     parser.add_argument("--init-state", default=None,
                         help="model state_dict shared by both arms; created here if absent")
+    parser.add_argument(
+        "--init-safetensors",
+        default=None,
+        help=(
+            "shared pretrained checkpoint (.safetensors).  Loaded strictly: the "
+            "matched / missing / unexpected / mismatched report is printed and any "
+            "non-exact load aborts before training."
+        ),
+    )
     parser.add_argument("--out-dir", required=True)
     args = parser.parse_args()
     device = torch.device(args.device)
@@ -197,12 +206,38 @@ def main() -> int:
     opt = config_defaults["train_siu3r_plain_tokengs_canonical_recon"].evolve(
         dataset_kwargs={"data_root": "/space/mawb/SIU3R/data/scannet"},
         batch_size=1, num_workers=0, seed=args.seed, lr=args.lr,
+        num_input_views=len(args.context), num_views=len(args.context) + len(args.novel),
     )
     torch.manual_seed(int(opt.seed))
     model = model_registry[opt.model_type](opt)
 
     # Shared initial weights: if provided, load; else generate once and persist.
-    if args.init_state and Path(args.init_state).is_file():
+    if args.init_safetensors:
+        from safetensors.torch import load_file as _load_safetensors
+
+        state = _load_safetensors(args.init_safetensors, device="cpu")
+        model_state = model.state_dict()
+        matched = set(model_state) & set(state)
+        missing = sorted(set(model_state) - set(state))
+        unexpected = sorted(set(state) - set(model_state))
+        mismatched = sorted(
+            k for k in matched if tuple(state[k].shape) != tuple(model_state[k].shape)
+        )
+        total = sum(v.numel() for v in model_state.values())
+        matched_params = sum(model_state[k].numel() for k in matched)
+        print(f"[ab] warm start {args.init_safetensors}")
+        print(f"[ab]   matched {len(matched)}/{len(model_state)} tensors, "
+              f"{matched_params:,}/{total:,} params = {matched_params / total * 100:.2f}%")
+        print(f"[ab]   missing={len(missing)} unexpected={len(unexpected)} "
+              f"mismatched={len(mismatched)}")
+        if missing or unexpected or mismatched:
+            raise RuntimeError(
+                "non-exact warm start refused: "
+                f"missing={missing[:8]} unexpected={unexpected[:8]} mismatched={mismatched[:8]}"
+            )
+        model.load_state_dict(state, strict=True)
+        init_source = args.init_safetensors
+    elif args.init_state and Path(args.init_state).is_file():
         state = torch.load(args.init_state, map_location="cpu", weights_only=False)
         model.load_state_dict(state["model"] if "model" in state else state)
         init_source = args.init_state
