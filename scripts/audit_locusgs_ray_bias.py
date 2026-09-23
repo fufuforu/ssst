@@ -209,6 +209,21 @@ def main() -> int:
             entry["meanabs_over_content_std"] = float(
                 (gamma * geometric.detach()).abs().mean() / content.std()
             )
+            # Per-query ratio after removing the ray-axis mean: a query whose bias is
+            # constant along the ray axis (all-clamped) contributes nothing to the
+            # softmax, so the de-meaned ratio is the selectivity-relevant quantity.
+            with torch.no_grad():
+                bias_c = gamma * geometric.detach() - (gamma * geometric.detach()).mean(-1, keepdim=True)
+                content_c = content - content.mean(-1, keepdim=True)
+                per_query = bias_c.std(-1) / content_c.std(-1).clamp_min(1e-9)  # [B,H,N]
+                entry["std_ratio_demeaned"] = float(per_query.mean())
+                entry["std_ratio_demeaned_p50"] = float(per_query.flatten().quantile(0.50))
+                entry["std_ratio_demeaned_p90"] = float(per_query.flatten().quantile(0.90))
+                per_query_bias_std = bias_c.std(-1)                            # [B,H,N]
+                entry["bias_within_query_std_p50"] = float(per_query_bias_std.flatten().quantile(0.50))
+                entry["bias_constant_query_fraction"] = float(
+                    (per_query_bias_std < 1e-6).float().mean()
+                )
             ratio_samples.append((layer, float(content.std()), float(geometric.detach().std()), gamma))
             if layer in (1, 6, 12):
                 entry["attention_content_only"] = attn_stats(content)
