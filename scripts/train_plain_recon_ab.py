@@ -176,6 +176,8 @@ def main() -> int:
     parser.add_argument("--lr-min-ratio", type=float, default=0.02)
     parser.add_argument("--weight-decay", type=float, default=0.05)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--amp", choices=("bf16", "fp32"), default="bf16",
+                        help="autocast dtype for the training forward; fp32 disables autocast")
     parser.add_argument("--pair-seed", type=int, default=42,
                         help="seed for the SIU3R pair sampler; keep fixed across replicates")
     parser.add_argument("--log-every", type=int, default=50)
@@ -294,11 +296,12 @@ def main() -> int:
         return args.lr * (args.lr_min_ratio + (1.0 - args.lr_min_ratio) * cosine)
 
     evaluate = make_eval_fn(model, batch, opt, num_ctx)
+    use_amp = args.amp == "bf16"
     amp_dtype = torch.bfloat16
     rows = []
     for step in range(1, args.total_steps + 1):
         optimizer.zero_grad(set_to_none=True)
-        with torch.autocast(device_type=device.type, dtype=amp_dtype):
+        with torch.autocast(device_type=device.type, dtype=amp_dtype, enabled=use_amp):
             _, metrics = model.step_loss(batch, step=step - 1, phase="train")
         metrics["loss"].backward()
         grad_norm = float(torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0))
