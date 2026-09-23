@@ -46,8 +46,10 @@ def official_view(scan: str, frame: int, canonical: np.ndarray):
         ]
     )
     c2w = np.loadtxt(scan_path / "extrinsic" / f"{frame}.txt")
-    w2c_rel = np.linalg.inv(canonical) @ c2w
-    return {"depth_m": depth, "K_norm": intrinsic_norm, "c2w": c2w, "w2c_rel": w2c_rel}
+    # official `relative_pose` returns inv(c2w[0]) @ c2w, i.e. a CAMERA-TO-WORLD
+    # matrix expressed in the first-context frame (not a world-to-camera matrix).
+    c2w_rel = np.linalg.inv(canonical) @ c2w
+    return {"depth_m": depth, "K_norm": intrinsic_norm, "c2w": c2w, "c2w_rel": c2w_rel}
 
 
 def main() -> int:
@@ -83,12 +85,13 @@ def main() -> int:
     ratios = []
     for v, frame in enumerate(ours_frames):
         off = official_view(args.scene, frame, canonical)
-        w2c_off = off["w2c_rel"]
-        R_off, t_off = w2c_off[:3, :3], w2c_off[:3, 3]
-        # the provider stores `inverse(c2w).transpose(1, 2)` (the renderer undoes the
-        # transpose internally), so the actual w2c is the transpose of what we loaded
-        w2c_ours = ours_cam_view[v].T
-        R_ours_t, t_ours = w2c_ours[:3, :3], w2c_ours[:3, 3]
+        c2w_rel = off["c2w_rel"]
+        R_off, t_off = c2w_rel[:3, :3], c2w_rel[:3, 3]
+        # the provider stores `inverse(relative c2w).transpose(1, 2)`; the renderer
+        # transposes it back, so `cam_view.T` is the world-to-camera of that view.
+        # For the alignment we only need the camera centre, which we take from the
+        # provider's own rays (rays_o) instead of re-deriving it from the matrix.
+        R_ours_t, t_ours = ours_cam_view[v].T[:3, :3], ours_cam_view[v].T[:3, 3]
         k_off_px = np.array([off["K_norm"][0, 0] * IMG, off["K_norm"][1, 1] * IMG,
                              off["K_norm"][0, 2] * IMG, off["K_norm"][1, 2] * IMG])
         ratio = (t_ours / t_off) if np.all(np.abs(t_off) > 1e-9) else np.full(3, np.nan)
@@ -110,6 +113,7 @@ def main() -> int:
               f"{str(np.round(k_off_px,3)):>26} | {entry['depth_official_mean_m']:>11.3f}")
 
     # ---- geometric ray check: which official convention matches our rays? --- #
+    scene_scale = float(provider.scene_scale)
     rays_o = sample["rays_os"].numpy()   # [V,3,H,W]
     rays_d = sample["rays_ds"].numpy()
     pixels = [(32, 32), (128, 96), (200, 180), (96, 224)]
@@ -119,19 +123,24 @@ def main() -> int:
         off = official_view(args.scene, frame, canonical)
         K = off["K_norm"]
         K_inv = np.linalg.inv(K)
-        rel = off["w2c_rel"]
+        rel = off["c2w_rel"]                      # official: relative C2W = (R, t)
         for (px, py) in pixels:
             un, vn = (px + 0.5) / IMG, (py + 0.5) / IMG
             d_cam = K_inv @ np.array([un, vn, 1.0])
             d_cam = d_cam / np.linalg.norm(d_cam)
-            for name, A in (("H1_rel_is_c2w_relative", rel[:3, :3]), ("H2_rel_is_w2c_relative", rel[:3, :3].T)):
+            for name, A in (("H1_rel_is_c2w_relative", rel[:3, :3]),
+                            ("H2_rel_is_w2c_relative", rel[:3, :3].T)):
                 d = A @ d_cam
                 d = d / np.linalg.norm(d)
                 hyp[name].append(float(np.abs(d - rays_d[v, :, py, px]).max()))
-        # ray origins: 0 for the canonical view; for others compare to A @ (-t)
-        for name, A, t in (("H1_rel_is_c2w_relative", rel[:3, :3], rel[:3, 3]),
-                           ("H2_rel_is_w2c_relative", rel[:3, :3].T, -rel[:3, :3].T @ rel[:3, 3])):
-            origins[name].append(float(np.abs(rays_o[v, :, 128, 128] - A @ (-t)).max()))
+        # H1: the official matrix is C2W=(R,t) so the camera centre is t, and our
+        #     provider stores that centre scaled by scene_scale (0.15).
+        # H2: if it were a W2C then the centre would be -R^T t (also scaled).
+        origins["H1_rel_is_c2w_relative"].append(
+            float(np.abs(rays_o[v, :, 128, 128] - scene_scale * rel[:3, 3]).max()))
+        origins["H2_rel_is_w2c_relative"].append(
+            float(np.abs(rays_o[v, :, 128, 128]
+                          - scene_scale * (-rel[:3, :3].T @ rel[:3, 3])).max()))
     report["ray_convention"] = {
         k: {"max_dir_abs_diff": float(np.max(v_)) if v_ else None,
             "max_origin_abs_diff": float(np.max(origins[k])) if origins[k] else None}
@@ -141,7 +150,7 @@ def main() -> int:
     t_ratios, bbox_off, bbox_ours = [], [], []
     for v, frame in enumerate(ours_frames):
         off = official_view(args.scene, frame, canonical)
-        c2w_rel = off["w2c_rel"]          # H1: this is c2w relative to the canonical frame
+        c2w_rel = off["c2w_rel"]          # H1: C2W relative to the canonical frame
         if np.linalg.norm(c2w_rel[:3, 3]) > 1e-9:
             t_ratios.append(float(np.linalg.norm(rays_o[v, :, 128, 128]) / np.linalg.norm(c2w_rel[:3, 3])))
         depth = off["depth_m"]
