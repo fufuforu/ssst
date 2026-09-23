@@ -167,6 +167,14 @@ class LocusGSAnchorDecoder(nn.Module):
         self.pe_mode = str(opt.locusgs_pe_mode)
         if self.pe_mode not in ("persistent", "injected"):
             raise ValueError(f"unknown locusgs_pe_mode {self.pe_mode!r}")
+        # Ablation A: decoder layers whose spatial residual update is forced to zero
+        # (their attention/MLP/token update and supervision still run normally).
+        self.disabled_refine_layers = {int(x) for x in getattr(opt, "locusgs_disable_refine_layers", ())}
+        for layer in self.disabled_refine_layers:
+            if not 1 <= layer <= len(decoder_blocks):
+                raise ValueError(
+                    f"locusgs_disable_refine_layers={layer} is outside 1..{len(decoder_blocks)}"
+                )
         # referenced, never re-registered: these live in `enc_dec_backbone`
         self.decoder_blocks = tuple(decoder_blocks)
 
@@ -236,8 +244,22 @@ class LocusGSAnchorDecoder(nn.Module):
             # Eq. 6-7: raw additive residual refinement
             previous_mu = mu
             previous_radii = radii
-            mu = mu + head_mu(tokens)
-            rho = rho + head_rho(tokens).squeeze(-1)
+            if (index + 1) in self.disabled_refine_layers:
+                # Ablation A: no spatial residual at this layer; the geometry is
+                # inherited unchanged from the previous layer.  The layer's
+                # refinement heads are still evaluated and enter the graph through
+                # an exactly-zero tap added to the token stream, so they receive a
+                # *zero* gradient instead of *no* gradient.  That keeps DDP's
+                # unused-parameter handling and the parameter set identical to the
+                # non-ablated run while leaving mu/rho numerically untouched
+                # (x + 0.0 == x) and every used gradient unchanged.
+                zero_tap = head_mu(tokens).sum() * 0.0 + head_rho(tokens).sum() * 0.0
+                tokens = tokens + zero_tap
+                mu = previous_mu
+                rho = rho  # unchanged
+            else:
+                mu = mu + head_mu(tokens)
+                rho = rho + head_rho(tokens).squeeze(-1)
             radii = self.activated_radius(rho)
             states.append(
                 dict(

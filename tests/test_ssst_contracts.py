@@ -1373,6 +1373,69 @@ class LocusGSFormulaTests(unittest.TestCase):
         self.assertEqual(preset.model_type, "siu3r_locusgs_recon")
         # paper-reported optimisation scale of this round
         self.assertAlmostEqual(preset.lr, 4e-4, places=12)
+        # the default LocusGS behaviour must keep every refinement layer active
+        self.assertEqual(tuple(preset.locusgs_disable_refine_layers), ())
+        self.assertEqual(tuple(Options().locusgs_disable_refine_layers), ())
+
+    def test_ablation_preset_disables_only_layer12_refinement(self):
+        """Ablation A: layer 12 keeps its token update and supervision, no spatial residual."""
+        from tokengs.models.locusgs_recon import LocusGSAnchorDecoder
+        from tokengs.options import config_defaults
+
+        ablation = config_defaults["train_siu3r_locusgs_no_layer12_refine"]
+        base = config_defaults["train_siu3r_locusgs_recon"]
+        self.assertEqual(tuple(ablation.locusgs_disable_refine_layers), (12,))
+        # everything else identical to the corrected run
+        for field in ("model_type", "lr", "pct_start_steps", "locusgs_pe_mode",
+                      "locusgs_gamma_raw_init", "locusgs_radius_init", "locusgs_sigma0",
+                      "locusgs_bias_clamp", "lambda_ssim", "lambda_lpips", "num_views",
+                      "num_input_views", "gaussian_z_offset", "canonical_gaussian_visibility_weight",
+                      "canonical_anchor_visibility_weight", "num_gs_tokens", "dec_depth"):
+            self.assertEqual(getattr(ablation, field), getattr(base, field), field)
+
+        opt = locusgs_options(locusgs_disable_refine_layers=(12,))
+        model = model_registry[opt.model_type](opt)
+        model.gs = FakeRenderer(opt.img_size)
+        # the refinement heads are zero-initialised, so give them a small non-zero
+        # value first: otherwise *every* layer's delta is zero and the test would
+        # not distinguish "disabled" from "still at initialization".
+        with torch.no_grad():
+            for head in list(model.anchor_decoder.refine_mu) + list(model.anchor_decoder.refine_rho):
+                head.weight.normal_(mean=0.0, std=0.02)
+                head.bias.fill_(0.01)
+        batch = synthetic_batch(opt)
+        model_input, _ = split_data(batch, opt)
+        from tokengs.models.canonical_recon_models import patch_plucker_rays
+
+        with torch.no_grad():
+            latent = model.forward_encoder(model_input.encoder)
+            rays = patch_plucker_rays(
+                model_input.encoder.rays_os, model_input.encoder.rays_ds,
+                patch_size=int(opt.patch_size),
+            )
+            states, _ = model.anchor_decoder(
+                model.get_gs_tokens(batch_size=1), latent, rays
+            )
+        # layers 1-11 refine normally
+        previous = model.anchor_decoder.mu.unsqueeze(0)
+        for index in range(11):
+            delta_mu = (states[index]["mu"] - previous).abs().max()
+            self.assertGreater(float(delta_mu), 0.0, f"layer {index + 1} should still refine")
+            previous = states[index]["mu"]
+        # layer 12: exactly zero spatial update, geometry inherited from layer 11
+        self.assertTrue(torch.equal(states[11]["mu"], states[10]["mu"]))
+        self.assertTrue(torch.equal(states[11]["rho"], states[10]["rho"]))
+        self.assertTrue(torch.equal(states[11]["radii"], states[10]["radii"]))
+        self.assertEqual(float(states[11]["anchor_update"]), 0.0)
+        self.assertEqual(float(states[11]["radius_update"]), 0.0)
+        # ... but the token stream still changes (attention + MLP ran)
+        self.assertFalse(torch.equal(states[11]["tokens"], states[10]["tokens"]))
+        # ... and the layer-12 Gaussian prediction still works
+        gaussians = model.activation_head(
+            states[11]["tokens"], states[11]["mu"], states[11]["radii"]
+        )
+        self.assertTrue(torch.isfinite(gaussians).all())
+        self.assertEqual(gaussians.shape[0], 1)
 
     def test_injected_pe_does_not_accumulate_into_residual_stream(self):
         """`injected` keeps ||tokens|| bounded; `persistent` inflates it every layer."""

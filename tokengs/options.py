@@ -188,6 +188,12 @@ class Options:
     # anchors, so the formal default is the non-persistent "injected" reading:
     # `tokens = tokens + self_attn(tokens + p)`.
     locusgs_pe_mode: Literal["persistent", "injected"] = "injected"
+    # Ablation switch (1-based decoder layers).  Layers listed here keep running
+    # their cross-attention / self-attention / MLP / token update and are still
+    # supervised, but their spatial residual update is forced to
+    # ``mu_l = mu_{l-1}`` and ``rho_l = rho_{l-1}``.  Empty by default, so the
+    # corrected LocusGS behaviour is unchanged.
+    locusgs_disable_refine_layers: tuple[int, ...] = ()
     # "Predefined initial support radius" (unspecified by the paper).  Chosen so
     # sigma_0 * r0 is commensurate with the measured ScanNet anchor-to-ray
     # distances (median 0.030, p95 0.050): r0 = 0.15 keeps the geometric bias
@@ -634,6 +640,21 @@ config_defaults["train_siu3r_locusgs_recon"] = config_defaults["train_siu3r_ssst
     lr=4e-4,
     pct_start_steps=2000,
     **{**_CANONICAL_RECON, "gaussian_z_offset": 0.0, "locusgs_pe_mode": "injected"},
+)
+
+config_doc["train_siu3r_locusgs_no_layer12_refine"] = (
+    "LocusGS Ablation A: Layer-12 Spatial Refinement Disabled.  Identical to "
+    "train_siu3r_locusgs_recon except that decoder layer 12 keeps running its "
+    "cross-attention / PE-conditioned self-attention / MLP / token update and is "
+    "still supervised, while its spatial residual is forced to zero "
+    "(mu_12 = mu_11, rho_12 = rho_11)."
+)
+config_defaults["train_siu3r_locusgs_no_layer12_refine"] = config_defaults[
+    "train_siu3r_locusgs_recon"
+].evolve(
+    workspace="/space/mawb/ssst/workspace/siu3r_locusgs_no_layer12_refine_v1",
+    experiment_name="siu3r_locusgs_no_layer12_refine_v1",
+    locusgs_disable_refine_layers=(12,),
 )
 
 config_doc["train_siu3r_plain_tokengs_canonical_recon"] = (
