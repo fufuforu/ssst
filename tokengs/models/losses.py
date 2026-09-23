@@ -32,7 +32,15 @@ def compute_visibility_loss_from_means2d(
     img_size: tuple[int, int] | list[int],
     means2d_pred: torch.Tensor,
 ) -> torch.Tensor:
-    """Per-scene visibility loss from projected Gaussian centers."""
+    """Per-scene visibility loss from the rasterizer's projected centers.
+
+    WARNING (known defect): gsplat returns ``means2d = (0, 0)`` as a sentinel for
+    Gaussians that were culled (off-screen, behind the camera, or inside the near
+    plane).  ``(0, 0)`` maps to the normalised corner ``(-1, -1)``, i.e. exactly on
+    the in-frame boundary, so those Gaussians are scored as *perfectly visible*
+    instead of maximally outside.  ``compute_visibility_loss_from_points`` is the
+    corrected, analytic counterpart used by the training path.
+    """
     H, W = int(img_size[0]), int(img_size[1])
     uv = torch.nan_to_num(means2d_pred, nan=0.0, posinf=1e6, neginf=-1e6)
     scale = torch.tensor([W, H], dtype=uv.dtype, device=uv.device)
@@ -42,6 +50,44 @@ def compute_visibility_loss_from_means2d(
     vis_loss = out_of_bounds.min(dim=1).values
     if opt.visibility_distance_threshold > 0:
         vis_loss = vis_loss.clamp(max=opt.visibility_distance_threshold)
+    return vis_loss.mean(dim=-1)
+
+
+def compute_visibility_loss_from_points(
+    opt: Options,
+    img_size: tuple[int, int] | list[int],
+    points: torch.Tensor,
+    cam_view: torch.Tensor,
+    intrinsics: torch.Tensor,
+    *,
+    znear: float | None = None,
+) -> torch.Tensor:
+    """Per-scene visibility loss computed by analytic projection of 3D points.
+
+    Fixes the culled-Gaussian sentinel defect above: a point with
+    ``z_cam <= znear`` is culled by the rasterizer and is therefore scored at the
+    clamp maximum instead of being reported as visible.  Keeps the TokenGS clamp
+    (``visibility_distance_threshold``) and the min-over-supervision-views
+    reduction, so only the culled case changes.
+    """
+    from tokengs.models.canonical_recon import project_points_means2d
+
+    H, W = int(img_size[0]), int(img_size[1])
+    uv, valid = project_points_means2d(
+        points, cam_view, intrinsics, znear=0.0 if znear is None else float(znear)
+    )
+    scale = torch.tensor([W, H], dtype=uv.dtype, device=uv.device)
+    uv_norm = (uv / scale) * 2 - 1
+    out_of_bounds = F.relu(torch.abs(uv_norm) - 1.0).sum(-1)          # [B,V,N]
+    threshold = float(getattr(opt, "visibility_distance_threshold", 0.0))
+    if threshold > 0:
+        out_of_bounds = out_of_bounds.clamp(max=threshold)
+    max_penalty = threshold if threshold > 0 else 1e4
+    out_of_bounds = torch.where(valid, out_of_bounds,
+                                torch.full_like(out_of_bounds, max_penalty))
+    vis_loss = out_of_bounds.min(dim=1).values                        # [B,N]
+    if threshold > 0:
+        vis_loss = vis_loss.clamp(max=threshold)
     return vis_loss.mean(dim=-1)
 
 
@@ -137,7 +183,17 @@ def compute_tokengs_loss(
 
     if opt.lambda_visibility > 0:
         means2d_pred = render_results["means2d_pred"]
-        loss_visibility = compute_visibility_loss_from_means2d(opt, img_size, means2d_pred)
+        camera = getattr(decoder_input, "cam_view", None)
+        intrinsics = getattr(decoder_input, "intrinsics", None)
+        if camera is not None and intrinsics is not None and gaussians is not None:
+            # analytic projection: culled Gaussians are scored as fully outside
+            # instead of being read as (0, 0) "perfectly visible" sentinels
+            loss_visibility = compute_visibility_loss_from_points(
+                opt, img_size, gaussians[..., 0:3], camera, intrinsics,
+                znear=float(getattr(opt, "znear", 0.0)),
+            )
+        else:
+            loss_visibility = compute_visibility_loss_from_means2d(opt, img_size, means2d_pred)
         results_per_scene["loss_visibility"] = loss_visibility
         results_per_scene["loss"] = results_per_scene["loss"] + opt.lambda_visibility * loss_visibility
 

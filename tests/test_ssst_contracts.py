@@ -1644,6 +1644,39 @@ class LocusGSFormulaTests(unittest.TestCase):
         self.assertFalse(bool(valid[0, 0, 1]))
         self.assertFalse(bool(valid[0, 0, 2]))
 
+    def test_gaussian_visibility_sentinel_and_analytic_fix(self):
+        """The rasterizer sentinel must not read as 'perfectly visible'."""
+        from tokengs.models.losses import (
+            compute_visibility_loss_from_means2d,
+            compute_visibility_loss_from_points,
+        )
+
+        opt = tiny_options().evolve(lambda_visibility=1.0, visibility_distance_threshold=1.0,
+                                    znear=0.025)
+        cam_view = torch.eye(4).unsqueeze(0).unsqueeze(0)
+        intrinsics = torch.tensor([[[100.0, 100.0, 32.0, 32.0]]])
+        # (1) documented defect: the (0, 0) sentinel of a culled Gaussian scores 0
+        sentinel = torch.zeros(1, 1, 1, 2)
+        legacy = float(compute_visibility_loss_from_means2d(opt, (64, 64), sentinel))
+        self.assertAlmostEqual(legacy, 0.0, places=6)
+        # (2) analytic fix: culled points are scored at the clamp maximum
+        culled = torch.tensor([[[0.0, 0.0, -1.0]], [[0.0, 0.0, 0.01]]])   # behind / near plane
+        fixed = compute_visibility_loss_from_points(opt, (64, 64), culled, cam_view, intrinsics,
+                                                    znear=0.025)
+        self.assertAlmostEqual(float(fixed[0]), 1.0, places=6)
+        self.assertAlmostEqual(float(fixed[1]), 1.0, places=6)
+        # (3) ... while an in-front, in-frame point still scores 0
+        inside = torch.tensor([[[0.0, 0.0, 1.0]]])
+        self.assertAlmostEqual(
+            float(compute_visibility_loss_from_points(opt, (64, 64), inside, cam_view, intrinsics,
+                                                      znear=0.025)), 0.0, places=6)
+        # (4) ... and genuinely out-of-frame points keep the graded (clamped) penalty
+        outside = torch.tensor([[[5.0, 5.0, 1.0]]])
+        val = float(compute_visibility_loss_from_points(opt, (64, 64), outside, cam_view, intrinsics,
+                                                        znear=0.025))
+        self.assertGreater(val, 0.0)
+        self.assertLessEqual(val, 1.0)
+
     def test_supervised_layer_weights_match_eq30(self):
         from tokengs.models.canonical_recon import supervised_layer_weights
 
