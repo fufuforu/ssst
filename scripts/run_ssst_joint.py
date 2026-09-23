@@ -508,6 +508,13 @@ def main(argv: list[str] | None = None) -> int:
             f"clamp={float(opt.locusgs_bias_clamp)}"
         )
         log(
+            f"[setup] LocusGS impl={str(getattr(anchor_decoder, 'impl', '?'))} "
+            f"refine_hidden={int(getattr(anchor_decoder, 'refine_hidden', 0))} | "
+            f"per_layer_pe={'yes' if getattr(anchor_decoder, 'pe_mlps', None) is not None else 'no'} "
+            f"| locusgs_specific_params="
+            f"{sum(p.numel() for n, p in model.named_parameters() if n.startswith(('anchor_decoder.',)) and not n.startswith('anchor_decoder.decoder_blocks.')):,}"
+        )
+        log(
             f"[setup] anchor mu init range=[{float(anchor_decoder.mu.min()):.4f}, "
             f"{float(anchor_decoder.mu.max()):.4f}] "
             f"radii init mean={float(anchor_decoder.activated_radius(anchor_decoder.rho).mean()):.4f}"

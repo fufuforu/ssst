@@ -188,6 +188,15 @@ class Options:
     # anchors, so the formal default is the non-persistent "injected" reading:
     # `tokens = tokens + self_attn(tokens + p)`.
     locusgs_pe_mode: Literal["persistent", "injected"] = "injected"
+    # Which LocusGS anchor-decoder reading to instantiate.  The paper states
+    # PE(mu) -> MLP (Eq. 2) and the residual heads f_mu / f_rho (Eq. 6) but never
+    # says whether they are shared across decoder layers or how wide they are, so
+    # both readings are inferences.  "legacy_v1" is the first-guess (shared PE
+    # MLP, single-Linear refinement); "inferred_v2" is the parameter-budget-
+    # consistent inference (per-layer PE MLP + per-layer bottleneck refinement
+    # MLPs) that reproduces the paper's +19.5M LocusGS parameter delta.
+    locusgs_impl: Literal["legacy_v1", "inferred_v2"] = "legacy_v1"
+    locusgs_refine_hidden: int = 256                # inferred_v2 refinement bottleneck width
     # "Predefined initial support radius" (unspecified by the paper).  Chosen so
     # sigma_0 * r0 is commensurate with the measured ScanNet anchor-to-ray
     # distances (median 0.030, p95 0.050): r0 = 0.15 keeps the geometric bias
@@ -634,6 +643,24 @@ config_defaults["train_siu3r_locusgs_recon"] = config_defaults["train_siu3r_ssst
     lr=4e-4,
     pct_start_steps=2000,
     **{**_CANONICAL_RECON, "gaussian_z_offset": 0.0, "locusgs_pe_mode": "injected"},
+)
+
+config_doc["train_siu3r_locusgs_inferred_v2"] = (
+    "LocusGS parameter-budget-consistent inferred implementation V2: identical "
+    "to train_siu3r_locusgs_recon except for the anchor-decoder reading, which "
+    "uses per-layer anchor positional-embedding MLPs and per-layer bottleneck "
+    "refinement MLPs (f_mu / f_rho) so that the LocusGS-specific parameter delta "
+    "matches the paper's reported TokenGS->LocusGS increase of +19.5M "
+    "(222.0M -> 241.5M).  Not an exact reproduction: the dataset, view protocol "
+    "and several unpublished initialization details differ."
+)
+config_defaults["train_siu3r_locusgs_inferred_v2"] = config_defaults[
+    "train_siu3r_locusgs_recon"
+].evolve(
+    workspace="/space/mawb/ssst/workspace/siu3r_locusgs_inferred_v2_diag1000",
+    experiment_name="siu3r_locusgs_inferred_v2_diag1000",
+    locusgs_impl="inferred_v2",
+    locusgs_refine_hidden=256,
 )
 
 config_doc["train_siu3r_plain_tokengs_canonical_recon"] = (

@@ -1363,6 +1363,113 @@ def locusgs_options(**overrides):
 class LocusGSFormulaTests(unittest.TestCase):
     """Phase 14: paper formulas (arXiv:2608.12825)."""
 
+    def test_parameter_budget_matches_paper_delta(self):
+        """V2 must reproduce the paper's +19.5M LocusGS-specific parameter delta.
+
+        Paper App. B.3 / Table 8 (4096-token footprint): TokenGS 222.0M ->
+        LocusGS 241.5M.  Our 4096-token plain TokenGS is 222.017M, so the
+        architectures are comparable; V1 is ~18M short, V2 is within rounding.
+        """
+        from tokengs.models import model_registry
+        from tokengs.options import config_defaults
+
+        budget = {"plain": config_defaults["train_siu3r_plain_tokengs_canonical_recon"],
+                  "v1": config_defaults["train_siu3r_locusgs_recon"],
+                  "v2": config_defaults["train_siu3r_locusgs_inferred_v2"]}
+        counts = {}
+        for name, preset in budget.items():
+            model = model_registry[preset.model_type](preset)
+            counts[name] = sum(p.numel() for p in model.parameters())
+            del model
+        delta_v1 = (counts["v1"] - counts["plain"]) / 1e6
+        delta_v2 = (counts["v2"] - counts["plain"]) / 1e6
+        print(f"[budget] plain={counts['plain']/1e6:.3f}M v1=+{delta_v1:.3f}M v2=+{delta_v2:.3f}M (paper +19.5M)")
+        self.assertLess(delta_v1, 3.0)              # V1 is an order of magnitude short
+        self.assertGreaterEqual(delta_v2, 18.8)     # rounding band around +19.5M
+        self.assertLessEqual(delta_v2, 19.8)
+
+    def test_inferred_v2_module_structure_and_forward_contracts(self):
+        """Per-layer PE/refinement modules, zero residual at step 0, all layers refine."""
+        from tokengs.models import model_registry
+        from tokengs.models.canonical_recon_models import patch_plucker_rays
+
+        opt = locusgs_options(locusgs_impl="inferred_v2", locusgs_refine_hidden=256)
+        model = model_registry[opt.model_type](opt)
+        model.gs = FakeRenderer(opt.img_size)
+        model.eval()
+        decoder = model.anchor_decoder
+
+        # 1/2/3: per-layer, independent modules
+        self.assertIsNone(decoder.pe_mlp)
+        self.assertEqual(len(decoder.pe_mlps), 12)
+        self.assertEqual(len(decoder.refine_mu), 12)
+        self.assertEqual(len(decoder.refine_rho), 12)
+        self.assertIsNot(decoder.pe_mlps[0][0].weight, decoder.pe_mlps[1][0].weight)
+        self.assertIsNot(decoder.refine_mu[0][0].weight, decoder.refine_mu[1][0].weight)
+        self.assertIsNot(decoder.refine_rho[0][0].weight, decoder.refine_rho[1][0].weight)
+        # bottleneck structure
+        self.assertEqual(decoder.refine_mu[0][0].out_features, 256)
+        self.assertEqual(decoder.refine_mu[0][-1].out_features, 3)
+        self.assertEqual(decoder.refine_rho[0][0].out_features, 256)
+        self.assertEqual(decoder.refine_rho[0][-1].out_features, 1)
+
+        batch = synthetic_batch(opt)
+        model_input, _ = split_data(batch, opt)
+        with torch.no_grad():
+            latent = model.forward_encoder(model_input.encoder)
+            rays = patch_plucker_rays(
+                model_input.encoder.rays_os, model_input.encoder.rays_ds,
+                patch_size=int(opt.patch_size),
+            )
+            states, _ = model.anchor_decoder(model.get_gs_tokens(batch_size=1), latent, rays)
+        # 3: zero residual at step 0 (final projection zero-init)
+        for index in range(12):
+            self.assertEqual(float(states[index]["anchor_update"]), 0.0)
+            self.assertEqual(float(states[index]["radius_update"]), 0.0)
+        # 4: the token stream still changes at every layer
+        previous = model.get_gs_tokens(batch_size=1)
+        for index in range(12):
+            self.assertFalse(torch.equal(states[index]["tokens"], previous))
+            previous = states[index]["tokens"]
+        # 5: injected PE does not accumulate (bounded token growth over 12 layers)
+        self.assertLess(float(states[11]["tokens"].norm() / states[0]["tokens"].norm()), 3.0)
+        # 6: after perturbing the heads every layer refines
+        with torch.no_grad():
+            for head in list(decoder.refine_mu) + list(decoder.refine_rho):
+                head[-1].weight.normal_(mean=0.0, std=0.02)
+                head[-1].bias.fill_(0.01)
+            states, _ = model.anchor_decoder(model.get_gs_tokens(batch_size=1), latent, rays)
+        previous = decoder.mu.unsqueeze(0)
+        for index in range(12):
+            self.assertGreater(float((states[index]["mu"] - previous).abs().max()), 0.0)
+            previous = states[index]["mu"]
+        # 7/8: Gaussian decoding still produces 1024 x 64 primitives
+        gaussians = model.activation_head(
+            states[11]["tokens"], states[11]["mu"], states[11]["radii"]
+        )
+        self.assertEqual(gaussians.shape[0], 1)
+        self.assertEqual(gaussians.shape[1], int(opt.num_gs_tokens) * int(opt.dec_patch_size) ** 2)
+        # the production preset keeps the paper budget: 1024 tokens x 64 Gaussians
+        preset = config_defaults["train_siu3r_locusgs_inferred_v2"]
+        self.assertEqual(int(preset.num_gs_tokens) * int(preset.dec_patch_size) ** 2, 1024 * 64)
+        # 9: finite
+        self.assertTrue(torch.isfinite(gaussians).all())
+
+    def test_legacy_v1_default_unchanged(self):
+        """The corrected V1 behaviour must stay the default and keep its structure."""
+        from tokengs.models import model_registry
+        from tokengs.options import Options, config_defaults
+
+        self.assertEqual(Options().locusgs_impl, "legacy_v1")
+        self.assertEqual(config_defaults["train_siu3r_locusgs_recon"].locusgs_impl, "legacy_v1")
+        self.assertEqual(config_defaults["train_siu3r_locusgs_recon"].locusgs_refine_hidden, 256)
+        opt = locusgs_options()
+        model = model_registry[opt.model_type](opt)
+        self.assertIsNotNone(model.anchor_decoder.pe_mlp)
+        self.assertIsNone(model.anchor_decoder.pe_mlps)
+        self.assertIsInstance(model.anchor_decoder.refine_mu[0], torch.nn.Linear)
+        self.assertIsInstance(model.anchor_decoder.refine_rho[0], torch.nn.Linear)
+
     def test_formal_preset_uses_injected_pe(self):
         """The corrected PE semantics must be the formal default and preset value."""
         from tokengs.options import Options, config_defaults

@@ -88,10 +88,17 @@ def anchor_ray_geometric_bias(
     ("the geometric bias is clamped to the interval [-20, 0]").
 
     Returns ``[B, 1, N, P]`` so it broadcasts over attention heads.
+
+    The lower bound is applied to the *squared bandwidth* exactly as App. A.5
+    states ("for stability, the squared bandwidth is lower-bounded"); with
+    ``bandwidth_floor`` interpreted as the floor on the bandwidth itself the
+    result is numerically identical to the previous formulation
+    ``(sigma0*r).clamp_min(floor)``.
     """
     distance = plucker_point_distance(mu, moment, direction)
-    bandwidth = (float(sigma0) * radii).clamp_min(float(bandwidth_floor))
-    bias = -0.5 * (distance / bandwidth.unsqueeze(-1)).pow(2)
+    bandwidth_sq = (float(sigma0) * radii).square()
+    bandwidth_sq = bandwidth_sq.clamp_min(float(bandwidth_floor) ** 2)
+    bias = -0.5 * distance.square() / bandwidth_sq.unsqueeze(-1)
     return bias.clamp(min=float(clamp_min), max=0.0).unsqueeze(1)
 
 
@@ -141,20 +148,74 @@ class LocusGSAnchorDecoder(nn.Module):
 
         pe_dim = 3 + 6 * int(opt.locusgs_pe_num_freqs)
         hidden = int(opt.locusgs_pe_hidden_dim) if int(opt.locusgs_pe_hidden_dim) > 0 else dim
-        self.pe_mlp = nn.Sequential(
-            nn.Linear(pe_dim, hidden), nn.GELU(), nn.Linear(hidden, dim)
-        )
-        # per-layer residual heads (Eq. 6): raw additive residuals, no tanh/step
-        self.refine_mu = nn.ModuleList([nn.Linear(dim, 3) for _ in range(len(decoder_blocks))])
-        self.refine_rho = nn.ModuleList([nn.Linear(dim, 1) for _ in range(len(decoder_blocks))])
-        # The paper states the residual form (Eq. 6-7) but not the head
-        # initialization.  Default-initialized heads move the anchors by O(1) in
-        # a single step, so we zero-init them: the refinement then starts at
-        # mu^{l+1} = mu^l (and rho^{l+1} = rho^l) and learns residuals, which is
-        # the standard DETR-style refinement initialization.
-        for head in list(self.refine_mu) + list(self.refine_rho):
-            nn.init.zeros_(head.weight)
-            nn.init.zeros_(head.bias)
+        # Two implementations are available:
+        #   * "legacy_v1"    -- one shared PE MLP + single-Linear refinement heads
+        #                       (the first-guess implementation).
+        #   * "inferred_v2"  -- per-layer PE MLP + per-layer bottleneck refinement
+        #                       MLPs, chosen so that the LocusGS-specific parameter
+        #                       count matches the paper's reported TokenGS->LocusGS
+        #                       delta (222.0M -> 241.5M, i.e. +19.5M).
+        # The paper writes PE(cdot) -> MLP (Eq. 2) and f_mu/f_rho (Eq. 6) but never
+        # states whether these are shared across decoder layers or how wide they
+        # are, so both readings are inferences from the parameter budget.
+        self.impl = str(getattr(opt, "locusgs_impl", "legacy_v1"))
+        if self.impl not in ("legacy_v1", "inferred_v2"):
+            raise ValueError(f"unknown locusgs_impl {self.impl!r}")
+        self.refine_hidden = int(getattr(opt, "locusgs_refine_hidden", 256))
+        num_layers = len(decoder_blocks)
+        if self.impl == "legacy_v1":
+            self.pe_mlp = nn.Sequential(
+                nn.Linear(pe_dim, hidden), nn.GELU(), nn.Linear(hidden, dim)
+            )
+            self.pe_mlps = None
+            # per-layer residual heads (Eq. 6): raw additive residuals, no tanh/step
+            self.refine_mu = nn.ModuleList([nn.Linear(dim, 3) for _ in range(num_layers)])
+            self.refine_rho = nn.ModuleList([nn.Linear(dim, 1) for _ in range(num_layers)])
+            # The paper states the residual form (Eq. 6-7) but not the head
+            # initialization.  Default-initialized heads move the anchors by O(1) in
+            # a single step, so we zero-init them: the refinement then starts at
+            # mu^{l+1} = mu^l (and rho^{l+1} = rho^l) and learns residuals, which is
+            # the standard DETR-style refinement initialization.
+            for head in list(self.refine_mu) + list(self.refine_rho):
+                nn.init.zeros_(head.weight)
+                nn.init.zeros_(head.bias)
+        else:
+            self.pe_mlp = None
+            self.pe_mlps = nn.ModuleList(
+                [
+                    nn.Sequential(
+                        nn.Linear(pe_dim, hidden), nn.GELU(), nn.Linear(hidden, dim)
+                    )
+                    for _ in range(num_layers)
+                ]
+            )
+            self.refine_mu = nn.ModuleList(
+                [
+                    nn.Sequential(
+                        nn.Linear(dim, self.refine_hidden),
+                        nn.GELU(),
+                        nn.Linear(self.refine_hidden, 3),
+                    )
+                    for _ in range(num_layers)
+                ]
+            )
+            self.refine_rho = nn.ModuleList(
+                [
+                    nn.Sequential(
+                        nn.Linear(dim, self.refine_hidden),
+                        nn.GELU(),
+                        nn.Linear(self.refine_hidden, 1),
+                    )
+                    for _ in range(num_layers)
+                ]
+            )
+            # UNSPECIFIED BY PAPER: only the final residual projection is
+            # zero-initialized, so step 0 has delta_mu = delta_rho = 0 while the
+            # hidden layers still carry a non-trivial default-initialized
+            # representation.
+            for head in list(self.refine_mu) + list(self.refine_rho):
+                nn.init.zeros_(head[-1].weight)
+                nn.init.zeros_(head[-1].bias)
         # learnable non-negative geometric bias scale (Eq. 4).  The paper gives no
         # initialization; `locusgs_gamma_raw_init` selects it (0 -> gamma 0.693,
         # -6 -> gamma ~2.5e-3).
@@ -215,7 +276,10 @@ class LocusGSAnchorDecoder(nn.Module):
                         gamma=F.softplus(self.gamma_raw[index]).detach(),
                     )
                 )
-            anchor_pe = self.pe_mlp(sinusoidal_positional_encoding(mu, int(self.opt.locusgs_pe_num_freqs)))
+            pe_module = self.pe_mlp if self.pe_mlp is not None else self.pe_mlps[index]
+            anchor_pe = pe_module(
+                sinusoidal_positional_encoding(mu, int(self.opt.locusgs_pe_num_freqs))
+            )
             # anchor-guided cross-attention (Eq. 4) -> anchor PE (Eq. 2) ->
             # anchor-aware self-attention -> FFN, mirroring DecoderBlock.
             tokens = tokens + block.gs_cross_attn_scale(
