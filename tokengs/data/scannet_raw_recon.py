@@ -44,9 +44,13 @@ from PIL import Image
 from tokengs.data.datafield import (
     DF_CAMERA_C2W_TRANSFORM,
     DF_CAMERA_INTRINSICS,
+    DF_DEPTH,
     DF_FRAME_IDS,
+    DF_FOREGROUND_MASK,
     DF_IMAGE_RGB,
+    DF_INSTANCE_LABEL,
     DF_SCENE_NAME,
+    DF_SEMANTIC_LABEL,
 )
 from tokengs.data.provider import Provider
 from tokengs.data.registry import dataset_registry
@@ -219,6 +223,29 @@ class ScanNetRawReconProvider(Provider):
             "min_gap": 10,
         }
         super().__init__(DATASET_NAME, opt, training=training)
+        # Pure reconstruction: assert the dataset itself never supplies depth,
+        # semantics, instances or a mask.  Any foreground mask / depth the
+        # Provider adds is an interface placeholder (all ones) that leaves the
+        # supervision unchanged (`lambda_mask == 0`, `camera_scale_method ==
+        # 'constant'`) and never reaches the encoder input or the loss.
+        # DF_FOREGROUND_MASK is always requested by the base Provider and is
+        # filled with all ones when the dataset does not supply it; the other
+        # three are only requested when the dataset advertises them.
+        for field in (DF_DEPTH, DF_SEMANTIC_LABEL, DF_INSTANCE_LABEL):
+            if field in self.data_fields:
+                raise RuntimeError(
+                    f"raw ScanNet reconstruction must not request {field!r}"
+                )
+        probe = self.dataset.get_data(
+            0, self.data_fields, frame_indices=self.dataset.ordered_frame_ids
+        )
+        for field in (DF_DEPTH, DF_FOREGROUND_MASK, DF_SEMANTIC_LABEL, DF_INSTANCE_LABEL):
+            if field in probe:
+                raise RuntimeError(f"raw ScanNet dataset unexpectedly returned {field!r}")
+        if getattr(self.dataset, "has_semantic_labels", False) or getattr(
+            self.dataset, "has_instance_labels", False
+        ):
+            raise RuntimeError("raw ScanNet reconstruction must be label-free")
 
     @property
     def frame_ids(self) -> tuple[int, ...]:
