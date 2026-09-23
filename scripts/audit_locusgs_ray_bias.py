@@ -35,7 +35,7 @@ from tokengs.models.locusgs_recon import (  # noqa: E402
     anchor_ray_geometric_bias,
     plucker_point_distance,
 )
-from tokengs.options import config_defaults  # noqa: E402
+from tokengs.options import Options, config_defaults  # noqa: E402
 
 TRAIN_ROOT = "/space/mawb/SIU3R/data/scannet/train"
 TARGET_SCENE = "scene0048_01"
@@ -91,18 +91,34 @@ def attn_stats(logits: torch.Tensor) -> dict:
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--preset", default="train_siu3r_locusgs_inferred_v2")
+    parser.add_argument("--checkpoint-dir", default=None,
+                        help="Load a checkpoint instead of a fresh initialization.")
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--json-out", default=None)
     args = parser.parse_args()
     device = torch.device(args.device)
 
-    opt = config_defaults[args.preset].evolve(
-        dataset_kwargs={"data_root": "/space/mawb/SIU3R/data/scannet"},
-        num_views=4, num_input_views=2, img_size=(256, 256), batch_size=1,
-        num_workers=0, seed=42, lr=4e-4, pct_start_steps=2000,
-    )
+    if args.checkpoint_dir:
+        import tyro
+
+        ckpt = Path(args.checkpoint_dir)
+        opt = tyro.extras.from_yaml(Options, open(ckpt / "config.yaml", encoding="utf-8"))
+        opt = opt.evolve(evaluating=True, reconstruction_only=True)
+    else:
+        opt = config_defaults[args.preset].evolve(
+            dataset_kwargs={"data_root": "/space/mawb/SIU3R/data/scannet"},
+            num_views=4, num_input_views=2, img_size=(256, 256), batch_size=1,
+            num_workers=0, seed=42, lr=4e-4, pct_start_steps=2000,
+        )
+        ckpt = None
     torch.manual_seed(int(opt.seed))
     model = model_registry[opt.model_type](opt).to(device).eval()
+    if ckpt is not None:
+        state = torch.load(ckpt / "model.pt", map_location="cpu", weights_only=False)
+        state = state.get("model", state) if isinstance(state, dict) else state
+        state = {k: v for k, v in state.items() if "lpips_loss" not in k}
+        model.load_state_dict(state, strict=True)
+        print(f"[audit] loaded checkpoint {ckpt}")
     decoder = model.anchor_decoder
 
     provider = SIU3RProcessedProvider(opt, root=TRAIN_ROOT, subset="all", training=True, rank=0)
