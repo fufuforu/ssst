@@ -1470,6 +1470,30 @@ class LocusGSFormulaTests(unittest.TestCase):
         self.assertIsInstance(model.anchor_decoder.refine_mu[0], torch.nn.Linear)
         self.assertIsInstance(model.anchor_decoder.refine_rho[0], torch.nn.Linear)
 
+    def test_gamma_calibrated_preset_differs_only_in_gamma_init(self):
+        """The gamma ablation must be a strict single-variable change of V2."""
+        import dataclasses
+
+        from tokengs.options import config_defaults
+
+        base = config_defaults["train_siu3r_locusgs_inferred_v2"]
+        cal = config_defaults["train_siu3r_locusgs_inferred_v2_gamma_calibrated"]
+        allowed = {"locusgs_gamma_raw_init", "workspace", "experiment_name"}
+        diffs = {
+            field.name
+            for field in dataclasses.fields(base)
+            if getattr(base, field.name) != getattr(cal, field.name)
+        }
+        print(f"[gamma] differing fields: {sorted(diffs)}")
+        self.assertEqual(diffs, allowed)
+        self.assertAlmostEqual(base.locusgs_gamma_raw_init, 0.0, places=12)
+        self.assertAlmostEqual(cal.locusgs_gamma_raw_init, -2.0, places=12)
+        # gamma = softplus(-2); step-0 audit predicted std(gamma*b)/std(content) ~ 0.59
+        import torch
+
+        gamma = float(torch.nn.functional.softplus(torch.tensor(-2.0)))
+        self.assertAlmostEqual(gamma, 0.126928, places=5)
+
     def test_formal_preset_uses_injected_pe(self):
         """The corrected PE semantics must be the formal default and preset value."""
         from tokengs.options import Options, config_defaults

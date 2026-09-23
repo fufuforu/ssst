@@ -663,6 +663,23 @@ config_defaults["train_siu3r_locusgs_inferred_v2"] = config_defaults[
     locusgs_refine_hidden=256,
 )
 
+config_doc["train_siu3r_locusgs_inferred_v2_gamma_calibrated"] = (
+    "LocusGS parameter-budget-consistent inferred V2 with a ScanNet-scale "
+    "calibrated geometric-bias initialization.  Identical to "
+    "train_siu3r_locusgs_inferred_v2 in every field except "
+    "locusgs_gamma_raw_init, which the step-0 same-tensor ray-bias audit sets to "
+    "-2.0 (gamma = 0.1269) so that std(gamma * b) / std(content logits) ~= 0.59 "
+    "instead of 3.23.  NOT a paper-reported initialization: the paper specifies "
+    "only gamma = softplus(gamma_raw)."
+)
+config_defaults["train_siu3r_locusgs_inferred_v2_gamma_calibrated"] = config_defaults[
+    "train_siu3r_locusgs_inferred_v2"
+].evolve(
+    workspace="/space/mawb/ssst/workspace/siu3r_locusgs_inferred_v2_gamma_calibrated_diag1000",
+    experiment_name="siu3r_locusgs_inferred_v2_gamma_calibrated_diag1000",
+    locusgs_gamma_raw_init=-2.0,
+)
+
 config_doc["train_siu3r_plain_tokengs_canonical_recon"] = (
     "Plain TokenGS (free-XYZ ClipActivationHead, no anchors/radius/refinement/"
     "ray-bias, final layer only) under the same canonical reconstruction "
