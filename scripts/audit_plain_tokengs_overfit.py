@@ -54,6 +54,10 @@ def main() -> int:
     parser.add_argument("--steps", type=int, default=800)
     parser.add_argument("--log-every", type=int, default=25)
     parser.add_argument("--total-steps", type=int, default=4000)
+    parser.add_argument("--scene-scale", type=float, default=None,
+                        help="single-variable override of the provider scene_scale (data normalization)")
+    parser.add_argument("--z-offset", type=float, default=None,
+                        help="single-variable override of gaussian_z_offset (data-scale audit)")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--out-dir",
@@ -69,15 +73,29 @@ def main() -> int:
         batch_size=1, num_workers=0, seed=args.seed, lr=recipe["lr"],
         pct_start_steps=recipe["warmup"],
     )
+    if args.z_offset is not None:
+        opt = opt.evolve(gaussian_z_offset=float(args.z_offset))
     torch.manual_seed(int(opt.seed))
     model = model_registry[opt.model_type](opt).to(device)
     model.freeze_object_queries()
     model.train()
-    optimizer = torch.optim.AdamW([p for p in model.parameters() if p.requires_grad],
-                                  lr=opt.lr, betas=(0.9, 0.95), weight_decay=0.05)
+    # TokenGS-style grouping, identical to scripts/run_ssst_joint.py
+    decay = [p for p in model.parameters() if p.requires_grad
+             and p.dim() != 1 and not getattr(p, "_no_weight_decay", False)]
+    nodecay = [p for p in model.parameters() if p.requires_grad
+               and (p.dim() == 1 or getattr(p, "_no_weight_decay", False))]
+    optimizer = torch.optim.AdamW(
+        [{"params": decay, "weight_decay": 0.05}, {"params": nodecay, "weight_decay": 0.0}],
+        lr=opt.lr, betas=(0.9, 0.95),
+    )
+    print(f"[plain] optimizer groups: decay(wd=0.05)={sum(p.numel() for p in decay):,} "
+          f"nodecay(wd=0)={sum(p.numel() for p in nodecay):,}")
     amp_dtype = torch.bfloat16
 
     provider = SIU3RProcessedProvider(opt, root=TRAIN_ROOT, subset="all", training=True, rank=0)
+    if args.scene_scale is not None:
+        # single-variable data-normalization override (read by Provider._get_data)
+        provider.scene_scale = float(args.scene_scale)
     names = [s.name for s in provider.dataset.sample_list]
     idx = names.index(args.scene)
     provider.pair_rng.seed(int(opt.seed))
@@ -86,7 +104,7 @@ def main() -> int:
     frames = [int(x) for x in batch["frame_ids"][0]]
     print(f"[plain] recipe={args.recipe} lr={opt.lr} warmup={recipe['warmup']} steps={args.steps} "
           f"| scene={pair['scene_id']} ctx={pair['context_frame_ids']} novel={pair['novel_frame_ids']} frames={frames}")
-    print(f"[plain] z_offset={opt.gaussian_z_offset} num_views={opt.num_views} "
+    print(f"[plain] scene_scale={provider.scene_scale} z_offset={opt.gaussian_z_offset} num_views={opt.num_views} "
           f"num_input_views={opt.num_input_views} lambda_ssim={opt.lambda_ssim} "
           f"lambda_lpips={opt.lambda_lpips} gvis_weight={opt.canonical_gaussian_visibility_weight}")
 
@@ -113,11 +131,22 @@ def main() -> int:
 
         if step % args.log_every and step != 1:
             continue
+        # metrics are evaluated on the CURRENT parameters (fresh forward after the
+        # step), i.e. exactly the state a checkpoint would be evaluated at
         with torch.no_grad():
+            _, metrics = model.step_loss(batch, step=step - 1, phase="train")
+            from tokengs.models.canonical_recon_models import _full_supervision
+            from tokengs.models.input_types import ModelInput, ModelInputDecoder, split_data
+
+            sup = _full_supervision(batch)
+            model_input, _ = split_data(batch, opt)
+
+            decoder_input = ModelInputDecoder(cam_view=batch["cam_view_all"],
+                                              intrinsics=batch["intrinsics_all"])
+            output = model.forward_reconstruction_only(
+                ModelInput(model_input.encoder, decoder_input), render_decoder_input=decoder_input)
             render = output["render"]
             pred = render["images_pred"][0].float()
-            from tokengs.models.canonical_recon_models import _full_supervision
-            sup = _full_supervision(batch)
             gt_t = sup.images_output[0].float()
             def psnr(sl):
                 return float(-10.0 * torch.log10((pred[sl] - gt_t[sl]).pow(2).mean().clamp_min(1e-12)))
