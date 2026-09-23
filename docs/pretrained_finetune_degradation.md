@@ -108,7 +108,7 @@ checkpoint, same fixed sample, same plan (4000 steps, warmup 1000, cosine to
 |---|---|---|---|---|---|
 | 2+2 processed | 22.03 | 26.63 | 26.08 | **36.17** | 0.973 |
 | 2+2 raw | 22.48 | 29.88 | 27.72 | **39.01** | 0.987 |
-| 8+7 raw | 19.26 | 21.9 | 24.0 | (running) | |
+| 8+7 raw | 19.26 | 21.9 | 24.0 | **27.30** | 0.936 |
 
 PSNR never falls below its initial value and the renders keep the scene
 structure (see `workspace_recon_diag/plain_ab_warm_fp32/*/images/*_step4000.png`).
