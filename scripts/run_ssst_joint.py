@@ -512,16 +512,6 @@ def main(argv: list[str] | None = None) -> int:
             f"{float(anchor_decoder.mu.max()):.4f}] "
             f"radii init mean={float(anchor_decoder.activated_radius(anchor_decoder.rho).mean()):.4f}"
         )
-        disabled = sorted(getattr(anchor_decoder, "disabled_refine_layers", ()))
-        if disabled:
-            for layer in disabled:
-                log(
-                    f"[setup] layer{layer}_spatial_refinement = DISABLED "
-                    f"(mu_{layer} = mu_{layer - 1}, rho_{layer} = rho_{layer - 1}; "
-                    "attention/MLP/token update and supervision still active)"
-                )
-        else:
-            log("[setup] layer12_spatial_refinement = ENABLED (corrected LocusGS default)")
         if pe_mode != "injected":
             raise RuntimeError(
                 f"formal LocusGS runs require locusgs_pe_mode='injected', got {pe_mode!r}"
