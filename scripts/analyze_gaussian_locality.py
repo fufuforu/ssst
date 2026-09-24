@@ -158,15 +158,24 @@ def main() -> int:
     is_locusgs = hasattr(model, "anchor_decoder")
     if is_locusgs:
         ad = model.anchor_decoder
-        anchor = ad.mu.detach().float()                                # [T,3]
-        radii = ad.activated_radius(ad.rho.detach().float())           # [T]
+        # The head receives the *refined* anchors/radii from the last decoder layer,
+        # not the initial parameter values, so the locality metric must use those.
+        anchor = out["anchors"][0].detach().float()                    # [T,3]
+        radii = out["radii"][0].detach().float()                       # [T]
         delta = (centers - anchor.unsqueeze(1)) / radii.unsqueeze(1).unsqueeze(-1)
         anchor_norm = radii.unsqueeze(1) * delta.norm(dim=-1)          # ||r*delta||
         token_centroid = anchor
         anchor_info = {
+            "init_mu_abs_max": float(ad.mu.detach().float().abs().max()),
+            "init_mu_std": float(ad.mu.detach().float().std(dim=0).mean()),
+            "final_mu_abs_max": float(anchor.abs().max()),
+            "final_mu_std": float(anchor.std(dim=0).mean()),
+            "mu_refinement_mean": float((anchor - ad.mu.detach().float()).norm(dim=-1).mean()),
+            "mu_refinement_max": float((anchor - ad.mu.detach().float()).norm(dim=-1).max()),
             "mu_abs_max": float(anchor.abs().max()),
             "mu_std": float(anchor.std(dim=0).mean()),
             "mu_z_mean": float(anchor[:, 2].mean()),
+            "init_radius_mean": float(ad.activated_radius(ad.rho.detach().float()).mean()),
             "radius_mean": float(radii.mean()),
             "radius_p50": float(radii.median()),
             "radius_p99": float(radii.quantile(0.99)),
