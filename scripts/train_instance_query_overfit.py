@@ -165,6 +165,7 @@ def main() -> int:
     ap.add_argument("--ignore-index", type=int, default=255,
                     help="semantic id treated as unannotated (excluded everywhere)")
     ap.add_argument("--min-instance-pixels", type=int, default=200)
+    ap.add_argument("--min-pred-pixels", type=int, default=50)
     ap.add_argument("--diag-step", type=int, default=0,
                     help="run the full per-instance diagnostics/figures at this step")
     ap.add_argument("--out", required=True)
@@ -333,9 +334,7 @@ def main() -> int:
     with torch.no_grad():
         A, objv, ms = masks_from_head()
         matched, cost = match(ms)
-        order = sorted(matched.items(), key=lambda kv: np.mean(
-            [iou(ms[v][q], gt_masks[v][k], v) for v in range(4)]))
-        # ---- same-protocol context->novel oracle (context GT only, valid pixels only)
+        # ---- same-protocol context->novel oracle (context GT only, valid only)
         ctx_mass = np.zeros((n_tokens, n_gt))
         for v in (0, 1):
             for j, key in enumerate(thing_keys):
@@ -352,63 +351,131 @@ def main() -> int:
                 if sel.any():
                     o = o + torch.einsum("t,tp->p", sel.float(), maps[v])
             oracle_ms.append(o.reshape(256, 256))
+
+        q_of = {k: q for q, k in matched.items()}
+        rec = []
         for v in range(4):
             for k, key in enumerate(thing_keys):
                 gtv = (gt_masks[v][k] & valid[v])
-                q = next((q for q, kk in matched.items() if kk == k), None)
+                n_gtv = int(gtv.sum())
+                q = q_of.get(k)
+                p = ((ms[v][q] > 0.5) & valid[v]) if q is not None else torch.zeros_like(valid[v])
                 base = {"view": v, "frame": frames[v], "kind": "novel" if v >= 2 else "context",
-                        "instance": int(key), "gt_area_valid": int(gtv.sum()),
-                        "coverage": float((ms[v][q] > 0.5)[gtv].float().mean()) if q is not None and gtv.any() else 0.0,
-                        "oracle_coverage": float((oracle_ms[v] > 0.5)[gtv].float().mean()) if gtv.any() else 0.0,
-                        "token_coverage": float((alphas[v] > 0.5)[gtv].float().mean()) if gtv.any() else 0.0}
-                table.append({**base, "method": "query", "pred_area": int(((ms[v][q] > 0.5) & valid[v]).sum())
-                              if q is not None else 0, "iou": iou(ms[v][q], gt_masks[v][k], v) if q is not None else 0.0,
-                              "matched_query": q, "objectness": float(objv[q]) if q is not None else None})
-                table.append({**base, "method": "oracle", "pred_area": int(((oracle_ms[v] > 0.5) & valid[v]).sum()),
-                              "iou": iou(oracle_ms[v], gt_masks[v][k], v), "tokens_assigned": int((assign == k).sum())})
-                table.append({**base, "method": "all_token_coverage", "pred_area": int(((alphas[v] > 0.5) & valid[v]).sum()),
-                              "iou": iou(alphas[v], gt_masks[v][k], v)})
-        print("[q] dropped degenerate instances: " + str(dropped))
-        print("[q] per-instance (novel): instance | gt_px | query IoU/cov | oracle IoU/cov | token cov")
-        for k, key in enumerate(thing_keys):
-            r = [x for x in table if x["method"] == "query" and x["instance"] == key and x["kind"] == "novel"]
-            o = [x for x in table if x["method"] == "oracle" and x["instance"] == key and x["kind"] == "novel"]
-            c = [x for x in table if x["method"] == "all_token_coverage" and x["instance"] == key and x["kind"] == "novel"]
-            print(f"    {key} gt {r[0]['gt_area_valid'] if r else 0:>6} | query "
-                  f"{np.mean([x['iou'] for x in r]) if r else 0:.3f}/"
-                  f"{np.mean([x['coverage'] for x in r]) if r else 0:.3f} | oracle "
-                  f"{np.mean([x['iou'] for x in o]) if o else 0:.3f}/"
-                  f"{np.mean([x['oracle_coverage'] for x in o]) if o else 0:.3f} | token cov "
-                  f"{np.mean([x['token_coverage'] for x in c]) if c else 0:.3f} | tokens->inst "
-                  f"{o[0].get('tokens_assigned') if o else 0} | q {r[0]['matched_query'] if r else None} "
-                  f"obj {r[0]['objectness'] if r and r[0]['objectness'] is not None else float('nan'):.3f}")
-        worst = order[-1] if order else None
-        if worst is not None:
-            q, k = worst
-            print(f"[q] worst instance {thing_keys[k]}: query {q} objectness {float(objv[q]):.3f} "
-                  f"bg prob of its tokens {float(A[:, Q][A[:, q].argmax():].mean()):.3f}")
-            for v in (2, 3):
-                p = (ms[v][q] > 0.5).reshape(-1) & valid[v].reshape(-1)
-                t = gt_masks[v][k].reshape(-1) & valid[v].reshape(-1)
-                print(f"[q]   novel v{v}: gt {int(t.sum())} query_pred {int(p.sum())} "
-                      f"inter {int((p & t).sum())} IoU {iou(ms[v][q], gt_masks[v][k], v):.3f} "
-                      f"| token coverage in GT {float((alphas[v].reshape(-1)[t] > 0.5).float().mean()):.3f} "
-                      f"| oracle IoU {iou(oracle_ms[v], gt_masks[v][k], v):.3f}")
-            v = 2
-            rgb = (batch["images_all"][0, v].permute(1, 2, 0).cpu().numpy() * 255).astype(np.uint8)
-            def m3(m):
-                return (m[..., None].repeat(3, 2) * 255).astype(np.uint8)
-            for tag, qq in (("worst", q), ("best", order[0][0])):
-                kk = dict(matched)[qq]
-                err = np.zeros((256, 256, 3), dtype=np.uint8)
-                g = gt_masks[v][kk].cpu().numpy() & valid[v].cpu().numpy()
-                pr = (ms[v][qq] > 0.5).cpu().numpy() & valid[v].cpu().numpy()
-                err[g & ~pr] = (255, 40, 40); err[pr & ~g] = (255, 200, 0); err[g & pr] = (0, 220, 0)
-                panel = np.concatenate([rgb, m3(gt_masks[v][kk].cpu().numpy()), m3(alphas[v].cpu().numpy()),
-                                        m3(oracle_ms[v].cpu().numpy()), m3(ms[v][qq].cpu().numpy()), err], axis=1)
-                Image.fromarray(panel).save(out_dir / f"{args.scene}_{tag}_instance{thing_keys[kk]}_novel.png")
-        np.save(out_dir / "table.npy", np.array(table, dtype=object), allow_pickle=True)
+                        "instance": int(key), "gt_area_valid": n_gtv}
+                if n_gtv == 0:
+                    # instance invisible here: IoU is N/A, but a prediction inside
+                    # the valid region is counted as a false positive
+                    rec.append({**base, "method": "query", "iou": None, "coverage": None,
+                                "pred_area_valid": int(p.sum()),
+                                "false_positive_area": int(p.sum()),
+                                "matched_query": q,
+                                "objectness": float(objv[q]) if q is not None else None})
+                    rec.append({**base, "method": "oracle", "iou": None, "coverage": None,
+                                "pred_area_valid": int((oracle_ms[v] > 0.5)[valid[v]].sum())})
+                    rec.append({**base, "method": "token_coverage", "iou": None, "coverage": None,
+                                "pred_area_valid": int((alphas[v] > 0.5)[valid[v]].sum())})
+                    continue
+                def rows_for(mask):
+                    pr = (mask > 0.5) & valid[v]
+                    inter = int((pr & gtv).sum()); uni = int((pr | gtv).sum())
+                    return {"iou": inter / max(1, uni), "coverage": inter / max(1, n_gtv),
+                            "pred_area_valid": int(pr.sum()), "false_positive_area": 0}
+                qrow = rows_for(ms[v][q]) if q is not None else {
+                    "iou": 0.0, "coverage": 0.0, "pred_area_valid": 0, "false_positive_area": 0}
+                rec.append({**base, "method": "query", **qrow, "matched_query": q,
+                            "objectness": float(objv[q]) if q is not None else None})
+                rec.append({**base, "method": "oracle", **rows_for(oracle_ms[v])})
+                rec.append({**base, "method": "token_coverage", **rows_for(alphas[v])})
+        table.extend(rec)
 
+        def agg(method, kind):
+            rows = [x for x in rec if x["method"] == method and x["kind"] == kind and x["iou"] is not None]
+            return (float(np.mean([x["iou"] for x in rows])) if rows else None,
+                    float(np.mean([x["coverage"] for x in rows])) if rows else None, len(rows))
+        print("[q] mean over VISIBLE instances only (IoU / recall / n):")
+        for kind in ("context", "novel"):
+            for method in ("query", "oracle", "token_coverage"):
+                i, c, n = agg(method, kind)
+                print(f"    {method:>15} {kind:<8} IoU {i if i is not None else float('nan'):.3f} "
+                      f"recall {c if c is not None else float('nan'):.3f} n {n}")
+        fp = [(x['instance'], x['view'], x['false_positive_area']) for x in rec
+              if x["method"] == "query" and x["iou"] is None and x.get("false_positive_area", 0) > 0]
+        print(f"[q] N/A-instance false positives (invisible GT but query predicts): {fp}")
+        print("[q] per-instance x view: instance | view | gt_px | q IoU/cov | oracle IoU/cov | token cov")
+        for x in rec:
+            if x["method"] != "query":
+                continue
+            o = next(y for y in rec if y["method"] == "oracle" and y["view"] == x["view"]
+                     and y["instance"] == x["instance"])
+            t = next(y for y in rec if y["method"] == "token_coverage" and y["view"] == x["view"]
+                     and y["instance"] == x["instance"])
+            f = lambda z, kk: ("N/A " if z[kk] is None else f"{z[kk]:.3f}")
+            print(f"    {x['instance']:>6} v{x['view']} gt{x['gt_area_valid']:>6} | "
+                  f"{f(x,'iou')}/{f(x,'coverage')} | {f(o,'iou')}/{f(o,'coverage')} | "
+                  f"{f(t,'iou')}" + (f" | q {x['matched_query']} obj {x['objectness']:.2f}"
+                                     if x.get("matched_query") is not None else
+                                     f" | FP {x.get('false_positive_area',0)}"))
+
+        # ---- objectness audit -------------------------------------------------
+        matched_q = sorted(matched)
+        logit = objv.detach().cpu().numpy()
+        prob = 1 / (1 + np.exp(-logit))
+        tgt = np.zeros(Q); tgt[matched_q] = 1.0
+        bce_q = -(tgt * np.log(prob + 1e-12) + (1 - tgt) * np.log(1 - prob + 1e-12))
+        print(f"[q] objectness audit: matched q {matched_q} logits "
+              f"{[round(float(logit[q]), 2) for q in matched_q]} targets {tgt[matched_q].tolist()}")
+        un = [q for q in range(Q) if q not in matched_q]
+        print(f"[q]   matched   mean logit {logit[matched_q].mean():.2f} prob {prob[matched_q].mean():.3f} "
+              f"bce {bce_q[matched_q].mean():.3e}")
+        print(f"[q]   unmatched mean logit {logit[un].mean():.2f} prob {prob[un].mean():.3f} "
+              f"bce {bce_q[un].mean():.3e} | #unmatched logit>0: {int((logit[un] > 0).sum())}")
+        print(f"[q]   the reported obj loss is the MEAN over {Q} slots, so each unmatched query "
+              f"contributes bce/{Q} = {bce_q[un].mean() / Q:.3e}")
+        # minimal backprop check: a hand-set high-logit unmatched query must be penalised
+        probe = InstanceQueryHead(dim=8, num_queries=3).to(device)
+        with torch.enable_grad():
+            with torch.no_grad():
+                probe.objectness.weight.zero_(); probe.objectness.bias.fill_(20.0)
+            lg = probe.objectness(torch.zeros(1, 3, 8, device=device)).squeeze(-1)
+            t = torch.tensor([[1.0, 0.0, 0.0]], device=device)
+            l = F.binary_cross_entropy_with_logits(lg, t)
+            gb = torch.autograd.grad(l, probe.objectness.bias, retain_graph=True)[0]
+            gl = torch.autograd.grad(l, lg, retain_graph=False)[0]
+            print(f"[q] minimal no-object check: logits {lg.detach().cpu().numpy().round(2).tolist()} "
+                  f"loss {float(l):.3e} | grad wrt logits "
+                  f"{gl.detach().cpu().numpy().round(4).tolist()} (analytic sigmoid(lg)-t) | "
+                  f"grad wrt bias {gb.detach().cpu().numpy().round(4).tolist()} | "
+                  f"non-zero penalty on the unmatched slots: {bool(float(gl[0,1:].abs().sum()) > 1e-6)}")
+
+        # ---- GT-free inference: select instances by objectness only -----------
+        for thr in (0.5, 0.9):
+            sel = [q for q in range(Q) if float(prob[q]) >= thr]
+            tp = fp_ = fn = 0
+            ious_tp = []
+            for v in (2, 3):
+                used = set()
+                for q in sel:
+                    pr = (ms[v][q] > 0.5) & valid[v]
+                    if int(pr.sum()) < args.min_pred_pixels:
+                        continue
+                    best, bk = 0.0, None
+                    for k in range(n_gt):
+                        gtv = gt_masks[v][k] & valid[v]
+                        if not gtv.any():
+                            continue
+                        u = int((pr | gtv).sum())
+                        i = int((pr & gtv).sum()) / max(1, u)
+                        if i > best:
+                            best, bk = i, k
+                    if bk is not None and best >= 0.5 and bk not in used:
+                        used.add(bk); tp += 1; ious_tp.append(best)
+                    elif int(pr.sum()) > 0:
+                        fp_ += 1
+                fn += len([k for k in range(n_gt) if k not in used
+                           and int((gt_masks[v][k] & valid[v]).sum()) > 0])
+            print(f"[q] GT-free selection (objectness >= {thr}): selected {len(sel)} | "
+                  f"TP {tp} FP {fp_} FN {fn} | mean IoU of TP "
+                  f"{np.mean(ious_tp) if ious_tp else 0:.3f} | novel views only")
     head_grads = sum(1 for p_ in head.parameters() if p_.grad is not None)
     frozen_grads = sum(1 for p_ in model.parameters() if p_.grad is not None)
     print(f"[q] params with grad: head {head_grads}/{sum(1 for _ in head.parameters())} "
