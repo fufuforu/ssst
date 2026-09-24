@@ -132,3 +132,68 @@ only), `rows.json`, `table.npy` (per-instance x view: GT area, pred area, IoU,
 coverage, matched query, objectness), `scene0012_02_{best,worst}_instance*_novel.png`
 (GT | all-token coverage | oracle | query prediction | error map).
 No frozen-backbone copy is stored.
+
+
+---
+
+# Round 3: inference-filter check + second training scene
+
+## A. Read-only inference-filter check (`scene0012_02`, phase1e head)
+
+Per-view diagnostics for the smallest visible instance.  The smallest instance by
+maximum visible area is **8028** (411 valid px, and only in view 1):
+
+| view | GT valid px | soft area | hard area (>0.5) | pass 50-px gate | best IoU vs any GT |
+|---|---|---|---|---|---|
+| v0 | 0 | 0.0 | 0 | no | 0.000 |
+| v1 | 411 | 0.0 | 0 | no | 0.000 |
+| v2 | 0 | 0.0 | 0 | no | 0.000 |
+| v3 | 0 | 0.0 | 0 | no | 0.000 |
+
+So the missed instance is **not** missed because of the 50-px area gate: its
+assigned query (88) predicts a **soft area of exactly 0 in every view**, i.e. no
+token mass was assigned to it at all.  No area threshold can recover it.
+
+Area-threshold sweep on the same checkpoint (novel views, objectness >= 0.5,
+match at IoU >= 0.5), thresholds chosen on training scenes only:
+
+| area gate | selected | TP | FP | FN | mean IoU of TP |
+|---|---|---|---|---|---|
+| 0 / 5 / 10 / 20 / 30 | 3 | 3 | **1** | 1 | 0.767 |
+| **50 (current)** | 3 | 3 | **0** | 1 | 0.767 |
+
+The 50-px gate removes one false positive and costs no true positive, so it is
+kept; the single FN is the 167-px instance (8030) whose mask matches at IoU 0.14
+< 0.5, which no area threshold fixes.
+
+## B. Second training scene: `scene0010_01` (400 steps, fresh head)
+
+* frozen reconstruction: rgb/depth difference **0.0**, PSNR 23.7948 -> 23.7948
+* 4 visible thing instances kept by the filter: 3050, 8049, 13018, 20019
+* novel visible-instance means (same protocol for every method):
+
+| method | novel IoU | recall | n |
+|---|---|---|---|
+| query | **0.726** | 0.778 | 8 |
+| context oracle | 0.121 | 1.000 | 8 |
+| all-token coverage | 0.087 | 1.000 | 8 |
+
+* GT-free inference (objectness >= 0.5, no GT involved): selected 4, **TP 7,
+  FP 1, FN 1**, mean IoU of TP **0.795** over the novel views; identical for
+  every area gate 0-50.
+* gradients reach only the head (18/20 vs 0/450 frozen); the alpha identity
+  holds to 4.2e-7.
+
+Verdict: the loss decreased, four instances are separated, one FP and one FN
+remain, and no supervision or inference error surfaced - the second scene passes.
+
+## C. 32/8 shared-head training - not started
+
+The plan is fixed (cache the per-token contribution maps for the 32 training
+scenes once, train only the head on the cached maps, then evaluate the 8 unseen
+scenes with class-agnostic AP / IoU / TP-FP-FN / size bins against the same
+protocol context oracle, with the thresholds fixed from the training scenes:
+objectness 0.5, mask 0.5, prediction area 50 px), but it was not implemented or
+run in this round.  No 32/8 numbers exist, and none are claimed.  32/8 remains a
+development split - its class-agnostic numbers must not be presented as SIU3R
+official mAP/PQ.

@@ -166,6 +166,8 @@ def main() -> int:
                     help="semantic id treated as unannotated (excluded everywhere)")
     ap.add_argument("--min-instance-pixels", type=int, default=200)
     ap.add_argument("--min-pred-pixels", type=int, default=50)
+    ap.add_argument("--eval-only", action="store_true")
+    ap.add_argument("--area-sweep", type=int, nargs="*", default=[0, 5, 10, 20, 30, 50])
     ap.add_argument("--diag-step", type=int, default=0,
                     help="run the full per-instance diagnostics/figures at this step")
     ap.add_argument("--out", required=True)
@@ -289,7 +291,8 @@ def main() -> int:
         return float((p & t).sum()) / max(1, int((p | t).sum()))
 
     rows, table = [], []
-    for step in range(1, args.steps + 1):
+    steps = 0 if args.eval_only else args.steps
+    for step in range(1, steps + 1):
         A, objv, ms = masks_from_head()
         matched, _ = match(ms)
         bce = 0.0; dice = 0.0
@@ -446,6 +449,53 @@ def main() -> int:
                   f"{gl.detach().cpu().numpy().round(4).tolist()} (analytic sigmoid(lg)-t) | "
                   f"grad wrt bias {gb.detach().cpu().numpy().round(4).tolist()} | "
                   f"non-zero penalty on the unmatched slots: {bool(float(gl[0,1:].abs().sum()) > 1e-6)}")
+
+        # ---- small-instance filter diagnostics (read-only) ---------------------
+        vis = [k for k in range(n_gt) if any(int((gt_masks[v][k] & valid[v]).sum()) > 0 for v in range(4))]
+        if vis:
+            small = min(vis, key=lambda k: max(int((gt_masks[v][k] & valid[v]).sum()) for v in range(4)))
+            qs = q_of.get(small)
+            print(f"[q] smallest visible instance {thing_keys[small]} (query {qs}) per view:")
+            for v in range(4):
+                gtv = int((gt_masks[v][small] & valid[v]).sum())
+                if qs is None:
+                    continue
+                pr = (ms[v][qs] * valid[v]).reshape(-1)
+                soft = float(pr.sum()); hard = int((ms[v][qs] > 0.5).__and__(valid[v]).sum())
+                bi = 0.0
+                for k in range(n_gt):
+                    gg = gt_masks[v][k] & valid[v]
+                    if gg.any():
+                        u = int(((ms[v][qs] > 0.5) & valid[v] | gg).sum())
+                        bi = max(bi, int(((ms[v][qs] > 0.5) & valid[v] & gg).sum()) / max(1, u))
+                print(f"    v{v} gt {gtv:>5} | soft area {soft:8.1f} | hard area {hard:>5} "
+                      f"(>= {args.min_pred_pixels}: {hard >= args.min_pred_pixels}) | best IoU {bi:.3f}")
+        print(f"[q] GT-free area-threshold sweep (novel views, objectness>=0.5, match IoU>=0.5):")
+        for amin in args.area_sweep:
+            ssel = [q for q in range(Q) if float(prob[q]) >= 0.5]
+            tp = fp_ = fn = 0; io_tp = []
+            for v in (2, 3):
+                used = set()
+                for q in ssel:
+                    pr = (ms[v][q] > 0.5) & valid[v]
+                    if int(pr.sum()) < amin:
+                        continue
+                    best, bk = 0.0, None
+                    for k in range(n_gt):
+                        gg = gt_masks[v][k] & valid[v]
+                        if not gg.any():
+                            continue
+                        u = int((pr | gg).sum()); i = int((pr & gg).sum()) / max(1, u)
+                        if i > best:
+                            best, bk = i, k
+                    if bk is not None and best >= 0.5 and bk not in used:
+                        used.add(bk); tp += 1; io_tp.append(best)
+                    elif int(pr.sum()) > 0:
+                        fp_ += 1
+                fn += len([k for k in range(n_gt) if k not in used
+                           and int((gt_masks[v][k] & valid[v]).sum()) > 0])
+            print(f"    area>={amin:>3}: selected {len(ssel)} TP {tp} FP {fp_} FN {fn} "
+                  f"meanIoU_TP {(np.mean(io_tp) if io_tp else 0):.3f}")
 
         # ---- GT-free inference: select instances by objectness only -----------
         for thr in (0.5, 0.9):
