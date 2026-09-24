@@ -95,6 +95,8 @@ def main() -> int:
                         help="Load a checkpoint instead of a fresh initialization.")
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--json-out", default=None)
+    parser.add_argument("--all-layers", action="store_true",
+                        help="compute content/bias attention statistics for every decoder layer")
     args = parser.parse_args()
     device = torch.device(args.device)
 
@@ -225,7 +227,7 @@ def main() -> int:
                     (per_query_bias_std < 1e-6).float().mean()
                 )
             ratio_samples.append((layer, float(content.std()), float(geometric.detach().std()), gamma))
-            if layer in (1, 6, 12):
+            if layer in (1, 6, 12) or args.all_layers:
                 entry["attention_content_only"] = attn_stats(content)
                 entry["attention_content_plus_bias"] = attn_stats(content + gamma * geometric)
                 logit_layers[layer] = entry
