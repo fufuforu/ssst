@@ -106,6 +106,15 @@ def swap_rgb(provider, batch, other_batch):
 
 
 def make_eval_fn(model, batch, opt, num_ctx):
+    def pick(metrics, key, default=0.0):
+        """Read ``key`` from metrics, tolerating LocusGS's per-layer suffixes."""
+        if key in metrics:
+            return float(metrics[key])
+        for suffix in ("_layer12", "_layer6"):
+            if f"{key}{suffix}" in metrics:
+                return float(metrics[f"{key}{suffix}"])
+        return default
+
     def evaluate():
         with torch.no_grad():
             _, metrics = model.step_loss(batch, step=0, phase="train")
@@ -131,11 +140,16 @@ def make_eval_fn(model, batch, opt, num_ctx):
 
         grey = torch.full_like(gt, 0.5)
         alphas = render["alphas_pred"][0].float()
+        gauss = output["gaussians"][0].float()
+        tokens = int(opt.num_gs_tokens)
+        per_token = gauss.shape[0] // tokens
+        c = gauss[:, 0:3].reshape(tokens, per_token, 3)
+        spread = (c - c.mean(dim=1, keepdim=True)).norm(dim=-1).mean()
         return {
             "loss": float(metrics["loss"]),
-            "loss_rgb": float(metrics["loss_rgb"]),
-            "loss_ssim_term": float(metrics["loss_ssim"]),
-            "loss_gvis": float(metrics.get("loss_gaussian_visibility", torch.tensor(0.0))),
+            "loss_rgb": pick(metrics, "loss_rgb"),
+            "loss_ssim_term": pick(metrics, "loss_ssim"),
+            "loss_gvis": pick(metrics, "loss_gaussian_visibility"),
             "ctx_psnr": psnr(slice(0, num_ctx)),
             "novel_psnr": psnr(slice(num_ctx, None)),
             "all_psnr": psnr(slice(None)),
@@ -149,6 +163,8 @@ def make_eval_fn(model, batch, opt, num_ctx):
             "alpha_mean": float(alphas.mean()),
             "alpha_gt_05": float((alphas > 0.5).float().mean()),
             "depth_nonzero": float((render["depths_pred"] > 0).float().mean()),
+            "local_spread": float(spread),
+            "local_spread_over_ref": float(spread) / args.local_spread_scale,
         }, pred, gt
 
     return evaluate
@@ -179,6 +195,10 @@ def main() -> int:
     parser.add_argument("--lr-min-ratio", type=float, default=None)
     parser.add_argument("--weight-decay", type=float, default=None)
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--local-spread-weight", type=float, default=0.0,
+                        help="weight for the minimal per-token Gaussian locality penalty")
+    parser.add_argument("--local-spread-scale", type=float, default=0.2988,
+                        help="visible-surface RMS radius used to normalise the penalty")
     parser.add_argument("--amp", choices=("bf16", "fp32"), default="bf16",
                         help="autocast dtype for the training forward; fp32 disables autocast")
     parser.add_argument("--pair-seed", type=int, default=42,
@@ -313,8 +333,19 @@ def main() -> int:
     for step in range(1, args.total_steps + 1):
         optimizer.zero_grad(set_to_none=True)
         with torch.autocast(device_type=device.type, dtype=amp_dtype, enabled=use_amp):
-            _, metrics = model.step_loss(batch, step=step - 1, phase="train")
-        metrics["loss"].backward()
+            output, metrics = model.step_loss(batch, step=step - 1, phase="train")
+        total_loss = metrics["loss"]
+        if args.local_spread_weight > 0:
+            gauss = output["gaussians"]
+            bsz = gauss.shape[0]
+            tokens = int(opt.num_gs_tokens)
+            per_token = gauss.shape[1] // tokens
+            centres = gauss[..., 0:3].reshape(bsz, tokens, per_token, 3)
+            spread = (centres - centres.mean(dim=2, keepdim=True)).norm(dim=-1).mean()
+            penalty = spread / args.local_spread_scale
+            total_loss = total_loss + args.local_spread_weight * penalty
+            metrics["loss_local_spread"] = penalty.detach()
+        total_loss.backward()
         grad_norm = float(torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0))
         lr_now = lr_at(step - 1)
         for group in optimizer.param_groups:

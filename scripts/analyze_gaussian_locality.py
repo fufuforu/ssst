@@ -68,6 +68,37 @@ def visible_surface_radius(render, batch, n_in, img_size):
     return float((pts - centroid).norm(dim=-1).mean()), int(pts.shape[0])
 
 
+def build_model(preset, context, novel, ckpt_dir, device):
+    opt = config_defaults[preset].evolve(
+        dataset_kwargs={"data_root": "/space/mawb/SIU3R/data/scannet"},
+        num_input_views=len(context), num_views=len(context) + len(novel),
+        batch_size=1, num_workers=0, seed=42,
+    )
+    model = model_registry[opt.model_type](opt)
+    state = torch.load(Path(ckpt_dir) / "model.pt", map_location="cpu", weights_only=False)
+    state = state.get("model", state)
+    model.load_state_dict(state, strict=False)
+    return model.to(device).eval(), opt
+
+
+def render_once(model, opt, batch):
+    with torch.no_grad():
+        model_input, _ = split_data(batch, opt)
+        dec = ModelInputDecoder(cam_view=batch["cam_view_all"], intrinsics=batch["intrinsics_all"])
+        return model.forward_reconstruction_only(
+            ModelInput(model_input.encoder, dec), render_decoder_input=dec)
+
+
+def _scale_by(flat, quant, scale):
+    if not scale:
+        return {"mean_over_visible": None, "p90_over_visible": None, "p99_over_visible": None}
+    return {
+        "mean_over_visible": float(flat.mean()) / scale,
+        "p90_over_visible": quant(0.9) / scale,
+        "p99_over_visible": quant(0.99) / scale,
+    }
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--model", required=True, help="checkpoint directory containing model.pt")
@@ -77,6 +108,11 @@ def main() -> int:
     parser.add_argument("--context", type=int, nargs="+", default=[654, 664])
     parser.add_argument("--novel", type=int, nargs="+", default=[655, 659])
     parser.add_argument("--device", default="cuda")
+    parser.add_argument("--ref-model", default=None,
+                        help="checkpoint dir whose rendered depth defines the shared "
+                             "visible-surface size (default: the model itself)")
+    parser.add_argument("--ref-preset", default=None)
+    parser.add_argument("--ref-source", default=None)
     parser.add_argument("--out", required=True)
     args = parser.parse_args()
     device = torch.device(args.device)
@@ -148,6 +184,17 @@ def main() -> int:
     vis_r, n_vis = visible_surface_radius(render, batch, n_in, img_size)
     alpha = render["alphas_pred"][0].float()
 
+    # Shared, model-independent scene scale: the visible-surface radius of a fixed
+    # reference reconstruction (defaults to this model's own render).
+    ref_r = None
+    if args.ref_model:
+        ref_model, ref_opt = build_model(
+            args.ref_preset or args.preset, args.context, args.novel,
+            args.ref_model, device)
+        ref_render = render_once(ref_model, ref_opt, batch)["render"]
+        ref_r, _ = visible_surface_radius(ref_render, batch, n_in, img_size)
+        del ref_model
+
     flat = dist.flatten()
     quant = lambda q: float(flat.quantile(q))
     result = {
@@ -156,13 +203,12 @@ def main() -> int:
         "num_tokens": tokens,
         "gaussians_per_token": patches,
         "visible_surface_rms_radius": vis_r,
+        "reference_visible_surface_rms_radius": ref_r,
         "visible_points": n_vis,
         "gaussian_to_token_centroid": {
             "mean": float(flat.mean()), "p50": quant(0.5), "p90": quant(0.9),
             "p99": quant(0.99), "max": float(flat.max()),
-            "mean_over_visible": float(flat.mean() / vis_r) if vis_r else None,
-            "p90_over_visible": quant(0.9) / vis_r if vis_r else None,
-            "p99_over_visible": quant(0.99) / vis_r if vis_r else None,
+            **_scale_by(flat, quant, ref_r or vis_r),
         },
         "per_token_spread_mean": float(dist.mean(dim=1).mean()),
         "opacity": {"mean": float(opacity.mean()), "p50": float(opacity.median()),
