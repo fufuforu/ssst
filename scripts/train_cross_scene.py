@@ -117,6 +117,108 @@ def locality(centers: torch.Tensor, opacity: torch.Tensor, means2d: torch.Tensor
     return out
 
 
+def group_of(name: str) -> str:
+    if name == "anchor_decoder.mu":
+        return "anchor_mu"
+    if name == "anchor_decoder.rho":
+        return "anchor_rho"
+    if name.startswith("anchor_decoder.refine"):
+        return "anchor_refine"
+    if "gamma_raw" in name:
+        return "anchor_gamma"
+    if "pe_mlp" in name:
+        return "anchor_pe"
+    if name.startswith("enc_dec_backbone.encoder.") or name.startswith("patch_embed") \
+            or name.startswith("patch_plucker_embed"):
+        return "encoder"
+    if name.startswith("enc_dec_backbone."):
+        return "decoder"
+    if name.startswith("gs_tokens"):
+        return "gs_tokens"
+    if name.startswith("activation_head"):
+        return "gaussian_head"
+    return "other"
+
+
+def quantiles(x: torch.Tensor) -> dict:
+    f = x.detach().float().flatten()
+    return {"p50": float(f.quantile(0.5)), "p90": float(f.quantile(0.9)),
+            "p99": float(f.quantile(0.99)), "max": float(f.max())}
+
+
+def dense_capture(model, batch, opt) -> dict:
+    """Detailed geometry/optics statistics on the current training batch."""
+    device = batch["images_all"].device
+    n_in = int(opt.num_input_views)
+    with torch.no_grad():
+        mi, _ = split_data(batch, opt)
+        dec = ModelInputDecoder(cam_view=batch["cam_view_all"],
+                                intrinsics=batch["intrinsics_all"])
+        out = model.forward_reconstruction_only(
+            ModelInput(mi.encoder, dec), render_decoder_input=dec)
+    g = out["gaussians"][0].float()
+    alpha = out["render"]["alphas_pred"][0].float()
+    m2d = out["render"]["means2d_pred"][0].float()
+    H, W = int(opt.img_size[0]), int(opt.img_size[1])
+    inside = ((m2d[..., 0] >= 0) & (m2d[..., 0] <= W) &
+              (m2d[..., 1] >= 0) & (m2d[..., 1] <= H)).any(dim=0)
+    contrib = inside & (g[:, 3] > 0.05)
+    rec = {
+        "render": {
+            "alpha_mean": float(alpha.mean()),
+            "alpha_coverage_gt_05": float((alpha > 0.5).float().mean()),
+            "alpha_coverage_gt_01": float((alpha > 0.1).float().mean()),
+        },
+        "all": {
+            "count": int(g.shape[0]),
+            "opacity": quantiles(g[:, 3]),
+            "scale": quantiles(g[:, 4:7]),
+            "center_z": quantiles(g[:, 2]),
+            "center_norm": quantiles(g[:, 0:3].norm(dim=-1)),
+        },
+        "contributing": {
+            "fraction": float(contrib.float().mean()),
+            "count": int(contrib.sum()),
+        },
+    }
+    if contrib.any():
+        cg = g[contrib]
+        rec["contributing"].update({
+            "opacity": quantiles(cg[:, 3]),
+            "scale": quantiles(cg[:, 4:7]),
+            "center_z": quantiles(cg[:, 2]),
+            "center_norm": quantiles(cg[:, 0:3].norm(dim=-1)),
+        })
+    if hasattr(model, "anchor_decoder"):
+        ad = model.anchor_decoder
+        states = out["states"]
+        per_layer = []
+        prev = ad.mu.detach().float()
+        for st in states:
+            mu = st["mu"][0].detach().float()
+            upd = (mu - prev).norm(dim=-1)
+            per_layer.append({
+                "layer": int(st["layer"]),
+                "mu_absmax": float(mu.abs().max()),
+                "mu_std": float(mu.std(dim=0).mean()),
+                "mu_z_mean": float(mu[:, 2].mean()),
+                "update_norm": quantiles(upd),
+                "radius_mean": float(st["radii"][0].detach().float().mean()),
+            })
+            prev = mu
+        rec["anchors"] = {
+            "per_layer": per_layer,
+            "final_mu_absmax": float(prev.abs().max()),
+            "final_mu_z_mean": float(prev[:, 2].mean()),
+            "drift_from_init": quantiles((prev - ad.mu.detach().float()).norm(dim=-1)),
+            "decode_radius": (
+                None if getattr(model.activation_head, "last_decode_radius", None) is None
+                else [float(model.activation_head.last_decode_radius.min()),
+                      float(model.activation_head.last_decode_radius.max())]),
+        }
+    return rec
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--split", required=True)
@@ -126,6 +228,11 @@ def main() -> int:
     parser.add_argument("--log-every", type=int, default=100)
     parser.add_argument("--amp", choices=("bf16", "fp32"), default="fp32")
     parser.add_argument("--seed", type=int, default=42)
+    parser.add_argument("--lr", type=float, default=None,
+                        help="override the preset's peak learning rate")
+    parser.add_argument("--dense-start", type=int, default=1800)
+    parser.add_argument("--dense-end", type=int, default=3000)
+    parser.add_argument("--dense-every", type=int, default=50)
     parser.add_argument("--save-steps", type=int, nargs="*", default=[])
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--out-dir", required=True)
@@ -145,7 +252,7 @@ def main() -> int:
         batch_size=1, num_workers=0, seed=args.seed,
         num_input_views=2, num_views=4,
     )
-    lr = float(opt.lr)
+    lr = float(args.lr) if args.lr is not None else float(opt.lr)
     warmup = int(opt.pct_start_steps)
     weight_decay = float(getattr(opt, "weight_decay", 0.05))
 
@@ -245,7 +352,7 @@ def main() -> int:
         model.train()
         return rows
 
-    history = {"args": vars(args), "val": [], "train_loss": []}
+    history = {"args": vars(args), "val": [], "train_loss": [], "dense": []}
     for step in range(1, args.steps + 1):
         idx = int(rng.integers(0, n_train))
         batch = None
@@ -264,11 +371,50 @@ def main() -> int:
                             enabled=args.amp == "bf16"):
             output, metrics = model.step_loss(batch, step=step - 1, phase="train")
         metrics["loss"].backward()
+        grad_by_group: dict[str, float] = {}
+        for name, p in model.named_parameters():
+            if p.grad is not None:
+                gp = group_of(name)
+                grad_by_group[gp] = grad_by_group.get(gp, 0.0) + float(p.grad.detach().float().pow(2).sum())
+        grad_by_group = {k: math.sqrt(v) for k, v in grad_by_group.items()}
         gnorm = float(torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0))
         lr_now = lr_at(step - 1)
         for grp in optimizer.param_groups:
             grp["lr"] = lr_now
+        dense_now = args.dense_start <= step <= args.dense_end and step % args.dense_every == 0
+        if dense_now:
+            before = {n: p.detach().clone() for n, p in model.named_parameters()}
+            dense_rec = dense_capture(model, batch, opt)
         optimizer.step()
+        if dense_now:
+            upd: dict[str, float] = {}
+            for n, p in model.named_parameters():
+                gp = group_of(n)
+                upd[gp] = upd.get(gp, 0.0) + float((p.detach().float() - before[n].float()).pow(2).sum())
+            dense_rec.update({
+                "step": step, "scene": scene_now, "lr": lr_now, "grad_norm": gnorm,
+                "grad_by_group": grad_by_group,
+                "update_by_group": {k: math.sqrt(v) for k, v in upd.items()},
+                "loss": float(metrics["loss"]),
+                "loss_rgb": float(metrics.get("loss_rgb_layer12", metrics.get("loss_rgb", float("nan")))),
+                "loss_ssim": float(metrics.get("loss_ssim_layer12", metrics.get("loss_ssim", float("nan")))),
+                "loss_gvis": float(metrics.get("loss_gaussian_visibility_layer12", 0.0)),
+                "loss_avis": float(metrics.get("loss_anchor_visibility_layer12", 0.0)),
+            })
+            history["dense"].append(dense_rec)
+            del before
+            if "anchors" in dense_rec:
+                lay = dense_rec["anchors"]["per_layer"][-1]
+                print(f"[xs]   DENSE step {step} alpha>0.5 "
+                      f"{dense_rec['render']['alpha_coverage_gt_05']:.4f} "
+                      f"contrib {dense_rec['contributing']['fraction']:.3f} "
+                      f"| L{lay['layer']} mu_z {lay['mu_z_mean']:.2f} |mu|max {lay['mu_absmax']:.2f} "
+                      f"upd p99 {lay['update_norm']['p99']:.2e} "
+                      f"| center z p50 {dense_rec['all']['center_z']['p50']:.2f} "
+                      f"contrib z p50 {dense_rec['contributing'].get('center_z',{}).get('p50', float('nan')):.2f} "
+                      f"scale p50 {dense_rec['all']['scale']['p50']:.2e} "
+                      f"| upd anchor_mu {dense_rec['update_by_group'].get('anchor_mu', 0.0):.2e} "
+                      f"head {dense_rec['update_by_group'].get('gaussian_head', 0.0):.2e}", flush=True)
         if step % args.log_every == 0 or step == 1:
             history["train_loss"].append({"step": step, "loss": float(metrics["loss"]),
                                           "lr": lr_now, "grad_norm": gnorm,
