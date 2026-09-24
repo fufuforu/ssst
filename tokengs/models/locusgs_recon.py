@@ -340,6 +340,11 @@ class LocusGSGaussianHead(ClipActivationHead):
             # Single-variable locality experiment: bounding delta puts every
             # Gaussian within the token's support radius (||r*delta|| <= r).
             offsets = torch.tanh(offsets)
+        if bool(getattr(self.opt, "locusgs_freeze_decode_radius", False)):
+            # Decoding radius held at the initial support radius; the learned
+            # radii still feed the anchor-to-ray bias only.
+            radii = torch.full_like(radii, float(self.opt.locusgs_radius_init))
+        self.last_decode_radius = radii.detach()
         centers = mu.unsqueeze(2) + radii.unsqueeze(2).unsqueeze(-1) * offsets  # Eq. 9
         rgbs = self.rgb_act(raw[..., 3:6])
         scales = self.scale_act(raw[..., 6:9])

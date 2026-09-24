@@ -145,6 +145,17 @@ def make_eval_fn(model, batch, opt, num_ctx, local_spread_scale=0.2988):
         per_token = gauss.shape[0] // tokens
         c = gauss[:, 0:3].reshape(tokens, per_token, 3)
         spread = (c - c.mean(dim=1, keepdim=True)).norm(dim=-1).mean()
+        # radius actually used by the Gaussian decoder (vs the learned radii,
+        # which for the frozen variant only feed the anchor-to-ray bias)
+        dr = getattr(model.activation_head, "last_decode_radius", None)
+        radius_info = {
+            "decode_radius_mean": float(dr.float().mean()) if dr is not None else None,
+            "decode_radius_min": float(dr.float().min()) if dr is not None else None,
+            "decode_radius_max": float(dr.float().max()) if dr is not None else None,
+            "learned_radius_mean": None,
+        }
+        if "radii" in output:
+            radius_info["learned_radius_mean"] = float(output["radii"][0].float().mean())
         return {
             "loss": float(metrics["loss"]),
             "loss_rgb": pick(metrics, "loss_rgb"),
@@ -165,6 +176,7 @@ def make_eval_fn(model, batch, opt, num_ctx, local_spread_scale=0.2988):
             "depth_nonzero": float((render["depths_pred"] > 0).float().mean()),
             "local_spread": float(spread),
             "local_spread_over_ref": float(spread) / local_spread_scale,
+            **radius_info,
         }, pred, gt
 
     return evaluate
@@ -356,6 +368,11 @@ def main() -> int:
             continue
         row, pred, gt = evaluate()
         row.update({"source": args.source, "step": step, "lr": lr_now, "grad_norm": grad_norm})
+        if row.get("decode_radius_mean") is not None:
+            print(f"[ab]   decode radius mean/min/max "
+                  f"{row['decode_radius_mean']:.6f}/{row['decode_radius_min']:.6f}/"
+                  f"{row['decode_radius_max']:.6f} | learned radius mean "
+                  f"{row['learned_radius_mean']:.6f}", flush=True)
         rows.append(row)
         print(f"[ab] {args.source} step {step:>4} lr {lr_now:.2e} loss {row['loss']:.4f} "
               f"rgb {row['loss_rgb']:.4f} ssim {row['loss_ssim_term']:.4f} gvis {row['loss_gvis']:.4f} | "

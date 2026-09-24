@@ -213,6 +213,10 @@ class Options:
     # (False) keeps the existing unbounded reading; True is the single-variable
     # locality experiment (delta = tanh(delta_hat) -> ||r*delta|| <= r).
     locusgs_bound_delta: bool = False
+    # Single-variable follow-up on the bounded-delta variant: freeze the radius
+    # used by the Gaussian decoder at `locusgs_radius_init`.  The learned radii
+    # keep flowing into the anchor-to-ray bias, so only the decoding radius moves.
+    locusgs_freeze_decode_radius: bool = False
     canonical_gaussian_visibility_weight: float = 1.0      # paper: lambda_G = 1.0
     canonical_anchor_visibility_weight: float = 0.1        # paper: lambda_A = 0.1
     # --- joint one-stage loss curriculum and spatial regularization ---
@@ -662,6 +666,21 @@ config_defaults["train_siu3r_locusgs_recon_bounded_delta"] = config_defaults[
     workspace="/space/mawb/ssst/workspace/siu3r_locusgs_bounded_delta_recon_v1",
     experiment_name="siu3r_locusgs_bounded_delta_recon_v1",
     locusgs_bound_delta=True,
+)
+
+config_doc["train_siu3r_locusgs_recon_bounded_delta_frozen_radius"] = (
+    "Single-variable follow-up: identical to train_siu3r_locusgs_recon_bounded_delta "
+    "(delta = tanh(f_delta)) with the only additional change that the radius used by "
+    "the Gaussian decoder is frozen at locusgs_radius_init=0.15, i.e. every Gaussian "
+    "satisfies ||centre - anchor|| <= 0.15.  The learned radii still feed the "
+    "anchor-to-ray bias.  No spread penalty, no anchor-refinement change."
+)
+config_defaults["train_siu3r_locusgs_recon_bounded_delta_frozen_radius"] = config_defaults[
+    "train_siu3r_locusgs_recon_bounded_delta"
+].evolve(
+    workspace="/space/mawb/ssst/workspace/siu3r_locusgs_bounded_delta_frozen_r_recon_v1",
+    experiment_name="siu3r_locusgs_bounded_delta_frozen_r_recon_v1",
+    locusgs_freeze_decode_radius=True,
 )
 
 config_doc["train_siu3r_locusgs_inferred_v2"] = (
