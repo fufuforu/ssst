@@ -105,7 +105,7 @@ def swap_rgb(provider, batch, other_batch):
     return batch
 
 
-def make_eval_fn(model, batch, opt, num_ctx):
+def make_eval_fn(model, batch, opt, num_ctx, local_spread_scale=0.2988):
     def pick(metrics, key, default=0.0):
         """Read ``key`` from metrics, tolerating LocusGS's per-layer suffixes."""
         if key in metrics:
@@ -164,7 +164,7 @@ def make_eval_fn(model, batch, opt, num_ctx):
             "alpha_gt_05": float((alphas > 0.5).float().mean()),
             "depth_nonzero": float((render["depths_pred"] > 0).float().mean()),
             "local_spread": float(spread),
-            "local_spread_over_ref": float(spread) / args.local_spread_scale,
+            "local_spread_over_ref": float(spread) / local_spread_scale,
         }, pred, gt
 
     return evaluate
@@ -326,7 +326,7 @@ def main() -> int:
         cosine = 0.5 * (1.0 + math.cos(math.pi * progress))
         return lr * (lr_min_ratio + (1.0 - lr_min_ratio) * cosine)
 
-    evaluate = make_eval_fn(model, batch, opt, num_ctx)
+    evaluate = make_eval_fn(model, batch, opt, num_ctx, args.local_spread_scale)
     use_amp = args.amp == "bf16"
     amp_dtype = torch.bfloat16
     rows = []

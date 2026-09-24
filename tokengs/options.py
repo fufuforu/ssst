@@ -208,6 +208,11 @@ class Options:
     locusgs_anchor_init_extent: float = 0.2
     locusgs_anchor_init_center_z: float = 0.25
     locusgs_supervised_layers: tuple[int, ...] = (6, 12)   # paper Table 5: {6, 12} is best
+    # Eq. 8-9 read the other way: the paper's "local offset" only bounds the
+    # Gaussians to the anchor's support radius if delta is bounded.  The default
+    # (False) keeps the existing unbounded reading; True is the single-variable
+    # locality experiment (delta = tanh(delta_hat) -> ||r*delta|| <= r).
+    locusgs_bound_delta: bool = False
     canonical_gaussian_visibility_weight: float = 1.0      # paper: lambda_G = 1.0
     canonical_anchor_visibility_weight: float = 0.1        # paper: lambda_A = 0.1
     # --- joint one-stage loss curriculum and spatial regularization ---
@@ -643,6 +648,20 @@ config_defaults["train_siu3r_locusgs_recon"] = config_defaults["train_siu3r_ssst
     lr=4e-4,
     pct_start_steps=2000,
     **{**_CANONICAL_RECON, "gaussian_z_offset": 0.0, "locusgs_pe_mode": "injected"},
+)
+
+config_doc["train_siu3r_locusgs_recon_bounded_delta"] = (
+    "Single-variable locality experiment: identical to train_siu3r_locusgs_recon "
+    "except the anchor-centred Gaussian offsets are bounded, delta = tanh(f_delta), "
+    "so every Gaussian lies inside its token's support radius (||r*delta|| <= r). "
+    "No other structural, supervision, optimisation or loss change."
+)
+config_defaults["train_siu3r_locusgs_recon_bounded_delta"] = config_defaults[
+    "train_siu3r_locusgs_recon"
+].evolve(
+    workspace="/space/mawb/ssst/workspace/siu3r_locusgs_bounded_delta_recon_v1",
+    experiment_name="siu3r_locusgs_bounded_delta_recon_v1",
+    locusgs_bound_delta=True,
 )
 
 config_doc["train_siu3r_locusgs_inferred_v2"] = (

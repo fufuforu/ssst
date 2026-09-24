@@ -335,7 +335,11 @@ class LocusGSGaussianHead(ClipActivationHead):
         batch, num_tokens, _ = tokens.shape
         patches = self.num_gaussians_per_token
         raw = self.deconv(tokens).reshape(batch, num_tokens, patches, self.output_dims)
-        offsets = raw[..., 0:3]  # Eq. 8: f_delta, unconstrained
+        offsets = raw[..., 0:3]  # Eq. 8: f_delta
+        if bool(getattr(self.opt, "locusgs_bound_delta", False)):
+            # Single-variable locality experiment: bounding delta puts every
+            # Gaussian within the token's support radius (||r*delta|| <= r).
+            offsets = torch.tanh(offsets)
         centers = mu.unsqueeze(2) + radii.unsqueeze(2).unsqueeze(-1) * offsets  # Eq. 9
         rgbs = self.rgb_act(raw[..., 3:6])
         scales = self.scale_act(raw[..., 6:9])
