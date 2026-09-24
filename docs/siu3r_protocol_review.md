@@ -88,11 +88,20 @@ class InstanceQueryHead(nn.Module):
 
 * **Inputs**: encoder tokens of the 2 context frames only
   (`model.forward_encoder` on the context batch) - no GT, no novel images.
-* **Mask rendering**: `mask_q(p) = sum_t softmax(assign_q)_t * M_t(p)` where
-  `M_t` is the verified per-token compositing contribution map
-  (`scripts/token_instance_compositing.py` / `token_instance_oracle.py`);
-  `sum_q` over all queries and tokens reproduces the rendered alpha, which is
-  the correctness check.
+* **Mask rendering (corrected direction)**: the assignment is **token -> slot**.
+  For every token the head produces a distribution over the 100 query slots plus
+  one background slot, `A[t, q] = softmax_q(logits)[t, q]` with
+  `sum_q A[t, q] = 1`, and
+  `mask_q(p) = sum_t A[t, q] * M_t(p)`, `mask_bg(p) = sum_t A[t, bg] * M_t(p)`,
+  where `M_t` is the verified per-token compositing contribution map
+  (`scripts/token_instance_compositing.py` / `token_instance_oracle.py`).
+  The correctness check is therefore
+  **`sum_q mask_q(p) + mask_bg(p) = alpha(p)`** (verified to 4e-7 in
+  `scripts/train_instance_query_overfit.py`).
+* **Official export**: what the SIU3R evaluator consumes is **one packed
+  prediction PNG per frame** (24-bit `R + 256G + 65536B` instance ids, per
+  section 4).  The per-query masks are only the intermediate representation that
+  is reduced to that single packed map per frame.
 * **Training loss**: scene-level Hungarian matching between queries and GT
   instances using the context+novel masks, with Dice + BCE on the matched pairs
   plus a no-object term; **unannotated pixels (semantic void / instance 0) are
@@ -101,15 +110,12 @@ class InstanceQueryHead(nn.Module):
   score, and a reserved semantic logit slot, so the same outputs can be fed to
   the official evaluator once labels exist.
 
-## 7. Status of this round
+## 7. Status
 
-Delivered: this protocol review (read-only) and the interface specification
-above.
-
-Not delivered in this round: the `InstanceQueryHead` implementation, the
-one-scene overfit smoke (frozen-model bit-identical RGB/PSNR + grouping), the
-32/8 shared-head training, and the per-scene IoU/AP evaluation against the
-context oracle.  No claim is made about query quality.  The next step is to
-implement the module and the short overfit described in section 6, then reuse
-`scripts/token_instance_oracle.py` (which already produces the per-token
-compositing maps and the context oracle baseline) for the shared-head run.
+* `tokengs/models/instance_query_head.py` + `scripts/train_instance_query_overfit.py`
+  are implemented and runnable (see `docs/instance_query_phase1.md`).
+* The **32/8 shared-head training** and the **official-protocol export** are not
+  done.  The 32/8 split is the *next-stage development set*; the final comparison
+  must instead use `val_pair.json`, the complete semantic/instance output and the
+  official evaluator, and must state that this model consumes **GT camera poses**
+  while SIU3R is an **unposed** method.
