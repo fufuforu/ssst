@@ -157,6 +157,8 @@ def make_eval_fn(model, batch, opt, num_ctx):
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--source", required=True, choices=["processed", "raw"])
+    parser.add_argument("--preset", default="train_siu3r_plain_tokengs_canonical_recon",
+                        help="Options preset from config_defaults (e.g. train_siu3r_locusgs_recon)")
     parser.add_argument(
         "--swap-rgb",
         action="store_true",
@@ -171,10 +173,11 @@ def main() -> int:
     parser.add_argument("--scans-root", default=str(DEFAULT_SCANS_ROOT))
     parser.add_argument("--total-steps", type=int, default=4000)
     parser.add_argument("--mid-step", type=int, default=2000)
-    parser.add_argument("--warmup-steps", type=int, default=1000)
-    parser.add_argument("--lr", type=float, default=1e-4)
-    parser.add_argument("--lr-min-ratio", type=float, default=0.02)
-    parser.add_argument("--weight-decay", type=float, default=0.05)
+    # None -> take the value from the selected preset (faithful recipe)
+    parser.add_argument("--warmup-steps", type=int, default=None)
+    parser.add_argument("--lr", type=float, default=None)
+    parser.add_argument("--lr-min-ratio", type=float, default=None)
+    parser.add_argument("--weight-decay", type=float, default=None)
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--amp", choices=("bf16", "fp32"), default="bf16",
                         help="autocast dtype for the training forward; fp32 disables autocast")
@@ -205,10 +208,17 @@ def main() -> int:
     out_dir = Path(args.out_dir)
     (out_dir / "images").mkdir(parents=True, exist_ok=True)
 
-    opt = config_defaults["train_siu3r_plain_tokengs_canonical_recon"].evolve(
+    opt = config_defaults[args.preset].evolve(
         dataset_kwargs={"data_root": "/space/mawb/SIU3R/data/scannet"},
-        batch_size=1, num_workers=0, seed=args.seed, lr=args.lr,
+        batch_size=1, num_workers=0, seed=args.seed,
         num_input_views=len(args.context), num_views=len(args.context) + len(args.novel),
+    )
+    lr = float(args.lr) if args.lr is not None else float(opt.lr)
+    warmup_steps = int(args.warmup_steps) if args.warmup_steps is not None else int(opt.pct_start_steps)
+    lr_min_ratio = float(args.lr_min_ratio) if args.lr_min_ratio is not None else 0.02
+    weight_decay = (
+        float(args.weight_decay) if args.weight_decay is not None
+        else float(getattr(opt, "weight_decay", 0.05))
     )
     torch.manual_seed(int(opt.seed))
     model = model_registry[opt.model_type](opt)
@@ -258,9 +268,9 @@ def main() -> int:
     nodecay = [p for p in model.parameters() if p.requires_grad
                and (p.dim() == 1 or getattr(p, "_no_weight_decay", False))]
     optimizer = torch.optim.AdamW(
-        [{"params": decay, "weight_decay": args.weight_decay},
+        [{"params": decay, "weight_decay": weight_decay},
          {"params": nodecay, "weight_decay": 0.0}],
-        lr=args.lr, betas=(0.9, 0.95),
+        lr=lr, betas=(0.9, 0.95),
     )
     print(f"[ab] source={args.source} groups: decay={sum(p.numel() for p in decay):,} "
           f"nodecay={sum(p.numel() for p in nodecay):,} | init={init_source}")
@@ -284,16 +294,17 @@ def main() -> int:
     num_ctx = int(opt.num_input_views)
     print(f"[ab] source={args.source} scene={pair['scene_id']} ctx={pair['context_frame_ids']} "
           f"novel={pair['novel_frame_ids']} frames={frames} scene_scale={provider.scene_scale}")
-    print(f"[ab] plan: total={args.total_steps} mid={args.mid_step} warmup={args.warmup_steps} "
-          f"lr={args.lr} min_ratio={args.lr_min_ratio} wd={args.weight_decay} seed={args.seed}")
+    print(f"[ab] preset={args.preset} plan: total={args.total_steps} mid={args.mid_step} "
+          f"warmup={warmup_steps} lr={lr} min_ratio={lr_min_ratio} wd={weight_decay} "
+          f"seed={args.seed}")
 
     def lr_at(step: int) -> float:
-        if step < args.warmup_steps:
-            return args.lr * float(step + 1) / float(args.warmup_steps)
-        progress = min(1.0, max(0.0, (step - args.warmup_steps) /
-                                max(1, args.total_steps - args.warmup_steps)))
+        if step < warmup_steps:
+            return lr * float(step + 1) / float(warmup_steps)
+        progress = min(1.0, max(0.0, (step - warmup_steps) /
+                                max(1, args.total_steps - warmup_steps)))
         cosine = 0.5 * (1.0 + math.cos(math.pi * progress))
-        return args.lr * (args.lr_min_ratio + (1.0 - args.lr_min_ratio) * cosine)
+        return lr * (lr_min_ratio + (1.0 - lr_min_ratio) * cosine)
 
     evaluate = make_eval_fn(model, batch, opt, num_ctx)
     use_amp = args.amp == "bf16"
