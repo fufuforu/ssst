@@ -16,9 +16,13 @@ prediction and shared by every model that is evaluated.
 from __future__ import annotations
 
 import argparse
+import hashlib
 import json
 import math
+import os
+import shutil
 import sys
+import time
 from pathlib import Path
 
 import numpy as np
@@ -219,6 +223,97 @@ def dense_capture(model, batch, opt) -> dict:
     return rec
 
 
+def _cpu_state_dict(state: dict) -> dict:
+    """Copy an optimizer/scheduler state dict to CPU so it saves portably."""
+    out = {}
+    for key, value in state.items():
+        if key == "state":
+            out[key] = {
+                k: {kk: (vv.detach().cpu() if torch.is_tensor(vv) else vv)
+                    for kk, vv in v.items()}
+                for k, v in value.items()
+            }
+        elif torch.is_tensor(value):
+            out[key] = value.detach().cpu()
+        else:
+            out[key] = value
+    return out
+
+
+def ckpt_steps(out_dir: Path) -> list[int]:
+    steps = []
+    for p in out_dir.glob("ckpt_step*"):
+        if p.is_dir() and (p / "COMPLETE").is_file():
+            try:
+                steps.append(int(p.name.replace("ckpt_step", "")))
+            except ValueError:
+                continue
+    return sorted(steps)
+
+
+def save_checkpoint(
+    out_dir: Path,
+    step: int,
+    model,
+    optimizer,
+    sched_meta: dict,
+    sampler_rng_state,
+    pair_rng_state,
+    scene_counts: dict,
+    meta: dict,
+    *,
+    save_optimizer: bool = True,
+    keep_last: int = 2,
+    keep_steps: list[int] | None = None,
+) -> Path:
+    """Write a checkpoint atomically: build in `.inprogress_*`, then rename.
+
+    `model.pt` keeps the historical `{"model": ..., "step": ...}` layout so the
+    existing evaluation scripts can still read it; `train_state.pt` adds the
+    optimizer / scheduler / RNG / data-sampling state needed to resume.
+    """
+    final = out_dir / f"ckpt_step{step}"
+    if final.is_dir() and (final / "COMPLETE").is_file():
+        return final
+    tmp = out_dir / f".inprogress_step{step}"
+    if tmp.exists():
+        shutil.rmtree(tmp)
+    tmp.mkdir(parents=True)
+    torch.save({"model": model.state_dict(), "step": step}, tmp / "model.pt")
+    state = {
+        "step": step,
+        "optimizer": _cpu_state_dict(optimizer.state_dict()) if save_optimizer else None,
+        "scheduler": sched_meta,
+        "sampler_rng": sampler_rng_state,
+        "pair_rng": pair_rng_state,
+        "torch_rng": torch.get_rng_state(),
+        "cuda_rng": torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None,
+        "numpy_rng": np.random.get_state(),
+        "scene_counts": dict(scene_counts),
+        "meta": meta,
+    }
+    torch.save(state, tmp / "train_state.pt")
+    (tmp / "COMPLETE").write_text(f"step {step}\n", encoding="utf-8")
+    os.rename(tmp, final)                     # atomic on the same filesystem
+    keep = set(keep_steps or []) | set(ckpt_steps(out_dir)[-keep_last:])
+    for old in ckpt_steps(out_dir):
+        if old not in keep and old != step:
+            path = out_dir / f"ckpt_step{old}"
+            size = sum(f.stat().st_size for f in path.rglob("*") if f.is_file())
+            shutil.rmtree(path)
+            print(f"[xs] pruned {path} ({size/1e9:.2f} GB)", flush=True)
+    return final
+
+
+def resolve_ckpt(path: Path) -> Path:
+    if (path / "COMPLETE").is_file() and (path / "train_state.pt").is_file():
+        return path
+    steps = ckpt_steps(path)
+    if not steps:
+        raise SystemExit(f"no complete resumable checkpoint under {path}")
+    return path / f"ckpt_step{steps[-1]}"
+
+
 def main() -> int:
     parser = argparse.ArgumentParser()
     parser.add_argument("--split", required=True)
@@ -236,16 +331,74 @@ def main() -> int:
     parser.add_argument("--save-steps", type=int, nargs="*", default=[])
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--out-dir", required=True)
+    # --- full-split / resumable-run options (defaults preserve the 32/8 recipe) ---
+    parser.add_argument("--train-scenes", choices=("split", "all"), default="split",
+                        help="'all' = every scene directory in the official train root")
+    parser.add_argument("--monitor-scenes", nargs="*", default=None,
+                        help="override the validation/monitor scene list (kept out of training)")
+    parser.add_argument("--manifest-out", default=None,
+                        help="write the resolved train/monitor scene lists + hashes here")
+    parser.add_argument("--require-disjoint-val-root", action="store_true",
+                        help="assert the training scenes do not intersect the official val tree")
+    parser.add_argument("--resume", default=None,
+                        help="resume from a checkpoint dir (or an out-dir holding ckpt_step*)")
+    parser.add_argument("--ckpt-every", type=int, default=0,
+                        help="save a resumable checkpoint every N steps (0 = only --save-steps)")
+    parser.add_argument("--keep-last", type=int, default=2,
+                        help="how many recent ckpt_step* to keep when pruning")
+    parser.add_argument("--keep-steps", type=int, nargs="*", default=[],
+                        help="checkpoint steps that are never pruned")
+    parser.add_argument("--no-save-optimizer", action="store_true",
+                        help="omit optimizer state from train_state.pt (not resumable)")
+    parser.add_argument("--budget-note", default="",
+                        help="free-form note recorded in the manifest/checkpoints")
+    parser.add_argument("--allow-schedule-change", action="store_true",
+                        help="permit resuming with a different --steps (extends the cosine "
+                             "schedule); prints a loud warning and records it")
     args = parser.parse_args()
     device = torch.device(args.device)
     out_dir = Path(args.out_dir)
     (out_dir / "images").mkdir(parents=True, exist_ok=True)
 
     split = json.loads(Path(args.split).read_text(encoding="utf-8"))
-    train_scenes = list(split["train_scenes"])
-    val_scenes = list(split["val_scenes"])
     val_root = Path(split["val_root"])
     train_root = Path(split["train_root"])
+    if args.train_scenes == "all":
+        train_scenes = sorted(p.name for p in train_root.iterdir()
+                              if p.is_dir() and p.name.startswith("scene"))
+    else:
+        train_scenes = list(split["train_scenes"])
+    val_scenes = list(args.monitor_scenes) if args.monitor_scenes else list(split["val_scenes"])
+    overlap = sorted(set(train_scenes) & set(val_scenes))
+    if overlap:
+        raise SystemExit(f"monitor scenes are also in the training list: {overlap[:10]}")
+    official_val = sorted(p.name for p in val_root.iterdir()
+                          if p.is_dir() and p.name.startswith("scene"))
+    if args.require_disjoint_val_root:
+        clash = sorted(set(train_scenes) & set(official_val))
+        if clash:
+            raise SystemExit(f"official-val scenes leaked into training: {clash[:10]}")
+    scene_hash = hashlib.sha1("\n".join(train_scenes).encode()).hexdigest()[:16]
+    monitor_hash = hashlib.sha1("\n".join(val_scenes).encode()).hexdigest()[:16]
+    print(f"[xs] train scenes {len(train_scenes)} (hash {scene_hash}) | "
+          f"monitor scenes {len(val_scenes)} (hash {monitor_hash}) | "
+          f"official val dirs {len(official_val)} | train-scenes={args.train_scenes}")
+    if args.manifest_out:
+        Path(args.manifest_out).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.manifest_out).write_text(json.dumps({
+            "source": "SIU3R processed ScanNet",
+            "train_root": str(train_root), "val_root": str(val_root),
+            "train_scenes": train_scenes, "train_scene_count": len(train_scenes),
+            "train_scene_list_hash": scene_hash,
+            "monitor_scenes": val_scenes, "monitor_scene_list_hash": monitor_hash,
+            "official_val_dir_count": len(official_val),
+            "official_val_dir_list_hash": hashlib.sha1("\n".join(official_val).encode()).hexdigest()[:16],
+            "train_val_overlap": overlap,
+            "budget_note": args.budget_note,
+            "config": {"preset": args.preset, "lr": args.lr, "steps": args.steps,
+                       "warmup": None, "amp": args.amp, "seed": args.seed},
+        }, indent=2), encoding="utf-8")
+        print(f"[xs] wrote manifest {args.manifest_out}")
 
     opt = config_defaults[args.preset].evolve(
         dataset_kwargs={"data_root": "/space/mawb/SIU3R/data/scannet"},
@@ -297,6 +450,40 @@ def main() -> int:
               f"novel={pair['novel_frame_ids']} gt scene scale={scale:.4f}")
     rng = np.random.default_rng(int(opt.seed))
     n_train = len(train_provider)
+    scene_counts: dict[str, int] = {}
+    sched_meta = {"type": "warmup+cosine", "peak_lr": lr, "warmup_steps": warmup,
+                  "total_steps": int(args.steps), "eta_min_factor": 0.02,
+                  "betas": [0.9, 0.95], "weight_decay": weight_decay}
+    start_step = 1
+    if args.resume:
+        ck = resolve_ckpt(Path(args.resume))
+        payload = torch.load(ck / "train_state.pt", map_location="cpu", weights_only=False)
+        old_total = None if not payload.get("scheduler") else int(payload["scheduler"]["total_steps"])
+        if old_total is not None and old_total != int(args.steps):
+            if not args.allow_schedule_change:
+                raise SystemExit(
+                    f"resume would change total_steps: checkpoint {old_total} vs --steps "
+                    f"{args.steps}.  The LR schedule of a resumed run must stay identical; "
+                    f"pass --allow-schedule-change only for a deliberate budget extension.")
+            print(f"[xs] WARNING: resuming with a different total_steps ({old_total} -> "
+                  f"{args.steps}); the cosine schedule is being recomputed, so the "
+                  f"continuation is a NEW recipe, not the original one.", flush=True)
+        model.load_state_dict(
+            torch.load(ck / "model.pt", map_location="cpu", weights_only=False)["model"],
+            strict=True)
+        if payload.get("optimizer") is not None:
+            optimizer.load_state_dict(payload["optimizer"])
+        train_provider.pair_rng.setstate(payload["pair_rng"])
+        rng.bit_generator.state = payload["sampler_rng"]
+        torch.set_rng_state(payload["torch_rng"])
+        np.random.set_state(payload["numpy_rng"])
+        if payload.get("cuda_rng") is not None and torch.cuda.is_available():
+            torch.cuda.set_rng_state_all(payload["cuda_rng"])
+        scene_counts = dict(payload.get("scene_counts", {}))
+        start_step = int(payload["step"]) + 1
+        print(f"[xs] resumed {ck} at step {payload['step']} "
+              f"(optimizer={'yes' if payload.get('optimizer') is not None else 'no'}, "
+              f"scenes already seen={len(scene_counts)})", flush=True)
 
     def lr_at(step: int) -> float:
         if step < warmup:
@@ -352,20 +539,27 @@ def main() -> int:
         model.train()
         return rows
 
-    history = {"args": vars(args), "val": [], "train_loss": [], "dense": []}
-    for step in range(1, args.steps + 1):
+    history = {"args": vars(args), "val": [], "train_loss": [], "dense": [],
+               "train_scene_list_hash": scene_hash, "train_scene_count": len(train_scenes),
+               "monitor_scenes": val_scenes, "resumed_from": args.resume}
+    t_loop = time.time()
+    for step in range(start_step, args.steps + 1):
         idx = int(rng.integers(0, n_train))
         batch = None
         for _ in range(20):                      # a scene may have no valid pair
             try:
                 batch = move(default_collate([train_provider[idx]]), device)
                 scene_now = train_provider.dataset.sample_list[idx].name
+                frames_now = list(train_provider.last_pair["target_frame_ids"])
+                ctx_now = list(train_provider.last_pair["context_frame_ids"])
+                novel_now = list(train_provider.last_pair["novel_frame_ids"])
                 break
             except Exception as error:  # noqa: BLE001 - pair sampling can fail
                 print(f"[xs] step {step}: scene idx {idx} unusable ({error}); resampling")
                 idx = int(rng.integers(0, n_train))
         if batch is None:
             raise RuntimeError("no usable training pair after 20 attempts")
+        scene_counts[scene_now] = scene_counts.get(scene_now, 0) + 1
         optimizer.zero_grad(set_to_none=True)
         with torch.autocast(device_type=device.type, dtype=torch.bfloat16,
                             enabled=args.amp == "bf16"):
@@ -416,14 +610,37 @@ def main() -> int:
                       f"| upd anchor_mu {dense_rec['update_by_group'].get('anchor_mu', 0.0):.2e} "
                       f"head {dense_rec['update_by_group'].get('gaussian_head', 0.0):.2e}", flush=True)
         if step % args.log_every == 0 or step == 1:
+            now = time.time()
+            sps = (now - t_loop) / max(1, step - start_step + 1)
+            peak_gb = (torch.cuda.max_memory_allocated() / 1e9
+                       if torch.cuda.is_available() else float("nan"))
             history["train_loss"].append({"step": step, "loss": float(metrics["loss"]),
                                           "lr": lr_now, "grad_norm": gnorm,
-                                          "scene": scene_now})
+                                          "scene": scene_now, "context": ctx_now,
+                                          "novel": novel_now, "frames": frames_now,
+                                          "n_scenes_seen": len(scene_counts),
+                                          "sec_per_step": sps, "peak_mem_gb": peak_gb})
             extra = ""
             dr = getattr(model.activation_head, "last_decode_radius", None)
             if dr is not None:
-                extra = (f" | decode r {float(dr.float().min()):.6f}-"
+                extra = (f" decode_r {float(dr.float().min()):.6f}-"
                          f"{float(dr.float().max()):.6f}")
+            def _m(key):
+                v = metrics.get(key)
+                return float(v) if v is not None else float("nan")
+
+            extra += (f" psnr {_m('psnr'):.2f} alpha {_m('alpha_mean'):.3f} "
+                      f"alpha>0 {_m('alpha_nonzero_fraction'):.3f} "
+                      f"depth>0 {_m('depth_nonzero_fraction'):.3f} "
+                      f"r_mean {_m('radius_mean'):.4f} "
+                      f"anchor|mu|max {_m('anchor_max'):.2f} "
+                      f"gz_p50 {_m('gaussian_z_p50'):.2f} "
+                      f"delta_p95 {_m('delta_norm_p95'):.3f}")
+            extra += (f" | {sps:.2f}s/step peak {peak_gb:.1f}G "
+                      f"eta {(args.steps - step) * sps / 3600:.1f}h")
+            lr_now = float(lr_now)
+            if not math.isfinite(float(metrics["loss"])) or not math.isfinite(_m("psnr")):
+                raise RuntimeError(f"non-finite training value at step {step}")
             print(f"[xs] step {step:>5} scene={scene_now} loss "
                   f"{float(metrics['loss']):.4f} lr {lr_now:.2e} grad {gnorm:.2f}{extra}",
                   flush=True)
@@ -436,11 +653,56 @@ def main() -> int:
                   f"ssim {mean('ctx_ssim'):.3f}/{mean('novel_ssim'):.3f} "
                   f"| loc all p50 {mean('all_p50_over_scale'):.2f} "
                   f"contrib {mean('contrib_p50_over_scale'):.2f} scale", flush=True)
-        if step in args.save_steps:
-            ck = out_dir / f"ckpt_step{step}"
-            ck.mkdir(parents=True, exist_ok=True)
-            torch.save({"model": model.state_dict(), "step": step}, ck / "model.pt")
-            (ck / "COMPLETE").write_text("complete\n", encoding="utf-8")
+            monitor_psnr = mean("novel_psnr")
+            if monitor_psnr > history.get("best_monitor_psnr", -1e9):
+                history["best_monitor_psnr"] = monitor_psnr
+                history["best_monitor_step"] = step
+                best_dir = out_dir / "best_monitor"
+                tmp_best = out_dir / ".inprogress_best_monitor"
+                if tmp_best.exists():
+                    shutil.rmtree(tmp_best)
+                tmp_best.mkdir(parents=True)
+                torch.save({"model": model.state_dict(), "step": step}, tmp_best / "model.pt")
+                (tmp_best / "metrics.json").write_text(json.dumps(
+                    {"step": step, "monitor_novel_psnr": monitor_psnr,
+                     "monitor_ctx_psnr": mean("ctx_psnr"),
+                     "monitor_novel_grey": mean("novel_grey"),
+                     "monitor_scenes": val_scenes,
+                     "note": "training-monitor PSNR only, NOT SIU3R official val_pair"},
+                    indent=2), encoding="utf-8")
+                (tmp_best / "COMPLETE").write_text(f"best monitor step {step}\n", encoding="utf-8")
+                if best_dir.is_dir():
+                    shutil.rmtree(best_dir)
+                os.rename(tmp_best, best_dir)
+                print(f"[xs] best_monitor updated at step {step} "
+                      f"(novel PSNR {monitor_psnr:.2f})", flush=True)
+        if step in args.save_steps or (args.ckpt_every and step % args.ckpt_every == 0):
+            model.eval()
+            save_checkpoint(
+                out_dir, step, model, optimizer, sched_meta, rng.bit_generator.state,
+                train_provider.pair_rng.getstate(), scene_counts,
+                {"preset": args.preset, "amp": args.amp, "seed": args.seed,
+                 "train_scene_list_hash": scene_hash, "train_scene_count": len(train_scenes),
+                 "monitor_scenes": val_scenes, "budget_note": args.budget_note,
+                 "lr_at_step": lr_now, "wall_note": "atomic write: .inprogress_* -> ckpt_step*"},
+                save_optimizer=not args.no_save_optimizer,
+                keep_last=args.keep_last, keep_steps=list(args.keep_steps))
+            model.train()
+            (out_dir / "history.json").write_text(
+                json.dumps({**history, "scene_counts": scene_counts}, indent=2), encoding="utf-8")
+            print(f"[xs] checkpoint ckpt_step{step} written "
+                  f"(scenes seen {len(scene_counts)}/{len(train_scenes)})", flush=True)
+
+    (out_dir / "history.json").write_text(
+        json.dumps({**history, "scene_counts": scene_counts}, indent=2), encoding="utf-8")
+    counts = list(scene_counts.values())
+    print(f"[xs] scenes actually sampled: {len(scene_counts)}/{len(train_scenes)} | "
+          f"draws per scene min {min(counts)} max {max(counts)} "
+          f"(mean {sum(counts)/len(counts):.2f}, total {sum(counts)})")
+    if torch.cuda.is_available():
+        print(f"[xs] peak GPU memory {torch.cuda.max_memory_allocated()/1e9:.2f} GB | "
+              f"total loop {time.time()-t_loop:.0f}s for "
+              f"{args.steps - start_step + 1} steps")
 
     (out_dir / "history.json").write_text(json.dumps(history, indent=2), encoding="utf-8")
     print(f"[xs] wrote {out_dir/'history.json'}")
