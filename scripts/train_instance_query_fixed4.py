@@ -48,7 +48,7 @@ from scripts.train_instance_query_shared import ap50  # noqa: E402
 Q = 100
 
 
-def build_window(opt, model, root, scene, ctx, novel, args, device):
+def build_window(opt, model, root, scene, ctx, novel, args, device, with_rgb=False):
     prov = SIU3RProcessedProvider(opt, root=str(root), subset=[scene], training=True, rank=0)
     want = np.array([*ctx, *novel], dtype=np.int64)
     prov._get_indices_static = lambda idx: (want, [])        # noqa: SLF001
@@ -68,11 +68,49 @@ def build_window(opt, model, root, scene, ctx, novel, args, device):
                                     if v != 0 and (v // 1000) >= 3})]
     keys = [k for k in keys if sum(int(((inst[v] == k) & valid[v]).sum()) for v in range(4))
             >= args.min_instance_pixels]
-    return {"scene": scene, "root": str(root), "frames": frames, "ctx": list(ctx),
-            "novel": list(novel), "maps": maps, "tokens": tokens,
-            "inst": [torch.from_numpy(x).to(device) for x in inst],
-            "valid": [torch.from_numpy(x).to(device) for x in valid], "keys": keys,
-            "alpha": np.stack([a.detach().cpu().numpy() for a in alphas])}
+    w = {"scene": scene, "root": str(root), "frames": frames, "ctx": list(ctx),
+         "novel": list(novel), "maps": maps, "tokens": tokens,
+         "inst": [torch.from_numpy(x).to(device) for x in inst],
+         "valid": [torch.from_numpy(x).to(device) for x in valid], "keys": keys,
+         "alpha": np.stack([a.detach().cpu().numpy() for a in alphas])}
+    if with_rgb:
+        w["rgb"] = (batch["images_all"][0].permute(0, 2, 3, 1).detach().cpu().numpy()
+                    * 255).astype(np.uint8)
+    return w
+
+
+def hungarian_match(ms, b, Q=Q):
+    """Scene-level (all 4 views) soft-Dice cost + Hungarian assignment -> {query: gt_key}."""
+    gtm = [[(b["inst"][v] == k) for k in b["keys"]] for v in range(4)]
+    cost = np.zeros((Q, len(b["keys"])))
+    with torch.no_grad():
+        for q in range(Q):
+            for k in range(len(b["keys"])):
+                c = 0.0
+                for v in range(4):
+                    p = (ms[v][q] * b["valid"][v]).reshape(-1)
+                    t = (gtm[v][k].float() * b["valid"][v]).reshape(-1)
+                    c += 1 - (2 * float((p * t).sum()) + 1.0) / (float(p.sum() + t.sum()) + 1.0)
+                cost[q, k] = c / 4
+        qi, ki = linear_sum_assignment(cost)
+    return {int(q): int(k) for q, k in zip(qi, ki)}
+
+
+def query_losses(ms, obj_q, b, matched, Q=Q):
+    """BCE + Dice on matched queries (valid pixels only) + objectness BCE. Same as the shared run."""
+    device = ms[0].device
+    bce = torch.zeros((), device=device); dice = torch.zeros((), device=device)
+    for v in range(4):
+        vm = b["valid"][v].reshape(-1).float()
+        for q, k in matched.items():
+            m = ms[v][q].reshape(-1).clamp(1e-6, 1 - 1e-6)
+            t = (b["inst"][v] == b["keys"][k]).reshape(-1).float()
+            bce = bce + F.binary_cross_entropy(m * vm, t * vm, reduction="sum") / vm.sum().clamp_min(1)
+            dice = dice + dice_loss(m, t, vm)
+    bce = bce / max(1, 4 * len(matched)); dice = dice / max(1, 4 * len(matched))
+    obj_t = torch.zeros(Q, device=device); obj_t[list(matched)] = 1.0
+    obj_loss = F.binary_cross_entropy_with_logits(obj_q, obj_t)
+    return 2.0 * bce + 2.0 * dice + 0.5 * obj_loss, bce, dice, obj_loss
 
 
 def eval_window(w, model, head, args, device):
@@ -89,6 +127,9 @@ def eval_window(w, model, head, args, device):
         gtv = [(k, m) for k, m in gtv if int(m.sum()) > 0]
         hard = [((ms[v][q] > args.mask_threshold) & w["valid"][v]) for q in range(Q)]
         areas = [int(h.sum()) for h in hard]
+        n_obj_q = sum(1 for q in range(Q) if float(scores[q]) >= args.objectness_threshold)
+        n_obj_mask_q = sum(1 for q in range(Q) if float(scores[q]) >= args.objectness_threshold
+                           and float(ms[v][q].max()) > args.mask_threshold)
         preds = [q for q in range(Q) if scores[q] >= args.objectness_threshold
                  and float(ms[v][q].max()) > args.mask_threshold
                  and areas[q] >= args.min_pred_pixels]
@@ -114,6 +155,7 @@ def eval_window(w, model, head, args, device):
         views.append({"view": v, "frame": w["frames"][v],
                       "kind": "novel" if v >= 2 else "context",
                       "n_gt": len(gtv), "n_pred": len(preds), "tp": tp, "fp": fp,
+                      "n_obj_q": n_obj_q, "n_obj_mask_q": n_obj_mask_q,
                       "fn": len(gtv) - len(used),
                       "ap50": ap50([d["score"] for d in dets], [d["ious"] for d in dets], len(gtv)),
                       "mean_iou_tp": float(np.mean(ious_tp)) if ious_tp else 0.0,
@@ -247,31 +289,8 @@ def main() -> int:
         logits, obj = head(b["tokens"].unsqueeze(0))
         A = torch.softmax(logits[0], dim=-1)
         ms = [torch.einsum("tq,tp->qp", A[:, :Q], b["maps"][v]).reshape(Q, 256, 256) for v in range(4)]
-        gtm = [[(b["inst"][v] == k) for k in b["keys"]] for v in range(4)]
-        cost = np.zeros((Q, len(b["keys"])))
-        with torch.no_grad():
-            for q in range(Q):
-                for k in range(len(b["keys"])):
-                    c = 0.0
-                    for v in range(4):
-                        p = (ms[v][q] * b["valid"][v]).reshape(-1)
-                        t = (gtm[v][k].float() * b["valid"][v]).reshape(-1)
-                        c += 1 - (2 * float((p * t).sum()) + 1.0) / (float(p.sum() + t.sum()) + 1.0)
-                    cost[q, k] = c / 4
-            qi, ki = linear_sum_assignment(cost)
-        matched = {int(q): int(k) for q, k in zip(qi, ki)}
-        bce = torch.zeros((), device=device); dice = torch.zeros((), device=device)
-        for v in range(4):
-            vm = b["valid"][v].reshape(-1).float()
-            for q, k in matched.items():
-                m = ms[v][q].reshape(-1).clamp(1e-6, 1 - 1e-6)
-                t = gtm[v][k].reshape(-1).float()
-                bce = bce + F.binary_cross_entropy(m * vm, t * vm, reduction="sum") / vm.sum().clamp_min(1)
-                dice = dice + dice_loss(m, t, vm)
-        bce = bce / max(1, 4 * len(matched)); dice = dice / max(1, 4 * len(matched))
-        obj_t = torch.zeros(Q, device=device); obj_t[list(matched)] = 1.0
-        obj_loss = F.binary_cross_entropy_with_logits(obj[0], obj_t)
-        loss = 2.0 * bce + 2.0 * dice + 0.5 * obj_loss
+        matched = hungarian_match(ms, b)
+        loss, bce, dice, obj_loss = query_losses(ms, obj[0], b, matched)
         optim.zero_grad(set_to_none=True)
         loss.backward()
         torch.nn.utils.clip_grad_norm_(head.parameters(), 1.0)
