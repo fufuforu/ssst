@@ -237,13 +237,15 @@ def main() -> int:
             m = massB[K].reshape(n_units[K], len(keys)).cpu().numpy()
             tot = m.sum(1)
             shares = np.where(tot[:, None] > 0, m / np.maximum(tot[:, None], 1e-9), 0.0)
-            top2 = np.sort(shares, axis=1)[:, -2:]   # [second-largest, largest]
+            ss = np.sort(shares, axis=1)
+            # second-largest instance share; 0 when the scene has <2 instances
+            second = ss[:, -2] if ss.shape[1] >= 2 else np.zeros(len(ss))
             enough = tot >= 1.0
             mix = {
                 "tokens_with_contribution": int((tot > 0).sum()),
                 "tokens_with_enough_contribution": int(enough.sum()),
-                "frac_second_ge_5pct": float(((top2[:, 0] >= 0.05) & enough).sum() / max(1, enough.sum())),
-                "frac_second_ge_10pct": float(((top2[:, 0] >= 0.10) & enough).sum() / max(1, enough.sum())),
+                "frac_second_ge_5pct": float(((second >= 0.05) & enough).sum() / max(1, enough.sum())),
+                "frac_second_ge_10pct": float(((second >= 0.10) & enough).sum() / max(1, enough.sum())),
                 "share_top1_p50": float(np.median(shares[enough].max(1))) if enough.any() else None,
             }
         print(f"[ug] {scene}: token mixing {mix}")

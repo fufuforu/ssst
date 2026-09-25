@@ -87,6 +87,8 @@ def main() -> int:
     ap.add_argument("--objectness-threshold", type=float, default=0.5)
     ap.add_argument("--mask-threshold", type=float, default=0.5)
     ap.add_argument("--min-pred-pixels", type=int, default=50)
+    ap.add_argument("--fixed-scene", default=None,
+                    help="diagnostic: reuse ONE fixed window (pair seed 1042) for every step")
     ap.add_argument("--out", required=True)
     args = ap.parse_args()
     device = torch.device("cuda")
@@ -261,20 +263,33 @@ def main() -> int:
         head.train()
         return per_scene
 
-    history = {"args": vars(args), "train": [], "val": [], "windows": None}
+    history = {"args": vars(args), "train": [], "val": [], "windows": None,
+               "matched_queries": []}
     t0 = time.time()
+    fixed = None
+    if args.fixed_scene:
+        b0, pair0 = load_batch(args.fixed_scene, train_root, 1042)
+        m0, a0, o0 = token_maps(model, b0, opt, args, device)
+        fixed = (b0, pair0, m0, a0, o0)
+        print(f"[sh] FIXED-WINDOW diagnostic on {args.fixed_scene} "
+              f"ctx={pair0['context_frame_ids']} novel={pair0['novel_frame_ids']} "
+              f"(maps computed once)", flush=True)
     for step in range(1, args.steps + 1):
-        idx = int(train_provider.rng.integers(0, len(train_provider)))
-        scene = train_provider.dataset.sample_list[idx].name
-        try:
-            b = {k: (v.to(device) if torch.is_tensor(v) else v)
-                 for k, v in default_collate([train_provider[idx]]).items()}
-        except Exception as err:  # a scene may have no valid pair
-            print(f"[sh] step {step}: {scene} unusable ({err})")
-            continue
-        pair = train_provider.last_pair
+        if fixed is not None:
+            b, pair, maps, alphas, o = fixed
+            scene = args.fixed_scene
+        else:
+            idx = int(train_provider.rng.integers(0, len(train_provider)))
+            scene = train_provider.dataset.sample_list[idx].name
+            try:
+                b = {k: (v.to(device) if torch.is_tensor(v) else v)
+                     for k, v in default_collate([train_provider[idx]]).items()}
+            except Exception as err:  # a scene may have no valid pair
+                print(f"[sh] step {step}: {scene} unusable ({err})")
+                continue
+            pair = train_provider.last_pair
+            maps, alphas, o = token_maps(model, b, opt, args, device)
         windows[scene].add((tuple(pair["context_frame_ids"]), tuple(pair["novel_frame_ids"])))
-        maps, alphas, o = token_maps(model, b, opt, args, device)
         tokens = o["states"][-1]["tokens"][0].detach().float()
         frames = [int(x) for x in b["frame_ids"][0]]
         inst, sem = [], []
@@ -306,6 +321,15 @@ def main() -> int:
                     cost[q, k] = c / 4
             qi, ki = linear_sum_assignment(cost)
         matched = {int(q): int(k) for q, k in zip(qi, ki)}
+        if args.fixed_scene:
+            with torch.no_grad():
+                pob = torch.sigmoid(obj[0]).detach().cpu().numpy()
+            neg = [float(pob[q]) for q in range(args.num_queries) if q not in matched]
+            history["matched_queries"].append({
+                "step": step, "matched": {int(q): int(k) for q, k in matched.items()},
+                "pos_obj": [float(pob[q]) for q in matched],
+                "neg_obj_mean": float(np.mean(neg)), "neg_obj_max": float(np.max(neg)),
+                "n_neg_ge_thr": int(np.sum(np.array(neg) >= args.objectness_threshold))})
         bce = torch.zeros((), device=device); dice = torch.zeros((), device=device)
         for v in range(4):
             vm = valid[v].reshape(-1).float()
