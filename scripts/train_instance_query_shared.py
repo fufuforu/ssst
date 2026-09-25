@@ -168,14 +168,18 @@ def main() -> int:
                 tot = ctx.sum(1)
                 assign = np.where((tot > 0) & (ctx.max(1) / np.maximum(tot, 1e-9) >= 0.3),
                                   ctx.argmax(1), -1)
+                # per-instance oracle: EVERY instance gets its own mask built from the
+                # tokens assigned to it (the previous version scored each instance
+                # against the union mask of all assigned tokens)
                 oracle = []
                 for v in range(4):
-                    acc = torch.zeros(256 * 256, device=device)
+                    per_inst = []
                     for j in range(len(keys)):
                         sel = torch.from_numpy(assign == j).to(device)
-                        if sel.any():
-                            acc = acc + torch.einsum("t,tp->p", sel.float(), maps[v])
-                    oracle.append(acc.reshape(256, 256))
+                        acc = (torch.einsum("t,tp->p", sel.float(), maps[v]).reshape(256, 256)
+                               if sel.any() else torch.zeros(256, 256, device=device))
+                        per_inst.append(acc)
+                    oracle.append(per_inst)
                 per = {"scene": entry["scene"], "frames": frames, "views": []}
                 for v in range(4):
                     sel_q = [q for q in range(args.num_queries) if scores[q] >= args.objectness_threshold]
@@ -216,7 +220,7 @@ def main() -> int:
                                            "iou": iou, "recall": cov})
                     orc_metrics = []
                     for j, m in gt_list:
-                        pr = (oracle[v] > args.mask_threshold) & vvalid[v]
+                        pr = (oracle[v][j] > args.mask_threshold) & vvalid[v]
                         u = int((pr | m).sum())
                         orc_metrics.append({"instance": int(keys[j]),
                                             "iou": int((pr & m).sum()) / max(1, u)})
