@@ -1,0 +1,72 @@
+[runtime] fused-ssim extension unavailable; using import stand-in /space/mawb/ssst/third_party/shims
+[runtime] cannot load /space/mawb/tokengs_siu3r_joint_v1/.torch_extensions_v4/gsplat_cuda/gsplat_cuda.so (/lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.34' not found (required by /space/mawb/tokengs_siu3r_joint_v1/.torch_extensions_v4/gsplat_cuda/gsplat_cuda.so)); trying the next candidate
+[runtime] preloaded precompiled gsplat extension from /space/mawb/.cache/torch_extensions_backup/gsplat_cuda_partial_1406/gsplat_cuda.so
+[eval+] g0_step3000 scene0059_00
+[eval+] g0_step3000 scene0072_02
+[eval+] g0_step3000 scene0132_01
+[eval+] g0_step3000 scene0472_01
+[eval+] g0_step3000 scene0559_01
+[eval+] g0_step3000 scene0568_02
+[eval+] g0_step3000 scene0615_00
+[eval+] g0_step3000 scene0695_00
+[eval+] g0_step3000 TRAIN scene0000_02
+[eval+] g0_step3000 TRAIN scene0016_01
+[eval+] g0_step3000 TRAIN scene0007_00
+[eval+] g0_step3000 TRAIN scene0012_01
+[eval+] g0_step3000 TRAIN scene0009_00
+[eval+] g0_step3000 TRAIN scene0010_01
+[eval+] g0_step3000 TRAIN scene0001_01
+[eval+] g0_step6000 scene0059_00
+[eval+] g0_step6000 scene0072_02
+[eval+] g0_step6000 scene0132_01
+[eval+] g0_step6000 scene0472_01
+[eval+] g0_step6000 scene0559_01
+[eval+] g0_step6000 scene0568_02
+[eval+] g0_step6000 scene0615_00
+[eval+] g0_step6000 scene0695_00
+[eval+] g0_step6000 TRAIN scene0000_02
+[eval+] g0_step6000 TRAIN scene0016_01
+[eval+] g0_step6000 TRAIN scene0007_00
+[eval+] g0_step6000 TRAIN scene0012_01
+[eval+] g0_step6000 TRAIN scene0009_00
+[eval+] g0_step6000 TRAIN scene0010_01
+[eval+] g0_step6000 TRAIN scene0001_01
+[eval+] g0plus_step3000 scene0059_00
+[eval+] g0plus_step3000 scene0072_02
+[eval+] g0plus_step3000 scene0132_01
+[eval+] g0plus_step3000 scene0472_01
+[eval+] g0plus_step3000 scene0559_01
+[eval+] g0plus_step3000 scene0568_02
+[eval+] g0plus_step3000 scene0615_00
+[eval+] g0plus_step3000 scene0695_00
+[eval+] g0plus_step3000 TRAIN scene0000_02
+[eval+] g0plus_step3000 TRAIN scene0016_01
+[eval+] g0plus_step3000 TRAIN scene0007_00
+[eval+] g0plus_step3000 TRAIN scene0012_01
+[eval+] g0plus_step3000 TRAIN scene0009_00
+[eval+] g0plus_step3000 TRAIN scene0010_01
+[eval+] g0plus_step3000 TRAIN scene0001_01
+[eval+] g0plus_step6000 scene0059_00
+[eval+] g0plus_step6000 scene0072_02
+[eval+] g0plus_step6000 scene0132_01
+[eval+] g0plus_step6000 scene0472_01
+[eval+] g0plus_step6000 scene0559_01
+[eval+] g0plus_step6000 scene0568_02
+[eval+] g0plus_step6000 scene0615_00
+[eval+] g0plus_step6000 scene0695_00
+[eval+] g0plus_step6000 TRAIN scene0000_02
+[eval+] g0plus_step6000 TRAIN scene0016_01
+[eval+] g0plus_step6000 TRAIN scene0007_00
+[eval+] g0plus_step6000 TRAIN scene0012_01
+[eval+] g0plus_step6000 TRAIN scene0009_00
+[eval+] g0plus_step6000 TRAIN scene0010_01
+[eval+] g0plus_step6000 TRAIN scene0001_01
+[eval+] g0_step3000 (step 3000, arm g0): ctx 17.82 novel 17.56 ssim 0.625 mIoU 0.161 | AP50 0.0724 TP/FP/FN 4/91/51 | bg mass stuff/thing 0.000/0.000 | active groups 9.9 | best-over-groups 0.258
+    training windows ['scene0000_02', 'scene0016_01', 'scene0007_00', 'scene0012_01', 'scene0009_00', 'scene0010_01', 'scene0001_01']: psnr 15.68 mIoU 0.194 AP50 0.0000 TP/FP/FN 0/82/30 best-over-groups 0.080
+[eval+] g0_step6000 (step 6000, arm g0): ctx 19.42 novel 19.29 ssim 0.654 mIoU 0.173 | AP50 0.0451 TP/FP/FN 6/129/49 | bg mass stuff/thing 0.000/0.000 | active groups 9.8 | best-over-groups 0.316
+    training windows ['scene0000_02', 'scene0016_01', 'scene0007_00', 'scene0012_01', 'scene0009_00', 'scene0010_01', 'scene0001_01']: psnr 16.98 mIoU 0.228 AP50 0.0000 TP/FP/FN 0/108/30 best-over-groups 0.109
+[eval+] g0plus_step3000 (step 3000, arm g0plus): ctx 18.27 novel 17.95 ssim 0.635 mIoU 0.163 | AP50 0.0042 TP/FP/FN 1/56/54 | bg mass stuff/thing 0.325/0.220 | active groups 6.0 | best-over-groups 0.199
+    training windows ['scene0000_02', 'scene0016_01', 'scene0007_00', 'scene0012_01', 'scene0009_00', 'scene0010_01', 'scene0001_01']: psnr 16.07 mIoU 0.231 AP50 0.0060 TP/FP/FN 1/33/29 best-over-groups 0.058
+[eval+] g0plus_step6000 (step 6000, arm g0plus): ctx 19.62 novel 19.16 ssim 0.660 mIoU 0.172 | AP50 0.1375 TP/FP/FN 3/71/52 | bg mass stuff/thing 0.549/0.250 | active groups 6.6 | best-over-groups 0.242
+    training windows ['scene0000_02', 'scene0016_01', 'scene0007_00', 'scene0012_01', 'scene0009_00', 'scene0010_01', 'scene0001_01']: psnr 16.99 mIoU 0.200 AP50 0.0054 TP/FP/FN 2/62/28 best-over-groups 0.079
+[eval+] wrote workspace_group_plus/eval_step3000_6000.json

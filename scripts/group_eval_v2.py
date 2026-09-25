@@ -259,9 +259,14 @@ def summarise_v2(rows, *, novel_views=(2, 3)) -> dict:
         values = []
         for row in rows:
             value = row
+            found = True
             for key in path:
+                if not isinstance(value, dict) or key not in value:
+                    found = False
+                    break
                 value = value[key]
-            values.append(float(value))
+            if found and value is not None:
+                values.append(float(value))
         return float(np.mean(values)) if values else float("nan")
 
     def view_stats(kind):
