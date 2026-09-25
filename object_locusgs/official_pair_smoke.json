@@ -1,0 +1,79 @@
+{
+ "scope": "shape + leakage smoke on ONE official 2+4 pairing; no official metric",
+ "record": {
+  "scene": "scene0011_00",
+  "context": [
+   1727,
+   1744
+  ],
+  "novel": [
+   1729,
+   1732,
+   1738,
+   1739
+  ],
+  "root": "/space/mawb/SIU3R/data/scannet/val"
+ },
+ "arm": "b",
+ "checkpoint": "workspace_object_locusgs/arm_b/ckpt_step6000",
+ "shapes": {
+  "frame_ids": [
+   1727,
+   1744,
+   1729,
+   1732,
+   1738,
+   1739
+  ],
+  "encoder_input_views": 2,
+  "records": 6,
+  "semantic_label_all": [
+   1,
+   6,
+   256,
+   256
+  ],
+  "instance_label_all": [
+   1,
+   6,
+   256,
+   256
+  ],
+  "images_pred": [
+   1,
+   6,
+   3,
+   256,
+   256
+  ],
+  "semantic_prob": [
+   1,
+   6,
+   20,
+   256,
+   256
+  ],
+  "instance_embedding": [
+   1,
+   6,
+   16,
+   256,
+   256
+  ],
+  "semantic_logits": [
+   1,
+   65536,
+   20
+  ]
+ },
+ "shape_check_passed": true,
+ "novel_gt_tamper_deltas": {
+  "images_pred": 0.0,
+  "gaussians": 0.0,
+  "semantic_prob": 0.0,
+  "instance_embedding": 0.0
+ },
+ "novel_gt_does_not_enter_model": true,
+ "pose_caveat": "rays are built from the released GT camera poses; SIU3R is unposed",
+ "status": "PASS"
+}

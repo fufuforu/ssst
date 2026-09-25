@@ -1,0 +1,356 @@
+{
+  "experiment": "object_aware_locusgs_ab_v1",
+  "arm": "a",
+  "scope": "32 train / 8 unseen development split; NOT an SIU3R official metric",
+  "note": "model uses GT camera poses to build rays; SIU3R is an unposed setting",
+  "source_checkpoint": {
+    "path": "workspace_recon_diag/cross_scene/lgs_lr1e4/ckpt_step2000",
+    "sha256": "f0e791b8bb9d49deeba160f0a5fcf75594e4a0638d79ed79b9021ccd6da31c6d",
+    "step": 2000,
+    "kind": "model-only"
+  },
+  "fresh_optimizer": true,
+  "optimizer_groups": [
+    {
+      "name": "existing_decay",
+      "params": 218773504,
+      "peak_lr": 1e-05,
+      "weight_decay": 0.05
+    },
+    {
+      "name": "existing_nodecay",
+      "params": 1229116,
+      "peak_lr": 1e-05,
+      "weight_decay": 0.0
+    },
+    {
+      "name": "new_decay",
+      "params": 2359296,
+      "peak_lr": 0.0001,
+      "weight_decay": 0.05
+    },
+    {
+      "name": "new_nodecay",
+      "params": 2304,
+      "peak_lr": 0.0001,
+      "weight_decay": 0.0
+    }
+  ],
+  "schedule": {
+    "warmup_steps": 200,
+    "total_steps": 6000,
+    "final_lr_fraction": 0.02,
+    "betas": [
+      0.9,
+      0.95
+    ],
+    "grad_clip": 1.0
+  },
+  "loss": {
+    "sem_weight": 0.05,
+    "inst_weight": 0.1,
+    "ramp_steps": 1000,
+    "min_alpha": 0.05,
+    "instance_pixels_per_view": 64,
+    "instance_budget": 16
+  },
+  "relation_module": {
+    "enabled": false,
+    "layer": 10,
+    "neighbours": 16,
+    "temperature": 0.2
+  },
+  "plan": {
+    "path": "object_locusgs/plan_6000.json",
+    "sha256": "a2a65c1382da0307a68fb6d27e5c1345aa78b46331acb2927e88b47a3c3d08bb",
+    "steps": 6000
+  },
+  "split": {
+    "path": "workspace_recon_diag/cross_scene/split.json",
+    "sha256": "acf9afac57ca2e5287b9b1b545a62a369fee398a0d1a789cb77b851202b313d5",
+    "train_scenes": 32,
+    "val_scenes": 8
+  },
+  "val_windows": {
+    "scene0059_00": {
+      "context": [
+        510,
+        524
+      ],
+      "novel": [
+        511,
+        516
+      ]
+    },
+    "scene0072_02": {
+      "context": [
+        744,
+        774
+      ],
+      "novel": [
+        752,
+        760
+      ]
+    },
+    "scene0132_01": {
+      "context": [
+        457,
+        472
+      ],
+      "novel": [
+        465,
+        470
+      ]
+    },
+    "scene0472_01": {
+      "context": [
+        77,
+        131
+      ],
+      "novel": [
+        105,
+        120
+      ]
+    },
+    "scene0559_01": {
+      "context": [
+        236,
+        277
+      ],
+      "novel": [
+        242,
+        260
+      ]
+    },
+    "scene0568_02": {
+      "context": [
+        161,
+        182
+      ],
+      "novel": [
+        170,
+        174
+      ]
+    },
+    "scene0615_00": {
+      "context": [
+        548,
+        566
+      ],
+      "novel": [
+        554,
+        555
+      ]
+    },
+    "scene0695_00": {
+      "context": [
+        1502,
+        1522
+      ],
+      "novel": [
+        1517,
+        1521
+      ]
+    }
+  },
+  "initial_weight_hashes": {
+    "existing": "7c2400384441002fb6d02be50ede2c05c37f2af35eff80cf9f0ad015e254f0fe",
+    "new": "c23d810b1405c0f990842b8165b3d503e5c0879b2cca0bd04fad59023e738b8a",
+    "source_ckpt_sha256": "f0e791b8bb9d49deeba160f0a5fcf75594e4a0638d79ed79b9021ccd6da31c6d",
+    "source_step": 2000
+  },
+  "git_commit": "05f6b3405855d8a688c76120ba7621cf1b6323b0",
+  "config": {
+    "evaluating": false,
+    "workspace": "workspace_object_locusgs/arm_a",
+    "resume": null,
+    "model_type": "siu3r_object_locusgs_recon",
+    "seed": 42,
+    "use_wandb": false,
+    "experiment_name": "siu3r_object_locusgs_a_v1",
+    "out_dir": "outputs",
+    "project_name": "TokenGS-LocusGS-lite",
+    "img_size": [
+      256,
+      256
+    ],
+    "patch_size": 8,
+    "dec_patch_size": 8,
+    "enc_depth": 3,
+    "dec_depth": 12,
+    "enc_embed_dim": 1024,
+    "enc_num_heads": 16,
+    "mlp_ratio": 4,
+    "clip_head_readout_std": 0.002,
+    "clip_head_z_init": null,
+    "dec_init_values": null,
+    "bg_color": "grey",
+    "gaussian_scale_cap": 0.075,
+    "opacity_bias": 2.0,
+    "gaussian_z_offset": 0.0,
+    "num_gs_tokens": 1024,
+    "token_dim": 1024,
+    "gs_token_std": 0.01,
+    "num_dynamic_gs_tokens": 0,
+    "init_dynamic_tokens_from_static": false,
+    "init_tokens_from_existing": false,
+    "init_latents_from_existing": false,
+    "data_mode": [
+      [
+        "siu3r_processed_scannet",
+        1
+      ]
+    ],
+    "num_views": 4,
+    "num_input_views": 2,
+    "znear": 0.025,
+    "zfar": 125.0,
+    "camera_normalization_method": "first_cam",
+    "camera_scale_method": "constant",
+    "pointmap_trim_lo": 0.0,
+    "pointmap_trim_hi": 1.0,
+    "num_workers": 0,
+    "batch_size": 1,
+    "gradient_accumulation_steps": 3,
+    "num_epochs": 20,
+    "max_iters_per_epoch": 1000000,
+    "lr": 0.0004,
+    "pct_start_steps": 2000,
+    "final_div_factor": 1000.0,
+    "gradient_clip": 1.0,
+    "mixed_precision": "bf16",
+    "deferred_bp": false,
+    "use_input_supervision": false,
+    "mean_of_grads": "none",
+    "mean_of_grads_scene_chunk_size": 1,
+    "mean_of_grads_view_chunk_size": null,
+    "rgb_loss_type": "l2",
+    "lambda_rgb": 1.0,
+    "lambda_lpips": 0.0,
+    "lambda_mask": 0.0,
+    "lambda_ssim": 0.2,
+    "lambda_visibility": 0.0,
+    "visibility_distance_threshold": 1.0,
+    "lambda_opacity": 0.0,
+    "lambda_dyn_aux": 0.0,
+    "lambda_dyn_aux_warmup_steps": 0,
+    "lambda_dyn_aux_decay_steps": 0,
+    "lambda_dyn_aux_min": 0.0,
+    "print_freq": 10,
+    "log_image_freq": 100,
+    "eval_n_media_dumps": 0,
+    "strict_checkpoint_loading": true,
+    "use_ttt_for_eval": false,
+    "ttt_mode": "token-tuning",
+    "ttt_n_steps": 50,
+    "ttt_lr": 0.0001,
+    "time_embedding": false,
+    "time_embedding_dim": 2,
+    "use_interp_target": false,
+    "use_multiscale_encoder": false,
+    "multiscale_encoder_layers": [
+      5,
+      7,
+      9,
+      11
+    ],
+    "use_latent_bottleneck": false,
+    "num_latents": 4096,
+    "latent_cross_attn_depth": 12,
+    "random_reflect": false,
+    "anchor_center_z": 0.25,
+    "anchor_extent": 0.3,
+    "anchor_init_radius": 0.05,
+    "anchor_num_freqs": 4,
+    "anchor_refine_step": 0.25,
+    "anchor_radius_min": 0.005,
+    "anchor_radius_max": 1.0,
+    "anchor_radius_soft_min": 0.01,
+    "anchor_radius_soft_max": 0.25,
+    "anchor_local_offset_bound": 1.0,
+    "anchor_ray_bias": true,
+    "anchor_ray_sigma0": 0.1,
+    "anchor_ray_bias_clamp": -20.0,
+    "anchor_ray_bias_init": -6.0,
+    "num_object_queries": 100,
+    "semantic_class_count": 20,
+    "num_object_query_layers": 2,
+    "query_seed_std": 0.02,
+    "query_block_init_values": 0.01,
+    "query_spatial_pe_std": 0.02,
+    "assignment_temperature_init": 5.0,
+    "use_instance_labels": true,
+    "reconstruction_only": true,
+    "locusgs_sigma0": 0.1,
+    "locusgs_bandwidth_floor": 1e-06,
+    "locusgs_bias_clamp": -20.0,
+    "locusgs_ray_bias_scale": 1.0,
+    "locusgs_pe_num_freqs": 4,
+    "locusgs_pe_hidden_dim": 1024,
+    "locusgs_gamma_raw_init": 0.0,
+    "locusgs_pe_mode": "injected",
+    "locusgs_impl": "legacy_v1",
+    "locusgs_refine_hidden": 256,
+    "locusgs_radius_init": 0.15,
+    "locusgs_radius_epsilon": 0.0001,
+    "locusgs_anchor_init_extent": 0.2,
+    "locusgs_anchor_init_center_z": 0.25,
+    "locusgs_supervised_layers": [
+      6,
+      12
+    ],
+    "locusgs_bound_delta": true,
+    "locusgs_freeze_decode_radius": true,
+    "canonical_gaussian_visibility_weight": 1.0,
+    "canonical_anchor_visibility_weight": 0.1,
+    "object_semantic_classes": 20,
+    "object_instance_dim": 16,
+    "object_arm": "a",
+    "object_relation_layer": 10,
+    "object_relation_neighbours": 16,
+    "object_relation_temperature": 0.2,
+    "object_sem_loss_weight": 0.05,
+    "object_inst_loss_weight": 0.1,
+    "object_loss_ramp_steps": 1000,
+    "object_min_alpha": 0.05,
+    "object_instance_pixels": 64,
+    "object_instance_budget": 16,
+    "understanding_warmup_steps": 2000,
+    "understanding_start_weight": 0.1,
+    "understanding_final_weight": 1.0,
+    "spatial_compactness_weight": 0.0,
+    "spatial_radius_weight": 0.0,
+    "gradient_diagnostic_freq": 200,
+    "init_checkpoint": null
+  },
+  "args": {
+    "arm": "a",
+    "out_dir": "workspace_object_locusgs/arm_a",
+    "plan": "object_locusgs/plan_6000.json",
+    "split": "workspace_recon_diag/cross_scene/split.json",
+    "preset": "train_siu3r_object_locusgs_ab",
+    "source_ckpt": "workspace_recon_diag/cross_scene/lgs_lr1e4/ckpt_step2000",
+    "source_sha256": "f0e791b8bb9d49deeba160f0a5fcf75594e4a0638d79ed79b9021ccd6da31c6d",
+    "steps": 6000,
+    "warmup": 200,
+    "lr_existing": 1e-05,
+    "lr_new": 0.0001,
+    "grad_clip": 1.0,
+    "weight_decay": 0.05,
+    "seed": 42,
+    "device": "cuda",
+    "log_every": 100,
+    "eval_every": 1000,
+    "save_steps": [
+      0,
+      2000,
+      6000
+    ],
+    "no_eval": false,
+    "ramp_override": null,
+    "max_steps": null,
+    "resume": null,
+    "manifest_out": "workspace_object_locusgs/arm_a/manifest.json",
+    "deterministic": false
+  }
+}
