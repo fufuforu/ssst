@@ -210,6 +210,17 @@ def evaluate_group_entry(model, entry, opt, *, include_diagnostics=False) -> dic
                 model, batch, opt, gs_mask=contributing
             )
             row["contributing_gs_fraction"] = float(contributing.float().mean())
+            from scripts.train_cross_scene import locality
+
+            centres = forward["output"]["gaussians"][0, :, :3].float()
+            opacity = forward["output"]["gaussians"][0, :, 3].float()
+            means2d = forward["output"]["render"]["means2d_pred"][0].float()
+            # Per-token Gaussian spread (all Gaussians and the subset that
+            # actually renders), normalised by the GT scene scale.
+            row["locality"] = locality(
+                centres, opacity, means2d, int(opt.num_gs_tokens),
+                (int(opt.img_size[0]), int(opt.img_size[1])), 0.05, entry["scale"],
+            )
             row["token_group_purity"] = token_group_purity(
                 model, batch, opt, forward, entry
             )
