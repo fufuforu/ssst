@@ -88,6 +88,66 @@ def ramp_weight(step: int, ramp_steps: int) -> float:
     return min(1.0, max(0.0, float(step) / float(ramp_steps)))
 
 
+def render_semantic_probability(
+    gaussian_renderer,
+    gaussians: torch.Tensor,
+    semantic_logits: torch.Tensor,
+    cam_view,
+    intrinsics,
+    *,
+    epsilon: float = 1e-6,
+):
+    """Differentiable per-GS softmax composited with the RGB renderer's weights.
+
+    Shared by the object-aware A/B model and the group G0/G1 model so both use
+    exactly one implementation of the attribute compositing.  Returns the
+    per-pixel class distribution (normalised by the composited alpha) and that
+    alpha, which is the same alpha the RGB render produces.
+    """
+    probs = torch.softmax(semantic_logits.float(), dim=-1)
+    rendered = gaussian_renderer.render_feature_channels(
+        gaussians, probs, cam_view, intrinsics
+    )
+    alpha = rendered["alphas_pred"]
+    probability = rendered["images_pred"] / (alpha + epsilon)
+    probability = probability / probability.sum(dim=2, keepdim=True).clamp_min(epsilon)
+    return probability, alpha
+
+
+def semantic_pixel_nll(
+    semantic_prob: torch.Tensor,
+    alpha: torch.Tensor,
+    semantic_gt: torch.Tensor,
+    *,
+    min_alpha: float,
+):
+    """Per-view NLL over valid classes with ``alpha > min_alpha``, averaged.
+
+    Class 0 is a real class; 255 is the only ignore.  Returns ``(loss, stats)``
+    where ``stats`` carries the valid-pixel coverage.
+    """
+    views = semantic_prob.shape[1]
+    target = semantic_gt.long().clamp(0, SEMANTIC_CLASS_COUNT - 1).unsqueeze(2)
+    gathered = semantic_prob.gather(2, target).squeeze(2).clamp_min(1e-12)
+    losses = []
+    coverages = []
+    supervised = 0
+    for view in range(views):
+        valid = semantic_supervision_mask(semantic_gt[:, view]) & (
+            alpha[:, view, 0] > float(min_alpha)
+        )
+        gt_valid = semantic_supervision_mask(semantic_gt[:, view])
+        supervised += int(valid.sum())
+        coverages.append(valid.float().sum() / gt_valid.float().sum().clamp_min(1.0))
+        if valid.any():
+            losses.append(-gathered[:, view].log()[valid].mean())
+    coverage = torch.stack(coverages).mean().detach()
+    stats = {"coverage": coverage, "supervised_pixels": supervised}
+    if not losses:
+        return semantic_prob.sum() * 0.0, stats
+    return torch.stack(losses).mean(), stats
+
+
 class GSAttributeHead(nn.Module):
     """Per-Gaussian semantic logits and unit instance embeddings.
 
@@ -97,7 +157,8 @@ class GSAttributeHead(nn.Module):
     so every Gaussian carries its own 20-d logits and 16-d embedding.
     """
 
-    def __init__(self, opt, *, semantic_classes=None, instance_dim=None):
+    def __init__(self, opt, *, semantic_classes=None, instance_dim=None,
+                 use_instance_head: bool = True):
         super().__init__()
         dim = int(opt.enc_embed_dim)
         patches = int(opt.dec_patch_size) ** 2
@@ -108,14 +169,20 @@ class GSAttributeHead(nn.Module):
         )
         self.instance_dim = int(opt.object_instance_dim if instance_dim is None else instance_dim)
         self.semantic = nn.Linear(dim, patches * self.semantic_classes)
-        self.instance = nn.Linear(dim, patches * self.instance_dim)
+        # The 16-d embedding head is optional so models whose contract only needs
+        # per-GS semantics do not carry an unused branch.
+        self.instance = (
+            nn.Linear(dim, patches * self.instance_dim) if use_instance_head else None
+        )
         # Same seed and same distribution for both heads (CHOICE: std=0.01
         # normal, zero bias, matching this model's initialisation scale).
         generator = torch.Generator(device="cpu").manual_seed(
             int(opt.seed) + _ATTRIBUTE_HEAD_SEED_OFFSET
         )
         with torch.no_grad():
-            for layer in (self.semantic, self.instance):
+            for layer in (self.semantic, self.instance) if self.instance is not None else (
+                (self.semantic,)
+            ):
                 layer.weight.normal_(mean=0.0, std=_NEW_PARAM_STD, generator=generator)
                 layer.bias.zero_()
 
@@ -124,6 +191,8 @@ class GSAttributeHead(nn.Module):
         semantic = self.semantic(tokens).reshape(
             batch, num_tokens, self.patches, self.semantic_classes
         ).reshape(batch, num_tokens * self.patches, self.semantic_classes)
+        if self.instance is None:
+            return semantic, None
         instance = self.instance(tokens).reshape(
             batch, num_tokens, self.patches, self.instance_dim
         ).reshape(batch, num_tokens * self.patches, self.instance_dim)
@@ -268,9 +337,12 @@ class LocusGSObjectRecon(LocusGSRecon):
         opacity, scale and rotation as the RGB render, so the compositing weights
         (and therefore alpha) describe identical geometry.  Nothing is detached.
         """
-        probs = torch.softmax(attributes["semantic_logits"].float(), dim=-1)
-        semantic_render = self.gs.render_feature_channels(
-            gaussians, probs, decoder_input.cam_view, decoder_input.intrinsics
+        semantic_prob, alpha_sem = render_semantic_probability(
+            self.gs,
+            gaussians,
+            attributes["semantic_logits"],
+            decoder_input.cam_view,
+            decoder_input.intrinsics,
         )
         instance_render = self.gs.render_feature_channels(
             gaussians,
@@ -278,10 +350,7 @@ class LocusGSObjectRecon(LocusGSRecon):
             decoder_input.cam_view,
             decoder_input.intrinsics,
         )
-        alpha_sem = semantic_render["alphas_pred"]
         alpha_inst = instance_render["alphas_pred"]
-        semantic_prob = semantic_render["images_pred"] / (alpha_sem + 1e-6)
-        semantic_prob = semantic_prob / semantic_prob.sum(dim=2, keepdim=True).clamp_min(1e-6)
         instance_pred = instance_render["images_pred"] / (alpha_inst + 1e-6)
         instance_pred = F.normalize(instance_pred, dim=2)
         return {
@@ -295,26 +364,9 @@ class LocusGSObjectRecon(LocusGSRecon):
     # -- supervision -------------------------------------------------------- #
     def semantic_loss(self, semantic_prob, alpha, semantic_gt):
         """Per-view NLL over valid classes with ``alpha > min_alpha``, averaged."""
-        views = semantic_prob.shape[1]
-        target = semantic_gt.long().clamp(0, SEMANTIC_CLASS_COUNT - 1).unsqueeze(2)
-        gathered = semantic_prob.gather(2, target).squeeze(2).clamp_min(1e-12)
-        losses = []
-        coverages = []
-        supervised = 0
-        for view in range(views):
-            valid = semantic_supervision_mask(semantic_gt[:, view]) & (
-                alpha[:, view, 0] > self.min_alpha
-            )
-            gt_valid = semantic_supervision_mask(semantic_gt[:, view])
-            supervised += int(valid.sum())
-            coverages.append(valid.float().sum() / gt_valid.float().sum().clamp_min(1.0))
-            if valid.any():
-                losses.append(-gathered[:, view].log()[valid].mean())
-        coverage = torch.stack(coverages).mean().detach()
-        stats = {"coverage": coverage, "supervised_pixels": supervised}
-        if not losses:
-            return semantic_prob.sum() * 0.0, stats
-        return torch.stack(losses).mean(), stats
+        return semantic_pixel_nll(
+            semantic_prob, alpha, semantic_gt, min_alpha=self.min_alpha
+        )
 
     def instance_loss(self, instance_pred, alpha, semantic_gt, instance_gt, *, step: int):
         """Pull/push contrastive loss over uniformly sampled thing-instance pixels."""
@@ -518,6 +570,8 @@ __all__ = [
     "THING_CLASS_MIN",
     "instance_keys",
     "ramp_weight",
+    "render_semantic_probability",
+    "semantic_pixel_nll",
     "semantic_supervision_mask",
     "thing_instance_mask",
 ]

@@ -239,6 +239,16 @@ class Options:
     object_min_alpha: float = 0.05
     object_instance_pixels: int = 64
     object_instance_budget: int = 16
+    # --- from-scratch group G0/G1 experiment: 100 instance groups + background
+    # slot, 101-way token->slot softmax, optional gated write-back into the
+    # reconstruction tokens between decoder layers 10 and 11 ---
+    group_arm: Literal["g0", "g1"] = "g0"
+    group_feedback_layer: int = 10
+    group_num_heads: int = 4
+    group_mlp_ratio: float = 2.0
+    group_sem_loss_weight: float = 0.05
+    group_inst_loss_weight: float = 0.05
+    group_loss_ramp_steps: int = 2000
     # --- joint one-stage loss curriculum and spatial regularization ---
     understanding_warmup_steps: int = 2000
     understanding_start_weight: float = 0.1
@@ -722,6 +732,33 @@ config_defaults["train_siu3r_object_locusgs_ab"] = config_defaults[
     workspace="/space/mawb/ssst/workspace_object_locusgs",
     experiment_name="siu3r_object_locusgs_ab_v1",
     project_name="TokenGS-LocusGS-lite",
+)
+
+config_doc["train_siu3r_group_locusgs_ab"] = (
+    "From-scratch object-aware LocusGS G0/G1 (32 train / 8 unseen development "
+    "split): 100 learnable instance group queries + 1 background slot read the "
+    "layer-10 LocusGS tokens/anchors, produce a 101-way token->slot distribution "
+    "and per-group objectness plus 20-class semantics; per-GS semantic logits are "
+    "decoded separately and the pixel semantic loss is the object_locusgs one.  "
+    "group_arm='g0' never writes back; 'g1' adds a gated (tanh(g), g=0) bounded "
+    "LayerNorm+Linear residual of the group-aggregated information between decoder "
+    "layers 10 and 11.  Both arms train the reconstruction and understanding "
+    "branches jointly from random initialisation with "
+    "L = L_recon + lambda(step) * [0.05 L_instance + 0.05 L_semantic], "
+    "lambda = min(1, step/2000), peak lr 1e-4, 2000-step warm-up, cosine to 2% "
+    "over 6000 steps.  Development only - not an SIU3R official evaluation."
+)
+config_defaults["train_siu3r_group_locusgs_ab"] = config_defaults[
+    "train_siu3r_locusgs_recon_bounded_delta_frozen_radius"
+].evolve(
+    model_type="siu3r_group_locusgs_recon",
+    workspace="/space/mawb/ssst/workspace_group_locusgs",
+    experiment_name="siu3r_group_locusgs_g0g1_v1",
+    project_name="TokenGS-LocusGS-group",
+    # from-scratch joint recipe: no warm start anywhere
+    init_checkpoint=None,
+    lr=1e-4,
+    pct_start_steps=2000,
 )
 
 config_doc["train_siu3r_locusgs_inferred_v2"] = (

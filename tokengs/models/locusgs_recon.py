@@ -238,12 +238,25 @@ class LocusGSAnchorDecoder(nn.Module):
         self.token_update_hook = token_update_hook
         self.token_update_layer = int(token_update_layer)
         self.last_token_update_norm = None
+        # Second, independent optional hook used by the group-feedback (G1)
+        # experiment: it receives the anchors *and* radii of the layer it is
+        # applied after, so a group head can read the full spatial token state.
+        # Default None keeps the committed LocusGS/A-B behaviour untouched.
+        self.group_feedback_hook = None
+        self.group_feedback_layer = 0
+        self.last_group_update_norm = None
 
     def set_token_update_hook(self, hook, layer: int) -> None:
         """Install (or clear with ``hook=None``) the single pre-layer update."""
         self.token_update_hook = hook
         self.token_update_layer = int(layer)
         self.last_token_update_norm = None
+
+    def set_group_feedback_hook(self, hook, layer: int) -> None:
+        """Install (or clear with ``hook=None``) the group-feedback write-back."""
+        self.group_feedback_hook = hook
+        self.group_feedback_layer = int(layer)
+        self.last_group_update_norm = None
 
     def activated_radius(self, rho: torch.Tensor) -> torch.Tensor:
         return F.softplus(rho) + self.epsilon
@@ -336,6 +349,17 @@ class LocusGSAnchorDecoder(nn.Module):
                         f"{tuple(updated.shape)} for {tuple(tokens.shape)}"
                     )
                 self.last_token_update_norm = (
+                    (updated - tokens).detach().norm(dim=-1).mean()
+                )
+                tokens = updated
+            if self.group_feedback_hook is not None and (index + 1) == self.group_feedback_layer:
+                updated = self.group_feedback_hook(tokens, mu, radii)
+                if updated.shape != tokens.shape:
+                    raise ValueError(
+                        f"group feedback hook must preserve the token shape, got "
+                        f"{tuple(updated.shape)} for {tuple(tokens.shape)}"
+                    )
+                self.last_group_update_norm = (
                     (updated - tokens).detach().norm(dim=-1).mean()
                 )
                 tokens = updated

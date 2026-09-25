@@ -1,0 +1,247 @@
+{
+ "00_inputs": {
+  "plan": "object_locusgs/plan_6000.json",
+  "plan_sha256": "a2a65c1382da0307a68fb6d27e5c1345aa78b46331acb2927e88b47a3c3d08bb",
+  "steps": 6000,
+  "train_scenes": 32,
+  "val_scenes": 8,
+  "preset_init_checkpoint": null,
+  "status": "PASS"
+ },
+ "01_initialisation": {
+  "parameter_counts": {
+   "reconstruction": 220002620,
+   "attributes": 1312000,
+   "groups": 9603094,
+   "feedback": 1051649,
+   "other": 0
+  },
+  "hashes_g0": {
+   "reconstruction": "64c4d09c5b15d2ce10e7816cb05c6457a222df532083916fb93501d6ce10699e",
+   "attributes": "c92ef647efa9f02914a4960da5671903baa68cb2780ea97dbdb346797ef026f9",
+   "groups": "c877aa84413cf69c4f227554226f54645e1f8bec61ce61249ed4001b3477762a",
+   "feedback": "8617fa23ddb91fc4fa4001ce10a108dbb486de0e4d1487cf63e18e14c94e3ac6",
+   "other": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "hashes_g1": {
+   "reconstruction": "64c4d09c5b15d2ce10e7816cb05c6457a222df532083916fb93501d6ce10699e",
+   "attributes": "c92ef647efa9f02914a4960da5671903baa68cb2780ea97dbdb346797ef026f9",
+   "groups": "c877aa84413cf69c4f227554226f54645e1f8bec61ce61249ed4001b3477762a",
+   "feedback": "8617fa23ddb91fc4fa4001ce10a108dbb486de0e4d1487cf63e18e14c94e3ac6",
+   "other": "e3b0c44298fc1c149afbf4c8996fb92427ae41e4649b934ca495991b7852b855"
+  },
+  "identical": {
+   "reconstruction": true,
+   "attributes": true,
+   "groups": true,
+   "feedback": true,
+   "other": true
+  },
+  "optimizer_parameter_count": {
+   "g0": 230917714,
+   "g1": 231969363
+  },
+  "status": "PASS"
+ },
+ "02_forward_parity": {
+  "rgb": 0.0,
+  "depth": 0.0,
+  "alpha": 0.0,
+  "gaussians": 0.0,
+  "centres": 0.0,
+  "anchors": 0.0,
+  "radii": 0.0,
+  "decode_radius": [
+   0.15000000596046448,
+   0.15000000596046448
+  ],
+  "group_slot_logits": 0.0,
+  "g1_gate": 0.0,
+  "g1_group_update_norm": 0.0,
+  "status": "PASS"
+ },
+ "03_labels": {
+  "semantic_values": {
+   "0": 99024,
+   "1": 21891,
+   "7": 1635,
+   "255": 139594
+  },
+  "class0_pixels": 99024,
+  "class0_supervised": 99024,
+  "void_supervised": 0,
+  "stuff_selected_as_thing": 0,
+  "thing_pixels": 1635,
+  "thing_keys_per_view": [
+   1,
+   1,
+   1,
+   1
+  ],
+  "context_shared_keys": 1,
+  "max_instance_id": 59,
+  "status": "PASS"
+ },
+ "04_masks_and_loss": {
+  "mask_alpha_max_error_context": 1.0728836059570312e-06,
+  "mask_alpha_max_error_all_views": 1.1920928955078125e-06,
+  "alpha_mean": 0.9998975396156311,
+  "group_mass_mean": 0.009907642379403114,
+  "background_mass_mean": 0.009133242070674896,
+  "slot_prob_sum_error": 2.384185791015625e-07,
+  "loss_g0": 0.21783465147018433,
+  "loss_g1": 0.21783465147018433,
+  "recon_loss": 0.21747174859046936,
+  "loss_inst": 11.520283699035645,
+  "loss_sem": 2.995579242706299,
+  "lambda_at_step1": 0.0005000000237487257,
+  "instance_weight_at_step1": 2.499999936844688e-05,
+  "semantic_weight_at_step1": 2.499999936844688e-05,
+  "semantic_pixel_alpha_gap": 0.0,
+  "all_finite": true,
+  "status": "PASS"
+ },
+ "05_gradient_routing": {
+  "g0": {
+   "instance_loss": 11.520283699035645,
+   "semantic_loss": 2.995579242706299,
+   "loss": 0.725793182849884,
+   "grad_norms": {
+    "gs_tokens": 1.0853179701280906,
+    "enc_dec_backbone.decoder_blocks.10": 0.0006035842017496219,
+    "enc_dec_backbone.decoder_blocks.11": 0.000586875668239796,
+    "activation_head.deconv": 0.006196794378082175,
+    "anchor_decoder.mu": 0.24884123775119923,
+    "anchor_decoder.rho": 0.0002628354385281487,
+    "anchor_decoder.refine_mu.10": 0.23185337084660673,
+    "anchor_decoder.refine_mu.11": 0.231853061548166,
+    "attributes.semantic": 0.005134132055160118,
+    "groups.queries": 0.23730955393632533,
+    "groups.background_bias": 6.971167736743062e-05,
+    "groups.token_proj": 0.8489361079452504,
+    "groups.cross_attn": 2.287419768005149,
+    "groups.objectness": 1.1760800487320278,
+    "groups.semantic": 0.3866832620841541,
+    "groups.spatial_proj": 1.0320979880066532
+   },
+   "gate_grad": null,
+   "mask_alpha_max_error": 1.0728836059570312e-06,
+   "matched_groups": 1.0,
+   "thing_targets": 1.0,
+   "semantic_coverage": 1.0
+  },
+  "g1_gate0": {
+   "instance_loss": 11.520283699035645,
+   "semantic_loss": 2.995579242706299,
+   "loss": 0.725793182849884,
+   "grad_norms": {
+    "gs_tokens": 1.0853179701280906,
+    "enc_dec_backbone.decoder_blocks.10": 0.0006035840810857244,
+    "enc_dec_backbone.decoder_blocks.11": 0.0005868758316868281,
+    "activation_head.deconv": 0.006196792800319755,
+    "anchor_decoder.mu": 0.24884123775119923,
+    "anchor_decoder.rho": 0.0002628354250112737,
+    "anchor_decoder.refine_mu.10": 0.23185337084660673,
+    "anchor_decoder.refine_mu.11": 0.23185306958189697,
+    "attributes.semantic": 0.005134132055160118,
+    "groups.queries": 0.23730955393632533,
+    "groups.background_bias": 6.971167736743062e-05,
+    "groups.token_proj": 0.8489361079452504,
+    "groups.cross_attn": 2.287419768005149,
+    "groups.objectness": 1.1760800487320278,
+    "groups.semantic": 0.3866832620841541,
+    "groups.spatial_proj": 1.0320979880066532,
+    "feedback.gate": 0.0007832582301822771,
+    "feedback.norm": 0.0,
+    "feedback.proj": 0.0
+   },
+   "gate_grad": -0.0007832582341507077,
+   "mask_alpha_max_error": 1.0728836059570312e-06,
+   "matched_groups": 1.0,
+   "thing_targets": 1.0,
+   "semantic_coverage": 1.0
+  },
+  "g1_gate0.1": {
+   "instance_loss": 11.520235061645508,
+   "semantic_loss": 2.9938626289367676,
+   "loss": 0.7257049083709717,
+   "grad_norms": {
+    "gs_tokens": 1.0851203533521778,
+    "enc_dec_backbone.decoder_blocks.10": 0.0007069748565571195,
+    "enc_dec_backbone.decoder_blocks.11": 0.0006601050740629888,
+    "activation_head.deconv": 0.00857140744947776,
+    "anchor_decoder.mu": 0.24888284491768012,
+    "anchor_decoder.rho": 0.0002632390938829062,
+    "anchor_decoder.refine_mu.10": 0.3248893283430467,
+    "anchor_decoder.refine_mu.11": 0.32488654774459536,
+    "attributes.semantic": 0.0075890001008435005,
+    "groups.queries": 0.237294365615221,
+    "groups.background_bias": 6.975165272107319e-05,
+    "groups.token_proj": 0.848875285496142,
+    "groups.cross_attn": 2.2874009804061384,
+    "groups.objectness": 1.1760800487320278,
+    "groups.semantic": 0.3866832620841541,
+    "groups.spatial_proj": 1.0320354707041046,
+    "feedback.gate": 0.0008669933211826404,
+    "feedback.norm": 7.325265800661566e-05,
+    "feedback.proj": 0.0054664029012039496
+   },
+   "gate_grad": -0.0008669933304190636,
+   "mask_alpha_max_error": 1.1324882507324219e-06,
+   "matched_groups": 1.0,
+   "thing_targets": 1.0,
+   "semantic_coverage": 1.0
+  },
+  "g0_status": "PASS",
+  "g1_status": "PASS"
+ },
+ "06_context_only": {
+  "tamper_deltas": {
+   "rgb": 0.0,
+   "gaussians": 0.0,
+   "group_mass": 0.0,
+   "semantic_prob": 0.0
+  },
+  "status": "PASS"
+ },
+ "07_checkpoint": {
+  "path": "workspace_group_locusgs/smoke/ckpt_store/ckpt_step1",
+  "files": [
+   "COMPLETE",
+   "model.pt",
+   "train_state.pt"
+  ],
+  "train_state_keys": [
+   "cuda_rng",
+   "meta",
+   "numpy_rng",
+   "optimizer",
+   "plan_step",
+   "step",
+   "torch_rng"
+  ],
+  "has_optimizer": true,
+  "optimizer_entries": 477,
+  "has_torch_rng": true,
+  "has_cuda_rng": true,
+  "has_numpy_rng": true,
+  "step_field": 1,
+  "meta": {
+   "arm": "g1",
+   "smoke": true
+  },
+  "model_round_trip_identical": true,
+  "status": "PASS"
+ },
+ "08_init_readout_info": {
+  "note": "informational only - AP at random initialisation is NOT a smoke gate",
+  "scene": "scene0059_00",
+  "novel_ap50": 0.0,
+  "novel_tp": 0,
+  "novel_fp": 0,
+  "novel_fn": 19,
+  "objectness_p90": 0.6519185841083527,
+  "slot_entropy_mean": 4.485005855560303,
+  "status": "INFO"
+ }
+}

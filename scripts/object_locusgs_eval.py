@@ -445,7 +445,9 @@ def embedding_similarity_diagnostic(embedding, semantic_gt, instance_gt, alpha, 
 _PURITY_RADIUS_CAP = 16.0
 
 
-def _gaussian_footprint_histograms(gaussians, cam_view, intrinsics, gt_bins, *, chunk=512):
+def _gaussian_footprint_histograms(
+    gaussians, cam_view, intrinsics, gt_bins, *, chunk=512, gs_mask=None
+):
     """Per-Gaussian / per-token 2D kernel mass histogram over GT instance bins.
 
     Diagnostic only (never a training or prediction path): the weight of a
@@ -457,6 +459,10 @@ def _gaussian_footprint_histograms(gaussians, cam_view, intrinsics, gt_bins, *, 
 
     device = gaussians.device
     weight, scales, rotation = gaussians[0, :, 3], gaussians[0, :, 4:7], gaussians[0, :, 7:11]
+    if gs_mask is not None:
+        # Diagnostic switch: keep only the Gaussians that actually render (the
+        # rows of `gs_mask` that are False get zero weight everywhere).
+        weight = weight * gs_mask.to(device=weight.device, dtype=weight.dtype)
     xyz = gaussians[0, :, 0:3].float()
     rot = quat_to_mat(rotation.float())
     cov_world = rot @ torch.diag_embed(scales.float() ** 2) @ rot.transpose(-1, -2)
@@ -526,7 +532,7 @@ def _gaussian_footprint_histograms(gaussians, cam_view, intrinsics, gt_bins, *, 
     return hist_gs
 
 
-def purity_diagnostic(model, batch, opt, *, tokens_per_unit=64) -> dict:
+def purity_diagnostic(model, batch, opt, *, tokens_per_unit=64, gs_mask=None) -> dict:
     """Token/GS contribution purity with respect to GT thing instances (diagnostic)."""
     device = batch["images_all"].device
     semantic_gt = batch["semantic_label_all"][0].long().cpu().numpy()
@@ -548,7 +554,8 @@ def purity_diagnostic(model, batch, opt, *, tokens_per_unit=64) -> dict:
             label_map[mask] = offset
         per_view_bins.append(torch.from_numpy(label_map).to(device))
     hist = _gaussian_footprint_histograms(
-        gaussians, decoder_input.cam_view, decoder_input.intrinsics, per_view_bins
+        gaussians, decoder_input.cam_view, decoder_input.intrinsics, per_view_bins,
+        gs_mask=gs_mask,
     )
     total = hist.sum(dim=1)
     thing = hist[:, 1:]
