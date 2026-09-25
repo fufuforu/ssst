@@ -164,6 +164,21 @@ simply harder scenes; the semantic and instance numbers are the comparable part.
 
 ## 7. Artifacts
 
+> **Addendum (read-only score audit, job 55295).** The GT-free score used in
+> sections 3–6 — `sigmoid(raw_noobject_logit)` — is sign-inverted: the 21st class
+> logit is the *no-object* logit, which the CE pushes **up** for unmatched queries
+> and **down** for matched ones (minimal gradient check: +0.0105 → decrease for
+> the matched query, −0.0174 → increase for the unmatched one). Re-scoring the
+> same checkpoints with the CE-consistent `P(thing) = Σ_{c<20} softmax(21)[c]`
+> and the same 0.5/0.5/50 thresholds raises unseen AP50 to 0.072 (g0@3000),
+> 0.045 (g0@6000), 0.083 (g1@3000) and 0.013 (g1@6000) — i.e. the legacy numbers
+> above understate the models — but 49–54 of 55 unseen GT instances are still
+> missed and the GT-assisted best-over-groups ceiling is only 0.21–0.32 IoU, so
+> the mask/group quality rather than the score gate remains the first-order
+> limitation. Full tables: `group_locusgs/SCORE_AUDIT.md` and
+> `group_locusgs/audit_scores.json`. The numbers in sections 3–6 are the legacy
+> convention and are kept unchanged for traceability.
+
 | file | content |
 |---|---|
 | `group_locusgs/IMPLEMENTATION_MAP.md` | module-by-module mapping of the required functions to the existing code |

@@ -1,0 +1,108 @@
+[runtime] fused-ssim extension unavailable; using import stand-in /space/mawb/ssst/third_party/shims
+[runtime] cannot load /space/mawb/tokengs_siu3r_joint_v1/.torch_extensions_v4/gsplat_cuda/gsplat_cuda.so (/lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.34' not found (required by /space/mawb/tokengs_siu3r_joint_v1/.torch_extensions_v4/gsplat_cuda/gsplat_cuda.so)); trying the next candidate
+[runtime] preloaded precompiled gsplat extension from /space/mawb/.cache/torch_extensions_backup/gsplat_cuda_partial_1406/gsplat_cuda.so
+[audit] g0_step3000 unseen scene0059_00
+[audit] g0_step3000 unseen scene0072_02
+[audit] g0_step3000 unseen scene0132_01
+[audit] g0_step3000 unseen scene0472_01
+[audit] g0_step3000 unseen scene0559_01
+[audit] g0_step3000 unseen scene0568_02
+[audit] g0_step3000 unseen scene0615_00
+[audit] g0_step3000 unseen scene0695_00
+[audit] g0_step3000 training scene0000_02
+[audit] g0_step3000 training scene0016_01
+[audit] g0_step3000 training scene0007_00
+[audit] g0_step3000 training scene0012_01
+[audit] g0_step3000 training scene0009_00
+[audit] g0_step3000 training scene0010_01
+[audit] g0_step3000 training scene0001_01
+[audit] g0_step6000 unseen scene0059_00
+[audit] g0_step6000 unseen scene0072_02
+[audit] g0_step6000 unseen scene0132_01
+[audit] g0_step6000 unseen scene0472_01
+[audit] g0_step6000 unseen scene0559_01
+[audit] g0_step6000 unseen scene0568_02
+[audit] g0_step6000 unseen scene0615_00
+[audit] g0_step6000 unseen scene0695_00
+[audit] g0_step6000 training scene0000_02
+[audit] g0_step6000 training scene0016_01
+[audit] g0_step6000 training scene0007_00
+[audit] g0_step6000 training scene0012_01
+[audit] g0_step6000 training scene0009_00
+[audit] g0_step6000 training scene0010_01
+[audit] g0_step6000 training scene0001_01
+[audit] g1_step3000 unseen scene0059_00
+[audit] g1_step3000 unseen scene0072_02
+[audit] g1_step3000 unseen scene0132_01
+[audit] g1_step3000 unseen scene0472_01
+[audit] g1_step3000 unseen scene0559_01
+[audit] g1_step3000 unseen scene0568_02
+[audit] g1_step3000 unseen scene0615_00
+[audit] g1_step3000 unseen scene0695_00
+[audit] g1_step3000 training scene0000_02
+[audit] g1_step3000 training scene0016_01
+[audit] g1_step3000 training scene0007_00
+[audit] g1_step3000 training scene0012_01
+[audit] g1_step3000 training scene0009_00
+[audit] g1_step3000 training scene0010_01
+[audit] g1_step3000 training scene0001_01
+[audit] g1_step6000 unseen scene0059_00
+[audit] g1_step6000 unseen scene0072_02
+[audit] g1_step6000 unseen scene0132_01
+[audit] g1_step6000 unseen scene0472_01
+[audit] g1_step6000 unseen scene0559_01
+[audit] g1_step6000 unseen scene0568_02
+[audit] g1_step6000 unseen scene0615_00
+[audit] g1_step6000 unseen scene0695_00
+[audit] g1_step6000 training scene0000_02
+[audit] g1_step6000 training scene0016_01
+[audit] g1_step6000 training scene0007_00
+[audit] g1_step6000 training scene0012_01
+[audit] g1_step6000 training scene0009_00
+[audit] g1_step6000 training scene0010_01
+[audit] g1_step6000 training scene0001_01
+
+[audit] gradient check:
+  matched_query    z20 gradient +0.0105 -> training wants decrease (+0.1673 -> +0.1362)
+  unmatched_query  z20 gradient -0.0174 -> training wants increase (+0.0599 -> +0.1121)
+
+[audit] g0_step3000 unseen (novel views): gt 55
+   legacy sigmoid(z20)  pass   71 TP   3 FP  68 FN  52 AP50 0.0118
+   CE P(thing)          pass   95 TP   4 FP  91 FN  51 AP50 0.0724
+   best-any-group IoU per GT (no score gate): area>=50 0.258 | mask-only 0.258
+
+[audit] g0_step3000 training (novel views): gt 30
+   legacy sigmoid(z20)  pass   57 TP   0 FP  57 FN  30 AP50 0.0000
+   CE P(thing)          pass   82 TP   0 FP  82 FN  30 AP50 0.0000
+   best-any-group IoU per GT (no score gate): area>=50 0.080 | mask-only 0.080
+
+[audit] g0_step6000 unseen (novel views): gt 55
+   legacy sigmoid(z20)  pass   14 TP   0 FP  14 FN  55 AP50 0.0000
+   CE P(thing)          pass  135 TP   6 FP 129 FN  49 AP50 0.0451
+   best-any-group IoU per GT (no score gate): area>=50 0.316 | mask-only 0.316
+
+[audit] g0_step6000 training (novel views): gt 30
+   legacy sigmoid(z20)  pass    6 TP   0 FP   6 FN  30 AP50 0.0000
+   CE P(thing)          pass  108 TP   0 FP 108 FN  30 AP50 0.0000
+   best-any-group IoU per GT (no score gate): area>=50 0.109 | mask-only 0.109
+
+[audit] g1_step3000 unseen (novel views): gt 55
+   legacy sigmoid(z20)  pass   32 TP   2 FP  30 FN  53 AP50 0.0417
+   CE P(thing)          pass   56 TP   4 FP  52 FN  51 AP50 0.0833
+   best-any-group IoU per GT (no score gate): area>=50 0.212 | mask-only 0.212
+
+[audit] g1_step3000 training (novel views): gt 30
+   legacy sigmoid(z20)  pass   27 TP   2 FP  25 FN  28 AP50 0.0321
+   CE P(thing)          pass   52 TP   2 FP  50 FN  28 AP50 0.0161
+   best-any-group IoU per GT (no score gate): area>=50 0.066 | mask-only 0.066
+
+[audit] g1_step6000 unseen (novel views): gt 55
+   legacy sigmoid(z20)  pass   31 TP   1 FP  30 FN  54 AP50 0.0025
+   CE P(thing)          pass  113 TP   1 FP 112 FN  54 AP50 0.0125
+   best-any-group IoU per GT (no score gate): area>=50 0.250 | mask-only 0.250
+
+[audit] g1_step6000 training (novel views): gt 30
+   legacy sigmoid(z20)  pass   42 TP   2 FP  40 FN  28 AP50 0.0107
+   CE P(thing)          pass   94 TP   2 FP  92 FN  28 AP50 0.0054
+   best-any-group IoU per GT (no score gate): area>=50 0.132 | mask-only 0.132
+[audit] wrote workspace_group_locusgs/audit_scores.json
