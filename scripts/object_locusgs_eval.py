@@ -461,8 +461,8 @@ def _gaussian_footprint_histograms(gaussians, cam_view, intrinsics, gt_bins, *, 
     rot = quat_to_mat(rotation.float())
     cov_world = rot @ torch.diag_embed(scales.float() ** 2) @ rot.transpose(-1, -2)
     c2w = torch.inverse(cam_view[0].float().transpose(1, 2))
-    height, width = gt_bins.shape[-2], gt_bins.shape[-1]
-    n_bins = int(gt_bins.max().item()) + 1
+    height, width = gt_bins[0].shape[-2], gt_bins[0].shape[-1]
+    n_bins = max(int(view_bins.max().item()) for view_bins in gt_bins) + 1
     hist_gs = torch.zeros(xyz.shape[0], n_bins, device=device, dtype=torch.float64)
     rotation_view = c2w[:, :3, :3]
     translation = c2w[:, :3, 3]
@@ -508,9 +508,9 @@ def _gaussian_footprint_histograms(gaussians, cam_view, intrinsics, gt_bins, *, 
             delta = torch.stack([px - u[selection][:, None], py - v[selection][:, None]], dim=-1)
             inverse = inv[selection]
             quadratic = (
-                delta[..., 0] ** 2 * inverse[:, 0, 0]
-                + 2 * delta[..., 0] * delta[..., 1] * inverse[:, 0, 1]
-                + delta[..., 1] ** 2 * inverse[:, 1, 1]
+                delta[..., 0] ** 2 * inverse[:, 0, 0][:, None]
+                + 2 * delta[..., 0] * delta[..., 1] * inverse[:, 0, 1][:, None]
+                + delta[..., 1] ** 2 * inverse[:, 1, 1][:, None]
             )
             kernel = torch.exp(-0.5 * quadratic) * weight[selection][:, None]
             inside = (
@@ -664,7 +664,8 @@ def evaluate_entry(model, entry, opt, *, include_purity=False) -> dict:
             int(view): {
                 "semantic": semantic_prob[view].argmax(axis=0).astype(np.uint8),
                 "alpha": alpha[view, 0].astype(np.float32),
-                "instances": _instance_map(predictions[int(view)]),
+                # context views carry no read-out predictions by construction
+                "instances": _instance_map(predictions.get(int(view), [])),
             }
             for view in range(n_records)
         }
