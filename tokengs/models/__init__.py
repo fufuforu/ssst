@@ -25,12 +25,14 @@ from .input_types import (
 from .tokengs import TokenGS
 from .siu3r_joint_ssst import SIU3RJointSSST
 from .canonical_recon_models import LocusGSRecon, PlainTokenGSCanonicalRecon
+from .object_locusgs import LocusGSObjectRecon
 
 # Model registry
 model_registry = {
     'tokengs': TokenGS,
     'siu3r_joint_ssst': SIU3RJointSSST,
     'siu3r_locusgs_recon': LocusGSRecon,
+    'siu3r_object_locusgs_recon': LocusGSObjectRecon,
     'siu3r_plain_tokengs_canonical_recon': PlainTokenGSCanonicalRecon,
 }
 
@@ -46,6 +48,7 @@ __all__ = [
     'EncoderLatent',
     'SIU3RJointSSST',
     'LocusGSRecon',
+    'LocusGSObjectRecon',
     'PlainTokenGSCanonicalRecon',
     'model_registry',
 ]

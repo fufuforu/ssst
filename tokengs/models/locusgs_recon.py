@@ -120,7 +120,7 @@ class LocusGSAnchorDecoder(nn.Module):
     logits (Eq. 4).
     """
 
-    def __init__(self, opt, decoder_blocks):
+    def __init__(self, opt, decoder_blocks, *, token_update_hook=None, token_update_layer=0):
         super().__init__()
         self.opt = opt
         self.num_tokens = int(opt.num_gs_tokens)
@@ -230,6 +230,20 @@ class LocusGSAnchorDecoder(nn.Module):
             raise ValueError(f"unknown locusgs_pe_mode {self.pe_mode!r}")
         # referenced, never re-registered: these live in `enc_dec_backbone`
         self.decoder_blocks = tuple(decoder_blocks)
+        # Optional, additive hook: when set, it is applied exactly once, right
+        # after the state of decoder layer `token_update_layer` has been emitted
+        # and before the next layer runs.  Default `None` keeps the original
+        # LocusGS anchor decoder bit-identical (the hook is the only switch the
+        # object-aware variant adds, so every old checkpoint still loads).
+        self.token_update_hook = token_update_hook
+        self.token_update_layer = int(token_update_layer)
+        self.last_token_update_norm = None
+
+    def set_token_update_hook(self, hook, layer: int) -> None:
+        """Install (or clear with ``hook=None``) the single pre-layer update."""
+        self.token_update_hook = hook
+        self.token_update_layer = int(layer)
+        self.last_token_update_norm = None
 
     def activated_radius(self, rho: torch.Tensor) -> torch.Tensor:
         return F.softplus(rho) + self.epsilon
@@ -314,6 +328,17 @@ class LocusGSAnchorDecoder(nn.Module):
                     radius_update=(radii - previous_radii).abs().mean().detach(),
                 )
             )
+            if self.token_update_hook is not None and (index + 1) == self.token_update_layer:
+                updated = self.token_update_hook(tokens, mu)
+                if updated.shape != tokens.shape:
+                    raise ValueError(
+                        f"token update hook must preserve the token shape, got "
+                        f"{tuple(updated.shape)} for {tuple(tokens.shape)}"
+                    )
+                self.last_token_update_norm = (
+                    (updated - tokens).detach().norm(dim=-1).mean()
+                )
+                tokens = updated
         return states, ray_bias_stats
 
 

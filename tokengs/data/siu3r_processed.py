@@ -329,12 +329,47 @@ class SIU3RProcessedProvider(Provider):
         # One shared RNG per rank so all ranks see the same pair distribution.
         self.pair_rng = random.Random(int(opt.seed) + int(rank) * 100003)
         self.last_pair = None
+        # Optional pinned pair: when set (see `pin_pair`), the next static
+        # lookup reuses exactly this window instead of sampling one.  Used by
+        # the pre-registered A/B training plan so both arms read the same batch.
+        self.pinned_pair = None
         if DF_DEPTH not in self.data_fields:
             self.data_fields.append(DF_DEPTH)
         if DF_INSTANCE_LABEL not in self.data_fields:
             self.data_fields.append(DF_INSTANCE_LABEL)
 
+    def pin_pair(
+        self,
+        *,
+        scene_id: str,
+        context_frame_ids,
+        novel_frame_ids,
+        pair_iou: float = float("nan"),
+    ) -> None:
+        """Pin the next static lookup to one pre-registered window."""
+        context = [int(x) for x in context_frame_ids]
+        novel = [int(x) for x in novel_frame_ids]
+        target = [*context, *novel]
+        validate_frame_id_order(target, context, novel, phase="pinned")
+        self.pinned_pair = {
+            "scene_id": str(scene_id),
+            "context_frame_ids": context,
+            "novel_frame_ids": novel,
+            "target_frame_ids": target,
+            "pair_iou": float(pair_iou),
+        }
+
     def _get_indices_static(self, idx):
+        if self.pinned_pair is not None:
+            pinned = self.pinned_pair
+            scene_name = self.dataset.sample_list[idx].name
+            if pinned["scene_id"] != scene_name:
+                raise RuntimeError(
+                    f"pinned pair is for {pinned['scene_id']} but index {idx} is "
+                    f"{scene_name}; refusing to silently resample"
+                )
+            self.last_pair = dict(pinned)
+            return np.asarray(pinned["target_frame_ids"], dtype=np.int64), []
         if self.dataset.val_pairs is not None:
             context, novel = self.dataset.get_context_target_frames(idx)
             pair_iou = float("nan")

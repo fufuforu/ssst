@@ -219,6 +219,26 @@ class Options:
     locusgs_freeze_decode_radius: bool = False
     canonical_gaussian_visibility_weight: float = 1.0      # paper: lambda_G = 1.0
     canonical_anchor_visibility_weight: float = 0.1        # paper: lambda_A = 0.1
+    # --- object-aware LocusGS (shared GS semantic/instance attributes + an
+    # optional, predicted-instance-relation token update before layer 11) ---
+    # The attribute heads decode 20 semantic logits and a 16-d instance
+    # embedding per Gaussian (64 per token), mirroring the Gaussian head's
+    # token -> 64-GS ordering.
+    object_semantic_classes: int = 20
+    object_instance_dim: int = 16
+    # Arm switch: "a" keeps the relation module instantiated (identical init)
+    # but never applies it; "b" applies it once, after decoder layer 10.
+    object_arm: Literal["a", "b"] = "a"
+    object_relation_layer: int = 10
+    object_relation_neighbours: int = 16
+    object_relation_temperature: float = 0.2
+    # Understanding loss weights and the shared 0..1000-step ramp.
+    object_sem_loss_weight: float = 0.05
+    object_inst_loss_weight: float = 0.10
+    object_loss_ramp_steps: int = 1000
+    object_min_alpha: float = 0.05
+    object_instance_pixels: int = 64
+    object_instance_budget: int = 16
     # --- joint one-stage loss curriculum and spatial regularization ---
     understanding_warmup_steps: int = 2000
     understanding_start_weight: float = 0.1
@@ -681,6 +701,27 @@ config_defaults["train_siu3r_locusgs_recon_bounded_delta_frozen_radius"] = confi
     workspace="/space/mawb/ssst/workspace/siu3r_locusgs_bounded_delta_frozen_r_recon_v1",
     experiment_name="siu3r_locusgs_bounded_delta_frozen_r_recon_v1",
     locusgs_freeze_decode_radius=True,
+)
+
+config_doc["train_siu3r_object_locusgs_ab"] = (
+    "Object-aware LocusGS development run (32 train / 8 unseen scenes).  "
+    "Identical to train_siu3r_locusgs_recon_bounded_delta_frozen_radius except "
+    "that every Gaussian additionally carries 20-d semantic logits and a 16-d "
+    "unit instance embedding decoded from the layer-12 tokens, and the "
+    "understanding losses (0.05 * L_sem + 0.10 * L_inst) are ramped in over "
+    "1000 experiment-local steps while the whole LocusGS path stays trainable.  "
+    "object_arm='a' disables the predicted-instance-relation token update; "
+    "object_arm='b' applies it once, between decoder layers 10 and 11.  The two "
+    "arms are strictly paired: same source checkpoint, same batch plan, same "
+    "loss, same schedule.  Development only - not an SIU3R official evaluation."
+)
+config_defaults["train_siu3r_object_locusgs_ab"] = config_defaults[
+    "train_siu3r_locusgs_recon_bounded_delta_frozen_radius"
+].evolve(
+    model_type="siu3r_object_locusgs_recon",
+    workspace="/space/mawb/ssst/workspace_object_locusgs",
+    experiment_name="siu3r_object_locusgs_ab_v1",
+    project_name="TokenGS-LocusGS-lite",
 )
 
 config_doc["train_siu3r_locusgs_inferred_v2"] = (

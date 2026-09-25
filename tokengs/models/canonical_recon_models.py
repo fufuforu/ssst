@@ -171,16 +171,13 @@ class LocusGSRecon(_ReconstructionOnlyMixin, TokenGS):
         }
 
     # -- loss ------------------------------------------------------------- #
-    def step_loss(self, batch: dict, *, step: int, phase: str) -> tuple[dict, dict]:
-        del phase, step
-        from tokengs.models.input_types import split_data
+    def _layer_objective(self, states, decoder_input, supervision):
+        """Weighted sum of the canonical per-layer objectives (Eq. 30).
 
-        model_input, _ = split_data(batch, self.opt)
-        decoder_input = ModelInputDecoder(
-            cam_view=batch["cam_view_all"], intrinsics=batch["intrinsics_all"]
-        )
-        states, ray_stats = self._decode(ModelInput(model_input.encoder, decoder_input), decoder_input)
-        supervision = _full_supervision(batch)
+        Extracted verbatim from `step_loss` so the object-aware variant reuses the
+        exact same reconstruction objective (layers and weights unchanged) and
+        only adds its own terms.
+        """
         metrics: dict[str, torch.Tensor] = {}
         total = None
         final_gaussians = None
@@ -209,10 +206,25 @@ class LocusGSRecon(_ReconstructionOnlyMixin, TokenGS):
             final_gaussians = gaussians
             final_render = render
             final_state = state
+        return total, metrics, final_gaussians, final_render, final_state
+
+    def step_loss(self, batch: dict, *, step: int, phase: str) -> tuple[dict, dict]:
+        del phase, step
+        from tokengs.models.input_types import split_data
+
+        model_input, _ = split_data(batch, self.opt)
+        decoder_input = ModelInputDecoder(
+            cam_view=batch["cam_view_all"], intrinsics=batch["intrinsics_all"]
+        )
+        states, ray_stats = self._decode(ModelInput(model_input.encoder, decoder_input), decoder_input)
+        supervision = _full_supervision(batch)
+        total, metrics, final_gaussians, final_render, final_state = self._layer_objective(
+            states, decoder_input, supervision
+        )
         metrics["loss"] = total
         metrics["psnr"] = metrics[f"psnr_layer{self.supervised_layers[-1]}"]
         final = states[-1]
-        radii_final = state["radii"].detach()
+        radii_final = final_state["radii"].detach()
         metrics.update(
             {
                 "radius_mean": radii_final.mean(),
@@ -267,7 +279,7 @@ class LocusGSRecon(_ReconstructionOnlyMixin, TokenGS):
                 [r["ray_bias_clamped_fraction"] for r in ray_stats]
             ).mean()
             metrics["gamma_mean"] = torch.stack([r["gamma"] for r in ray_stats]).mean()
-        return {"states": states, "gaussians": None, "render": render}, metrics
+        return {"states": states, "gaussians": None, "render": final_render}, metrics
 
 
 class PlainTokenGSCanonicalRecon(_ReconstructionOnlyMixin, TokenGS):
