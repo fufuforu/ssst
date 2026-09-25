@@ -325,6 +325,10 @@ def main() -> int:
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--lr", type=float, default=None,
                         help="override the preset's peak learning rate")
+    parser.add_argument("--lr-cap", type=float, default=None,
+                        help="hard ceiling applied on top of the schedule: lr = min(lr_at(step), cap). "
+                             "No re-warmup and no optimizer reset - the only permitted single-factor "
+                             "intervention for a continuation branch.")
     parser.add_argument("--dense-start", type=int, default=1800)
     parser.add_argument("--dense-end", type=int, default=3000)
     parser.add_argument("--dense-every", type=int, default=50)
@@ -355,6 +359,9 @@ def main() -> int:
     parser.add_argument("--allow-schedule-change", action="store_true",
                         help="permit resuming with a different --steps (extends the cosine "
                              "schedule); prints a loud warning and records it")
+    parser.add_argument("--run-steps", type=int, default=None,
+                        help="run at most N optimizer steps in THIS invocation and exit "
+                             "(the --steps schedule is untouched); for smoke/resumability tests")
     args = parser.parse_args()
     device = torch.device(args.device)
     out_dir = Path(args.out_dir)
@@ -422,7 +429,8 @@ def main() -> int:
          {"params": nodecay, "weight_decay": 0.0}], lr=lr, betas=(0.9, 0.95))
 
     print(f"[xs] preset={args.preset} model={opt.model_type} lr={lr} warmup={warmup} "
-          f"wd={weight_decay} amp={args.amp} steps={args.steps}")
+          f"wd={weight_decay} amp={args.amp} steps={args.steps} "
+          f"lr_cap={args.lr_cap if args.lr_cap is not None else 'none'}")
     print(f"[xs] train scenes {len(train_scenes)} | val scenes {len(val_scenes)}")
     print(f"[xs] params decay={sum(p.numel() for p in decay):,} "
           f"nodecay={sum(p.numel() for p in nodecay):,}")
@@ -453,8 +461,10 @@ def main() -> int:
     scene_counts: dict[str, int] = {}
     sched_meta = {"type": "warmup+cosine", "peak_lr": lr, "warmup_steps": warmup,
                   "total_steps": int(args.steps), "eta_min_factor": 0.02,
+                  "lr_cap": args.lr_cap,
                   "betas": [0.9, 0.95], "weight_decay": weight_decay}
     start_step = 1
+    lr_rule_change = None
     if args.resume:
         ck = resolve_ckpt(Path(args.resume))
         payload = torch.load(ck / "train_state.pt", map_location="cpu", weights_only=False)
@@ -468,6 +478,17 @@ def main() -> int:
             print(f"[xs] WARNING: resuming with a different total_steps ({old_total} -> "
                   f"{args.steps}); the cosine schedule is being recomputed, so the "
                   f"continuation is a NEW recipe, not the original one.", flush=True)
+        old_cap = payload["scheduler"].get("lr_cap") if payload.get("scheduler") else None
+        if old_cap != args.lr_cap:
+            # Deliberate single-factor intervention (the LR rule, not the schedule
+            # shape, which is still checked above).  Reported loudly and recorded.
+            print(f"[xs] NOTE: LR rule differs from the resumed checkpoint "
+                  f"(lr_cap {old_cap} -> {args.lr_cap}); this continuation is a NEW "
+                  f"recipe from this step on, everything else is inherited.", flush=True)
+            lr_rule_change = {"lr_cap_from": old_cap, "lr_cap_to": args.lr_cap,
+                              "resumed_from": str(ck)}
+        else:
+            lr_rule_change = None
         model.load_state_dict(
             torch.load(ck / "model.pt", map_location="cpu", weights_only=False)["model"],
             strict=True)
@@ -541,9 +562,14 @@ def main() -> int:
 
     history = {"args": vars(args), "val": [], "train_loss": [], "dense": [],
                "train_scene_list_hash": scene_hash, "train_scene_count": len(train_scenes),
-               "monitor_scenes": val_scenes, "resumed_from": args.resume}
+               "monitor_scenes": val_scenes, "resumed_from": args.resume,
+               "lr_rule_change": lr_rule_change, "lr_cap": args.lr_cap}
     t_loop = time.time()
-    for step in range(start_step, args.steps + 1):
+    end_step = args.steps
+    if args.run_steps is not None:
+        end_step = min(end_step, start_step + int(args.run_steps) - 1)
+    print(f"[xs] this invocation runs steps {start_step}..{end_step}", flush=True)
+    for step in range(start_step, end_step + 1):
         idx = int(rng.integers(0, n_train))
         batch = None
         for _ in range(20):                      # a scene may have no valid pair
@@ -573,6 +599,8 @@ def main() -> int:
         grad_by_group = {k: math.sqrt(v) for k, v in grad_by_group.items()}
         gnorm = float(torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0))
         lr_now = lr_at(step - 1)
+        if args.lr_cap is not None:
+            lr_now = min(lr_now, float(args.lr_cap))
         for grp in optimizer.param_groups:
             grp["lr"] = lr_now
         dense_now = args.dense_start <= step <= args.dense_end and step % args.dense_every == 0
@@ -644,7 +672,7 @@ def main() -> int:
             print(f"[xs] step {step:>5} scene={scene_now} loss "
                   f"{float(metrics['loss']):.4f} lr {lr_now:.2e} grad {gnorm:.2f}{extra}",
                   flush=True)
-        if step % args.eval_every == 0 or step == args.steps:
+        if step % args.eval_every == 0 or step == args.steps or step == end_step:
             rows = evaluate(step)
             history["val"].append({"step": step, "rows": rows})
             mean = lambda k: float(np.mean([r[k] for r in rows]))
