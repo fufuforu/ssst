@@ -635,11 +635,42 @@ def evaluate_entry(model, entry, opt, *, include_purity=False) -> dict:
             {"semantic_prob": semantic_prob, "alpha": alpha, "embedding": embedding},
             context_views=context_views, n_records=n_records,
         )
+        # GT-free diagnostic for why the frozen reader may emit nothing: how
+        # confident is the predicted class where the reader looks (alpha >= 0.5 on
+        # the context views, predicted class a thing)?  Never used to pick
+        # prototypes, thresholds or predictions.
+        diagnostic_prob = []
+        for view in context_views:
+            prob = semantic_prob[view]
+            predicted_class = prob.argmax(axis=0)
+            best = prob.max(axis=0)
+            look = (
+                (alpha[view, 0] >= READOUT_ALPHA)
+                & (predicted_class >= THING_CLASS_MIN)
+                & (predicted_class < SEMANTIC_CLASS_COUNT)
+            )
+            if look.any():
+                diagnostic_prob.append(best[look].astype(np.float64))
+        if diagnostic_prob:
+            pooled = np.concatenate(diagnostic_prob)
+            probability_stats = {
+                "context_thing_pixels": int(pooled.size),
+                "p50": float(np.percentile(pooled, 50)),
+                "p90": float(np.percentile(pooled, 90)),
+                "p99": float(np.percentile(pooled, 99)),
+                "max": float(pooled.max()),
+                "fraction_ge_reader_threshold": float(
+                    (pooled >= READOUT_CLASS_PROB).mean()
+                ),
+            }
+        else:
+            probability_stats = {"context_thing_pixels": 0}
         row["readout"] = {
             "context_candidates": 0 if candidates is None else int(candidates["index"].size),
             "prototypes": int(prototypes.shape[0]),
             "prototype_classes": [int(x) for x in prototype_classes.tolist()],
             "rounds": history,
+            "context_class_probability_diagnostic": probability_stats,
             "novel": {},
         }
         for view, preds in predictions.items():
@@ -719,6 +750,17 @@ def summarise(rows) -> dict:
         "novel_fp": fp,
         "novel_fn": fn,
         "buckets": buckets,
+        "reader_context_prob_p90": float(np.mean([
+            row["readout"]["context_class_probability_diagnostic"].get("p90", float("nan"))
+            for row in rows
+        ])),
+        "reader_context_prob_ge_threshold_fraction": float(np.mean([
+            row["readout"]["context_class_probability_diagnostic"].get(
+                "fraction_ge_reader_threshold", 0.0
+            )
+            for row in rows
+        ])),
+        "reader_prototypes": float(np.mean([row["readout"]["prototypes"] for row in rows])),
         "embedding_same": float(np.mean([
             row["embedding_similarity"]["same"] for row in rows
             if row["embedding_similarity"]["same"] is not None
