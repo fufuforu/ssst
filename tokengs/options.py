@@ -249,6 +249,10 @@ class Options:
     group_sem_loss_weight: float = 0.05
     group_inst_loss_weight: float = 0.05
     group_loss_ramp_steps: int = 2000
+    # Single training change of the G0+ round: direct pixel supervision of the
+    # rendered background slot on the two context views (stuff -> 1, thing -> 0).
+    group_bg_supervision: bool = False
+    group_bg_loss_weight: float = 1.0
     # --- joint one-stage loss curriculum and spatial regularization ---
     understanding_warmup_steps: int = 2000
     understanding_start_weight: float = 0.1

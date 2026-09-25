@@ -238,6 +238,13 @@ class LocusGSGroupRecon(LocusGSRecon):
         self.sem_weight = float(opt.group_sem_loss_weight)
         self.inst_weight = float(opt.group_inst_loss_weight)
         self.ramp_steps = int(opt.group_loss_ramp_steps)
+        # The single training change of the G0+ round: direct pixel supervision of
+        # the background slot on the two context views.  Disabled (weight 0 or
+        # flag off) the model is bit-identical to G0.
+        self.bg_supervision = bool(getattr(opt, "group_bg_supervision", False))
+        self.bg_weight = (
+            float(getattr(opt, "group_bg_loss_weight", 1.0)) if self.bg_supervision else 0.0
+        )
         self.layer10_group: dict | None = None
         self.step_metrics: dict | None = None
         self.set_feedback_enabled(self.arm == "g1")
@@ -353,6 +360,19 @@ class LocusGSGroupRecon(LocusGSRecon):
                 "thing_targets": int(sum(t[0].numel() for t in things)),
             }
         )
+        # G0+ only: the background slot is supervised directly on the same
+        # rendered context-view masks (single rasterization pass).
+        background = self._background_loss_of(batch, rendered, context_views)
+        if background is not None:
+            background_loss, background_stats = background
+            loss["loss_bg"] = background_loss
+            loss.update(background_stats)
+            loss["loss_inst_total"] = (
+                loss["loss"] + self.bg_weight * background_loss
+            )
+            loss["background_weight"] = self.bg_weight
+        else:
+            loss["loss_inst_total"] = loss["loss"]
         if group["slot_prob"].numel():
             prob = group["slot_prob"].detach()
             entropy = -(prob.clamp_min(1e-8).log() * prob).sum(-1).mean()
@@ -365,6 +385,7 @@ class LocusGSGroupRecon(LocusGSRecon):
         return loss
 
     def semantic_loss_terms(self, batch, tokens, gaussians, decoder_input, alpha=None):
+        """Per-GS semantic pixel loss (unchanged from the previous rounds)."""
         semantic_logits = self.decode_semantics(tokens)
         probability, semantic_alpha = render_semantic_probability(
             self.gs, gaussians, semantic_logits, decoder_input.cam_view,
@@ -382,6 +403,64 @@ class LocusGSGroupRecon(LocusGSRecon):
             else torch.zeros((), device=semantic_alpha.device)
         )
         return loss, stats, semantic_logits
+
+    def background_slot_loss(self, batch, rendered, context_views):
+        """Binary supervision of the rendered background-slot mass (G0+ only).
+
+        Targets on the two context views: valid *stuff* pixels (semantic 0/1) want
+        background 1, valid *thing* pixels (semantic 2..19 with a valid instance
+        id) want background 0.  Semantic 255, unannotated pixels and pixels where
+        the rendered alpha is <= 0.5 are excluded.  The alpha in the denominator
+        is detached so the term cannot be reduced by shrinking coverage.
+        """
+        views = len(context_views)
+        alpha = rendered["alpha"][:, :views]
+        mass_bg = rendered["background_mass"][:, :views]
+        p_bg = (mass_bg / alpha.detach().clamp_min(0.5)).clamp(1e-5, 1.0 - 1e-5)
+        p_bg = p_bg[:, :, 0]
+        semantic = batch["semantic_label_all"][:, :views].long()
+        instance = batch["instance_label_all"][:, :views].long()
+        covered = alpha[:, :, 0] > 0.5
+        stuff = ((semantic == 0) | (semantic == 1)) & covered
+        thing = (
+            (semantic >= 2) & (semantic < SEMANTIC_CLASS_COUNT) & (instance > 0) & covered
+        )
+        zero = p_bg.sum() * 0.0
+        loss_stuff = (
+            F.binary_cross_entropy(p_bg[stuff], torch.ones_like(p_bg[stuff]))
+            if bool(stuff.any()) else zero
+        )
+        loss_thing = (
+            F.binary_cross_entropy(p_bg[thing], torch.zeros_like(p_bg[thing]))
+            if bool(thing.any()) else zero
+        )
+        if bool(stuff.any()) and bool(thing.any()):
+            loss = 0.5 * loss_stuff + 0.5 * loss_thing
+        elif bool(stuff.any()):
+            loss = loss_stuff
+        elif bool(thing.any()):
+            loss = loss_thing
+        else:
+            loss = zero
+        return loss, {
+            "loss_bg": loss,
+            "loss_bg_stuff": loss_stuff.detach(),
+            "loss_bg_thing": loss_thing.detach(),
+            "bg_pixels_stuff": int(stuff.sum()),
+            "bg_pixels_thing": int(thing.sum()),
+            "bg_pixels_ignored": int((~covered).sum()),
+            "bg_prob_stuff_mean": (
+                p_bg[stuff].mean().detach() if bool(stuff.any()) else zero.detach()
+            ),
+            "bg_prob_thing_mean": (
+                p_bg[thing].mean().detach() if bool(thing.any()) else zero.detach()
+            ),
+        }
+
+    def _background_loss_of(self, batch, rendered, context_views):
+        if self.bg_weight <= 0:
+            return None
+        return self.background_slot_loss(batch, rendered, context_views)
 
     def step_loss(self, batch: dict, *, step: int, phase: str) -> tuple[dict, dict]:
         """One joint step.  ``step`` is the **1-based** optimizer step, so
@@ -414,10 +493,14 @@ class LocusGSGroupRecon(LocusGSRecon):
         ramp = min(1.0, max(0.0, float(step) / float(self.ramp_steps))) if self.ramp_steps > 0 else 1.0
         instance_weight = self.inst_weight * ramp
         semantic_weight = self.sem_weight * ramp
-        total = recon_loss + instance_weight * instance["loss"] + semantic_weight * semantic
+        # L_inst_new = L_inst_original + 1.0 * L_bg (the weight lives in the model
+        # option; 0.0 disables the term entirely and reproduces G0 exactly).
+        instance_total = instance["loss_inst_total"]
+        total = recon_loss + instance_weight * instance_total + semantic_weight * semantic
         metrics.update(
             {
                 "loss_inst": instance["loss"].detach(),
+                "loss_inst_total": instance_total.detach(),
                 "loss_sem": semantic.detach(),
                 "ramp": torch.tensor(ramp, device=recon_loss.device),
                 "instance_weight": torch.tensor(instance_weight, device=recon_loss.device),
@@ -449,6 +532,15 @@ class LocusGSGroupRecon(LocusGSRecon):
                 "anchor_max": final_state["mu"].detach().abs().max(),
             }
         )
+        for key in ("loss_bg", "loss_bg_stuff", "loss_bg_thing", "bg_pixels_stuff",
+                    "bg_pixels_thing", "bg_pixels_ignored", "bg_prob_stuff_mean",
+                    "bg_prob_thing_mean"):
+            if key in instance:
+                value = instance[key]
+                metrics[key] = (
+                    value if torch.is_tensor(value)
+                    else torch.tensor(float(value), device=recon_loss.device)
+                )
         for key in ("slot_entropy", "slot_max_prob_mean", "background_prob_mean",
                     "active_group_share"):
             if key in instance:

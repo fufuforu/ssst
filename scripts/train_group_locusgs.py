@@ -38,10 +38,10 @@ prepare_runtime(REPO)
 from tokengs.data.siu3r_processed import SIU3RProcessedProvider  # noqa: E402
 from tokengs.models import model_registry  # noqa: E402
 from tokengs.options import config_defaults  # noqa: E402
-from scripts.group_locusgs_eval import (  # noqa: E402
+from scripts.group_eval_v2 import (  # noqa: E402
     build_val_entries,
-    evaluate_group_entry,
-    summarise_group,
+    evaluate_entry_v2,
+    summarise_v2,
 )
 from scripts.train_object_locusgs import (  # noqa: E402
     lr_at,
@@ -71,7 +71,7 @@ def parameter_blocks(model) -> dict[str, list[str]]:
 
 def main() -> int:
     parser = argparse.ArgumentParser()
-    parser.add_argument("--arm", choices=("g0", "g1"), required=True)
+    parser.add_argument("--arm", choices=("g0", "g1", "g0plus"), required=True)
     parser.add_argument("--out-dir", required=True)
     parser.add_argument("--plan", default="object_locusgs/plan_6000.json")
     parser.add_argument("--split", default="workspace_recon_diag/cross_scene/split.json")
@@ -89,6 +89,10 @@ def main() -> int:
     parser.add_argument("--no-eval", action="store_true")
     parser.add_argument("--max-steps", type=int, default=None)
     parser.add_argument("--manifest-out", default=None)
+    parser.add_argument("--init-from", default=None,
+                        help="step-0 checkpoint of the reference run; the initialisation is "
+                             "verified block-by-block against it (G0+ must start from the "
+                             "same random state as G0)")
     args = parser.parse_args()
 
     device = torch.device(args.device)
@@ -112,9 +116,13 @@ def main() -> int:
         raise SystemExit(f"preset {args.preset} declares init_checkpoint; refusing to warm start")
     torch.manual_seed(int(args.seed))
     np.random.seed(int(args.seed))
+    group_arm = "g1" if args.arm == "g1" else "g0"
+    background_supervision = args.arm == "g0plus"
     opt = preset.evolve(
         seed=int(args.seed),
-        group_arm=args.arm,
+        group_arm=group_arm,
+        group_bg_supervision=background_supervision,
+        group_bg_loss_weight=1.0,
         lr=args.lr,
         pct_start_steps=args.warmup,
         batch_size=1,
@@ -138,9 +146,36 @@ def main() -> int:
         for name, keys in blocks.items()
     }
     block_hashes = {name: sha256_state(state, keys) for name, keys in blocks.items()}
+    initialisation_source = "fresh random (seed %d)" % int(args.seed)
+    if args.init_from:
+        source_dir = Path(args.init_from)
+        loaded = torch.load(source_dir / "model.pt", map_location="cpu", weights_only=False)
+        reference_state = loaded["model"]
+        model.load_state_dict(reference_state, strict=True)
+        state = model.state_dict()
+        block_hashes = {name: sha256_state(state, keys) for name, keys in blocks.items()}
+        reference_hashes = {
+            name: sha256_state(reference_state, keys) for name, keys in blocks.items()
+        }
+        if reference_hashes != block_hashes:
+            raise SystemExit("initialisation does not match the reference step-0 checkpoint")
+        payload = torch.load(source_dir / "train_state.pt", map_location="cpu",
+                             weights_only=False)
+        torch.set_rng_state(payload["torch_rng"])
+        np.random.set_state(payload["numpy_rng"])
+        if payload.get("cuda_rng") is not None and torch.cuda.is_available():
+            torch.cuda.set_rng_state_all(payload["cuda_rng"])
+        initialisation_source = (
+            f"loaded from {source_dir} (model+optimizer+RNG provenance verified; "
+            f"reference hashes match bitwise)"
+        )
     init_report = {
         "arm": args.arm,
-        "initialisation": "random (no checkpoint, no pretrained weights)",
+        "group_arm": group_arm,
+        "background_supervision": background_supervision,
+        "background_loss_weight": float(opt.group_bg_loss_weight),
+        "initialisation": initialisation_source,
+        "initialisation_from": args.init_from,
         "seed": int(args.seed),
         "parameter_counts": {
             name: int(sum(state[k].numel() for k in keys)) for name, keys in blocks.items()
@@ -220,7 +255,13 @@ def main() -> int:
         "arm": args.arm,
         "scope": "32 train / 8 unseen development split; NOT an SIU3R official metric",
         "note": "model uses GT camera poses to build rays; SIU3R is an unposed setting",
-        "initialisation": "from scratch (random); no checkpoint is loaded",
+        "initialisation": initialisation_source,
+        "single_variable_g0plus": (
+            "background-slot pixel supervision on the two context views; the model "
+            "structure, queries, assignment softmax, Hungarian matching, instance "
+            "loss, semantic loss, reconstruction loss, optimizer and schedule are "
+            "unchanged from G0"
+        ) if background_supervision else None,
         "single_variable": "group -> reconstruction-token feedback between layers 10 and 11",
         "init_report": init_report,
         "val_windows": {entry["scene"]: {"context": entry["context"], "novel": entry["novel"]}
@@ -244,15 +285,18 @@ def main() -> int:
 
     def run_eval(step: int) -> dict:
         model.eval()
-        rows = [evaluate_group_entry(model, entry, opt) for entry in val_entries]
+        rows = [evaluate_entry_v2(model, entry, opt) for entry in val_entries]
         model.train()
-        summary = summarise_group(rows)
+        summary = summarise_v2(rows)
         print(f"[g] VAL step {step}: ctx {summary['ctx_psnr']:.2f} novel {summary['novel_psnr']:.2f} "
               f"ssim {summary['ctx_ssim']:.3f}/{summary['novel_ssim']:.3f} "
               f"mIoU {summary['sem_miou']:.3f} | AP50 ctx {summary['ctx_ap50']:.3f} "
               f"novel {summary['novel_ap50']:.3f} TP/FP/FN {summary['novel_tp']}/"
-              f"{summary['novel_fp']}/{summary['novel_fn']} | obj>=thr "
-              f"{summary['objectness_ge_threshold']:.3f} maskerr {summary['mask_alpha_max_error']:.2e}",
+              f"{summary['novel_fp']}/{summary['novel_fn']} | P(thing)>=0.5 pass "
+              f"{summary['novel_gate_counts']['score']} bg-mass stuff/thing "
+              f"{summary['background_stuff_mass_mean']:.3f}/"
+              f"{summary['background_thing_mass_mean']:.3f} "
+              f"maskerr {summary['mask_alpha_max_error']:.2e}",
               flush=True)
         serialisable = [{k: v for k, v in row.items() if not k.startswith("_")} for row in rows]
         with val_path.open("a", encoding="utf-8") as handle:
@@ -354,6 +398,14 @@ def main() -> int:
             "loss_inst_ce": float(metrics["loss_inst_ce"]),
             "loss_inst_bce": float(metrics["loss_inst_bce"]),
             "loss_inst_dice": float(metrics["loss_inst_dice"]),
+            "loss_inst_total": float(metrics["loss_inst_total"]),
+            "loss_bg": float(metrics.get("loss_bg", 0.0)),
+            "loss_bg_stuff": float(metrics.get("loss_bg_stuff", 0.0)),
+            "loss_bg_thing": float(metrics.get("loss_bg_thing", 0.0)),
+            "bg_pixels_stuff": float(metrics.get("bg_pixels_stuff", 0.0)),
+            "bg_pixels_thing": float(metrics.get("bg_pixels_thing", 0.0)),
+            "bg_prob_stuff_mean": float(metrics.get("bg_prob_stuff_mean", 0.0)),
+            "bg_prob_thing_mean": float(metrics.get("bg_prob_thing_mean", 0.0)),
             "lambda": float(metrics["ramp"]),
             "instance_weight": float(metrics["instance_weight"]),
             "semantic_weight": float(metrics["semantic_weight"]),
