@@ -1,0 +1,32 @@
+{
+ "recorded_rows": 55,
+ "recomputed_rows": 55,
+ "max_abs_iou_gap": 0.0,
+ "mismatch_count": 0,
+ "mismatch_examples": [],
+ "oracle_pass_ge_0.5": 22,
+ "size_strata": {
+  "small_lt3000": [
+   2,
+   20
+  ],
+  "large_ge3000": [
+   20,
+   35
+  ]
+ },
+ "expected": {
+  "pass": 22,
+  "rows": 55,
+  "small": [
+   2,
+   20
+  ],
+  "large": [
+   20,
+   35
+  ],
+  "max_gap": 1e-05
+ },
+ "reproduced": true
+}

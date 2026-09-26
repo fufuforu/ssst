@@ -1,0 +1,58 @@
+{
+ "scene": "scene0059_00",
+ "checks": {
+  "A_shape": true,
+  "A_fp32": true,
+  "A_finite": true,
+  "A_rows_sum_one": true,
+  "grads_absent_on_model": true,
+  "params_unchanged": true,
+  "loss_decreased": true,
+  "loss_finite": true,
+  "Z_grad_finite_nonzero": true,
+  "alpha_conservation": true,
+  "rgb_unchanged": true,
+  "passed": true
+ },
+ "records": [
+  {
+   "step": 0,
+   "loss": 9.222640991210938,
+   "loss_instance": 7.446022987365723,
+   "loss_rest": 1.776618242263794,
+   "context_hard_iou_mean": 0.4016655611576421,
+   "entropy": 0.8542981147766113,
+   "rest_fraction": 0.1213674247264862,
+   "n_instances": 11,
+   "stuff_pixels": 17464,
+   "thing_pixels": 73029
+  },
+  {
+   "step": 10,
+   "loss": 7.973415851593018,
+   "loss_instance": 6.5333147048950195,
+   "loss_rest": 1.4401010274887085,
+   "context_hard_iou_mean": 0.41047985948536375,
+   "entropy": 0.5640119910240173,
+   "rest_fraction": 0.13119283318519592,
+   "n_instances": 11,
+   "stuff_pixels": 17464,
+   "thing_pixels": 73029
+  }
+ ],
+ "conservation_error": 1.4901161193847656e-06,
+ "grad_norm_first_step": 0.16411736607551575,
+ "keys": [
+  5010,
+  5011,
+  5012,
+  5016,
+  5019,
+  6001,
+  7007,
+  8032,
+  8033,
+  20031,
+  20034
+ ]
+}

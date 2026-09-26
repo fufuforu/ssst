@@ -216,7 +216,7 @@ def fragmentation(mass_view, truth, other_truths) -> dict:
     }
 
 
-def token_oracle(model, opt, entry, *, device) -> dict:
+def token_oracle(model, opt, entry, *, device, return_masks: bool = False) -> dict:
     """Context-GT token assignment -> novel per-instance masks."""
     batch = entry["batch"]
     with torch.no_grad():
@@ -291,8 +291,12 @@ def token_oracle(model, opt, entry, *, device) -> dict:
                          "gt_area": int(truth.sum()), "context_visible": context_visible,
                          "oracle_iou": float(iou), "oracle_pred_area": pred_area})
     rest_fraction = float(assignment[:, -1].mean()) if assignment.shape[1] else 1.0
-    return {"rows": rows, "rest_fraction": rest_fraction,
-            "context_instances": len(keys_sorted)}
+    result = {"rows": rows, "rest_fraction": rest_fraction,
+              "context_instances": len(keys_sorted)}
+    if return_masks:
+        result["masks"] = rendered.detach()
+        result["keys_sorted"] = [int(k) for k in keys_sorted]
+    return result
 
 
 def resolve_branch(records_novel, oracle_rows) -> dict:

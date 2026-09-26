@@ -1,0 +1,12 @@
+{
+ "steps": 500,
+ "lr": 0.05,
+ "optimizer": "Adam",
+ "weight_decay": 0,
+ "seed": 42,
+ "loss": "L_instance(5*meanBCE+5*meanDice) + 1.0*L_rest",
+ "gates": {
+  "mask": 0.5,
+  "area": 50
+ }
+}
