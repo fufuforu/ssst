@@ -159,6 +159,15 @@ def main(argv: list[str] | None = None) -> int:
     parser.add_argument("--limit", type=int, default=None, help="Evaluate only the first N records.")
     parser.add_argument("--device", default="cuda")
     parser.add_argument(
+        "--depth-unit-scale",
+        type=float,
+        default=1.0 / 0.15,
+        help="Multiply the rendered depth by this to obtain metres.  The model lives in the "
+             "scene-scale-normalised frame (c2w translation multiplied by scene_scale=0.15), "
+             "so gsplat's expected depth is in metres*0.15 and the inverse factor is "
+             "1/0.15 = 6.6667.  Fixed constant - never fitted from GT.",
+    )
+    parser.add_argument(
         "--reconstruction-only",
         action="store_true",
         help="Reconstruction-only checkpoint: write RGB/depth only (no query branch).",
@@ -228,10 +237,33 @@ def main(argv: list[str] | None = None) -> int:
         scene = record_scene(records[index])
         context = [int(x) for x in records[index]["context_ids"]]
         target = [int(x) for x in records[index]["target_ids"]]
+        # The six frames the model actually saw, in the model's own order:
+        # [context_0, context_1, novel_0 .. novel_3].  The manifest's
+        # `target_ids` may list the second context LAST, so name every output
+        # from the real batch frame ids - never from enumerate(target_ids).
+        batch_frames = [int(x) for x in batch["frame_ids"][0]]
+        novel_ids = [int(x) for x in batch_frames[2:]]
+        if len(context) != 2 or len(target) != 6 or len(batch_frames) != 6:
+            raise RuntimeError(
+                f"record {index} ({scene}): expected 2 context + 6 target frames, got "
+                f"context={context} target={target} batch={batch_frames}")
+        if set(batch_frames) != set(target):
+            raise RuntimeError(
+                f"record {index} ({scene}): batch frames {batch_frames} != manifest "
+                f"target_ids {target}")
+        if batch_frames[:2] != context:
+            raise RuntimeError(
+                f"record {index} ({scene}): the first two batch frames {batch_frames[:2]} "
+                f"are not the manifest context {context}")
+        if sorted(novel_ids) != sorted(set(target) - set(context)):
+            raise RuntimeError(
+                f"record {index} ({scene}): novel frames {novel_ids} are not the manifest "
+                f"target_ids minus context {sorted(set(target) - set(context))}")
         scene_dir = prediction_dir / (
             f"{scene}_context" + "_".join(str(x) for x in context)
         )
-        log(f"[eval] scene {scene} context {context}")
+        log(f"[eval] scene {scene} context {context} target {target} "
+            f"batch order {batch_frames} (novel {novel_ids})")
         subdirs = ["rgb", "rgb_gt", "depth", "depth_gt"]
         if not reconstruction_only:
             subdirs += [
@@ -247,10 +279,14 @@ def main(argv: list[str] | None = None) -> int:
             semantic_pred, instance_pred, pred_info = predict_maps(class_logits, mask_prob)
             write_json(scene_dir / "context_seg_pred" / "pred.json", pred_info)
             write_json(scene_dir / "target_seg_pred" / "pred.json", pred_info)
-        for view, frame_id in enumerate(target):
+        depth_rows = []
+        for view, frame_id in enumerate(batch_frames):
             save_rgb(scene_dir / "rgb" / f"{scene}_{frame_id}.png", predicted_rgb[view])
             save_rgb(scene_dir / "rgb_gt" / f"{scene}_{frame_id}.png", batch["images_all"][0, view])
-            save_depth(scene_dir / "depth" / f"{scene}_{frame_id}.png", predicted_depth[view])
+            # rendered depth is in metres*scene_scale -> convert with the fixed
+            # constant 1/0.15 (never a per-scene / GT-fitted alignment)
+            depth_pred_m = predicted_depth[view] * float(args.depth_unit_scale)
+            save_depth(scene_dir / "depth" / f"{scene}_{frame_id}.png", depth_pred_m)
             depth_gt = np.asarray(
                 Image.open(Path(args.val_root) / scene / "depth" / f"{frame_id}.png")
             ).astype(np.float32) / 1000.0
@@ -258,6 +294,23 @@ def main(argv: list[str] | None = None) -> int:
                 scene_dir / "depth_gt" / f"{scene}_{frame_id}.png",
                 torch.from_numpy(depth_gt).unsqueeze(0),
             )
+            pred_np = depth_pred_m.detach().float().cpu().numpy().ravel()
+            gt_np = np.asarray(depth_gt, dtype=np.float32).ravel()
+            valid = gt_np > 0
+            ratio = (gt_np[valid] / np.clip(pred_np[valid], 1e-6, None)) if valid.any() else None
+            depth_rows.append({
+                "frame_id": frame_id, "view": view,
+                "kind": "context" if view < 2 else "novel",
+                "pred_depth_m_min": float(pred_np.min()),
+                "pred_depth_m_max": float(pred_np.max()),
+                "pred_depth_m_mean": float(pred_np.mean()),
+                "pred_depth_m_nonzero_frac": float((pred_np > 0).mean()),
+                "gt_depth_m_min": float(gt_np[valid].min()) if valid.any() else None,
+                "gt_depth_m_max": float(gt_np[valid].max()) if valid.any() else None,
+                "gt_depth_m_mean": float(gt_np[valid].mean()) if valid.any() else None,
+                "gt_depth_valid_frac": float(valid.mean()),
+                "gt_over_pred_median": float(np.median(ratio)) if ratio is not None else None,
+            })
             if reconstruction_only:
                 continue
             sem_gt, ins_gt = gt_maps(
@@ -286,6 +339,10 @@ def main(argv: list[str] | None = None) -> int:
             "scene": scene,
             "context_ids": context,
             "target_ids": target,
+            "batch_frame_ids": batch_frames,
+            "novel_ids": novel_ids,
+            "depth_unit_scale": float(args.depth_unit_scale),
+            "depth_rows": depth_rows,
             "rgb_sha256": sha256_tensor(predicted_rgb),
             "depth_sha256": sha256_tensor(predicted_depth),
             "all_outputs_finite": bool(
@@ -353,10 +410,16 @@ def main(argv: list[str] | None = None) -> int:
         try:
             from scripts.invoke_siu3r_official_evaluator import evaluate
 
-            result = evaluate(prediction_dir, device=str(device))
+            # Reconstruction-only prediction dirs contain no semantic/instance
+            # maps; ask the pinned evaluator for image+depth quality only so it
+            # never tries to read the missing segmentation files.
+            result = evaluate(prediction_dir, device=str(device),
+                              segmentation=not reconstruction_only)
             write_json(
                 output_dir / "official_evaluator_result.json",
-                {"official_evaluator_used": True, "result": result},
+                {"official_evaluator_used": True,
+                 "segmentation": not reconstruction_only,
+                 "result": result},
             )
             log(f"[eval] official evaluator result written to {output_dir/'official_evaluator_result.json'}")
         except Exception as error:
