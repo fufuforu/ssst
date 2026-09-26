@@ -1,0 +1,44 @@
+{
+ "jobs": {
+  "audit_runtime": 55678,
+  "reeval": 55636,
+  "A_smoke": 55641,
+  "A_train": 55646,
+  "A_eval": 55706,
+  "B2_smoke_first(failed_gate)": 55712,
+  "B2": 55713,
+  "B1_smoke": 55654,
+  "B1_export_v1": 55676,
+  "B1_finish": 55711
+ },
+ "notes": {
+  "55712": "first B2 attempt stopped by its own fail-fast smoke (probe path did not honour the flag); fixed before any training",
+  "55676": "exported recipe_v1 1860 pairs, then failed on the G0+ arm (missing --no-recipe)",
+  "55711": "G0+ export + all four official evaluations"
+ },
+ "deliverables": {
+  "implementation_audit.md": "19354ec3e65252d4d6211b95b13f87fb9ce46b87444e54520b0cef71bd36e164",
+  "report.md": "9ee42e344dfbd5ad3959e55a8f487311168157900650fb573ddc372070c9eef3",
+  "runtime_diagnostics.json": "21779af56068feec401e46fed7631b31948ea0d7c921b31274b506f48bf55cd2",
+  "reeval_comparison.json": "83d8b0766bfde2eda0d938e3c8bdfdc2541d5f9320c7b8d6c221cf661d580734",
+  "export_smoke.json": "4762324369dfe345aac6eb7befd4f9655a43c85f9824630327b43b8d30d9af05",
+  "A_smoke.json": "387dcd3a37a68d2a98b24c54367dcbcb3da5f554260029798d7b4a08cc24953b",
+  "B2_smoke.json": "eb90bbc543d8ba7cd141bee71fda2cbed8b43749e6f966259d51f29b2d9ee23e",
+  "final_table.json": "b21838a1bbffb2b66cb1a4bde0ef430a856bd3e69cacd52cdf5e3788fc8b7de9",
+  "B2_final_table.json": "3101b31901e4821d65a8ff417418b9566ed86bc52e45db1e876262b69f3d0d80",
+  "B1_official_summary.json": "129742fd6b285517bea3fbcd6d0eb77009357b2d13ef72eae54f435908bc3eaf",
+  "gate.json": "e55de077c01c81b9650147fddcb720d05ff79bdd3c3a4ebda0c5908710bd7d09",
+  "reference_numbers.json": "52e822f59b034fc0b21cbcbe57dfb0779d473cc431c24bd5047af1f50dff873f",
+  "plan_full_50000.json": null
+ },
+ "unexecuted": [
+  "50000-step full run (gate BLOCKED)",
+  "official evaluation of the A/B2 arms (out of scope this round)"
+ ],
+ "protected_checkpoints_after": {
+  "g0_step0": "6e596e80e29661b6af1cb10a32ebd9ddc266b2cd68833e21bc72a1bd70134761",
+  "g0plus_step6000": "a63dd485cc2d1b3fefb8b68786f9845ff8253cfebedd90405e73484c87243be4",
+  "recipe_v1_step6000": "39c53ce825b68a24292e84c838d836d02808526e4369bdb4483bbe934b7543ba",
+  "recipe_v2_step6000": "373cac99ab1aa95ab7118b85ea4d7ebc56befb618928cc8c74d8804054caddcb"
+ }
+}
