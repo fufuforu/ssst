@@ -1,0 +1,442 @@
+{
+ "role": "published G0+ step6000 reference for the recipe-v1 single arm",
+ "checkpoint": "workspace_group_plus/arm_g0plus/ckpt_step6000",
+ "main_metric": {
+  "implementation": "group_plus/routing_v1/fragmentation.csv (IoU1), aligned by (scene, view, key)",
+  "view_scope": "novel views 2/3 only",
+  "records": 55,
+  "best_over_groups_iou_mean": 0.18112862322947915,
+  "iou_ge_0.5_count": 3,
+  "buckets": {
+   "small_lt3000": [
+    0,
+    20
+   ],
+   "large_ge3000": [
+    3,
+    35
+   ]
+  }
+ },
+ "gt_free": {
+  "view_scope": "novel views 2/3 only",
+  "records": 55,
+  "tp": 3,
+  "fp": 71,
+  "fn": 52,
+  "ap50": 0.1375,
+  "crosscheck_all_four_views": {
+   "records": 110,
+   "tp": 6,
+   "fp": 140,
+   "fn": 104,
+   "ap50": 0.0984,
+   "note": "published; never mixed with the 55-record numbers"
+  }
+ },
+ "gate": {
+  "novel_psnr": 19.157370567321777,
+  "novel_ssim": 0.6597932651638985,
+  "ctx_psnr": 19.62238836288452
+ },
+ "acceptance": {
+  "mask": {
+   "best_over_groups_iou_mean_min": 0.23112862322947914,
+   "iou_ge_0.5_count_min": 6
+  },
+  "gt_free": {
+   "tp_min": 6,
+   "ap50_min": 0.1675
+  },
+  "gate": {
+   "novel_psnr_min": 18.957370567321778
+  }
+ },
+ "records": [
+  {
+   "scene": "scene0059_00",
+   "view": 2,
+   "key": 5010,
+   "gt_area": 5909,
+   "iou1": 0.0660548379786993
+  },
+  {
+   "scene": "scene0059_00",
+   "view": 2,
+   "key": 5011,
+   "gt_area": 3767,
+   "iou1": 0.0
+  },
+  {
+   "scene": "scene0059_00",
+   "view": 2,
+   "key": 5016,
+   "gt_area": 406,
+   "iou1": 0.0
+  },
+  {
+   "scene": "scene0059_00",
+   "view": 2,
+   "key": 5019,
+   "gt_area": 1985,
+   "iou1": 0.24391640423704553
+  },
+  {
+   "scene": "scene0059_00",
+   "view": 2,
+   "key": 6001,
+   "gt_area": 11279,
+   "iou1": 0.21848462362931817
+  },
+  {
+   "scene": "scene0059_00",
+   "view": 2,
+   "key": 7007,
+   "gt_area": 10096,
+   "iou1": 0.21799333043352181
+  },
+  {
+   "scene": "scene0059_00",
+   "view": 2,
+   "key": 8032,
+   "gt_area": 1933,
+   "iou1": 0.18942849476790985
+  },
+  {
+   "scene": "scene0059_00",
+   "view": 2,
+   "key": 8033,
+   "gt_area": 423,
+   "iou1": 0.09516672911202698
+  },
+  {
+   "scene": "scene0059_00",
+   "view": 2,
+   "key": 20034,
+   "gt_area": 7,
+   "iou1": 0.0
+  },
+  {
+   "scene": "scene0059_00",
+   "view": 3,
+   "key": 5010,
+   "gt_area": 4668,
+   "iou1": 0.0
+  },
+  {
+   "scene": "scene0059_00",
+   "view": 3,
+   "key": 5011,
+   "gt_area": 3660,
+   "iou1": 0.0
+  },
+  {
+   "scene": "scene0059_00",
+   "view": 3,
+   "key": 5016,
+   "gt_area": 245,
+   "iou1": 0.0
+  },
+  {
+   "scene": "scene0059_00",
+   "view": 3,
+   "key": 5019,
+   "gt_area": 1892,
+   "iou1": 0.21846571622539035
+  },
+  {
+   "scene": "scene0059_00",
+   "view": 3,
+   "key": 6001,
+   "gt_area": 9573,
+   "iou1": 0.08619880689054227
+  },
+  {
+   "scene": "scene0059_00",
+   "view": 3,
+   "key": 7007,
+   "gt_area": 11864,
+   "iou1": 0.17385377942998761
+  },
+  {
+   "scene": "scene0059_00",
+   "view": 3,
+   "key": 8032,
+   "gt_area": 2079,
+   "iou1": 0.19480209823557462
+  },
+  {
+   "scene": "scene0059_00",
+   "view": 3,
+   "key": 8033,
+   "gt_area": 396,
+   "iou1": 0.07147456535737283
+  },
+  {
+   "scene": "scene0059_00",
+   "view": 3,
+   "key": 20031,
+   "gt_area": 177,
+   "iou1": 0.13982011447260834
+  },
+  {
+   "scene": "scene0059_00",
+   "view": 3,
+   "key": 20034,
+   "gt_area": 1499,
+   "iou1": 0.056903559551668925
+  },
+  {
+   "scene": "scene0072_02",
+   "view": 2,
+   "key": 8022,
+   "gt_area": 4943,
+   "iou1": 0.17730966992867805
+  },
+  {
+   "scene": "scene0072_02",
+   "view": 2,
+   "key": 20031,
+   "gt_area": 15045,
+   "iou1": 0.3097064709806538
+  },
+  {
+   "scene": "scene0072_02",
+   "view": 3,
+   "key": 8022,
+   "gt_area": 3211,
+   "iou1": 0.21627573001436093
+  },
+  {
+   "scene": "scene0072_02",
+   "view": 3,
+   "key": 20031,
+   "gt_area": 11436,
+   "iou1": 0.3047154248006599
+  },
+  {
+   "scene": "scene0132_01",
+   "view": 2,
+   "key": 5015,
+   "gt_area": 5335,
+   "iou1": 0.0
+  },
+  {
+   "scene": "scene0132_01",
+   "view": 2,
+   "key": 5016,
+   "gt_area": 7821,
+   "iou1": 0.23049127927176707
+  },
+  {
+   "scene": "scene0132_01",
+   "view": 2,
+   "key": 5017,
+   "gt_area": 127,
+   "iou1": 0.0
+  },
+  {
+   "scene": "scene0132_01",
+   "view": 2,
+   "key": 6013,
+   "gt_area": 3606,
+   "iou1": 0.12056737588652482
+  },
+  {
+   "scene": "scene0132_01",
+   "view": 2,
+   "key": 7012,
+   "gt_area": 27651,
+   "iou1": 0.267303428279038
+  },
+  {
+   "scene": "scene0132_01",
+   "view": 3,
+   "key": 5015,
+   "gt_area": 3403,
+   "iou1": 0.0
+  },
+  {
+   "scene": "scene0132_01",
+   "view": 3,
+   "key": 5016,
+   "gt_area": 6387,
+   "iou1": 0.24709825077652445
+  },
+  {
+   "scene": "scene0132_01",
+   "view": 3,
+   "key": 5017,
+   "gt_area": 1374,
+   "iou1": 0.03586614901090775
+  },
+  {
+   "scene": "scene0132_01",
+   "view": 3,
+   "key": 6013,
+   "gt_area": 1047,
+   "iou1": 0.01334668001334668
+  },
+  {
+   "scene": "scene0132_01",
+   "view": 3,
+   "key": 7012,
+   "gt_area": 24077,
+   "iou1": 0.2743849602531741
+  },
+  {
+   "scene": "scene0472_01",
+   "view": 2,
+   "key": 4004,
+   "gt_area": 22277,
+   "iou1": 0.5637488947833775
+  },
+  {
+   "scene": "scene0472_01",
+   "view": 3,
+   "key": 4004,
+   "gt_area": 31642,
+   "iou1": 0.5401344883988611
+  },
+  {
+   "scene": "scene0559_01",
+   "view": 2,
+   "key": 6002,
+   "gt_area": 17059,
+   "iou1": 0.5526607246453246
+  },
+  {
+   "scene": "scene0559_01",
+   "view": 2,
+   "key": 6003,
+   "gt_area": 3378,
+   "iou1": 0.13199413742564015
+  },
+  {
+   "scene": "scene0559_01",
+   "view": 2,
+   "key": 7015,
+   "gt_area": 731,
+   "iou1": 0.07495898277276457
+  },
+  {
+   "scene": "scene0559_01",
+   "view": 2,
+   "key": 8013,
+   "gt_area": 17387,
+   "iou1": 0.2880366342301088
+  },
+  {
+   "scene": "scene0559_01",
+   "view": 2,
+   "key": 20009,
+   "gt_area": 2954,
+   "iou1": 0.09356879283078545
+  },
+  {
+   "scene": "scene0559_01",
+   "view": 3,
+   "key": 6002,
+   "gt_area": 27443,
+   "iou1": 0.4806740052010972
+  },
+  {
+   "scene": "scene0559_01",
+   "view": 3,
+   "key": 6003,
+   "gt_area": 4609,
+   "iou1": 0.21514368253002888
+  },
+  {
+   "scene": "scene0559_01",
+   "view": 3,
+   "key": 7015,
+   "gt_area": 986,
+   "iou1": 0.11056290648127383
+  },
+  {
+   "scene": "scene0559_01",
+   "view": 3,
+   "key": 8013,
+   "gt_area": 5792,
+   "iou1": 0.14745087261234024
+  },
+  {
+   "scene": "scene0559_01",
+   "view": 3,
+   "key": 20009,
+   "gt_area": 3799,
+   "iou1": 0.23296137339055795
+  },
+  {
+   "scene": "scene0568_02",
+   "view": 2,
+   "key": 6006,
+   "gt_area": 34911,
+   "iou1": 0.2553888208661978
+  },
+  {
+   "scene": "scene0568_02",
+   "view": 3,
+   "key": 6006,
+   "gt_area": 34354,
+   "iou1": 0.24724832959050708
+  },
+  {
+   "scene": "scene0615_00",
+   "view": 2,
+   "key": 5021,
+   "gt_area": 8561,
+   "iou1": 0.30140022161781
+  },
+  {
+   "scene": "scene0615_00",
+   "view": 2,
+   "key": 8001,
+   "gt_area": 1682,
+   "iou1": 0.14698063045955184
+  },
+  {
+   "scene": "scene0615_00",
+   "view": 2,
+   "key": 13012,
+   "gt_area": 17859,
+   "iou1": 0.3117128114076458
+  },
+  {
+   "scene": "scene0615_00",
+   "view": 3,
+   "key": 5021,
+   "gt_area": 8470,
+   "iou1": 0.3050430504305043
+  },
+  {
+   "scene": "scene0615_00",
+   "view": 3,
+   "key": 8001,
+   "gt_area": 1815,
+   "iou1": 0.11668504226387358
+  },
+  {
+   "scene": "scene0615_00",
+   "view": 3,
+   "key": 13012,
+   "gt_area": 17432,
+   "iou1": 0.32343440068007934
+  },
+  {
+   "scene": "scene0695_00",
+   "view": 2,
+   "key": 20017,
+   "gt_area": 4571,
+   "iou1": 0.3176547801356377
+  },
+  {
+   "scene": "scene0695_00",
+   "view": 3,
+   "key": 20017,
+   "gt_area": 622,
+   "iou1": 0.035002215330084185
+  }
+ ]
+}

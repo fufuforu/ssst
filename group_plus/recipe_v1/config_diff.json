@@ -1,0 +1,73 @@
+{
+ "role": "recipe v1 single arm vs the published G0+ reference (all four changes together; no single-item attribution allowed)",
+ "reference_arm": {
+  "name": "G0+",
+  "checkpoint": "workspace_group_plus/arm_g0plus/ckpt_step6000",
+  "recipe": false,
+  "background_supervision": true
+ },
+ "recipe_arm": {
+  "name": "recipe_v1",
+  "out_dir": "workspace_group_plus/recipe_v1/run",
+  "cold_start": "workspace_group_locusgs/arm_g0/ckpt_step0",
+  "new_module_seed": 1743
+ },
+ "changes": {
+  "1_deep_group_decoder": {
+   "option": "group_recipe=True",
+   "module": "GroupQueryHead.deep = DeepGroupDecoder(4 layers, width 1024, 8 heads, MLP hidden 2048, GELU, dropout 0)",
+   "params_added": 50403328,
+   "order": "LN(q)->query self-attn->residual; LN(q)->cross-attn(token features incl. spatial encoding)->residual; LN(q)->Linear(1024,2048)->GELU->Linear(2048,1024)->residual; final LayerNorm",
+   "replaces": "the single cross-attention + MLP query path in the recipe forward only; old parameters stay registered for strict loading of old checkpoints"
+  },
+  "2_segmentation_weight_and_ramp": {
+   "instance_outer_weight": {
+    "recipe": 0.1,
+    "g0plus": 0.05
+   },
+   "instance_ramp": {
+    "recipe": "min(1, step/1500)",
+    "g0plus": "min(1, step/2000)"
+   },
+   "semantic": {
+    "weight": 0.05,
+    "ramp": "min(1, step/2000)",
+    "note": "unchanged; the two coefficients were split"
+   },
+   "reconstruction_layers_and_lr": "unchanged"
+  },
+  "3_fixed_void": {
+   "slot_101_logit": "fixed 0 (softmax over 101 columns), learnable shared background_bias not used in the recipe forward",
+   "background_pixel_supervision": {
+    "recipe": false,
+    "g0plus": true
+   },
+   "old_bias": "kept in the model and optimizer groups for checkpoint compatibility, expected gradient None",
+   "class_head": "21-way class/no-object definition unchanged"
+  },
+  "4_token_assignment_ce": {
+   "targets": "context frames only, from the verified routing_v2 per-token contribution statistics (alpha>0.5, valid annotation; thing -> its matched query column via the current Hungarian pairing, stuff -> column 101; 255/invalid/no-id/unmatched instances ignored)",
+   "form": "seg_ramp * assign_coef * CE_balanced (0.5*mean thing tokens + 0.5*mean rest-only tokens)",
+   "assign_coef": 0.2,
+   "assign_coef_rule": "median of four no-update gradient ratios (aux/main) = 0.0250 < 0.05 -> 0.2 (else 0.02)",
+   "assign_every": 1,
+   "assign_every_rule": "timing smoke median ratio with/without target computation = 1.2677 <= 1.5 -> recompute every step"
+  }
+ },
+ "unchanged": {
+  "plan_sha256": "a2a65c1382da0307a68fb6d27e5c1345aa78b46331acb2927e88b47a3c3d08bb",
+  "data": "processed ScanNet, 32 train / 8 unseen, 2 context + 2 novel",
+  "fp32": true,
+  "seed": 42,
+  "optimizer": "AdamW betas (0.9,0.95), grad clip 1.0, lr 1e-4, warmup 2000, cosine to 2% over 6000",
+  "optimizer_groups": "existing two groups preserved and extended: new 2-D weights -> wd 0.05 group, new 1-D/bias -> no-decay group (same lr)",
+  "hungarian_matching": "unchanged",
+  "mask_bce_dice_sampling": "unchanged (4096 points)",
+  "gt_free_thresholds": "unchanged (P(thing)>=0.5, thing class, mask>0.5, area>=50)"
+ },
+ "preflight": {
+  "path": "group_plus/recipe_v1/preflight.json",
+  "checks_passed": true,
+  "smoke_measurement_note": "the literal smoke criterion is measured with both ramps frozen at the step-1 value, because at steps 1..20 the pre-registered ramps are still rising and a step-0 (ramp=0) reference cannot be matched; both numbers are recorded in the preflight manifest"
+ }
+}

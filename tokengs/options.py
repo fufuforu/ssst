@@ -253,6 +253,16 @@ class Options:
     # rendered background slot on the two context views (stuff -> 1, thing -> 0).
     group_bg_supervision: bool = False
     group_bg_loss_weight: float = 1.0
+    # --- recipe v1 (default off): four modifications applied together --------
+    # (1) four-layer group decoder, (2) segmentation outer weight with its own
+    # 1..1500 ramp, (3) fixed zero void logit instead of the learnable shared
+    # background_bias (and no background pixel supervision), (4) token-assignment
+    # auxiliary CE with a mechanically chosen inner coefficient / frequency.
+    group_recipe: bool = False
+    group_recipe_seg_weight: float = 0.1
+    group_recipe_seg_ramp_steps: int = 1500
+    group_recipe_assign_coef: float = 0.02
+    group_recipe_assign_every: int = 1
     # --- joint one-stage loss curriculum and spatial regularization ---
     understanding_warmup_steps: int = 2000
     understanding_start_weight: float = 0.1

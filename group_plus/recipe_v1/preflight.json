@@ -1,0 +1,205 @@
+{
+ "checks": {
+  "losses_finite": true,
+  "grads_finite": true,
+  "loss_dropped_within_20": true,
+  "old_params_received_grad": true,
+  "old_params_updated": true,
+  "new_decoder_updated": true,
+  "alpha_conservation_le_2e-6": true,
+  "assignment_rows_sum_ok": true,
+  "fixed_void_is_zero": true,
+  "passed": true
+ },
+ "new_decoder_parameters": 50403328,
+ "gradient_probe": {
+  "windows": [
+   {
+    "scene": "scene0000_02",
+    "context": [
+     5238,
+     5255
+    ],
+    "novel": [
+     5239,
+     5250
+    ],
+    "main_grad_norm": 0.0020326819311851604,
+    "aux_grad_norm": 4.465553036596821e-05,
+    "ratio": 0.021968774199676036,
+    "seg_ramp": 0.0006666666666666666,
+    "instance_loss": 11.636913299560547,
+    "assign_ce": 4.705849647521973,
+    "assign_thing_tokens": 11,
+    "assign_rest_tokens": 24,
+    "assign_dropped_tokens": 989,
+    "assign_target_row_sum_error": 5.960464477539063e-08,
+    "assign_argmax_agreement": 0.0,
+    "main_weight": 6.666666666666667e-05,
+    "aux_weight": 1.3333333333333333e-05
+   },
+   {
+    "scene": "scene0012_01",
+    "context": [
+     1127,
+     1157
+    ],
+    "novel": [
+     1132,
+     1135
+    ],
+    "main_grad_norm": 0.001677996814282274,
+    "aux_grad_norm": 7.874999669902754e-05,
+    "ratio": 0.04693095721561969,
+    "seg_ramp": 0.0006666666666666666,
+    "instance_loss": 13.664710998535156,
+    "assign_ce": 4.712698459625244,
+    "assign_thing_tokens": 24,
+    "assign_rest_tokens": 2,
+    "assign_dropped_tokens": 998,
+    "assign_target_row_sum_error": 1.1920928955078125e-07,
+    "assign_argmax_agreement": 0.0,
+    "main_weight": 6.666666666666667e-05,
+    "aux_weight": 1.3333333333333333e-05
+   },
+   {
+    "scene": "scene0009_02",
+    "context": [
+     209,
+     253
+    ],
+    "novel": [
+     215,
+     247
+    ],
+    "main_grad_norm": 0.0016389924474359031,
+    "aux_grad_norm": 4.5957715951269604e-05,
+    "ratio": 0.028040224360501145,
+    "seg_ramp": 0.0006666666666666666,
+    "instance_loss": 11.286087989807129,
+    "assign_ce": 4.730813980102539,
+    "assign_thing_tokens": 18,
+    "assign_rest_tokens": 11,
+    "assign_dropped_tokens": 995,
+    "assign_target_row_sum_error": 5.960464477539063e-08,
+    "assign_argmax_agreement": 0.0,
+    "main_weight": 6.666666666666667e-05,
+    "aux_weight": 1.3333333333333333e-05
+   },
+   {
+    "scene": "scene0006_01",
+    "context": [
+     1728,
+     1739
+    ],
+    "novel": [
+     1729,
+     1730
+    ],
+    "main_grad_norm": 0.0020282551788683373,
+    "aux_grad_norm": 2.204426815802632e-05,
+    "ratio": 0.010868587142139528,
+    "seg_ramp": 0.0006666666666666666,
+    "instance_loss": 16.188995361328125,
+    "assign_ce": 2.320617437362671,
+    "assign_thing_tokens": 23,
+    "assign_rest_tokens": 0,
+    "assign_dropped_tokens": 1001,
+    "assign_target_row_sum_error": 1.1920928955078125e-07,
+    "assign_argmax_agreement": 0.043478261679410934,
+    "main_weight": 6.666666666666667e-05,
+    "aux_weight": 1.3333333333333333e-05
+   }
+  ],
+  "median_ratio": 0.02500449928008859,
+  "rule": "coef = 0.2 if median < 0.05 else 0.02",
+  "chosen_assign_coef": 0.2
+ },
+ "timing_smoke": {
+  "without_target_seconds": [
+   0.595644474029541,
+   0.3023841381072998,
+   0.28424763679504395,
+   0.30659937858581543,
+   0.2990994453430176,
+   0.30009984970092773,
+   0.2905118465423584,
+   0.28870081901550293,
+   0.306194543838501,
+   0.30890583992004395
+  ],
+  "with_target_seconds": [
+   0.47116994857788086,
+   0.377133846282959,
+   0.35091280937194824,
+   0.3905904293060303,
+   0.3804435729980469,
+   0.3859877586364746,
+   0.3564772605895996,
+   0.359375,
+   0.38695192337036133,
+   0.39468884468078613
+  ],
+  "median_ratio": 1.2677233040176052,
+  "rule": "every step if ratio <= 1.5 else every 100 steps",
+  "chosen_assign_every": 1
+ },
+ "training_smoke": {
+  "initial_loss": 0.21897484362125397,
+  "initial_loss_with_ramps_zero": 0.21747174859046936,
+  "weights_fixed_at_step1_ramp": 0.0006666666666666666,
+  "losses": [
+   0.21897484362125397,
+   0.2189711630344391,
+   0.21896374225616455,
+   0.22274330258369446,
+   0.2189481258392334,
+   0.2189297378063202,
+   0.2189127653837204,
+   0.21888698637485504,
+   0.21952182054519653,
+   0.21880404651165009,
+   0.21881310641765594,
+   0.21878798305988312,
+   0.22257395088672638,
+   0.21869130432605743,
+   0.21865041553974152,
+   0.21863147616386414,
+   0.21859370172023773,
+   0.21855242550373077,
+   0.2185177057981491,
+   0.21840259432792664
+  ],
+  "grad_norms": [
+   4.697219371795654,
+   4.696464538574219,
+   4.696288108825684,
+   4.721511363983154,
+   4.695669174194336,
+   4.69492244720459,
+   4.6941022872924805,
+   4.69273567199707,
+   4.694751739501953,
+   4.690323352813721,
+   4.688669681549072,
+   4.687402248382568,
+   4.715154647827148,
+   4.681701183319092,
+   4.6763505935668945,
+   4.671336650848389,
+   4.666037082672119,
+   4.661031723022461,
+   4.649286270141602,
+   4.641215801239014
+  ],
+  "old_param_max_update": 1.0719650163082406e-05,
+  "new_decoder_max_update": 1.049041748046875e-05,
+  "alpha_conservation_error": 1.1324882507324219e-06,
+  "assign_ce": 4.613613128662109,
+  "assign_argmax_agreement": 0.0
+ },
+ "chosen": {
+  "assign_coef": 0.2,
+  "assign_every": 1
+ }
+}
