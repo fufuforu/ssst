@@ -1,0 +1,4685 @@
+{
+ "scope": "read-only counterfactual renormalising the 101-way assignment over the 100 groups (background mass = 0); no training, no checkpoint write",
+ "checkpoints": {
+  "g0plus_step6000": {
+   "path": "workspace_group_plus/arm_g0plus/ckpt_step6000/model.pt",
+   "sha256": "a63dd485cc2d1b3fefb8b68786f9845ff8253cfebedd90405e73484c87243be4",
+   "mtime": 1790353194.0
+  },
+  "g0_step6000": {
+   "path": "workspace_group_locusgs/arm_g0/ckpt_step6000/model.pt",
+   "sha256": "dbe5ea8311b466e61f2d2ab80f4b953ec39f0ab3ea9b3ffd63fbd976dc826332",
+   "mtime": 1790344454.0
+  }
+ },
+ "counterfactual_rule": "A_cf[t,:100] = softmax(slot_logits[t,:100]); A_cf[t,bg] = 0; equivalent to A[t,q]/sum_j A[t,j]",
+ "instances": {
+  "18009": {
+   "scene": "scene0009_00",
+   "bucket": "mid",
+   "role": "failure",
+   "context": [
+    879,
+    941
+   ],
+   "novel": [
+    911,
+    928
+   ],
+   "provenance": "proven_trained_window",
+   "rows": [
+    {
+     "view": 0,
+     "kind": "context",
+     "gt_thing_area": 6621,
+     "gt_stuff_area": 42417,
+     "original_conservation_error": 1.4901161193847656e-06,
+     "original_background_mass_in_gt_thing": 0.19453772902488708,
+     "original_group_mass_in_gt_thing": 0.7990031242370605,
+     "original_background_mass_in_gt_stuff": 0.5382260680198669,
+     "original_group_mass_in_gt_stuff": 0.4596753716468811,
+     "original_best_iou": 0.357412469087596,
+     "original_best_group": 22,
+     "original_best_pred_area": 3808,
+     "original_best_gt_area": 6621,
+     "original_best_precision": 0.7211134453781513,
+     "original_best_recall": 0.4147409756834315,
+     "original_best_soft_dice": 0.5449634790420532,
+     "original_n_gt_free_predictions": 5,
+     "original_gt_free_detected": false,
+     "original_gt_free_fp": 5,
+     "counterfactual_conservation_error": 1.4901161193847656e-06,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.9935407638549805,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.997901439666748,
+     "counterfactual_best_iou": 0.34173980668814574,
+     "counterfactual_best_group": 22,
+     "counterfactual_best_pred_area": 5456,
+     "counterfactual_best_gt_area": 6621,
+     "counterfactual_best_precision": 0.5637829912023461,
+     "counterfactual_best_recall": 0.46458238936716506,
+     "counterfactual_best_soft_dice": 0.5513961911201477,
+     "counterfactual_n_gt_free_predictions": 7,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 7
+    },
+    {
+     "view": 1,
+     "kind": "context",
+     "gt_thing_area": 6895,
+     "gt_stuff_area": 38079,
+     "original_conservation_error": 1.3709068298339844e-06,
+     "original_background_mass_in_gt_thing": 0.25229835510253906,
+     "original_group_mass_in_gt_thing": 0.6742215752601624,
+     "original_background_mass_in_gt_stuff": 0.544426441192627,
+     "original_group_mass_in_gt_stuff": 0.4367125332355499,
+     "original_best_iou": 0.15268564091589984,
+     "original_best_group": 14,
+     "original_best_pred_area": 3878,
+     "original_best_gt_area": 6895,
+     "original_best_precision": 0.36797318205260443,
+     "original_best_recall": 0.2069615663524293,
+     "original_best_soft_dice": 0.6504859924316406,
+     "original_n_gt_free_predictions": 4,
+     "original_gt_free_detected": false,
+     "original_gt_free_fp": 4,
+     "counterfactual_conservation_error": 1.2516975402832031e-06,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.9265199303627014,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.9811389446258545,
+     "counterfactual_best_iou": 0.24633451462719755,
+     "counterfactual_best_group": 14,
+     "counterfactual_best_pred_area": 11041,
+     "counterfactual_best_gt_area": 6895,
+     "counterfactual_best_precision": 0.3210759894937053,
+     "counterfactual_best_recall": 0.514140681653372,
+     "counterfactual_best_soft_dice": 0.6364908218383789,
+     "counterfactual_n_gt_free_predictions": 5,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 5
+    },
+    {
+     "view": 2,
+     "kind": "novel",
+     "gt_thing_area": 323,
+     "gt_stuff_area": 50834,
+     "original_conservation_error": 1.4901161193847656e-06,
+     "original_background_mass_in_gt_thing": 0.3034723699092865,
+     "original_group_mass_in_gt_thing": 0.6707573533058167,
+     "original_background_mass_in_gt_stuff": 0.49478891491889954,
+     "original_group_mass_in_gt_stuff": 0.5027939677238464,
+     "original_best_iou": 0.023681377825618945,
+     "original_best_group": 22,
+     "original_best_pred_area": 4432,
+     "original_best_gt_area": 323,
+     "original_best_precision": 0.024819494584837544,
+     "original_best_recall": 0.34055727554179566,
+     "original_best_soft_dice": 0.9581232666969299,
+     "original_n_gt_free_predictions": 5,
+     "original_gt_free_detected": false,
+     "original_gt_free_fp": 5,
+     "counterfactual_conservation_error": 1.3709068298339844e-06,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.9742295742034912,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.9975827932357788,
+     "counterfactual_best_iou": 0.019478527607361962,
+     "counterfactual_best_group": 22,
+     "counterfactual_best_pred_area": 6324,
+     "counterfactual_best_gt_area": 323,
+     "counterfactual_best_precision": 0.02008222643896268,
+     "counterfactual_best_recall": 0.3931888544891641,
+     "counterfactual_best_soft_dice": 0.9643563032150269,
+     "counterfactual_n_gt_free_predictions": 7,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 7
+    },
+    {
+     "view": 3,
+     "kind": "novel",
+     "gt_thing_area": 1504,
+     "gt_stuff_area": 47791,
+     "original_conservation_error": 1.5497207641601562e-06,
+     "original_background_mass_in_gt_thing": 0.22771818935871124,
+     "original_group_mass_in_gt_thing": 0.756385862827301,
+     "original_background_mass_in_gt_stuff": 0.4576917886734009,
+     "original_group_mass_in_gt_stuff": 0.5306849479675293,
+     "original_best_iou": 0.034564254062038405,
+     "original_best_group": 22,
+     "original_best_pred_area": 5500,
+     "original_best_gt_area": 1504,
+     "original_best_precision": 0.042545454545454546,
+     "original_best_recall": 0.15558510638297873,
+     "original_best_soft_dice": 0.8862681984901428,
+     "original_n_gt_free_predictions": 5,
+     "original_gt_free_detected": false,
+     "original_gt_free_fp": 5,
+     "counterfactual_conservation_error": 1.3709068298339844e-06,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.9841040968894958,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.988376796245575,
+     "counterfactual_best_iou": 0.10122844318450272,
+     "counterfactual_best_group": 14,
+     "counterfactual_best_pred_area": 7819,
+     "counterfactual_best_gt_area": 1504,
+     "counterfactual_best_precision": 0.10960480879907916,
+     "counterfactual_best_recall": 0.569813829787234,
+     "counterfactual_best_soft_dice": 0.8316034078598022,
+     "counterfactual_n_gt_free_predictions": 6,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 6
+    }
+   ]
+  },
+  "8017": {
+   "scene": "scene0012_01",
+   "bucket": "mid",
+   "role": "failure",
+   "context": [
+    2943,
+    2967
+   ],
+   "novel": [
+    2950,
+    2965
+   ],
+   "provenance": "proven_trained_window",
+   "rows": [
+    {
+     "view": 0,
+     "kind": "context",
+     "gt_thing_area": 9783,
+     "gt_stuff_area": 11800,
+     "original_conservation_error": 1.1920928955078125e-06,
+     "original_background_mass_in_gt_thing": 0.17538316547870636,
+     "original_group_mass_in_gt_thing": 0.8233895897865295,
+     "original_background_mass_in_gt_stuff": 0.5049222707748413,
+     "original_group_mass_in_gt_stuff": 0.49489593505859375,
+     "original_best_iou": 0.6656462259638382,
+     "original_best_group": 90,
+     "original_best_pred_area": 7628,
+     "original_best_gt_area": 9783,
+     "original_best_precision": 0.9121657052962768,
+     "original_best_recall": 0.7112337728713074,
+     "original_best_soft_dice": 0.28739386796951294,
+     "original_n_gt_free_predictions": 5,
+     "original_gt_free_detected": true,
+     "original_gt_free_fp": 4,
+     "counterfactual_conservation_error": 1.3709068298339844e-06,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.9987727999687195,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.9998182058334351,
+     "counterfactual_best_iou": 0.7321458578390186,
+     "counterfactual_best_group": 90,
+     "counterfactual_best_pred_area": 10833,
+     "counterfactual_best_gt_area": 9783,
+     "counterfactual_best_precision": 0.8043939813532724,
+     "counterfactual_best_recall": 0.8907288152918328,
+     "counterfactual_best_soft_dice": 0.2312988042831421,
+     "counterfactual_n_gt_free_predictions": 6,
+     "counterfactual_gt_free_detected": true,
+     "counterfactual_gt_free_fp": 5
+    },
+    {
+     "view": 1,
+     "kind": "context",
+     "gt_thing_area": 1770,
+     "gt_stuff_area": 3692,
+     "original_conservation_error": 1.4901161193847656e-06,
+     "original_background_mass_in_gt_thing": 0.09977611899375916,
+     "original_group_mass_in_gt_thing": 0.9001185297966003,
+     "original_background_mass_in_gt_stuff": 0.26738110184669495,
+     "original_group_mass_in_gt_stuff": 0.6831700801849365,
+     "original_best_iou": 0.550561797752809,
+     "original_best_group": 90,
+     "original_best_pred_area": 3198,
+     "original_best_gt_area": 1770,
+     "original_best_precision": 0.551594746716698,
+     "original_best_recall": 0.9966101694915255,
+     "original_best_soft_dice": 0.1836848258972168,
+     "original_n_gt_free_predictions": 6,
+     "original_gt_free_detected": true,
+     "original_gt_free_fp": 5,
+     "counterfactual_conservation_error": 1.3709068298339844e-06,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.9998946785926819,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.9505512118339539,
+     "counterfactual_best_iou": 0.45701006971340047,
+     "counterfactual_best_group": 90,
+     "counterfactual_best_pred_area": 3873,
+     "counterfactual_best_gt_area": 1770,
+     "counterfactual_best_precision": 0.45701006971340047,
+     "counterfactual_best_recall": 1.0,
+     "counterfactual_best_soft_dice": 0.1410878300666809,
+     "counterfactual_n_gt_free_predictions": 6,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 6
+    },
+    {
+     "view": 2,
+     "kind": "novel",
+     "gt_thing_area": 7755,
+     "gt_stuff_area": 8757,
+     "original_conservation_error": 1.1920928955078125e-06,
+     "original_background_mass_in_gt_thing": 0.16951416432857513,
+     "original_group_mass_in_gt_thing": 0.8293834328651428,
+     "original_background_mass_in_gt_stuff": 0.44860273599624634,
+     "original_group_mass_in_gt_stuff": 0.549390971660614,
+     "original_best_iou": 0.6326707000864304,
+     "original_best_group": 90,
+     "original_best_pred_area": 5468,
+     "original_best_gt_area": 7755,
+     "original_best_precision": 0.9370885149963424,
+     "original_best_recall": 0.6607350096711799,
+     "original_best_soft_dice": 0.29191774129867554,
+     "original_n_gt_free_predictions": 6,
+     "original_gt_free_detected": true,
+     "original_gt_free_fp": 5,
+     "counterfactual_conservation_error": 1.1324882507324219e-06,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.9988976120948792,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.9979937076568604,
+     "counterfactual_best_iou": 0.7364740944520862,
+     "counterfactual_best_group": 90,
+     "counterfactual_best_pred_area": 7394,
+     "counterfactual_best_gt_area": 7755,
+     "counterfactual_best_precision": 0.8689477955098729,
+     "counterfactual_best_recall": 0.8284977433913604,
+     "counterfactual_best_soft_dice": 0.22132784128189087,
+     "counterfactual_n_gt_free_predictions": 6,
+     "counterfactual_gt_free_detected": true,
+     "counterfactual_gt_free_fp": 5
+    },
+    {
+     "view": 3,
+     "kind": "novel",
+     "gt_thing_area": 1497,
+     "gt_stuff_area": 4497,
+     "original_conservation_error": 1.2516975402832031e-06,
+     "original_background_mass_in_gt_thing": 0.11221485584974289,
+     "original_group_mass_in_gt_thing": 0.8876797556877136,
+     "original_background_mass_in_gt_stuff": 0.3137649595737457,
+     "original_group_mass_in_gt_stuff": 0.6470869779586792,
+     "original_best_iou": 0.5227272727272727,
+     "original_best_group": 90,
+     "original_best_pred_area": 2791,
+     "original_best_gt_area": 1497,
+     "original_best_precision": 0.5274095306341813,
+     "original_best_recall": 0.9832999331997327,
+     "original_best_soft_dice": 0.18387198448181152,
+     "original_n_gt_free_predictions": 6,
+     "original_gt_free_detected": true,
+     "original_gt_free_fp": 5,
+     "counterfactual_conservation_error": 1.2516975402832031e-06,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.9998945593833923,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.9608519673347473,
+     "counterfactual_best_iou": 0.44954954954954957,
+     "counterfactual_best_group": 90,
+     "counterfactual_best_pred_area": 3330,
+     "counterfactual_best_gt_area": 1497,
+     "counterfactual_best_precision": 0.44954954954954957,
+     "counterfactual_best_recall": 1.0,
+     "counterfactual_best_soft_dice": 0.13577264547348022,
+     "counterfactual_n_gt_free_predictions": 6,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 6
+    }
+   ]
+  },
+  "8001": {
+   "scene": "scene0012_01",
+   "bucket": "mid",
+   "role": "failure",
+   "context": [
+    2943,
+    2967
+   ],
+   "novel": [
+    2950,
+    2965
+   ],
+   "provenance": "proven_trained_window",
+   "rows": [
+    {
+     "view": 0,
+     "kind": "context",
+     "gt_thing_area": 3665,
+     "gt_stuff_area": 11800,
+     "original_conservation_error": 1.1920928955078125e-06,
+     "original_background_mass_in_gt_thing": 0.08646555989980698,
+     "original_group_mass_in_gt_thing": 0.9134292602539062,
+     "original_background_mass_in_gt_stuff": 0.5049222707748413,
+     "original_group_mass_in_gt_stuff": 0.49489593505859375,
+     "original_best_iou": 0.048014605203103605,
+     "original_best_group": 65,
+     "original_best_pred_area": 7816,
+     "original_best_gt_area": 3665,
+     "original_best_precision": 0.0672978505629478,
+     "original_best_recall": 0.14351978171896315,
+     "original_best_soft_dice": 0.7698838114738464,
+     "original_n_gt_free_predictions": 5,
+     "original_gt_free_detected": false,
+     "original_gt_free_fp": 5,
+     "counterfactual_conservation_error": 1.3709068298339844e-06,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.9998947381973267,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.9998182058334351,
+     "counterfactual_best_iou": 0.06369280294320534,
+     "counterfactual_best_group": 65,
+     "counterfactual_best_pred_area": 10213,
+     "counterfactual_best_gt_area": 3665,
+     "counterfactual_best_precision": 0.08136688534221091,
+     "counterfactual_best_recall": 0.2267394270122783,
+     "counterfactual_best_soft_dice": 0.776870846748352,
+     "counterfactual_n_gt_free_predictions": 6,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 6
+    },
+    {
+     "view": 1,
+     "kind": "context",
+     "gt_thing_area": 4082,
+     "gt_stuff_area": 3692,
+     "original_conservation_error": 1.4901161193847656e-06,
+     "original_background_mass_in_gt_thing": 0.19751575589179993,
+     "original_group_mass_in_gt_thing": 0.8023791313171387,
+     "original_background_mass_in_gt_stuff": 0.26738110184669495,
+     "original_group_mass_in_gt_stuff": 0.6831700801849365,
+     "original_best_iou": 0.006189821182943604,
+     "original_best_group": 65,
+     "original_best_pred_area": 7622,
+     "original_best_gt_area": 4082,
+     "original_best_precision": 0.009446339543426921,
+     "original_best_recall": 0.017638412542871143,
+     "original_best_soft_dice": 0.8202816843986511,
+     "original_n_gt_free_predictions": 6,
+     "original_gt_free_detected": false,
+     "original_gt_free_fp": 6,
+     "counterfactual_conservation_error": 1.3709068298339844e-06,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.999894917011261,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.9505512118339539,
+     "counterfactual_best_iou": 0.026387574458609363,
+     "counterfactual_best_group": 62,
+     "counterfactual_best_pred_area": 14355,
+     "counterfactual_best_gt_area": 4082,
+     "counterfactual_best_precision": 0.033019853709508884,
+     "counterfactual_best_recall": 0.11611954924056835,
+     "counterfactual_best_soft_dice": 0.8182353377342224,
+     "counterfactual_n_gt_free_predictions": 6,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 6
+    },
+    {
+     "view": 2,
+     "kind": "novel",
+     "gt_thing_area": 4193,
+     "gt_stuff_area": 8757,
+     "original_conservation_error": 1.1920928955078125e-06,
+     "original_background_mass_in_gt_thing": 0.1259685903787613,
+     "original_group_mass_in_gt_thing": 0.8739263415336609,
+     "original_background_mass_in_gt_stuff": 0.44860273599624634,
+     "original_group_mass_in_gt_stuff": 0.549390971660614,
+     "original_best_iou": 0.01965665236051502,
+     "original_best_group": 65,
+     "original_best_pred_area": 7686,
+     "original_best_gt_area": 4193,
+     "original_best_precision": 0.029794431433775696,
+     "original_best_recall": 0.05461483424755545,
+     "original_best_soft_dice": 0.7788496017456055,
+     "original_n_gt_free_predictions": 6,
+     "original_gt_free_detected": false,
+     "original_gt_free_fp": 6,
+     "counterfactual_conservation_error": 1.1324882507324219e-06,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.9998947381973267,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.9979937076568604,
+     "counterfactual_best_iou": 0.032515026432037075,
+     "counterfactual_best_group": 65,
+     "counterfactual_best_pred_area": 10065,
+     "counterfactual_best_gt_area": 4193,
+     "counterfactual_best_precision": 0.0446100347739692,
+     "counterfactual_best_recall": 0.10708323396136418,
+     "counterfactual_best_soft_dice": 0.7818436026573181,
+     "counterfactual_n_gt_free_predictions": 6,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 6
+    },
+    {
+     "view": 3,
+     "kind": "novel",
+     "gt_thing_area": 4838,
+     "gt_stuff_area": 4497,
+     "original_conservation_error": 1.2516975402832031e-06,
+     "original_background_mass_in_gt_thing": 0.2160704880952835,
+     "original_group_mass_in_gt_thing": 0.7838240265846252,
+     "original_background_mass_in_gt_stuff": 0.3137649595737457,
+     "original_group_mass_in_gt_stuff": 0.6470869779586792,
+     "original_best_iou": 0.008692120227457351,
+     "original_best_group": 65,
+     "original_best_pred_area": 7579,
+     "original_best_gt_area": 4838,
+     "original_best_precision": 0.014117957514183928,
+     "original_best_recall": 0.02211657709797437,
+     "original_best_soft_dice": 0.8070663213729858,
+     "original_n_gt_free_predictions": 6,
+     "original_gt_free_detected": false,
+     "original_gt_free_fp": 6,
+     "counterfactual_conservation_error": 1.2516975402832031e-06,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.9998944401741028,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.9608519673347473,
+     "counterfactual_best_iou": 0.02715727122132423,
+     "counterfactual_best_group": 62,
+     "counterfactual_best_pred_area": 15624,
+     "counterfactual_best_gt_area": 4838,
+     "counterfactual_best_precision": 0.03462621607782898,
+     "counterfactual_best_recall": 0.11182306738321621,
+     "counterfactual_best_soft_dice": 0.8066743612289429,
+     "counterfactual_n_gt_free_predictions": 6,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 6
+    }
+   ]
+  },
+  "5018": {
+   "scene": "scene0001_01",
+   "bucket": "mid",
+   "role": "failure",
+   "context": [
+    746,
+    806
+   ],
+   "novel": [
+    793,
+    797
+   ],
+   "provenance": "proven_trained_window",
+   "rows": [
+    {
+     "view": 0,
+     "kind": "context",
+     "gt_thing_area": 7404,
+     "gt_stuff_area": 4379,
+     "original_conservation_error": 1.4901161193847656e-06,
+     "original_background_mass_in_gt_thing": 0.20470064878463745,
+     "original_group_mass_in_gt_thing": 0.7947994470596313,
+     "original_background_mass_in_gt_stuff": 0.6110565066337585,
+     "original_group_mass_in_gt_stuff": 0.38703978061676025,
+     "original_best_iou": 0.2933204808346564,
+     "original_best_group": 62,
+     "original_best_pred_area": 15405,
+     "original_best_gt_area": 7404,
+     "original_best_precision": 0.33580006491398895,
+     "original_best_recall": 0.6986763911399244,
+     "original_best_soft_dice": 0.5127949714660645,
+     "original_n_gt_free_predictions": 5,
+     "original_gt_free_detected": false,
+     "original_gt_free_fp": 5,
+     "counterfactual_conservation_error": 1.3709068298339844e-06,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.9995000958442688,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.9980962872505188,
+     "counterfactual_best_iou": 0.26602083049074454,
+     "counterfactual_best_group": 62,
+     "counterfactual_best_pred_area": 20432,
+     "counterfactual_best_gt_area": 7404,
+     "counterfactual_best_precision": 0.28626664056382145,
+     "counterfactual_best_recall": 0.7899783900594274,
+     "counterfactual_best_soft_dice": 0.5031905174255371,
+     "counterfactual_n_gt_free_predictions": 6,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 6
+    },
+    {
+     "view": 1,
+     "kind": "context",
+     "gt_thing_area": 6309,
+     "gt_stuff_area": 6158,
+     "original_conservation_error": 1.1324882507324219e-06,
+     "original_background_mass_in_gt_thing": 0.165323406457901,
+     "original_group_mass_in_gt_thing": 0.8325337767601013,
+     "original_background_mass_in_gt_stuff": 0.3357854187488556,
+     "original_group_mass_in_gt_stuff": 0.6640694737434387,
+     "original_best_iou": 0.16463867731748097,
+     "original_best_group": 62,
+     "original_best_pred_area": 18768,
+     "original_best_gt_area": 6309,
+     "original_best_precision": 0.188885336743393,
+     "original_best_recall": 0.5618957045490569,
+     "original_best_soft_dice": 0.7438719272613525,
+     "original_n_gt_free_predictions": 5,
+     "original_gt_free_detected": false,
+     "original_gt_free_fp": 5,
+     "counterfactual_conservation_error": 1.2516975402832031e-06,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.9978571534156799,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.9998547434806824,
+     "counterfactual_best_iou": 0.12492492492492492,
+     "counterfactual_best_group": 62,
+     "counterfactual_best_pred_area": 27405,
+     "counterfactual_best_gt_area": 6309,
+     "counterfactual_best_precision": 0.13661740558292282,
+     "counterfactual_best_recall": 0.5934379457917262,
+     "counterfactual_best_soft_dice": 0.7586508989334106,
+     "counterfactual_n_gt_free_predictions": 5,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 5
+    },
+    {
+     "view": 2,
+     "kind": "novel",
+     "gt_thing_area": 5775,
+     "gt_stuff_area": 10608,
+     "original_conservation_error": 1.3709068298339844e-06,
+     "original_background_mass_in_gt_thing": 0.16605810821056366,
+     "original_group_mass_in_gt_thing": 0.8316549062728882,
+     "original_background_mass_in_gt_stuff": 0.5330164432525635,
+     "original_group_mass_in_gt_stuff": 0.43774187564849854,
+     "original_best_iou": 0.15248591721773205,
+     "original_best_group": 62,
+     "original_best_pred_area": 17753,
+     "original_best_gt_area": 5775,
+     "original_best_precision": 0.17535064496141498,
+     "original_best_recall": 0.539047619047619,
+     "original_best_soft_dice": 0.7915364503860474,
+     "original_n_gt_free_predictions": 5,
+     "original_gt_free_detected": false,
+     "original_gt_free_fp": 5,
+     "counterfactual_conservation_error": 1.3709068298339844e-06,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.9977130889892578,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.9707583785057068,
+     "counterfactual_best_iou": 0.17101273499090358,
+     "counterfactual_best_group": 90,
+     "counterfactual_best_pred_area": 3880,
+     "counterfactual_best_gt_area": 5775,
+     "counterfactual_best_precision": 0.3634020618556701,
+     "counterfactual_best_recall": 0.24415584415584415,
+     "counterfactual_best_soft_dice": 0.7679705023765564,
+     "counterfactual_n_gt_free_predictions": 7,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 7
+    },
+    {
+     "view": 3,
+     "kind": "novel",
+     "gt_thing_area": 6389,
+     "gt_stuff_area": 8451,
+     "original_conservation_error": 1.3113021850585938e-06,
+     "original_background_mass_in_gt_thing": 0.16522890329360962,
+     "original_group_mass_in_gt_thing": 0.8326885104179382,
+     "original_background_mass_in_gt_stuff": 0.5204959511756897,
+     "original_group_mass_in_gt_stuff": 0.4754094183444977,
+     "original_best_iou": 0.1534973787370708,
+     "original_best_group": 62,
+     "original_best_pred_area": 18034,
+     "original_best_gt_area": 6389,
+     "original_best_precision": 0.18021514916269268,
+     "original_best_recall": 0.5086868054468618,
+     "original_best_soft_dice": 0.7771206498146057,
+     "original_n_gt_free_predictions": 5,
+     "original_gt_free_detected": false,
+     "original_gt_free_fp": 5,
+     "counterfactual_conservation_error": 1.4901161193847656e-06,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.9979173541069031,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.9959053993225098,
+     "counterfactual_best_iou": 0.15681927710843374,
+     "counterfactual_best_group": 90,
+     "counterfactual_best_pred_area": 5613,
+     "counterfactual_best_gt_area": 6389,
+     "counterfactual_best_precision": 0.28986281845715306,
+     "counterfactual_best_recall": 0.25465644075755206,
+     "counterfactual_best_soft_dice": 0.7592288255691528,
+     "counterfactual_n_gt_free_predictions": 6,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 6
+    }
+   ]
+  },
+  "8024": {
+   "scene": "scene0007_00",
+   "bucket": "large",
+   "role": "failure",
+   "context": [
+    656,
+    746
+   ],
+   "novel": [
+    665,
+    741
+   ],
+   "provenance": "proven_trained_window",
+   "rows": [
+    {
+     "view": 0,
+     "kind": "context",
+     "gt_thing_area": 0,
+     "gt_stuff_area": 63802,
+     "original_conservation_error": 1.430511474609375e-06,
+     "original_background_mass_in_gt_thing": null,
+     "original_group_mass_in_gt_thing": null,
+     "original_background_mass_in_gt_stuff": 0.5722211003303528,
+     "original_group_mass_in_gt_stuff": 0.42738038301467896,
+     "original_n_gt_free_predictions": 4,
+     "original_gt_free_detected": null,
+     "original_gt_free_fp": 4,
+     "counterfactual_conservation_error": 1.3113021850585938e-06,
+     "counterfactual_background_mass_in_gt_thing": null,
+     "counterfactual_group_mass_in_gt_thing": null,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.999601423740387,
+     "counterfactual_n_gt_free_predictions": 5,
+     "counterfactual_gt_free_detected": null,
+     "counterfactual_gt_free_fp": 5
+    },
+    {
+     "view": 1,
+     "kind": "context",
+     "gt_thing_area": 9030,
+     "gt_stuff_area": 29886,
+     "original_conservation_error": 8.940696716308594e-07,
+     "original_background_mass_in_gt_thing": 0.010736829601228237,
+     "original_group_mass_in_gt_thing": 0.15250001847743988,
+     "original_background_mass_in_gt_stuff": 0.1532411426305771,
+     "original_group_mass_in_gt_stuff": 0.2847731411457062,
+     "original_best_iou": 0.04414995393664517,
+     "original_best_group": 14,
+     "original_best_pred_area": 5704,
+     "original_best_gt_area": 9030,
+     "original_best_precision": 0.10922159887798036,
+     "original_best_recall": 0.06899224806201551,
+     "original_best_soft_dice": 0.886009693145752,
+     "original_n_gt_free_predictions": 2,
+     "original_gt_free_detected": false,
+     "original_gt_free_fp": 2,
+     "counterfactual_conservation_error": 7.152557373046875e-07,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.1632368266582489,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.43801429867744446,
+     "counterfactual_best_iou": 0.04044615301315718,
+     "counterfactual_best_group": 14,
+     "counterfactual_best_pred_area": 10186,
+     "counterfactual_best_gt_area": 9030,
+     "counterfactual_best_precision": 0.07333595130571373,
+     "counterfactual_best_recall": 0.08272425249169435,
+     "counterfactual_best_soft_dice": 0.8978241682052612,
+     "counterfactual_n_gt_free_predictions": 2,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 2
+    },
+    {
+     "view": 2,
+     "kind": "novel",
+     "gt_thing_area": 0,
+     "gt_stuff_area": 65478,
+     "original_conservation_error": 1.1920928955078125e-06,
+     "original_background_mass_in_gt_thing": null,
+     "original_group_mass_in_gt_thing": null,
+     "original_background_mass_in_gt_stuff": 0.6461026072502136,
+     "original_group_mass_in_gt_stuff": 0.3535650670528412,
+     "original_n_gt_free_predictions": 3,
+     "original_gt_free_detected": null,
+     "original_gt_free_fp": 3,
+     "counterfactual_conservation_error": 1.3113021850585938e-06,
+     "counterfactual_background_mass_in_gt_thing": null,
+     "counterfactual_group_mass_in_gt_thing": null,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.9996677041053772,
+     "counterfactual_n_gt_free_predictions": 4,
+     "counterfactual_gt_free_detected": null,
+     "counterfactual_gt_free_fp": 4
+    },
+    {
+     "view": 3,
+     "kind": "novel",
+     "gt_thing_area": 9352,
+     "gt_stuff_area": 28496,
+     "original_conservation_error": 8.344650268554688e-07,
+     "original_background_mass_in_gt_thing": 0.013211342506110668,
+     "original_group_mass_in_gt_thing": 0.16680829226970673,
+     "original_background_mass_in_gt_stuff": 0.1496105045080185,
+     "original_group_mass_in_gt_stuff": 0.2785509526729584,
+     "original_best_iou": 0.05136673459349308,
+     "original_best_group": 14,
+     "original_best_pred_area": 5610,
+     "original_best_gt_area": 9352,
+     "original_best_precision": 0.1303030303030303,
+     "original_best_recall": 0.0781650983746792,
+     "original_best_soft_dice": 0.8731006979942322,
+     "original_n_gt_free_predictions": 2,
+     "original_gt_free_detected": false,
+     "original_gt_free_fp": 2,
+     "counterfactual_conservation_error": 8.344650268554688e-07,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.18001963198184967,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.42816147208213806,
+     "counterfactual_best_iou": 0.05065323294951284,
+     "counterfactual_best_group": 14,
+     "counterfactual_best_pred_area": 9627,
+     "counterfactual_best_gt_area": 9352,
+     "counterfactual_best_precision": 0.09504518541601745,
+     "counterfactual_best_recall": 0.09784003421727973,
+     "counterfactual_best_soft_dice": 0.8835439682006836,
+     "counterfactual_n_gt_free_predictions": 2,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 2
+    }
+   ]
+  },
+  "8006": {
+   "scene": "scene0007_00",
+   "bucket": "large",
+   "role": "failure",
+   "context": [
+    656,
+    746
+   ],
+   "novel": [
+    665,
+    741
+   ],
+   "provenance": "proven_trained_window",
+   "rows": [
+    {
+     "view": 0,
+     "kind": "context",
+     "gt_thing_area": 0,
+     "gt_stuff_area": 63802,
+     "original_conservation_error": 1.430511474609375e-06,
+     "original_background_mass_in_gt_thing": null,
+     "original_group_mass_in_gt_thing": null,
+     "original_background_mass_in_gt_stuff": 0.5722211003303528,
+     "original_group_mass_in_gt_stuff": 0.42738038301467896,
+     "original_n_gt_free_predictions": 4,
+     "original_gt_free_detected": null,
+     "original_gt_free_fp": 4,
+     "counterfactual_conservation_error": 1.3113021850585938e-06,
+     "counterfactual_background_mass_in_gt_thing": null,
+     "counterfactual_group_mass_in_gt_thing": null,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.999601423740387,
+     "counterfactual_n_gt_free_predictions": 5,
+     "counterfactual_gt_free_detected": null,
+     "counterfactual_gt_free_fp": 5
+    },
+    {
+     "view": 1,
+     "kind": "context",
+     "gt_thing_area": 10058,
+     "gt_stuff_area": 29886,
+     "original_conservation_error": 8.940696716308594e-07,
+     "original_background_mass_in_gt_thing": 0.0067648873664438725,
+     "original_group_mass_in_gt_thing": 0.1508319079875946,
+     "original_background_mass_in_gt_stuff": 0.1532411426305771,
+     "original_group_mass_in_gt_stuff": 0.2847731411457062,
+     "original_best_iou": 0.003629417382999045,
+     "original_best_group": 14,
+     "original_best_pred_area": 5704,
+     "original_best_gt_area": 10058,
+     "original_best_precision": 0.009992987377279102,
+     "original_best_recall": 0.0056671306422748065,
+     "original_best_soft_dice": 0.8847633004188538,
+     "original_n_gt_free_predictions": 2,
+     "original_gt_free_detected": false,
+     "original_gt_free_fp": 2,
+     "counterfactual_conservation_error": 7.152557373046875e-07,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.15759681165218353,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.43801429867744446,
+     "counterfactual_best_iou": 0.0031714568880079285,
+     "counterfactual_best_group": 14,
+     "counterfactual_best_pred_area": 10186,
+     "counterfactual_best_gt_area": 10058,
+     "counterfactual_best_precision": 0.006283133712939329,
+     "counterfactual_best_recall": 0.0063630940544839925,
+     "counterfactual_best_soft_dice": 0.8989276885986328,
+     "counterfactual_n_gt_free_predictions": 2,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 2
+    },
+    {
+     "view": 2,
+     "kind": "novel",
+     "gt_thing_area": 0,
+     "gt_stuff_area": 65478,
+     "original_conservation_error": 1.1920928955078125e-06,
+     "original_background_mass_in_gt_thing": null,
+     "original_group_mass_in_gt_thing": null,
+     "original_background_mass_in_gt_stuff": 0.6461026072502136,
+     "original_group_mass_in_gt_stuff": 0.3535650670528412,
+     "original_n_gt_free_predictions": 3,
+     "original_gt_free_detected": null,
+     "original_gt_free_fp": 3,
+     "counterfactual_conservation_error": 1.3113021850585938e-06,
+     "counterfactual_background_mass_in_gt_thing": null,
+     "counterfactual_group_mass_in_gt_thing": null,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.9996677041053772,
+     "counterfactual_n_gt_free_predictions": 4,
+     "counterfactual_gt_free_detected": null,
+     "counterfactual_gt_free_fp": 4
+    },
+    {
+     "view": 3,
+     "kind": "novel",
+     "gt_thing_area": 10749,
+     "gt_stuff_area": 28496,
+     "original_conservation_error": 8.344650268554688e-07,
+     "original_background_mass_in_gt_thing": 0.0077195544727146626,
+     "original_group_mass_in_gt_thing": 0.17063681781291962,
+     "original_background_mass_in_gt_stuff": 0.1496105045080185,
+     "original_group_mass_in_gt_stuff": 0.2785509526729584,
+     "original_best_iou": 0.010001852194850898,
+     "original_best_group": 14,
+     "original_best_pred_area": 5610,
+     "original_best_gt_area": 10749,
+     "original_best_precision": 0.028877005347593583,
+     "original_best_recall": 0.01507116941110801,
+     "original_best_soft_dice": 0.8669205904006958,
+     "original_n_gt_free_predictions": 2,
+     "original_gt_free_detected": false,
+     "original_gt_free_fp": 2,
+     "counterfactual_conservation_error": 8.344650268554688e-07,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.17835639417171478,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.42816147208213806,
+     "counterfactual_best_iou": 0.008513165709760443,
+     "counterfactual_best_group": 14,
+     "counterfactual_best_pred_area": 9627,
+     "counterfactual_best_gt_area": 10749,
+     "counterfactual_best_precision": 0.017866417367819673,
+     "counterfactual_best_recall": 0.01600148851055912,
+     "counterfactual_best_soft_dice": 0.8813470602035522,
+     "counterfactual_n_gt_free_predictions": 2,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 2
+    }
+   ]
+  },
+  "20017": {
+   "scene": "scene0009_00",
+   "bucket": "large",
+   "role": "failure",
+   "context": [
+    879,
+    941
+   ],
+   "novel": [
+    911,
+    928
+   ],
+   "provenance": "proven_trained_window",
+   "rows": [
+    {
+     "view": 0,
+     "kind": "context",
+     "gt_thing_area": 9387,
+     "gt_stuff_area": 42417,
+     "original_conservation_error": 1.4901161193847656e-06,
+     "original_background_mass_in_gt_thing": 0.16760101914405823,
+     "original_group_mass_in_gt_thing": 0.8287349343299866,
+     "original_background_mass_in_gt_stuff": 0.5382260680198669,
+     "original_group_mass_in_gt_stuff": 0.4596753716468811,
+     "original_best_iou": 0.5739773716275022,
+     "original_best_group": 62,
+     "original_best_pred_area": 8698,
+     "original_best_gt_area": 9387,
+     "original_best_precision": 0.7582202805242585,
+     "original_best_recall": 0.7025673804197294,
+     "original_best_soft_dice": 0.3995624780654907,
+     "original_n_gt_free_predictions": 5,
+     "original_gt_free_detected": true,
+     "original_gt_free_fp": 4,
+     "counterfactual_conservation_error": 1.4901161193847656e-06,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.996336042881012,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.997901439666748,
+     "counterfactual_best_iou": 0.29089003667939217,
+     "counterfactual_best_group": 62,
+     "counterfactual_best_pred_area": 25103,
+     "counterfactual_best_gt_area": 9387,
+     "counterfactual_best_precision": 0.30960442974943236,
+     "counterfactual_best_recall": 0.8279535527857675,
+     "counterfactual_best_soft_dice": 0.5480635166168213,
+     "counterfactual_n_gt_free_predictions": 7,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 7
+    },
+    {
+     "view": 1,
+     "kind": "context",
+     "gt_thing_area": 13130,
+     "gt_stuff_area": 38079,
+     "original_conservation_error": 1.3709068298339844e-06,
+     "original_background_mass_in_gt_thing": 0.37999221682548523,
+     "original_group_mass_in_gt_thing": 0.6149076819419861,
+     "original_background_mass_in_gt_stuff": 0.544426441192627,
+     "original_group_mass_in_gt_stuff": 0.4367125332355499,
+     "original_best_iou": 0.1506271795138708,
+     "original_best_group": 22,
+     "original_best_pred_area": 8977,
+     "original_best_gt_area": 13130,
+     "original_best_precision": 0.32237941405814863,
+     "original_best_recall": 0.2204112718964204,
+     "original_best_soft_dice": 0.7384628057479858,
+     "original_n_gt_free_predictions": 4,
+     "original_gt_free_detected": false,
+     "original_gt_free_fp": 4,
+     "counterfactual_conservation_error": 1.2516975402832031e-06,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.9948998689651489,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.9811389446258545,
+     "counterfactual_best_iou": 0.3609850939727803,
+     "counterfactual_best_group": 62,
+     "counterfactual_best_pred_area": 16270,
+     "counterfactual_best_gt_area": 13130,
+     "counterfactual_best_precision": 0.4792870313460357,
+     "counterfactual_best_recall": 0.5939070830159939,
+     "counterfactual_best_soft_dice": 0.5134406685829163,
+     "counterfactual_n_gt_free_predictions": 5,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 5
+    },
+    {
+     "view": 2,
+     "kind": "novel",
+     "gt_thing_area": 12236,
+     "gt_stuff_area": 50834,
+     "original_conservation_error": 1.4901161193847656e-06,
+     "original_background_mass_in_gt_thing": 0.28409963846206665,
+     "original_group_mass_in_gt_thing": 0.7088837623596191,
+     "original_background_mass_in_gt_stuff": 0.49478891491889954,
+     "original_group_mass_in_gt_stuff": 0.5027939677238464,
+     "original_best_iou": 0.35554990787216467,
+     "original_best_group": 62,
+     "original_best_pred_area": 9099,
+     "original_best_gt_area": 12236,
+     "original_best_precision": 0.6150126387515111,
+     "original_best_recall": 0.45733899967309577,
+     "original_best_soft_dice": 0.4972672462463379,
+     "original_n_gt_free_predictions": 5,
+     "original_gt_free_detected": false,
+     "original_gt_free_fp": 5,
+     "counterfactual_conservation_error": 1.3709068298339844e-06,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.9929834008216858,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.9975827932357788,
+     "counterfactual_best_iou": 0.29287648212118383,
+     "counterfactual_best_group": 62,
+     "counterfactual_best_pred_area": 29308,
+     "counterfactual_best_gt_area": 12236,
+     "counterfactual_best_precision": 0.3211068650197898,
+     "counterfactual_best_recall": 0.7691238966982674,
+     "counterfactual_best_soft_dice": 0.5548034906387329,
+     "counterfactual_n_gt_free_predictions": 7,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 7
+    },
+    {
+     "view": 3,
+     "kind": "novel",
+     "gt_thing_area": 12316,
+     "gt_stuff_area": 47791,
+     "original_conservation_error": 1.5497207641601562e-06,
+     "original_background_mass_in_gt_thing": 0.37654349207878113,
+     "original_group_mass_in_gt_thing": 0.6184000968933105,
+     "original_background_mass_in_gt_stuff": 0.4576917886734009,
+     "original_group_mass_in_gt_stuff": 0.5306849479675293,
+     "original_best_iou": 0.17419099716601857,
+     "original_best_group": 22,
+     "original_best_pred_area": 5500,
+     "original_best_gt_area": 12316,
+     "original_best_precision": 0.48054545454545455,
+     "original_best_recall": 0.2145988957453719,
+     "original_best_soft_dice": 0.722923755645752,
+     "original_n_gt_free_predictions": 5,
+     "original_gt_free_detected": false,
+     "original_gt_free_fp": 5,
+     "counterfactual_conservation_error": 1.3709068298339844e-06,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.9949436187744141,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.988376796245575,
+     "counterfactual_best_iou": 0.24218827661619008,
+     "counterfactual_best_group": 62,
+     "counterfactual_best_pred_area": 25172,
+     "counterfactual_best_gt_area": 12316,
+     "counterfactual_best_precision": 0.29036230732559987,
+     "counterfactual_best_recall": 0.5934556674244885,
+     "counterfactual_best_soft_dice": 0.6339534521102905,
+     "counterfactual_n_gt_free_predictions": 6,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 6
+    }
+   ]
+  },
+  "8019": {
+   "scene": "scene0012_01",
+   "bucket": "large",
+   "role": "failure",
+   "context": [
+    2943,
+    2967
+   ],
+   "novel": [
+    2950,
+    2965
+   ],
+   "provenance": "proven_trained_window",
+   "rows": [
+    {
+     "view": 0,
+     "kind": "context",
+     "gt_thing_area": 17620,
+     "gt_stuff_area": 11800,
+     "original_conservation_error": 1.1920928955078125e-06,
+     "original_background_mass_in_gt_thing": 0.14496898651123047,
+     "original_group_mass_in_gt_thing": 0.8542576432228088,
+     "original_background_mass_in_gt_stuff": 0.5049222707748413,
+     "original_group_mass_in_gt_stuff": 0.49489593505859375,
+     "original_best_iou": 0.3812652728753733,
+     "original_best_group": 65,
+     "original_best_pred_area": 7816,
+     "original_best_gt_area": 17620,
+     "original_best_precision": 0.8982855680655066,
+     "original_best_recall": 0.39846765039727583,
+     "original_best_soft_dice": 0.4615144729614258,
+     "original_n_gt_free_predictions": 5,
+     "original_gt_free_detected": false,
+     "original_gt_free_fp": 5,
+     "counterfactual_conservation_error": 1.3709068298339844e-06,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.9992265105247498,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.9998182058334351,
+     "counterfactual_best_iou": 0.43683857312477414,
+     "counterfactual_best_group": 65,
+     "counterfactual_best_pred_area": 10213,
+     "counterfactual_best_gt_area": 17620,
+     "counterfactual_best_precision": 0.8285518456868697,
+     "counterfactual_best_recall": 0.48024971623155505,
+     "counterfactual_best_soft_dice": 0.41947877407073975,
+     "counterfactual_n_gt_free_predictions": 6,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 6
+    },
+    {
+     "view": 1,
+     "kind": "context",
+     "gt_thing_area": 28443,
+     "gt_stuff_area": 3692,
+     "original_conservation_error": 1.4901161193847656e-06,
+     "original_background_mass_in_gt_thing": 0.14417515695095062,
+     "original_group_mass_in_gt_thing": 0.8357820510864258,
+     "original_background_mass_in_gt_stuff": 0.26738110184669495,
+     "original_group_mass_in_gt_stuff": 0.6831700801849365,
+     "original_best_iou": 0.2993003550961572,
+     "original_best_group": 14,
+     "original_best_pred_area": 8513,
+     "original_best_gt_area": 28443,
+     "original_best_precision": 1.0,
+     "original_best_recall": 0.2993003550961572,
+     "original_best_soft_dice": 0.5361343026161194,
+     "original_n_gt_free_predictions": 6,
+     "original_gt_free_detected": false,
+     "original_gt_free_fp": 6,
+     "counterfactual_conservation_error": 1.3709068298339844e-06,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.9799571633338928,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.9505512118339539,
+     "counterfactual_best_iou": 0.3245789825264564,
+     "counterfactual_best_group": 14,
+     "counterfactual_best_pred_area": 9232,
+     "counterfactual_best_gt_area": 28443,
+     "counterfactual_best_precision": 1.0,
+     "counterfactual_best_recall": 0.3245789825264564,
+     "counterfactual_best_soft_dice": 0.5067199468612671,
+     "counterfactual_n_gt_free_predictions": 6,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 6
+    },
+    {
+     "view": 2,
+     "kind": "novel",
+     "gt_thing_area": 20535,
+     "gt_stuff_area": 8757,
+     "original_conservation_error": 1.1920928955078125e-06,
+     "original_background_mass_in_gt_thing": 0.13656197488307953,
+     "original_group_mass_in_gt_thing": 0.8608052730560303,
+     "original_background_mass_in_gt_stuff": 0.44860273599624634,
+     "original_group_mass_in_gt_stuff": 0.549390971660614,
+     "original_best_iou": 0.3228800450007031,
+     "original_best_group": 65,
+     "original_best_pred_area": 7686,
+     "original_best_gt_area": 20535,
+     "original_best_precision": 0.8961748633879781,
+     "original_best_recall": 0.33542731921110297,
+     "original_best_soft_dice": 0.4973980188369751,
+     "original_n_gt_free_predictions": 6,
+     "original_gt_free_detected": false,
+     "original_gt_free_fp": 6,
+     "counterfactual_conservation_error": 1.1324882507324219e-06,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.9973673224449158,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.9979937076568604,
+     "counterfactual_best_iou": 0.36735332231109524,
+     "counterfactual_best_group": 65,
+     "counterfactual_best_pred_area": 10065,
+     "counterfactual_best_gt_area": 20535,
+     "counterfactual_best_precision": 0.8167908594138102,
+     "counterfactual_best_recall": 0.4003408814219625,
+     "counterfactual_best_soft_dice": 0.4590793251991272,
+     "counterfactual_n_gt_free_predictions": 6,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 6
+    },
+    {
+     "view": 3,
+     "kind": "novel",
+     "gt_thing_area": 27870,
+     "gt_stuff_area": 4497,
+     "original_conservation_error": 1.2516975402832031e-06,
+     "original_background_mass_in_gt_thing": 0.13810524344444275,
+     "original_group_mass_in_gt_thing": 0.8479418754577637,
+     "original_background_mass_in_gt_stuff": 0.3137649595737457,
+     "original_group_mass_in_gt_stuff": 0.6470869779586792,
+     "original_best_iou": 0.31489056332974524,
+     "original_best_group": 14,
+     "original_best_pred_area": 8776,
+     "original_best_gt_area": 27870,
+     "original_best_precision": 1.0,
+     "original_best_recall": 0.31489056332974524,
+     "original_best_soft_dice": 0.5215907096862793,
+     "original_n_gt_free_predictions": 6,
+     "original_gt_free_detected": false,
+     "original_gt_free_fp": 6,
+     "counterfactual_conservation_error": 1.2516975402832031e-06,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.9860472679138184,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.9608519673347473,
+     "counterfactual_best_iou": 0.3384642985288841,
+     "counterfactual_best_group": 14,
+     "counterfactual_best_pred_area": 9433,
+     "counterfactual_best_gt_area": 27870,
+     "counterfactual_best_precision": 1.0,
+     "counterfactual_best_recall": 0.3384642985288841,
+     "counterfactual_best_soft_dice": 0.49427562952041626,
+     "counterfactual_n_gt_free_predictions": 6,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 6
+    }
+   ]
+  },
+  "6002": {
+   "scene": "scene0001_01",
+   "bucket": "large",
+   "role": "success_reference",
+   "context": [
+    746,
+    806
+   ],
+   "novel": [
+    793,
+    797
+   ],
+   "provenance": "proven_trained_window",
+   "rows": [
+    {
+     "view": 0,
+     "kind": "context",
+     "gt_thing_area": 13453,
+     "gt_stuff_area": 4379,
+     "original_conservation_error": 1.4901161193847656e-06,
+     "original_background_mass_in_gt_thing": 0.1520727574825287,
+     "original_group_mass_in_gt_thing": 0.8477500081062317,
+     "original_background_mass_in_gt_stuff": 0.6110565066337585,
+     "original_group_mass_in_gt_stuff": 0.38703978061676025,
+     "original_best_iou": 0.30350459339911534,
+     "original_best_group": 22,
+     "original_best_pred_area": 5702,
+     "original_best_gt_area": 13453,
+     "original_best_precision": 0.782181690634865,
+     "original_best_recall": 0.3315245670110756,
+     "original_best_soft_dice": 0.5318608283996582,
+     "original_n_gt_free_predictions": 5,
+     "original_gt_free_detected": false,
+     "original_gt_free_fp": 5,
+     "counterfactual_conservation_error": 1.3709068298339844e-06,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.9998228549957275,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.9980962872505188,
+     "counterfactual_best_iou": 0.3049127803488786,
+     "counterfactual_best_group": 22,
+     "counterfactual_best_pred_area": 8540,
+     "counterfactual_best_gt_area": 13453,
+     "counterfactual_best_precision": 0.6017564402810305,
+     "counterfactual_best_recall": 0.3819965806883223,
+     "counterfactual_best_soft_dice": 0.5233636498451233,
+     "counterfactual_n_gt_free_predictions": 6,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 6
+    },
+    {
+     "view": 1,
+     "kind": "context",
+     "gt_thing_area": 6160,
+     "gt_stuff_area": 6158,
+     "original_conservation_error": 1.1324882507324219e-06,
+     "original_background_mass_in_gt_thing": 0.16978669166564941,
+     "original_group_mass_in_gt_thing": 0.8296781182289124,
+     "original_background_mass_in_gt_stuff": 0.3357854187488556,
+     "original_group_mass_in_gt_stuff": 0.6640694737434387,
+     "original_best_iou": 0.15917228551499651,
+     "original_best_group": 62,
+     "original_best_pred_area": 18768,
+     "original_best_gt_area": 6160,
+     "original_best_precision": 0.1823849104859335,
+     "original_best_recall": 0.5556818181818182,
+     "original_best_soft_dice": 0.7183324694633484,
+     "original_n_gt_free_predictions": 5,
+     "original_gt_free_detected": false,
+     "original_gt_free_fp": 5,
+     "counterfactual_conservation_error": 1.2516975402832031e-06,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.9994648098945618,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.9998547434806824,
+     "counterfactual_best_iou": 0.13552535792283427,
+     "counterfactual_best_group": 65,
+     "counterfactual_best_pred_area": 3199,
+     "counterfactual_best_gt_area": 6160,
+     "counterfactual_best_precision": 0.34917161613004066,
+     "counterfactual_best_recall": 0.18133116883116884,
+     "counterfactual_best_soft_dice": 0.5967168807983398,
+     "counterfactual_n_gt_free_predictions": 5,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 5
+    },
+    {
+     "view": 2,
+     "kind": "novel",
+     "gt_thing_area": 12691,
+     "gt_stuff_area": 10608,
+     "original_conservation_error": 1.3709068298339844e-06,
+     "original_background_mass_in_gt_thing": 0.18877147138118744,
+     "original_group_mass_in_gt_thing": 0.8108473420143127,
+     "original_background_mass_in_gt_stuff": 0.5330164432525635,
+     "original_group_mass_in_gt_stuff": 0.43774187564849854,
+     "original_best_iou": 0.13669118470671696,
+     "original_best_group": 62,
+     "original_best_pred_area": 17753,
+     "original_best_gt_area": 12691,
+     "original_best_precision": 0.2062186672675041,
+     "original_best_recall": 0.2884721456150028,
+     "original_best_soft_dice": 0.7183288335800171,
+     "original_n_gt_free_predictions": 5,
+     "original_gt_free_detected": false,
+     "original_gt_free_fp": 5,
+     "counterfactual_conservation_error": 1.3709068298339844e-06,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.9996189475059509,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.9707583785057068,
+     "counterfactual_best_iou": 0.2621983914209115,
+     "counterfactual_best_group": 65,
+     "counterfactual_best_pred_area": 6141,
+     "counterfactual_best_gt_area": 12691,
+     "counterfactual_best_precision": 0.6370297997068881,
+     "counterfactual_best_recall": 0.3082499409030021,
+     "counterfactual_best_soft_dice": 0.5114609003067017,
+     "counterfactual_n_gt_free_predictions": 7,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 7
+    },
+    {
+     "view": 3,
+     "kind": "novel",
+     "gt_thing_area": 11064,
+     "gt_stuff_area": 8451,
+     "original_conservation_error": 1.3113021850585938e-06,
+     "original_background_mass_in_gt_thing": 0.1971426010131836,
+     "original_group_mass_in_gt_thing": 0.8024678230285645,
+     "original_background_mass_in_gt_stuff": 0.5204959511756897,
+     "original_group_mass_in_gt_stuff": 0.4754094183444977,
+     "original_best_iou": 0.1442390876917027,
+     "original_best_group": 62,
+     "original_best_pred_area": 18034,
+     "original_best_gt_area": 11064,
+     "original_best_precision": 0.20339358988577133,
+     "original_best_recall": 0.33152566883586404,
+     "original_best_soft_dice": 0.7015364170074463,
+     "original_n_gt_free_predictions": 5,
+     "original_gt_free_detected": false,
+     "original_gt_free_fp": 5,
+     "counterfactual_conservation_error": 1.4901161193847656e-06,
+     "counterfactual_background_mass_in_gt_thing": 0.0,
+     "counterfactual_group_mass_in_gt_thing": 0.9996104836463928,
+     "counterfactual_background_mass_in_gt_stuff": 0.0,
+     "counterfactual_group_mass_in_gt_stuff": 0.9959053993225098,
+     "counterfactual_best_iou": 0.24694009018681554,
+     "counterfactual_best_group": 65,
+     "counterfactual_best_pred_area": 6357,
+     "counterfactual_best_gt_area": 11064,
+     "counterfactual_best_precision": 0.5427088249174139,
+     "counterfactual_best_recall": 0.31182212581344904,
+     "counterfactual_best_soft_dice": 0.5011239051818848,
+     "counterfactual_n_gt_free_predictions": 6,
+     "counterfactual_gt_free_detected": false,
+     "counterfactual_gt_free_fp": 6
+    }
+   ]
+  }
+ },
+ "validation_scenes": {
+  "scene0059_00": {
+   "context": [
+    510,
+    524
+   ],
+   "novel": [
+    511,
+    516
+   ],
+   "variants": {
+    "g0plus_original": {
+     "views": {
+      "0": {
+       "n_pred": 6,
+       "tp": 0,
+       "fp": 6,
+       "fn": 8,
+       "ap50": 0.0,
+       "n_gt": 8,
+       "buckets": {
+        "small": {
+         "gt": 2,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 4,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 6,
+        "area": 6
+       }
+      },
+      "1": {
+       "n_pred": 5,
+       "tp": 0,
+       "fp": 5,
+       "fn": 10,
+       "ap50": 0.0,
+       "n_gt": 10,
+       "buckets": {
+        "small": {
+         "gt": 2,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 6,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 5,
+        "area": 5
+       }
+      },
+      "2": {
+       "n_pred": 6,
+       "tp": 0,
+       "fp": 6,
+       "fn": 9,
+       "ap50": 0.0,
+       "n_gt": 9,
+       "buckets": {
+        "small": {
+         "gt": 3,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 4,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 6,
+        "area": 6
+       }
+      },
+      "3": {
+       "n_pred": 6,
+       "tp": 0,
+       "fp": 6,
+       "fn": 10,
+       "ap50": 0.0,
+       "n_gt": 10,
+       "buckets": {
+        "small": {
+         "gt": 3,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 5,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 6,
+        "area": 6
+       }
+      }
+     },
+     "tp": 0,
+     "fp": 23,
+     "fn": 37,
+     "n_gt": 37,
+     "ap50": 0.0
+    },
+    "g0plus_counterfactual": {
+     "views": {
+      "0": {
+       "n_pred": 7,
+       "tp": 0,
+       "fp": 7,
+       "fn": 8,
+       "ap50": 0.0,
+       "n_gt": 8,
+       "buckets": {
+        "small": {
+         "gt": 2,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 4,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 7,
+        "area": 7
+       }
+      },
+      "1": {
+       "n_pred": 5,
+       "tp": 0,
+       "fp": 5,
+       "fn": 10,
+       "ap50": 0.0,
+       "n_gt": 10,
+       "buckets": {
+        "small": {
+         "gt": 2,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 6,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 5,
+        "area": 5
+       }
+      },
+      "2": {
+       "n_pred": 7,
+       "tp": 0,
+       "fp": 7,
+       "fn": 9,
+       "ap50": 0.0,
+       "n_gt": 9,
+       "buckets": {
+        "small": {
+         "gt": 3,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 4,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 7,
+        "area": 7
+       }
+      },
+      "3": {
+       "n_pred": 6,
+       "tp": 0,
+       "fp": 6,
+       "fn": 10,
+       "ap50": 0.0,
+       "n_gt": 10,
+       "buckets": {
+        "small": {
+         "gt": 3,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 5,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 7,
+        "area": 6
+       }
+      }
+     },
+     "tp": 0,
+     "fp": 25,
+     "fn": 37,
+     "n_gt": 37,
+     "ap50": 0.0
+    },
+    "g0_original": {
+     "views": {
+      "0": {
+       "n_pred": 11,
+       "tp": 1,
+       "fp": 10,
+       "fn": 7,
+       "ap50": 0.0625,
+       "n_gt": 8,
+       "buckets": {
+        "small": {
+         "gt": 2,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 4,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 1
+        }
+       },
+       "gate_counts": {
+        "score": 17,
+        "thing_class": 17,
+        "mask": 11,
+        "area": 11
+       }
+      },
+      "1": {
+       "n_pred": 10,
+       "tp": 2,
+       "fp": 8,
+       "fn": 8,
+       "ap50": 0.11666666666666667,
+       "n_gt": 10,
+       "buckets": {
+        "small": {
+         "gt": 2,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 6,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 2
+        }
+       },
+       "gate_counts": {
+        "score": 17,
+        "thing_class": 17,
+        "mask": 10,
+        "area": 10
+       }
+      },
+      "2": {
+       "n_pred": 10,
+       "tp": 1,
+       "fp": 9,
+       "fn": 8,
+       "ap50": 0.05555555555555555,
+       "n_gt": 9,
+       "buckets": {
+        "small": {
+         "gt": 3,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 4,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 1
+        }
+       },
+       "gate_counts": {
+        "score": 17,
+        "thing_class": 17,
+        "mask": 10,
+        "area": 10
+       }
+      },
+      "3": {
+       "n_pred": 10,
+       "tp": 1,
+       "fp": 9,
+       "fn": 9,
+       "ap50": 0.05,
+       "n_gt": 10,
+       "buckets": {
+        "small": {
+         "gt": 3,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 5,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 1
+        }
+       },
+       "gate_counts": {
+        "score": 17,
+        "thing_class": 17,
+        "mask": 10,
+        "area": 10
+       }
+      }
+     },
+     "tp": 5,
+     "fp": 36,
+     "fn": 32,
+     "n_gt": 37,
+     "ap50": 0.07118055555555555
+    }
+   },
+   "checks": {
+    "conservation_original": 1.4901161193847656e-06,
+    "conservation_counterfactual": 1.5497207641601562e-06,
+    "alpha_identical": 0.0,
+    "rgb_identical_on_repeat_forward": 0.0,
+    "depth_identical_on_repeat_forward": 0.0,
+    "anomalous_tokens": 0,
+    "tokens": 1024
+   }
+  },
+  "scene0072_02": {
+   "context": [
+    744,
+    774
+   ],
+   "novel": [
+    752,
+    760
+   ],
+   "variants": {
+    "g0plus_original": {
+     "views": {
+      "0": {
+       "n_pred": 2,
+       "tp": 0,
+       "fp": 2,
+       "fn": 2,
+       "ap50": 0.0,
+       "n_gt": 2,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 1,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 10,
+        "thing_class": 10,
+        "mask": 2,
+        "area": 2
+       }
+      },
+      "1": {
+       "n_pred": 4,
+       "tp": 0,
+       "fp": 4,
+       "fn": 2,
+       "ap50": 0.0,
+       "n_gt": 2,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 2,
+         "tp": 0
+        },
+        "large": {
+         "gt": 0,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 10,
+        "thing_class": 10,
+        "mask": 4,
+        "area": 4
+       }
+      },
+      "2": {
+       "n_pred": 2,
+       "tp": 0,
+       "fp": 2,
+       "fn": 2,
+       "ap50": 0.0,
+       "n_gt": 2,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 1,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 10,
+        "thing_class": 10,
+        "mask": 2,
+        "area": 2
+       }
+      },
+      "3": {
+       "n_pred": 3,
+       "tp": 0,
+       "fp": 3,
+       "fn": 2,
+       "ap50": 0.0,
+       "n_gt": 2,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 1,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 10,
+        "thing_class": 10,
+        "mask": 3,
+        "area": 3
+       }
+      }
+     },
+     "tp": 0,
+     "fp": 11,
+     "fn": 8,
+     "n_gt": 8,
+     "ap50": 0.0
+    },
+    "g0plus_counterfactual": {
+     "views": {
+      "0": {
+       "n_pred": 4,
+       "tp": 1,
+       "fp": 3,
+       "fn": 1,
+       "ap50": 0.25,
+       "n_gt": 2,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 1,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 1
+        }
+       },
+       "gate_counts": {
+        "score": 10,
+        "thing_class": 10,
+        "mask": 4,
+        "area": 4
+       }
+      },
+      "1": {
+       "n_pred": 4,
+       "tp": 0,
+       "fp": 4,
+       "fn": 2,
+       "ap50": 0.0,
+       "n_gt": 2,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 2,
+         "tp": 0
+        },
+        "large": {
+         "gt": 0,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 10,
+        "thing_class": 10,
+        "mask": 4,
+        "area": 4
+       }
+      },
+      "2": {
+       "n_pred": 4,
+       "tp": 1,
+       "fp": 3,
+       "fn": 1,
+       "ap50": 0.25,
+       "n_gt": 2,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 1,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 1
+        }
+       },
+       "gate_counts": {
+        "score": 10,
+        "thing_class": 10,
+        "mask": 4,
+        "area": 4
+       }
+      },
+      "3": {
+       "n_pred": 4,
+       "tp": 1,
+       "fp": 3,
+       "fn": 1,
+       "ap50": 0.25,
+       "n_gt": 2,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 1,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 1
+        }
+       },
+       "gate_counts": {
+        "score": 10,
+        "thing_class": 10,
+        "mask": 4,
+        "area": 4
+       }
+      }
+     },
+     "tp": 3,
+     "fp": 13,
+     "fn": 5,
+     "n_gt": 8,
+     "ap50": 0.1875
+    },
+    "g0_original": {
+     "views": {
+      "0": {
+       "n_pred": 6,
+       "tp": 1,
+       "fp": 5,
+       "fn": 1,
+       "ap50": 0.16666666666666666,
+       "n_gt": 2,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 1,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 1
+        }
+       },
+       "gate_counts": {
+        "score": 13,
+        "thing_class": 13,
+        "mask": 6,
+        "area": 6
+       }
+      },
+      "1": {
+       "n_pred": 5,
+       "tp": 1,
+       "fp": 4,
+       "fn": 1,
+       "ap50": 0.16666666666666666,
+       "n_gt": 2,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 2,
+         "tp": 1
+        },
+        "large": {
+         "gt": 0,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 13,
+        "thing_class": 13,
+        "mask": 5,
+        "area": 5
+       }
+      },
+      "2": {
+       "n_pred": 4,
+       "tp": 1,
+       "fp": 3,
+       "fn": 1,
+       "ap50": 0.16666666666666666,
+       "n_gt": 2,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 1,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 1
+        }
+       },
+       "gate_counts": {
+        "score": 13,
+        "thing_class": 13,
+        "mask": 4,
+        "area": 4
+       }
+      },
+      "3": {
+       "n_pred": 4,
+       "tp": 1,
+       "fp": 3,
+       "fn": 1,
+       "ap50": 0.16666666666666666,
+       "n_gt": 2,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 1,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 1
+        }
+       },
+       "gate_counts": {
+        "score": 13,
+        "thing_class": 13,
+        "mask": 4,
+        "area": 4
+       }
+      }
+     },
+     "tp": 4,
+     "fp": 15,
+     "fn": 4,
+     "n_gt": 8,
+     "ap50": 0.16666666666666666
+    }
+   },
+   "checks": {
+    "conservation_original": 1.2516975402832031e-06,
+    "conservation_counterfactual": 1.2516975402832031e-06,
+    "alpha_identical": 0.0,
+    "rgb_identical_on_repeat_forward": 0.0,
+    "depth_identical_on_repeat_forward": 0.0,
+    "anomalous_tokens": 0,
+    "tokens": 1024
+   }
+  },
+  "scene0132_01": {
+   "context": [
+    457,
+    472
+   ],
+   "novel": [
+    465,
+    470
+   ],
+   "variants": {
+    "g0plus_original": {
+     "views": {
+      "0": {
+       "n_pred": 4,
+       "tp": 0,
+       "fp": 4,
+       "fn": 4,
+       "ap50": 0.0,
+       "n_gt": 4,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 2,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 4,
+        "area": 4
+       }
+      },
+      "1": {
+       "n_pred": 4,
+       "tp": 0,
+       "fp": 4,
+       "fn": 5,
+       "ap50": 0.0,
+       "n_gt": 5,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 3,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 4,
+        "area": 4
+       }
+      },
+      "2": {
+       "n_pred": 4,
+       "tp": 0,
+       "fp": 4,
+       "fn": 5,
+       "ap50": 0.0,
+       "n_gt": 5,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 2,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 4,
+        "area": 4
+       }
+      },
+      "3": {
+       "n_pred": 4,
+       "tp": 0,
+       "fp": 4,
+       "fn": 5,
+       "ap50": 0.0,
+       "n_gt": 5,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 3,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 4,
+        "area": 4
+       }
+      }
+     },
+     "tp": 0,
+     "fp": 16,
+     "fn": 19,
+     "n_gt": 19,
+     "ap50": 0.0
+    },
+    "g0plus_counterfactual": {
+     "views": {
+      "0": {
+       "n_pred": 7,
+       "tp": 0,
+       "fp": 7,
+       "fn": 4,
+       "ap50": 0.0,
+       "n_gt": 4,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 2,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 7,
+        "area": 7
+       }
+      },
+      "1": {
+       "n_pred": 4,
+       "tp": 0,
+       "fp": 4,
+       "fn": 5,
+       "ap50": 0.0,
+       "n_gt": 5,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 3,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 4,
+        "area": 4
+       }
+      },
+      "2": {
+       "n_pred": 4,
+       "tp": 0,
+       "fp": 4,
+       "fn": 5,
+       "ap50": 0.0,
+       "n_gt": 5,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 2,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 4,
+        "area": 4
+       }
+      },
+      "3": {
+       "n_pred": 4,
+       "tp": 0,
+       "fp": 4,
+       "fn": 5,
+       "ap50": 0.0,
+       "n_gt": 5,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 3,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 4,
+        "area": 4
+       }
+      }
+     },
+     "tp": 0,
+     "fp": 19,
+     "fn": 19,
+     "n_gt": 19,
+     "ap50": 0.0
+    },
+    "g0_original": {
+     "views": {
+      "0": {
+       "n_pred": 8,
+       "tp": 0,
+       "fp": 8,
+       "fn": 4,
+       "ap50": 0.0,
+       "n_gt": 4,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 2,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 14,
+        "thing_class": 14,
+        "mask": 8,
+        "area": 8
+       }
+      },
+      "1": {
+       "n_pred": 7,
+       "tp": 1,
+       "fp": 6,
+       "fn": 4,
+       "ap50": 0.04000000000000001,
+       "n_gt": 5,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 3,
+         "tp": 1
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 14,
+        "thing_class": 14,
+        "mask": 7,
+        "area": 7
+       }
+      },
+      "2": {
+       "n_pred": 9,
+       "tp": 0,
+       "fp": 9,
+       "fn": 5,
+       "ap50": 0.0,
+       "n_gt": 5,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 2,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 14,
+        "thing_class": 14,
+        "mask": 9,
+        "area": 9
+       }
+      },
+      "3": {
+       "n_pred": 8,
+       "tp": 1,
+       "fp": 7,
+       "fn": 4,
+       "ap50": 0.03333333333333333,
+       "n_gt": 5,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 3,
+         "tp": 1
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 14,
+        "thing_class": 14,
+        "mask": 8,
+        "area": 8
+       }
+      }
+     },
+     "tp": 2,
+     "fp": 30,
+     "fn": 17,
+     "n_gt": 19,
+     "ap50": 0.018333333333333333
+    }
+   },
+   "checks": {
+    "conservation_original": 1.3113021850585938e-06,
+    "conservation_counterfactual": 1.2516975402832031e-06,
+    "alpha_identical": 0.0,
+    "rgb_identical_on_repeat_forward": 0.0,
+    "depth_identical_on_repeat_forward": 0.0,
+    "anomalous_tokens": 0,
+    "tokens": 1024
+   }
+  },
+  "scene0472_01": {
+   "context": [
+    77,
+    131
+   ],
+   "novel": [
+    105,
+    120
+   ],
+   "variants": {
+    "g0plus_original": {
+     "views": {
+      "0": {
+       "n_pred": 4,
+       "tp": 0,
+       "fp": 4,
+       "fn": 3,
+       "ap50": 0.0,
+       "n_gt": 3,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 1,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 10,
+        "thing_class": 10,
+        "mask": 4,
+        "area": 4
+       }
+      },
+      "1": {
+       "n_pred": 4,
+       "tp": 1,
+       "fp": 3,
+       "fn": 1,
+       "ap50": 0.5,
+       "n_gt": 2,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 1,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 1
+        }
+       },
+       "gate_counts": {
+        "score": 10,
+        "thing_class": 10,
+        "mask": 4,
+        "area": 4
+       }
+      },
+      "2": {
+       "n_pred": 5,
+       "tp": 1,
+       "fp": 4,
+       "fn": 0,
+       "ap50": 1.0,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 1
+        }
+       },
+       "gate_counts": {
+        "score": 10,
+        "thing_class": 10,
+        "mask": 5,
+        "area": 5
+       }
+      },
+      "3": {
+       "n_pred": 4,
+       "tp": 1,
+       "fp": 3,
+       "fn": 0,
+       "ap50": 1.0,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 1
+        }
+       },
+       "gate_counts": {
+        "score": 10,
+        "thing_class": 10,
+        "mask": 4,
+        "area": 4
+       }
+      }
+     },
+     "tp": 3,
+     "fp": 14,
+     "fn": 4,
+     "n_gt": 7,
+     "ap50": 0.625
+    },
+    "g0plus_counterfactual": {
+     "views": {
+      "0": {
+       "n_pred": 7,
+       "tp": 1,
+       "fp": 6,
+       "fn": 2,
+       "ap50": 0.3333333333333333,
+       "n_gt": 3,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 1,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 1
+        }
+       },
+       "gate_counts": {
+        "score": 10,
+        "thing_class": 10,
+        "mask": 7,
+        "area": 7
+       }
+      },
+      "1": {
+       "n_pred": 5,
+       "tp": 1,
+       "fp": 4,
+       "fn": 1,
+       "ap50": 0.5,
+       "n_gt": 2,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 1,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 1
+        }
+       },
+       "gate_counts": {
+        "score": 10,
+        "thing_class": 10,
+        "mask": 5,
+        "area": 5
+       }
+      },
+      "2": {
+       "n_pred": 6,
+       "tp": 1,
+       "fp": 5,
+       "fn": 0,
+       "ap50": 1.0,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 1
+        }
+       },
+       "gate_counts": {
+        "score": 10,
+        "thing_class": 10,
+        "mask": 6,
+        "area": 6
+       }
+      },
+      "3": {
+       "n_pred": 5,
+       "tp": 1,
+       "fp": 4,
+       "fn": 0,
+       "ap50": 1.0,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 1
+        }
+       },
+       "gate_counts": {
+        "score": 10,
+        "thing_class": 10,
+        "mask": 5,
+        "area": 5
+       }
+      }
+     },
+     "tp": 4,
+     "fp": 19,
+     "fn": 3,
+     "n_gt": 7,
+     "ap50": 0.7083333333333333
+    },
+    "g0_original": {
+     "views": {
+      "0": {
+       "n_pred": 8,
+       "tp": 0,
+       "fp": 8,
+       "fn": 3,
+       "ap50": 0.0,
+       "n_gt": 3,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 1,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 13,
+        "thing_class": 13,
+        "mask": 8,
+        "area": 8
+       }
+      },
+      "1": {
+       "n_pred": 7,
+       "tp": 0,
+       "fp": 7,
+       "fn": 2,
+       "ap50": 0.0,
+       "n_gt": 2,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 1,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 13,
+        "thing_class": 13,
+        "mask": 7,
+        "area": 7
+       }
+      },
+      "2": {
+       "n_pred": 8,
+       "tp": 0,
+       "fp": 8,
+       "fn": 1,
+       "ap50": 0.0,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 13,
+        "thing_class": 13,
+        "mask": 8,
+        "area": 8
+       }
+      },
+      "3": {
+       "n_pred": 8,
+       "tp": 0,
+       "fp": 8,
+       "fn": 1,
+       "ap50": 0.0,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 13,
+        "thing_class": 13,
+        "mask": 8,
+        "area": 8
+       }
+      }
+     },
+     "tp": 0,
+     "fp": 31,
+     "fn": 7,
+     "n_gt": 7,
+     "ap50": 0.0
+    }
+   },
+   "checks": {
+    "conservation_original": 1.4901161193847656e-06,
+    "conservation_counterfactual": 1.430511474609375e-06,
+    "alpha_identical": 0.0,
+    "rgb_identical_on_repeat_forward": 0.0,
+    "depth_identical_on_repeat_forward": 0.0,
+    "anomalous_tokens": 0,
+    "tokens": 1024
+   }
+  },
+  "scene0559_01": {
+   "context": [
+    236,
+    277
+   ],
+   "novel": [
+    242,
+    260
+   ],
+   "variants": {
+    "g0plus_original": {
+     "views": {
+      "0": {
+       "n_pred": 5,
+       "tp": 1,
+       "fp": 4,
+       "fn": 4,
+       "ap50": 0.2,
+       "n_gt": 5,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 2,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 1
+        }
+       },
+       "gate_counts": {
+        "score": 10,
+        "thing_class": 10,
+        "mask": 5,
+        "area": 5
+       }
+      },
+      "1": {
+       "n_pred": 4,
+       "tp": 1,
+       "fp": 3,
+       "fn": 3,
+       "ap50": 0.25,
+       "n_gt": 4,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 2,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 1
+        }
+       },
+       "gate_counts": {
+        "score": 10,
+        "thing_class": 10,
+        "mask": 4,
+        "area": 4
+       }
+      },
+      "2": {
+       "n_pred": 5,
+       "tp": 1,
+       "fp": 4,
+       "fn": 4,
+       "ap50": 0.2,
+       "n_gt": 5,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 2,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 1
+        }
+       },
+       "gate_counts": {
+        "score": 10,
+        "thing_class": 10,
+        "mask": 5,
+        "area": 5
+       }
+      },
+      "3": {
+       "n_pred": 5,
+       "tp": 0,
+       "fp": 5,
+       "fn": 5,
+       "ap50": 0.0,
+       "n_gt": 5,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 3,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 10,
+        "thing_class": 10,
+        "mask": 5,
+        "area": 5
+       }
+      }
+     },
+     "tp": 3,
+     "fp": 16,
+     "fn": 16,
+     "n_gt": 19,
+     "ap50": 0.1625
+    },
+    "g0plus_counterfactual": {
+     "views": {
+      "0": {
+       "n_pred": 5,
+       "tp": 0,
+       "fp": 5,
+       "fn": 5,
+       "ap50": 0.0,
+       "n_gt": 5,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 2,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 10,
+        "thing_class": 10,
+        "mask": 5,
+        "area": 5
+       }
+      },
+      "1": {
+       "n_pred": 4,
+       "tp": 1,
+       "fp": 3,
+       "fn": 3,
+       "ap50": 0.25,
+       "n_gt": 4,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 2,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 1
+        }
+       },
+       "gate_counts": {
+        "score": 10,
+        "thing_class": 10,
+        "mask": 4,
+        "area": 4
+       }
+      },
+      "2": {
+       "n_pred": 5,
+       "tp": 0,
+       "fp": 5,
+       "fn": 5,
+       "ap50": 0.0,
+       "n_gt": 5,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 2,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 10,
+        "thing_class": 10,
+        "mask": 5,
+        "area": 5
+       }
+      },
+      "3": {
+       "n_pred": 5,
+       "tp": 1,
+       "fp": 4,
+       "fn": 4,
+       "ap50": 0.2,
+       "n_gt": 5,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 3,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 1
+        }
+       },
+       "gate_counts": {
+        "score": 10,
+        "thing_class": 10,
+        "mask": 5,
+        "area": 5
+       }
+      }
+     },
+     "tp": 2,
+     "fp": 17,
+     "fn": 17,
+     "n_gt": 19,
+     "ap50": 0.1125
+    },
+    "g0_original": {
+     "views": {
+      "0": {
+       "n_pred": 10,
+       "tp": 0,
+       "fp": 10,
+       "fn": 5,
+       "ap50": 0.0,
+       "n_gt": 5,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 2,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 16,
+        "thing_class": 16,
+        "mask": 11,
+        "area": 10
+       }
+      },
+      "1": {
+       "n_pred": 7,
+       "tp": 0,
+       "fp": 7,
+       "fn": 4,
+       "ap50": 0.0,
+       "n_gt": 4,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 2,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 16,
+        "thing_class": 16,
+        "mask": 7,
+        "area": 7
+       }
+      },
+      "2": {
+       "n_pred": 11,
+       "tp": 0,
+       "fp": 11,
+       "fn": 5,
+       "ap50": 0.0,
+       "n_gt": 5,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 2,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 16,
+        "thing_class": 16,
+        "mask": 11,
+        "area": 11
+       }
+      },
+      "3": {
+       "n_pred": 10,
+       "tp": 0,
+       "fp": 10,
+       "fn": 5,
+       "ap50": 0.0,
+       "n_gt": 5,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 3,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 16,
+        "thing_class": 16,
+        "mask": 10,
+        "area": 10
+       }
+      }
+     },
+     "tp": 0,
+     "fp": 38,
+     "fn": 19,
+     "n_gt": 19,
+     "ap50": 0.0
+    }
+   },
+   "checks": {
+    "conservation_original": 1.3709068298339844e-06,
+    "conservation_counterfactual": 1.3709068298339844e-06,
+    "alpha_identical": 0.0,
+    "rgb_identical_on_repeat_forward": 0.0,
+    "depth_identical_on_repeat_forward": 0.0,
+    "anomalous_tokens": 0,
+    "tokens": 1024
+   }
+  },
+  "scene0568_02": {
+   "context": [
+    161,
+    182
+   ],
+   "novel": [
+    170,
+    174
+   ],
+   "variants": {
+    "g0plus_original": {
+     "views": {
+      "0": {
+       "n_pred": 6,
+       "tp": 0,
+       "fp": 6,
+       "fn": 1,
+       "ap50": 0.0,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 6,
+        "area": 6
+       }
+      },
+      "1": {
+       "n_pred": 6,
+       "tp": 0,
+       "fp": 6,
+       "fn": 1,
+       "ap50": 0.0,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 6,
+        "area": 6
+       }
+      },
+      "2": {
+       "n_pred": 6,
+       "tp": 0,
+       "fp": 6,
+       "fn": 1,
+       "ap50": 0.0,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 6,
+        "area": 6
+       }
+      },
+      "3": {
+       "n_pred": 6,
+       "tp": 0,
+       "fp": 6,
+       "fn": 1,
+       "ap50": 0.0,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 6,
+        "area": 6
+       }
+      }
+     },
+     "tp": 0,
+     "fp": 24,
+     "fn": 4,
+     "n_gt": 4,
+     "ap50": 0.0
+    },
+    "g0plus_counterfactual": {
+     "views": {
+      "0": {
+       "n_pred": 7,
+       "tp": 0,
+       "fp": 7,
+       "fn": 1,
+       "ap50": 0.0,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 7,
+        "area": 7
+       }
+      },
+      "1": {
+       "n_pred": 7,
+       "tp": 0,
+       "fp": 7,
+       "fn": 1,
+       "ap50": 0.0,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 7,
+        "area": 7
+       }
+      },
+      "2": {
+       "n_pred": 7,
+       "tp": 0,
+       "fp": 7,
+       "fn": 1,
+       "ap50": 0.0,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 7,
+        "area": 7
+       }
+      },
+      "3": {
+       "n_pred": 7,
+       "tp": 0,
+       "fp": 7,
+       "fn": 1,
+       "ap50": 0.0,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 7,
+        "area": 7
+       }
+      }
+     },
+     "tp": 0,
+     "fp": 28,
+     "fn": 4,
+     "n_gt": 4,
+     "ap50": 0.0
+    },
+    "g0_original": {
+     "views": {
+      "0": {
+       "n_pred": 9,
+       "tp": 0,
+       "fp": 9,
+       "fn": 1,
+       "ap50": 0.0,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 13,
+        "thing_class": 13,
+        "mask": 9,
+        "area": 9
+       }
+      },
+      "1": {
+       "n_pred": 8,
+       "tp": 0,
+       "fp": 8,
+       "fn": 1,
+       "ap50": 0.0,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 13,
+        "thing_class": 13,
+        "mask": 8,
+        "area": 8
+       }
+      },
+      "2": {
+       "n_pred": 8,
+       "tp": 0,
+       "fp": 8,
+       "fn": 1,
+       "ap50": 0.0,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 13,
+        "thing_class": 13,
+        "mask": 9,
+        "area": 8
+       }
+      },
+      "3": {
+       "n_pred": 8,
+       "tp": 0,
+       "fp": 8,
+       "fn": 1,
+       "ap50": 0.0,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 13,
+        "thing_class": 13,
+        "mask": 8,
+        "area": 8
+       }
+      }
+     },
+     "tp": 0,
+     "fp": 33,
+     "fn": 4,
+     "n_gt": 4,
+     "ap50": 0.0
+    }
+   },
+   "checks": {
+    "conservation_original": 1.4901161193847656e-06,
+    "conservation_counterfactual": 1.3709068298339844e-06,
+    "alpha_identical": 0.0,
+    "rgb_identical_on_repeat_forward": 0.0,
+    "depth_identical_on_repeat_forward": 0.0,
+    "anomalous_tokens": 0,
+    "tokens": 1024
+   }
+  },
+  "scene0615_00": {
+   "context": [
+    548,
+    566
+   ],
+   "novel": [
+    554,
+    555
+   ],
+   "variants": {
+    "g0plus_original": {
+     "views": {
+      "0": {
+       "n_pred": 5,
+       "tp": 0,
+       "fp": 5,
+       "fn": 3,
+       "ap50": 0.0,
+       "n_gt": 3,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 5,
+        "area": 5
+       }
+      },
+      "1": {
+       "n_pred": 4,
+       "tp": 0,
+       "fp": 4,
+       "fn": 3,
+       "ap50": 0.0,
+       "n_gt": 3,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 1,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 4,
+        "area": 4
+       }
+      },
+      "2": {
+       "n_pred": 4,
+       "tp": 0,
+       "fp": 4,
+       "fn": 3,
+       "ap50": 0.0,
+       "n_gt": 3,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 1,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 5,
+        "area": 4
+       }
+      },
+      "3": {
+       "n_pred": 5,
+       "tp": 0,
+       "fp": 5,
+       "fn": 3,
+       "ap50": 0.0,
+       "n_gt": 3,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 1,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 5,
+        "area": 5
+       }
+      }
+     },
+     "tp": 0,
+     "fp": 18,
+     "fn": 12,
+     "n_gt": 12,
+     "ap50": 0.0
+    },
+    "g0plus_counterfactual": {
+     "views": {
+      "0": {
+       "n_pred": 5,
+       "tp": 1,
+       "fp": 4,
+       "fn": 2,
+       "ap50": 0.1111111111111111,
+       "n_gt": 3,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 1
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 5,
+        "area": 5
+       }
+      },
+      "1": {
+       "n_pred": 5,
+       "tp": 0,
+       "fp": 5,
+       "fn": 3,
+       "ap50": 0.0,
+       "n_gt": 3,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 1,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 5,
+        "area": 5
+       }
+      },
+      "2": {
+       "n_pred": 6,
+       "tp": 1,
+       "fp": 5,
+       "fn": 2,
+       "ap50": 0.1111111111111111,
+       "n_gt": 3,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 1,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 1
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 6,
+        "area": 6
+       }
+      },
+      "3": {
+       "n_pred": 5,
+       "tp": 1,
+       "fp": 4,
+       "fn": 2,
+       "ap50": 0.1111111111111111,
+       "n_gt": 3,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 1,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 1
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 5,
+        "area": 5
+       }
+      }
+     },
+     "tp": 3,
+     "fp": 18,
+     "fn": 9,
+     "n_gt": 12,
+     "ap50": 0.08333333333333333
+    },
+    "g0_original": {
+     "views": {
+      "0": {
+       "n_pred": 7,
+       "tp": 0,
+       "fp": 7,
+       "fn": 3,
+       "ap50": 0.0,
+       "n_gt": 3,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 15,
+        "thing_class": 15,
+        "mask": 7,
+        "area": 7
+       }
+      },
+      "1": {
+       "n_pred": 6,
+       "tp": 0,
+       "fp": 6,
+       "fn": 3,
+       "ap50": 0.0,
+       "n_gt": 3,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 1,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 15,
+        "thing_class": 15,
+        "mask": 7,
+        "area": 6
+       }
+      },
+      "2": {
+       "n_pred": 9,
+       "tp": 0,
+       "fp": 9,
+       "fn": 3,
+       "ap50": 0.0,
+       "n_gt": 3,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 1,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 15,
+        "thing_class": 15,
+        "mask": 9,
+        "area": 9
+       }
+      },
+      "3": {
+       "n_pred": 9,
+       "tp": 0,
+       "fp": 9,
+       "fn": 3,
+       "ap50": 0.0,
+       "n_gt": 3,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 1,
+         "tp": 0
+        },
+        "large": {
+         "gt": 2,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 15,
+        "thing_class": 15,
+        "mask": 9,
+        "area": 9
+       }
+      }
+     },
+     "tp": 0,
+     "fp": 31,
+     "fn": 12,
+     "n_gt": 12,
+     "ap50": 0.0
+    }
+   },
+   "checks": {
+    "conservation_original": 1.3113021850585938e-06,
+    "conservation_counterfactual": 1.3113021850585938e-06,
+    "alpha_identical": 0.0,
+    "rgb_identical_on_repeat_forward": 0.0,
+    "depth_identical_on_repeat_forward": 0.0,
+    "anomalous_tokens": 0,
+    "tokens": 1024
+   }
+  },
+  "scene0695_00": {
+   "context": [
+    1502,
+    1522
+   ],
+   "novel": [
+    1517,
+    1521
+   ],
+   "variants": {
+    "g0plus_original": {
+     "views": {
+      "0": {
+       "n_pred": 5,
+       "tp": 0,
+       "fp": 5,
+       "fn": 1,
+       "ap50": 0.0,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 5,
+        "area": 5
+       }
+      },
+      "1": {
+       "n_pred": 4,
+       "tp": 0,
+       "fp": 4,
+       "fn": 1,
+       "ap50": 0.0,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 0,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 4,
+        "area": 4
+       }
+      },
+      "2": {
+       "n_pred": 5,
+       "tp": 0,
+       "fp": 5,
+       "fn": 1,
+       "ap50": 0.0,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 1,
+         "tp": 0
+        },
+        "large": {
+         "gt": 0,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 5,
+        "area": 5
+       }
+      },
+      "3": {
+       "n_pred": 4,
+       "tp": 0,
+       "fp": 4,
+       "fn": 1,
+       "ap50": 0.0,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 0,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 4,
+        "area": 4
+       }
+      }
+     },
+     "tp": 0,
+     "fp": 18,
+     "fn": 4,
+     "n_gt": 4,
+     "ap50": 0.0
+    },
+    "g0plus_counterfactual": {
+     "views": {
+      "0": {
+       "n_pred": 7,
+       "tp": 0,
+       "fp": 7,
+       "fn": 1,
+       "ap50": 0.0,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 7,
+        "area": 7
+       }
+      },
+      "1": {
+       "n_pred": 6,
+       "tp": 0,
+       "fp": 6,
+       "fn": 1,
+       "ap50": 0.0,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 0,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 6,
+        "area": 6
+       }
+      },
+      "2": {
+       "n_pred": 6,
+       "tp": 0,
+       "fp": 6,
+       "fn": 1,
+       "ap50": 0.0,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 1,
+         "tp": 0
+        },
+        "large": {
+         "gt": 0,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 7,
+        "area": 6
+       }
+      },
+      "3": {
+       "n_pred": 6,
+       "tp": 0,
+       "fp": 6,
+       "fn": 1,
+       "ap50": 0.0,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 0,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 12,
+        "thing_class": 12,
+        "mask": 6,
+        "area": 6
+       }
+      }
+     },
+     "tp": 0,
+     "fp": 25,
+     "fn": 4,
+     "n_gt": 4,
+     "ap50": 0.0
+    },
+    "g0_original": {
+     "views": {
+      "0": {
+       "n_pred": 10,
+       "tp": 0,
+       "fp": 10,
+       "fn": 1,
+       "ap50": 0.0,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 1,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 13,
+        "thing_class": 13,
+        "mask": 10,
+        "area": 10
+       }
+      },
+      "1": {
+       "n_pred": 9,
+       "tp": 0,
+       "fp": 9,
+       "fn": 1,
+       "ap50": 0.0,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 0,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 13,
+        "thing_class": 13,
+        "mask": 9,
+        "area": 9
+       }
+      },
+      "2": {
+       "n_pred": 10,
+       "tp": 1,
+       "fp": 9,
+       "fn": 0,
+       "ap50": 0.25,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 0,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 1,
+         "tp": 1
+        },
+        "large": {
+         "gt": 0,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 13,
+        "thing_class": 13,
+        "mask": 10,
+        "area": 10
+       }
+      },
+      "3": {
+       "n_pred": 9,
+       "tp": 0,
+       "fp": 9,
+       "fn": 1,
+       "ap50": 0.0,
+       "n_gt": 1,
+       "buckets": {
+        "small": {
+         "gt": 1,
+         "tp": 0
+        },
+        "medium": {
+         "gt": 0,
+         "tp": 0
+        },
+        "large": {
+         "gt": 0,
+         "tp": 0
+        }
+       },
+       "gate_counts": {
+        "score": 13,
+        "thing_class": 13,
+        "mask": 9,
+        "area": 9
+       }
+      }
+     },
+     "tp": 1,
+     "fp": 37,
+     "fn": 3,
+     "n_gt": 4,
+     "ap50": 0.0625
+    }
+   },
+   "checks": {
+    "conservation_original": 1.430511474609375e-06,
+    "conservation_counterfactual": 1.430511474609375e-06,
+    "alpha_identical": 0.0,
+    "rgb_identical_on_repeat_forward": 0.0,
+    "depth_identical_on_repeat_forward": 0.0,
+    "anomalous_tokens": 0,
+    "tokens": 1024
+   }
+  }
+ },
+ "checks": {
+  "assignment_equivalence": {
+   "max_gap_softmax_vs_conditional_normalisation": 2.980232238769531e-07,
+   "tolerance": 0.0001,
+   "anomalous_tokens_total": 0,
+   "tokens_total": 9216,
+   "handling": "the softmax over the 100 group logits is used for every token; it is equivalent to the conditional normalisation wherever the group mass is not degenerate"
+  }
+ },
+ "summary": {
+  "fixed_training_instances": {
+   "n_instances": 9,
+   "novel_view_checks": 1,
+   "best_iou_crossed_0.5_up": 0,
+   "best_iou_crossed_0.5_down": 1,
+   "gt_free_tp_gained": 0,
+   "gt_free_tp_lost": 1,
+   "gt_free_fp_original": 84,
+   "gt_free_fp_counterfactual": 99,
+   "mean_pred_over_gt_area_original": 2.2046342816569306,
+   "mean_pred_over_gt_area_counterfactual": 2.7116916397906756
+  },
+  "validation_scenes": {
+   "scene0059_00": {
+    "g0plus_original": {
+     "tp": 0,
+     "fp": 23,
+     "fn": 37,
+     "n_gt": 37,
+     "ap50": 0.0
+    },
+    "g0plus_counterfactual": {
+     "tp": 0,
+     "fp": 25,
+     "fn": 37,
+     "n_gt": 37,
+     "ap50": 0.0
+    },
+    "g0_original": {
+     "tp": 5,
+     "fp": 36,
+     "fn": 32,
+     "n_gt": 37,
+     "ap50": 0.07118055555555555
+    }
+   },
+   "scene0072_02": {
+    "g0plus_original": {
+     "tp": 0,
+     "fp": 11,
+     "fn": 8,
+     "n_gt": 8,
+     "ap50": 0.0
+    },
+    "g0plus_counterfactual": {
+     "tp": 3,
+     "fp": 13,
+     "fn": 5,
+     "n_gt": 8,
+     "ap50": 0.1875
+    },
+    "g0_original": {
+     "tp": 4,
+     "fp": 15,
+     "fn": 4,
+     "n_gt": 8,
+     "ap50": 0.16666666666666666
+    }
+   },
+   "scene0132_01": {
+    "g0plus_original": {
+     "tp": 0,
+     "fp": 16,
+     "fn": 19,
+     "n_gt": 19,
+     "ap50": 0.0
+    },
+    "g0plus_counterfactual": {
+     "tp": 0,
+     "fp": 19,
+     "fn": 19,
+     "n_gt": 19,
+     "ap50": 0.0
+    },
+    "g0_original": {
+     "tp": 2,
+     "fp": 30,
+     "fn": 17,
+     "n_gt": 19,
+     "ap50": 0.018333333333333333
+    }
+   },
+   "scene0472_01": {
+    "g0plus_original": {
+     "tp": 3,
+     "fp": 14,
+     "fn": 4,
+     "n_gt": 7,
+     "ap50": 0.625
+    },
+    "g0plus_counterfactual": {
+     "tp": 4,
+     "fp": 19,
+     "fn": 3,
+     "n_gt": 7,
+     "ap50": 0.7083333333333333
+    },
+    "g0_original": {
+     "tp": 0,
+     "fp": 31,
+     "fn": 7,
+     "n_gt": 7,
+     "ap50": 0.0
+    }
+   },
+   "scene0559_01": {
+    "g0plus_original": {
+     "tp": 3,
+     "fp": 16,
+     "fn": 16,
+     "n_gt": 19,
+     "ap50": 0.1625
+    },
+    "g0plus_counterfactual": {
+     "tp": 2,
+     "fp": 17,
+     "fn": 17,
+     "n_gt": 19,
+     "ap50": 0.1125
+    },
+    "g0_original": {
+     "tp": 0,
+     "fp": 38,
+     "fn": 19,
+     "n_gt": 19,
+     "ap50": 0.0
+    }
+   },
+   "scene0568_02": {
+    "g0plus_original": {
+     "tp": 0,
+     "fp": 24,
+     "fn": 4,
+     "n_gt": 4,
+     "ap50": 0.0
+    },
+    "g0plus_counterfactual": {
+     "tp": 0,
+     "fp": 28,
+     "fn": 4,
+     "n_gt": 4,
+     "ap50": 0.0
+    },
+    "g0_original": {
+     "tp": 0,
+     "fp": 33,
+     "fn": 4,
+     "n_gt": 4,
+     "ap50": 0.0
+    }
+   },
+   "scene0615_00": {
+    "g0plus_original": {
+     "tp": 0,
+     "fp": 18,
+     "fn": 12,
+     "n_gt": 12,
+     "ap50": 0.0
+    },
+    "g0plus_counterfactual": {
+     "tp": 3,
+     "fp": 18,
+     "fn": 9,
+     "n_gt": 12,
+     "ap50": 0.08333333333333333
+    },
+    "g0_original": {
+     "tp": 0,
+     "fp": 31,
+     "fn": 12,
+     "n_gt": 12,
+     "ap50": 0.0
+    }
+   },
+   "scene0695_00": {
+    "g0plus_original": {
+     "tp": 0,
+     "fp": 18,
+     "fn": 4,
+     "n_gt": 4,
+     "ap50": 0.0
+    },
+    "g0plus_counterfactual": {
+     "tp": 0,
+     "fp": 25,
+     "fn": 4,
+     "n_gt": 4,
+     "ap50": 0.0
+    },
+    "g0_original": {
+     "tp": 1,
+     "fp": 37,
+     "fn": 3,
+     "n_gt": 4,
+     "ap50": 0.0625
+    }
+   }
+  }
+ }
+}
