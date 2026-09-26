@@ -1,0 +1,91 @@
+{
+ "scope": "Step 1 read-only group-mask formation diagnosis",
+ "code_facts": {
+  "file": "tokengs/models/group_locusgs.py",
+  "class": "GroupQueryHead.forward_full",
+  "query_token_interaction_layers": 1,
+  "interaction_detail": "one nn.MultiheadAttention cross-attention (self.cross_attn, 4 heads) from the 100 learnable queries to the token features",
+  "query_query_communication": false,
+  "query_post_attention": "query_norm(queries + attended) then + mlp(...), both per-query; no self-attention among queries",
+  "spatial_encoding_location": "added to the *token* features (token_proj(token_norm(tokens)) + spatial_proj(build_anchor_encoding(anchors, radii))) before the cross-attention and before the similarity",
+  "final_logits": "similarity = (token_features . query_features) * logit_scale, then concatenated with the shared scalar background_bias -> slot_logits[B,T,101]; objectness/class heads read query_features",
+  "assertions_in_source": {
+   "one_cross_attn_call": true,
+   "no_self_attn_module": true,
+   "spatial_proj_before_similarity": true,
+   "background_bias_expand": true
+  }
+ },
+ "checkpoints_before": {
+  "g0plus_step6000": {
+   "dir": "workspace_group_plus/arm_g0plus/ckpt_step6000",
+   "arm": "g0plus",
+   "step": 6000,
+   "plan_sha256": "a2a65c1382da0307a68fb6d27e5c1345aa78b46331acb2927e88b47a3c3d08bb",
+   "model_sha256": "a63dd485cc2d1b3fefb8b68786f9845ff8253cfebedd90405e73484c87243be4",
+   "model_mtime": 1790353194.0
+  },
+  "g0_step6000": {
+   "dir": "workspace_group_locusgs/arm_g0/ckpt_step6000",
+   "arm": "g0",
+   "step": 6000,
+   "plan_sha256": "a2a65c1382da0307a68fb6d27e5c1345aa78b46331acb2927e88b47a3c3d08bb",
+   "model_sha256": "dbe5ea8311b466e61f2d2ab80f4b953ec39f0ab3ea9b3ffd63fbd976dc826332",
+   "model_mtime": 1790344454.0
+  }
+ },
+ "plan_sha256": "a2a65c1382da0307a68fb6d27e5c1345aa78b46331acb2927e88b47a3c3d08bb",
+ "smoke": {
+  "window": {
+   "scene": "scene0059_00",
+   "context": [
+    510,
+    524
+   ],
+   "novel": [
+    511,
+    516
+   ]
+  },
+  "tokens": 1024,
+  "slot_logits_shape": [
+   1,
+   1024,
+   101
+  ],
+  "slot_logits_dtype": "torch.float32",
+  "slot_logits_finite": true,
+  "prob_sum_max_error": 2.384185791015625e-07,
+  "conservation_error": 1.4901161193847656e-06,
+  "rgb_repeat_max_diff": 0.0,
+  "depth_repeat_max_diff": 0.0,
+  "checks": {
+   "tokens_is_1024": true,
+   "slot_logits_shape_ok": true,
+   "fp32": true,
+   "finite": true,
+   "prob_sums_to_one": true,
+   "conservation_le_2e-6": true,
+   "rgb_repeat_identical": true,
+   "depth_repeat_identical": true
+  },
+  "passed": true
+ },
+ "crosscheck": {
+  "all_views": {
+   "tp": 6,
+   "fp": 140,
+   "fn": 104,
+   "records": 110,
+   "ap50_mean_over_scenes": 0.0984375
+  },
+  "novel": {
+   "tp": 3,
+   "fp": 71,
+   "fn": 52,
+   "records": 55,
+   "ap50_mean_over_scenes": 0.1375
+  },
+  "matches_recorded": true
+ }
+}

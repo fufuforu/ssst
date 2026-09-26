@@ -1,0 +1,5902 @@
+{
+ "scope": "Step 1 read-only group-mask formation diagnosis",
+ "code_facts": {
+  "file": "tokengs/models/group_locusgs.py",
+  "class": "GroupQueryHead.forward_full",
+  "query_token_interaction_layers": 1,
+  "interaction_detail": "one nn.MultiheadAttention cross-attention (self.cross_attn, 4 heads) from the 100 learnable queries to the token features",
+  "query_query_communication": false,
+  "query_post_attention": "query_norm(queries + attended) then + mlp(...), both per-query; no self-attention among queries",
+  "spatial_encoding_location": "added to the *token* features (token_proj(token_norm(tokens)) + spatial_proj(build_anchor_encoding(anchors, radii))) before the cross-attention and before the similarity",
+  "final_logits": "similarity = (token_features . query_features) * logit_scale, then concatenated with the shared scalar background_bias -> slot_logits[B,T,101]; objectness/class heads read query_features",
+  "assertions_in_source": {
+   "one_cross_attn_call": true,
+   "no_self_attn_module": true,
+   "spatial_proj_before_similarity": true,
+   "background_bias_expand": true
+  }
+ },
+ "checkpoints_before": {
+  "g0plus_step6000": {
+   "dir": "workspace_group_plus/arm_g0plus/ckpt_step6000",
+   "arm": "g0plus",
+   "step": 6000,
+   "plan_sha256": "a2a65c1382da0307a68fb6d27e5c1345aa78b46331acb2927e88b47a3c3d08bb",
+   "model_sha256": "a63dd485cc2d1b3fefb8b68786f9845ff8253cfebedd90405e73484c87243be4",
+   "model_mtime": 1790353194.0
+  },
+  "g0_step6000": {
+   "dir": "workspace_group_locusgs/arm_g0/ckpt_step6000",
+   "arm": "g0",
+   "step": 6000,
+   "plan_sha256": "a2a65c1382da0307a68fb6d27e5c1345aa78b46331acb2927e88b47a3c3d08bb",
+   "model_sha256": "dbe5ea8311b466e61f2d2ab80f4b953ec39f0ab3ea9b3ffd63fbd976dc826332",
+   "model_mtime": 1790344454.0
+  }
+ },
+ "plan_sha256": "a2a65c1382da0307a68fb6d27e5c1345aa78b46331acb2927e88b47a3c3d08bb",
+ "smoke": {
+  "window": {
+   "scene": "scene0059_00",
+   "context": [
+    510,
+    524
+   ],
+   "novel": [
+    511,
+    516
+   ]
+  },
+  "tokens": 1024,
+  "slot_logits_shape": [
+   1,
+   1024,
+   101
+  ],
+  "slot_logits_dtype": "torch.float32",
+  "slot_logits_finite": true,
+  "prob_sum_max_error": 2.384185791015625e-07,
+  "conservation_error": 1.4901161193847656e-06,
+  "rgb_repeat_max_diff": 0.0,
+  "depth_repeat_max_diff": 0.0,
+  "checks": {
+   "tokens_is_1024": true,
+   "slot_logits_shape_ok": true,
+   "fp32": true,
+   "finite": true,
+   "prob_sums_to_one": true,
+   "conservation_le_2e-6": true,
+   "rgb_repeat_identical": true,
+   "depth_repeat_identical": true
+  },
+  "passed": true
+ },
+ "crosscheck": {
+  "all_views": {
+   "tp": 6,
+   "fp": 140,
+   "fn": 104,
+   "records": 110,
+   "ap50_mean_over_scenes": 0.0984375
+  },
+  "novel": {
+   "tp": 3,
+   "fp": 71,
+   "fn": 52,
+   "records": 55,
+   "ap50_mean_over_scenes": 0.1375
+  },
+  "matches_recorded": true
+ },
+ "fragmentation": {
+  "g0plus_step6000": [
+   {
+    "iou1": 0.0660548379786993,
+    "iou2": 0.060345719904771764,
+    "iou3": 0.04794013650193241,
+    "delta": 0.0,
+    "ranked_groups": [
+     22,
+     14,
+     57
+    ],
+    "ranked_ious": [
+     0.0660548379786993,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 0.5923168048739211,
+    "union3_area_over_gt": 1.1567101032323575,
+    "union3_intrusion_other_gt_fraction": 0.5281638624725676,
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 5010,
+    "group": "unseen",
+    "gt_area": 5909
+   },
+   {
+    "iou1": 0.0,
+    "iou2": 0.0,
+    "iou3": 0.0,
+    "delta": 0.0,
+    "ranked_groups": [
+     14,
+     22,
+     57
+    ],
+    "ranked_ious": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 0.22166179984072207,
+    "union3_area_over_gt": 1.8144411998938148,
+    "union3_intrusion_other_gt_fraction": 0.6134601316752012,
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 5011,
+    "group": "unseen",
+    "gt_area": 3767
+   },
+   {
+    "iou1": 0.0,
+    "iou2": 0.0,
+    "iou3": 0.0,
+    "delta": 0.0,
+    "ranked_groups": [
+     14,
+     22,
+     57
+    ],
+    "ranked_ious": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 2.0566502463054186,
+    "union3_area_over_gt": 16.834975369458128,
+    "union3_intrusion_other_gt_fraction": 0.6134601316752012,
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 5016,
+    "group": "unseen",
+    "gt_area": 406
+   },
+   {
+    "iou1": 0.24391640423704553,
+    "iou2": 0.21787495205216725,
+    "iou3": 0.15051673880399258,
+    "delta": 0.0,
+    "ranked_groups": [
+     92,
+     14,
+     22
+    ],
+    "ranked_ious": [
+     0.24391640423704553,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 3.3778337531486144,
+    "union3_area_over_gt": 5.561712846347607,
+    "union3_intrusion_other_gt_fraction": 0.5919384057971014,
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 5019,
+    "group": "unseen",
+    "gt_area": 1985
+   },
+   {
+    "iou1": 0.21848462362931817,
+    "iou2": 0.21706511393538996,
+    "iou3": 0.2161681307683754,
+    "delta": 0.0,
+    "ranked_groups": [
+     22,
+     65,
+     62
+    ],
+    "ranked_ious": [
+     0.21848462362931817,
+     0.07212979836576333,
+     0.0009645738337425465
+    ],
+    "top1_area_over_gt": 0.3103111978012235,
+    "union3_area_over_gt": 0.9393563259154181,
+    "union3_intrusion_other_gt_fraction": 0.05502595563945257,
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 6001,
+    "group": "unseen",
+    "gt_area": 11279
+   },
+   {
+    "iou1": 0.21799333043352181,
+    "iou2": 0.2055506186342197,
+    "iou3": 0.16586684317943626,
+    "delta": 0.0,
+    "ranked_groups": [
+     92,
+     14,
+     22
+    ],
+    "ranked_ious": [
+     0.21799333043352181,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 0.6641244057052298,
+    "union3_area_over_gt": 1.0935023771790808,
+    "union3_intrusion_other_gt_fraction": 0.47391304347826085,
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 7007,
+    "group": "unseen",
+    "gt_area": 10096
+   },
+   {
+    "iou1": 0.18942849476790985,
+    "iou2": 0.09874716385518398,
+    "iou3": 0.09123222748815166,
+    "delta": 0.0,
+    "ranked_groups": [
+     57,
+     92,
+     14
+    ],
+    "ranked_ious": [
+     0.18942849476790985,
+     0.035358983579048306,
+     0.0
+    ],
+    "top1_area_over_gt": 1.2933264355923435,
+    "union3_area_over_gt": 5.193998965338851,
+    "union3_intrusion_other_gt_fraction": 0.4945219123505976,
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 8032,
+    "group": "unseen",
+    "gt_area": 1933
+   },
+   {
+    "iou1": 0.09516672911202698,
+    "iou2": 0.07248858447488585,
+    "iou3": 0.03626499143346659,
+    "delta": 0.0,
+    "ranked_groups": [
+     57,
+     14,
+     22
+    ],
+    "ranked_ious": [
+     0.09516672911202698,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 5.91016548463357,
+    "union3_area_over_gt": 16.15839243498818,
+    "union3_intrusion_other_gt_fraction": 0.5762984637893197,
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 8033,
+    "group": "unseen",
+    "gt_area": 423
+   },
+   {
+    "iou1": 0.0,
+    "iou2": 0.0,
+    "iou3": 0.0,
+    "delta": 0.0,
+    "ranked_groups": [
+     14,
+     22,
+     57
+    ],
+    "ranked_ious": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 119.28571428571429,
+    "union3_area_over_gt": 976.4285714285714,
+    "union3_intrusion_other_gt_fraction": 0.6134601316752012,
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 20034,
+    "group": "unseen",
+    "gt_area": 7
+   },
+   {
+    "iou1": 0.0,
+    "iou2": 0.0,
+    "iou3": 0.0,
+    "delta": 0.0,
+    "ranked_groups": [
+     22,
+     57,
+     62
+    ],
+    "ranked_ious": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 0.13817480719794345,
+    "union3_area_over_gt": 0.7958440445586975,
+    "union3_intrusion_other_gt_fraction": 0.4215343203230148,
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 5010,
+    "group": "unseen",
+    "gt_area": 4668
+   },
+   {
+    "iou1": 0.0,
+    "iou2": 0.0,
+    "iou3": 0.0,
+    "delta": 0.0,
+    "ranked_groups": [
+     22,
+     57,
+     62
+    ],
+    "ranked_ious": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 0.1762295081967213,
+    "union3_area_over_gt": 1.0150273224043715,
+    "union3_intrusion_other_gt_fraction": 0.4215343203230148,
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 5011,
+    "group": "unseen",
+    "gt_area": 3660
+   },
+   {
+    "iou1": 0.0,
+    "iou2": 0.0,
+    "iou3": 0.0,
+    "delta": 0.0,
+    "ranked_groups": [
+     22,
+     57,
+     62
+    ],
+    "ranked_ious": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 2.63265306122449,
+    "union3_area_over_gt": 15.16326530612245,
+    "union3_intrusion_other_gt_fraction": 0.4215343203230148,
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 5016,
+    "group": "unseen",
+    "gt_area": 245
+   },
+   {
+    "iou1": 0.21846571622539035,
+    "iou2": 0.20087390761548066,
+    "iou3": 0.14704807165052092,
+    "delta": 0.0,
+    "ranked_groups": [
+     92,
+     22,
+     57
+    ],
+    "ranked_ious": [
+     0.21846571622539035,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 3.7431289640591965,
+    "union3_area_over_gt": 5.633720930232558,
+    "union3_intrusion_other_gt_fraction": 0.48334740594802517,
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 5019,
+    "group": "unseen",
+    "gt_area": 1892
+   },
+   {
+    "iou1": 0.08619880689054227,
+    "iou2": 0.12034574468085106,
+    "iou3": 0.11947281713344317,
+    "delta": 0.03414693779030879,
+    "ranked_groups": [
+     65,
+     22,
+     62
+    ],
+    "ranked_ious": [
+     0.08619880689054227,
+     0.05405405405405406,
+     0.00030902348578491963
+    ],
+    "top1_area_over_gt": 0.6927817820954769,
+    "union3_area_over_gt": 0.7745743236185104,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 6001,
+    "group": "unseen",
+    "gt_area": 9573
+   },
+   {
+    "iou1": 0.17385377942998761,
+    "iou2": 0.18675691583284285,
+    "iou3": 0.1799262829600227,
+    "delta": 0.012903136402855231,
+    "ranked_groups": [
+     92,
+     90,
+     22
+    ],
+    "ranked_ious": [
+     0.17385377942998761,
+     0.02886581720937549,
+     0.0
+    ],
+    "top1_area_over_gt": 0.5969318948078219,
+    "union3_area_over_gt": 0.7538772757923129,
+    "union3_intrusion_other_gt_fraction": 0.36024150268336314,
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 7007,
+    "group": "unseen",
+    "gt_area": 11864
+   },
+   {
+    "iou1": 0.19480209823557462,
+    "iou2": 0.10387950707439525,
+    "iou3": 0.09810344827586207,
+    "delta": 0.0,
+    "ranked_groups": [
+     57,
+     92,
+     22
+    ],
+    "ranked_ious": [
+     0.19480209823557462,
+     0.03631221719457014,
+     0.0
+    ],
+    "top1_area_over_gt": 1.4102934102934104,
+    "union3_area_over_gt": 5.126984126984127,
+    "union3_intrusion_other_gt_fraction": 0.5275354160803077,
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 8032,
+    "group": "unseen",
+    "gt_area": 2079
+   },
+   {
+    "iou1": 0.07147456535737283,
+    "iou2": 0.059184217541988805,
+    "iou3": 0.05708408331190538,
+    "delta": 0.0,
+    "ranked_groups": [
+     57,
+     22,
+     62
+    ],
+    "ranked_ious": [
+     0.07147456535737283,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 7.404040404040404,
+    "union3_area_over_gt": 9.381313131313131,
+    "union3_intrusion_other_gt_fraction": 0.3617765814266487,
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 8033,
+    "group": "unseen",
+    "gt_area": 396
+   },
+   {
+    "iou1": 0.13982011447260834,
+    "iou2": 0.09154175588865096,
+    "iou3": 0.035625,
+    "delta": 0.0,
+    "ranked_groups": [
+     90,
+     22,
+     57
+    ],
+    "ranked_ious": [
+     0.13982011447260834,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 6.875706214689266,
+    "union3_area_over_gt": 27.084745762711865,
+    "union3_intrusion_other_gt_fraction": 0.4307467667918231,
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 20031,
+    "group": "unseen",
+    "gt_area": 177
+   },
+   {
+    "iou1": 0.056903559551668925,
+    "iou2": 0.06488425171177047,
+    "iou3": 0.060633759902498474,
+    "delta": 0.00798069216010154,
+    "ranked_groups": [
+     92,
+     90,
+     22
+    ],
+    "ranked_ious": [
+     0.056903559551668925,
+     0.05230530802014723,
+     0.0
+    ],
+    "top1_area_over_gt": 4.724482988659106,
+    "union3_area_over_gt": 5.9666444296197465,
+    "union3_intrusion_other_gt_fraction": 0.6482558139534884,
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 20034,
+    "group": "unseen",
+    "gt_area": 1499
+   },
+   {
+    "iou1": 0.17730966992867805,
+    "iou2": 0.10392766867587011,
+    "iou3": 0.10392766867587011,
+    "delta": 0.0,
+    "ranked_groups": [
+     65,
+     92
+    ],
+    "ranked_ious": [
+     0.17730966992867805,
+     0.0
+    ],
+    "top1_area_over_gt": 1.871940117337649,
+    "union3_area_over_gt": 3.5943758850900265,
+    "union3_intrusion_other_gt_fraction": 0.31355884504981146,
+    "scene": "scene0072_02",
+    "view": 2,
+    "key": 8022,
+    "group": "unseen",
+    "gt_area": 4943
+   },
+   {
+    "iou1": 0.3097064709806538,
+    "iou2": 0.204507910869645,
+    "iou3": 0.204507910869645,
+    "delta": 0.0,
+    "ranked_groups": [
+     92,
+     65
+    ],
+    "ranked_ious": [
+     0.3097064709806538,
+     0.0
+    ],
+    "top1_area_over_gt": 0.5659022931206381,
+    "union3_area_over_gt": 1.1809238949817216,
+    "union3_intrusion_other_gt_fraction": 0.12033545336860471,
+    "scene": "scene0072_02",
+    "view": 2,
+    "key": 20031,
+    "group": "unseen",
+    "gt_area": 15045
+   },
+   {
+    "iou1": 0.21627573001436093,
+    "iou2": 0.20480507706255666,
+    "iou3": 0.12161507402422611,
+    "delta": 0.0,
+    "ranked_groups": [
+     65,
+     57,
+     92
+    ],
+    "ranked_ious": [
+     0.21627573001436093,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 2.9563998754282155,
+    "union3_area_over_gt": 5.488321395203986,
+    "union3_intrusion_other_gt_fraction": 0.2515462747545821,
+    "scene": "scene0072_02",
+    "view": 3,
+    "key": 8022,
+    "group": "unseen",
+    "gt_area": 3211
+   },
+   {
+    "iou1": 0.3047154248006599,
+    "iou2": 0.2929359677525937,
+    "iou3": 0.18001299439616666,
+    "delta": 0.0,
+    "ranked_groups": [
+     92,
+     57,
+     65
+    ],
+    "ranked_ious": [
+     0.3047154248006599,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 0.6597586568730325,
+    "union3_area_over_gt": 1.5410108429520812,
+    "union3_intrusion_other_gt_fraction": 0.12818475855416217,
+    "scene": "scene0072_02",
+    "view": 3,
+    "key": 20031,
+    "group": "unseen",
+    "gt_area": 11436
+   },
+   {
+    "iou1": 0.0,
+    "iou2": 0.0,
+    "iou3": 0.0,
+    "delta": 0.0,
+    "ranked_groups": [
+     62,
+     65,
+     90
+    ],
+    "ranked_ious": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 1.780693533270853,
+    "union3_area_over_gt": 4.227366447985005,
+    "union3_intrusion_other_gt_fraction": 0.7132532257349354,
+    "scene": "scene0132_01",
+    "view": 2,
+    "key": 5015,
+    "group": "unseen",
+    "gt_area": 5335
+   },
+   {
+    "iou1": 0.23049127927176707,
+    "iou2": 0.23898093154110658,
+    "iou3": 0.1598592040147766,
+    "delta": 0.00848965226933951,
+    "ranked_groups": [
+     92,
+     90,
+     62
+    ],
+    "ranked_ious": [
+     0.23049127927176707,
+     0.1006020278833967,
+     0.0
+    ],
+    "top1_area_over_gt": 1.2641605932745172,
+    "union3_area_over_gt": 3.255338192047053,
+    "union3_intrusion_other_gt_fraction": 0.5239984289080911,
+    "scene": "scene0132_01",
+    "view": 2,
+    "key": 5016,
+    "group": "unseen",
+    "gt_area": 7821
+   },
+   {
+    "iou1": 0.0,
+    "iou2": 0.0,
+    "iou3": 0.0,
+    "delta": 0.0,
+    "ranked_groups": [
+     62,
+     65,
+     90
+    ],
+    "ranked_ious": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 74.80314960629921,
+    "union3_area_over_gt": 177.58267716535434,
+    "union3_intrusion_other_gt_fraction": 0.7132532257349354,
+    "scene": "scene0132_01",
+    "view": 2,
+    "key": 5017,
+    "group": "unseen",
+    "gt_area": 127
+   },
+   {
+    "iou1": 0.12056737588652482,
+    "iou2": 0.059679089026915114,
+    "iou3": 0.04000693962526024,
+    "delta": 0.0,
+    "ranked_groups": [
+     65,
+     92,
+     62
+    ],
+    "ranked_ious": [
+     0.12056737588652482,
+     0.0010386527190444396,
+     0.0
+    ],
+    "top1_area_over_gt": 1.9356627842484748,
+    "union3_area_over_gt": 7.31198003327787,
+    "union3_intrusion_other_gt_fraction": 0.8527705085902834,
+    "scene": "scene0132_01",
+    "view": 2,
+    "key": 6013,
+    "group": "unseen",
+    "gt_area": 3606
+   },
+   {
+    "iou1": 0.267303428279038,
+    "iou2": 0.4491035660340185,
+    "iou3": 0.5500143472022956,
+    "delta": 0.28271091892325756,
+    "ranked_groups": [
+     62,
+     65,
+     92
+    ],
+    "ranked_ious": [
+     0.267303428279038,
+     0.2028829454671761,
+     0.17134209130339814
+    ],
+    "top1_area_over_gt": 0.3435680445553506,
+    "union3_area_over_gt": 0.9535640663990452,
+    "union3_intrusion_other_gt_fraction": 0.1695300944362271,
+    "scene": "scene0132_01",
+    "view": 2,
+    "key": 7012,
+    "group": "unseen",
+    "gt_area": 27651
+   },
+   {
+    "iou1": 0.0,
+    "iou2": 0.0,
+    "iou3": 0.0,
+    "delta": 0.0,
+    "ranked_groups": [
+     62,
+     65,
+     90
+    ],
+    "ranked_ious": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 2.864825154275639,
+    "union3_area_over_gt": 7.231266529532765,
+    "union3_intrusion_other_gt_fraction": 0.5409216514954487,
+    "scene": "scene0132_01",
+    "view": 3,
+    "key": 5015,
+    "group": "unseen",
+    "gt_area": 3403
+   },
+   {
+    "iou1": 0.24709825077652445,
+    "iou2": 0.16948678506502587,
+    "iou3": 0.11653099160310236,
+    "delta": 0.0,
+    "ranked_groups": [
+     92,
+     90,
+     62
+    ],
+    "ranked_ious": [
+     0.24709825077652445,
+     0.039279764193259,
+     0.0
+    ],
+    "top1_area_over_gt": 1.3887584155315484,
+    "union3_area_over_gt": 4.454516987631126,
+    "union3_intrusion_other_gt_fraction": 0.458964535517205,
+    "scene": "scene0132_01",
+    "view": 3,
+    "key": 5016,
+    "group": "unseen",
+    "gt_area": 6387
+   },
+   {
+    "iou1": 0.03586614901090775,
+    "iou2": 0.018865172363494918,
+    "iou3": 0.015159803078846604,
+    "delta": 0.0,
+    "ranked_groups": [
+     90,
+     62,
+     65
+    ],
+    "ranked_ious": [
+     0.03586614901090775,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 7.155749636098981,
+    "union3_area_over_gt": 17.909752547307132,
+    "union3_intrusion_other_gt_fraction": 0.5251544213263979,
+    "scene": "scene0132_01",
+    "view": 3,
+    "key": 5017,
+    "group": "unseen",
+    "gt_area": 1374
+   },
+   {
+    "iou1": 0.01334668001334668,
+    "iou2": 0.005081623578733405,
+    "iou3": 0.0031280547409579668,
+    "delta": 0.0,
+    "ranked_groups": [
+     65,
+     62,
+     90
+    ],
+    "ranked_ious": [
+     0.01334668001334668,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 4.801337153772684,
+    "union3_area_over_gt": 23.50334288443171,
+    "union3_intrusion_other_gt_fraction": 0.5376706762028609,
+    "scene": "scene0132_01",
+    "view": 3,
+    "key": 6013,
+    "group": "unseen",
+    "gt_area": 1047
+   },
+   {
+    "iou1": 0.2743849602531741,
+    "iou2": 0.4593772302144762,
+    "iou3": 0.5851657476914901,
+    "delta": 0.310780787438316,
+    "ranked_groups": [
+     62,
+     65,
+     92
+    ],
+    "ranked_ious": [
+     0.2743849602531741,
+     0.2047853624208304,
+     0.1954644412191582
+    ],
+    "top1_area_over_gt": 0.4049092494912157,
+    "union3_area_over_gt": 0.9820990987249242,
+    "union3_intrusion_other_gt_fraction": 0.1312272688826863,
+    "scene": "scene0132_01",
+    "view": 3,
+    "key": 7012,
+    "group": "unseen",
+    "gt_area": 24077
+   },
+   {
+    "iou1": 0.5637488947833775,
+    "iou2": 0.5663129973474801,
+    "iou3": 0.5454970461983085,
+    "delta": 0.002564102564102555,
+    "ranked_groups": [
+     92,
+     90,
+     62
+    ],
+    "ranked_ious": [
+     0.5637488947833775,
+     0.0026035821699510707,
+     0.001078236867074959
+    ],
+    "top1_area_over_gt": 0.5878260088880909,
+    "union3_area_over_gt": 0.6323562418638057,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0472_01",
+    "view": 2,
+    "key": 4004,
+    "group": "unseen",
+    "gt_area": 22277
+   },
+   {
+    "iou1": 0.5401344883988611,
+    "iou2": 0.6234627733688738,
+    "iou3": 0.6075374959483749,
+    "delta": 0.08332828497001266,
+    "ranked_groups": [
+     92,
+     90,
+     62
+    ],
+    "ranked_ious": [
+     0.5401344883988611,
+     0.08694140699070856,
+     0.0010747735298633502
+    ],
+    "top1_area_over_gt": 0.6069148599962075,
+    "union3_area_over_gt": 0.7241324821439858,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0472_01",
+    "view": 3,
+    "key": 4004,
+    "group": "unseen",
+    "gt_area": 31642
+   },
+   {
+    "iou1": 0.5526607246453246,
+    "iou2": 0.4722211787686413,
+    "iou3": 0.4231578947368421,
+    "delta": 0.0,
+    "ranked_groups": [
+     62,
+     92,
+     65
+    ],
+    "ranked_ious": [
+     0.5526607246453246,
+     0.08463125530968081,
+     0.014060850369517227
+    ],
+    "top1_area_over_gt": 0.7257752506008559,
+    "union3_area_over_gt": 1.5361392813177794,
+    "union3_intrusion_other_gt_fraction": 0.12318259874069834,
+    "scene": "scene0559_01",
+    "view": 2,
+    "key": 6002,
+    "group": "unseen",
+    "gt_area": 17059
+   },
+   {
+    "iou1": 0.13199413742564015,
+    "iou2": 0.14967897271268057,
+    "iou3": 0.10611664295874822,
+    "delta": 0.01768483528704043,
+    "ranked_groups": [
+     92,
+     90,
+     14
+    ],
+    "ranked_ious": [
+     0.13199413742564015,
+     0.07879216796414248,
+     0.0
+    ],
+    "top1_area_over_gt": 2.886915334517466,
+    "union3_area_over_gt": 4.754884547069271,
+    "union3_intrusion_other_gt_fraction": 0.54028140953804,
+    "scene": "scene0559_01",
+    "view": 2,
+    "key": 6003,
+    "group": "unseen",
+    "gt_area": 3378
+   },
+   {
+    "iou1": 0.07495898277276457,
+    "iou2": 0.049169301136745815,
+    "iou3": 0.02682765707574868,
+    "delta": 0.0,
+    "ranked_groups": [
+     92,
+     14,
+     62
+    ],
+    "ranked_ious": [
+     0.07495898277276457,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 13.340629274965801,
+    "union3_area_over_gt": 37.2749658002736,
+    "union3_intrusion_other_gt_fraction": 0.7213740458015268,
+    "scene": "scene0559_01",
+    "view": 2,
+    "key": 7015,
+    "group": "unseen",
+    "gt_area": 731
+   },
+   {
+    "iou1": 0.2880366342301088,
+    "iou2": 0.2595506683097924,
+    "iou3": 0.1635652199886496,
+    "delta": 0.0,
+    "ranked_groups": [
+     14,
+     65,
+     62
+    ],
+    "ranked_ious": [
+     0.2880366342301088,
+     0.021127765881513206,
+     0.0
+    ],
+    "top1_area_over_gt": 0.29418531086443894,
+    "union3_area_over_gt": 1.2404670155863575,
+    "union3_intrusion_other_gt_fraction": 0.5019473293768546,
+    "scene": "scene0559_01",
+    "view": 2,
+    "key": 8013,
+    "group": "unseen",
+    "gt_area": 17387
+   },
+   {
+    "iou1": 0.09356879283078545,
+    "iou2": 0.06293011163786512,
+    "iou3": 0.03452076362920685,
+    "delta": 0.0,
+    "ranked_groups": [
+     90,
+     92,
+     62
+    ],
+    "ranked_ious": [
+     0.09356879283078545,
+     0.03824154273574113,
+     0.0035338001439696354
+    ],
+    "top1_area_over_gt": 0.4045362220717671,
+    "union3_area_over_gt": 7.897088693297224,
+    "union3_intrusion_other_gt_fraction": 0.6501628943758574,
+    "scene": "scene0559_01",
+    "view": 2,
+    "key": 20009,
+    "group": "unseen",
+    "gt_area": 2954
+   },
+   {
+    "iou1": 0.4806740052010972,
+    "iou2": 0.46138258452987496,
+    "iou3": 0.43673995328984455,
+    "delta": 0.0,
+    "ranked_groups": [
+     62,
+     92,
+     65
+    ],
+    "ranked_ious": [
+     0.4806740052010972,
+     0.0720898690883359,
+     0.010978441127694858
+    ],
+    "top1_area_over_gt": 0.5145574463433298,
+    "union3_area_over_gt": 0.9502241008636082,
+    "union3_intrusion_other_gt_fraction": 0.08992598841891322,
+    "scene": "scene0559_01",
+    "view": 3,
+    "key": 6002,
+    "group": "unseen",
+    "gt_area": 27443
+   },
+   {
+    "iou1": 0.21514368253002888,
+    "iou2": 0.18958846289131198,
+    "iou3": 0.16067489417516245,
+    "delta": 0.0,
+    "ranked_groups": [
+     90,
+     92,
+     14
+    ],
+    "ranked_ious": [
+     0.21514368253002888,
+     0.10451539152445496,
+     0.0
+    ],
+    "top1_area_over_gt": 0.7339986981991755,
+    "union3_area_over_gt": 3.223909741809503,
+    "union3_intrusion_other_gt_fraction": 0.39975772259236825,
+    "scene": "scene0559_01",
+    "view": 3,
+    "key": 6003,
+    "group": "unseen",
+    "gt_area": 4609
+   },
+   {
+    "iou1": 0.11056290648127383,
+    "iou2": 0.08591843848030672,
+    "iou3": 0.038520139078798296,
+    "delta": 0.0,
+    "ranked_groups": [
+     92,
+     14,
+     62
+    ],
+    "ranked_ious": [
+     0.11056290648127383,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 9.044624746450305,
+    "union3_area_over_gt": 25.960446247464503,
+    "union3_intrusion_other_gt_fraction": 0.7176622260421143,
+    "scene": "scene0559_01",
+    "view": 3,
+    "key": 7015,
+    "group": "unseen",
+    "gt_area": 986
+   },
+   {
+    "iou1": 0.14745087261234024,
+    "iou2": 0.05014487335264978,
+    "iou3": 0.04391062366999509,
+    "delta": 0.0,
+    "ranked_groups": [
+     14,
+     62,
+     65
+    ],
+    "ranked_ious": [
+     0.14745087261234024,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 0.4416436464088398,
+    "union3_area_over_gt": 3.4041781767955803,
+    "union3_intrusion_other_gt_fraction": 0.7011208601714257,
+    "scene": "scene0559_01",
+    "view": 3,
+    "key": 8013,
+    "group": "unseen",
+    "gt_area": 5792
+   },
+   {
+    "iou1": 0.23296137339055795,
+    "iou2": 0.09792689579923622,
+    "iou3": 0.08338172105446522,
+    "delta": 0.0,
+    "ranked_groups": [
+     90,
+     92,
+     14
+    ],
+    "ranked_ious": [
+     0.23296137339055795,
+     0.00625098908055072,
+     0.0
+    ],
+    "top1_area_over_gt": 0.8904974993419321,
+    "union3_area_over_gt": 3.9112924453803632,
+    "union3_intrusion_other_gt_fraction": 0.484487515983579,
+    "scene": "scene0559_01",
+    "view": 3,
+    "key": 20009,
+    "group": "unseen",
+    "gt_area": 3799
+   },
+   {
+    "iou1": 0.2553888208661978,
+    "iou2": 0.4034852186988159,
+    "iou3": 0.5269850387738583,
+    "delta": 0.2715962179076605,
+    "ranked_groups": [
+     92,
+     62,
+     65
+    ],
+    "ranked_ious": [
+     0.2553888208661978,
+     0.16357499662481437,
+     0.14335362971612867
+    ],
+    "top1_area_over_gt": 0.262868436882358,
+    "union3_area_over_gt": 0.6751740139211136,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0568_02",
+    "view": 2,
+    "key": 6006,
+    "group": "unseen",
+    "gt_area": 34911
+   },
+   {
+    "iou1": 0.24724832959050708,
+    "iou2": 0.4026224654347424,
+    "iou3": 0.5142181300234001,
+    "delta": 0.26696980043289303,
+    "ranked_groups": [
+     92,
+     62,
+     65
+    ],
+    "ranked_ious": [
+     0.24724832959050708,
+     0.17478954364200266,
+     0.13913455904918673
+    ],
+    "top1_area_over_gt": 0.30951272049834083,
+    "union3_area_over_gt": 0.7329277522268149,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0568_02",
+    "view": 3,
+    "key": 6006,
+    "group": "unseen",
+    "gt_area": 34354
+   },
+   {
+    "iou1": 0.30140022161781,
+    "iou2": 0.24647407329733131,
+    "iou3": 0.23686199425605886,
+    "delta": 0.0,
+    "ranked_groups": [
+     92,
+     62,
+     14
+    ],
+    "ranked_ious": [
+     0.30140022161781,
+     0.09651550234370587,
+     0.0
+    ],
+    "top1_area_over_gt": 0.5090526807615933,
+    "union3_area_over_gt": 1.8674220301366662,
+    "union3_intrusion_other_gt_fraction": 0.32232438856570966,
+    "scene": "scene0615_00",
+    "view": 2,
+    "key": 5021,
+    "group": "unseen",
+    "gt_area": 8561
+   },
+   {
+    "iou1": 0.14698063045955184,
+    "iou2": 0.12814569536423842,
+    "iou3": 0.045812370523823615,
+    "delta": 0.0,
+    "ranked_groups": [
+     92,
+     14,
+     62
+    ],
+    "ranked_ious": [
+     0.14698063045955184,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 2.590963139120095,
+    "union3_area_over_gt": 9.504756242568371,
+    "union3_intrusion_other_gt_fraction": 0.5679614686933133,
+    "scene": "scene0615_00",
+    "view": 2,
+    "key": 8001,
+    "group": "unseen",
+    "gt_area": 1682
+   },
+   {
+    "iou1": 0.3117128114076458,
+    "iou2": 0.3731937422873293,
+    "iou3": 0.3891842924100989,
+    "delta": 0.0774714810024531,
+    "ranked_groups": [
+     65,
+     62,
+     14
+    ],
+    "ranked_ious": [
+     0.3117128114076458,
+     0.1505389269543615,
+     0.027914161196005958
+    ],
+    "top1_area_over_gt": 0.32375832913377006,
+    "union3_area_over_gt": 0.9749146088806764,
+    "union3_intrusion_other_gt_fraction": 0.09815633794727471,
+    "scene": "scene0615_00",
+    "view": 2,
+    "key": 13012,
+    "group": "unseen",
+    "gt_area": 17859
+   },
+   {
+    "iou1": 0.3050430504305043,
+    "iou2": 0.2488530295839266,
+    "iou3": 0.24431788765208387,
+    "delta": 0.0,
+    "ranked_groups": [
+     92,
+     62,
+     14
+    ],
+    "ranked_ious": [
+     0.3050430504305043,
+     0.0986027040787464,
+     0.0
+    ],
+    "top1_area_over_gt": 0.5031877213695396,
+    "union3_area_over_gt": 1.8375442739079102,
+    "union3_intrusion_other_gt_fraction": 0.3117450526856849,
+    "scene": "scene0615_00",
+    "view": 3,
+    "key": 5021,
+    "group": "unseen",
+    "gt_area": 8470
+   },
+   {
+    "iou1": 0.11668504226387358,
+    "iou2": 0.10987594651200258,
+    "iou3": 0.10397926513187986,
+    "delta": 0.0,
+    "ranked_groups": [
+     92,
+     90,
+     14
+    ],
+    "ranked_ious": [
+     0.11668504226387358,
+     0.01821705426356589,
+     0.0
+    ],
+    "top1_area_over_gt": 2.3482093663911847,
+    "union3_area_over_gt": 2.989531680440771,
+    "union3_intrusion_other_gt_fraction": 0.6059712495392554,
+    "scene": "scene0615_00",
+    "view": 3,
+    "key": 8001,
+    "group": "unseen",
+    "gt_area": 1815
+   },
+   {
+    "iou1": 0.32343440068007934,
+    "iou2": 0.38930741190765494,
+    "iou3": 0.39402228569129893,
+    "delta": 0.0705878850112196,
+    "ranked_groups": [
+     65,
+     62,
+     14
+    ],
+    "ranked_ious": [
+     0.32343440068007934,
+     0.15953752502349144,
+     0.010397136526333731
+    ],
+    "top1_area_over_gt": 0.33960532354290957,
+    "union3_area_over_gt": 0.9879531895364846,
+    "union3_intrusion_other_gt_fraction": 0.10120775751945187,
+    "scene": "scene0615_00",
+    "view": 3,
+    "key": 13012,
+    "group": "unseen",
+    "gt_area": 17432
+   },
+   {
+    "iou1": 0.3176547801356377,
+    "iou2": 0.27939638428208574,
+    "iou3": 0.13610911701363962,
+    "delta": 0.0,
+    "ranked_groups": [
+     22,
+     65,
+     62
+    ],
+    "ranked_ious": [
+     0.3176547801356377,
+     0.062453309427760346,
+     0.0022018970189701895
+    ],
+    "top1_area_over_gt": 0.3176547801356377,
+    "union3_area_over_gt": 2.462262087070663,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0695_00",
+    "view": 2,
+    "key": 20017,
+    "group": "unseen",
+    "gt_area": 4571
+   },
+   {
+    "iou1": 0.035002215330084185,
+    "iou2": 0.00803090373081224,
+    "iou3": 0.006578947368421052,
+    "delta": 0.0,
+    "ranked_groups": [
+     65,
+     62,
+     90
+    ],
+    "ranked_ious": [
+     0.035002215330084185,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 2.7556270096463025,
+    "union3_area_over_gt": 18.432475884244372,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0695_00",
+    "view": 3,
+    "key": 20017,
+    "group": "unseen",
+    "gt_area": 622
+   },
+   {
+    "iou1": 0.08995215311004785,
+    "iou2": 0.026308424293310942,
+    "iou3": 0.012119649303764827,
+    "delta": 0.0,
+    "ranked_groups": [
+     90,
+     14,
+     22
+    ],
+    "ranked_ious": [
+     0.08995215311004785,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 11.117021276595745,
+    "union3_area_over_gt": 82.51063829787235,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0000_02",
+    "view": 2,
+    "key": 8059,
+    "group": "training",
+    "gt_area": 94
+   },
+   {
+    "iou1": 0.0,
+    "iou2": 0.0,
+    "iou3": 0.0,
+    "delta": 0.0,
+    "ranked_groups": [
+     22,
+     62,
+     65
+    ],
+    "ranked_ious": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 27.68359375,
+    "union3_area_over_gt": 42.359375,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0000_02",
+    "view": 3,
+    "key": 8059,
+    "group": "training",
+    "gt_area": 256
+   },
+   {
+    "iou1": 0.0,
+    "iou2": 0.0,
+    "iou3": 0.0,
+    "delta": 0.0,
+    "ranked_groups": [
+     22,
+     62,
+     65
+    ],
+    "ranked_ious": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 9.738522954091817,
+    "union3_area_over_gt": 21.780439121756487,
+    "union3_intrusion_other_gt_fraction": 0.012096774193548387,
+    "scene": "scene0016_01",
+    "view": 2,
+    "key": 8049,
+    "group": "training",
+    "gt_area": 501
+   },
+   {
+    "iou1": 0.027054724328755893,
+    "iou2": 0.02126631222812953,
+    "iou3": 0.012096774193548387,
+    "delta": 0.0,
+    "ranked_groups": [
+     22,
+     62,
+     65
+    ],
+    "ranked_ious": [
+     0.027054724328755893,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 36.96212121212121,
+    "union3_area_over_gt": 82.66666666666667,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0016_01",
+    "view": 2,
+    "key": 14030,
+    "group": "training",
+    "gt_area": 132
+   },
+   {
+    "iou1": 0.0,
+    "iou2": 0.0,
+    "iou3": 0.0,
+    "delta": 0.0,
+    "ranked_groups": [
+     22,
+     62,
+     65
+    ],
+    "ranked_ious": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 17.359848484848484,
+    "union3_area_over_gt": 40.253787878787875,
+    "union3_intrusion_other_gt_fraction": 0.007339794862143596,
+    "scene": "scene0016_01",
+    "view": 3,
+    "key": 8049,
+    "group": "training",
+    "gt_area": 264
+   },
+   {
+    "iou1": 0.0170194195941523,
+    "iou2": 0.013193504736129905,
+    "iou3": 0.007339794862143596,
+    "delta": 0.0,
+    "ranked_groups": [
+     22,
+     62,
+     65
+    ],
+    "ranked_ious": [
+     0.0170194195941523,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 58.756410256410255,
+    "union3_area_over_gt": 136.24358974358975,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0016_01",
+    "view": 3,
+    "key": 14030,
+    "group": "training",
+    "gt_area": 78
+   },
+   {
+    "iou1": 0.010001852194850898,
+    "iou2": 0.009419152276295133,
+    "iou3": 0.009419152276295133,
+    "delta": 0.0,
+    "ranked_groups": [
+     14,
+     22
+    ],
+    "ranked_ious": [
+     0.010001852194850898,
+     0.0
+    ],
+    "top1_area_over_gt": 0.5219090147920736,
+    "union3_area_over_gt": 0.615126988557075,
+    "union3_intrusion_other_gt_fraction": 0.11448880822746521,
+    "scene": "scene0007_00",
+    "view": 3,
+    "key": 8006,
+    "group": "training",
+    "gt_area": 10749
+   },
+   {
+    "iou1": 0.05136673459349308,
+    "iou2": 0.049779706714013286,
+    "iou3": 0.049779706714013286,
+    "delta": 0.0,
+    "ranked_groups": [
+     14,
+     22
+    ],
+    "ranked_ious": [
+     0.05136673459349308,
+     0.002517428350116189
+    ],
+    "top1_area_over_gt": 0.5998716852010265,
+    "union3_area_over_gt": 0.7070145423438836,
+    "union3_intrusion_other_gt_fraction": 0.024500907441016333,
+    "scene": "scene0007_00",
+    "view": 3,
+    "key": 8024,
+    "group": "training",
+    "gt_area": 9352
+   },
+   {
+    "iou1": 0.0,
+    "iou2": 0.0,
+    "iou3": 0.0,
+    "delta": 0.0,
+    "ranked_groups": [
+     14,
+     57,
+     62
+    ],
+    "ranked_ious": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 4.276875483372003,
+    "union3_area_over_gt": 11.464037122969838,
+    "union3_intrusion_other_gt_fraction": 0.45658773527625984,
+    "scene": "scene0012_01",
+    "view": 2,
+    "key": 5002,
+    "group": "training",
+    "gt_area": 1293
+   },
+   {
+    "iou1": 0.01965665236051502,
+    "iou2": 0.013329452852153667,
+    "iou3": 0.013038032338874971,
+    "delta": 0.0,
+    "ranked_groups": [
+     65,
+     14,
+     57
+    ],
+    "ranked_ious": [
+     0.01965665236051502,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 1.8330550918196995,
+    "union3_area_over_gt": 3.2435010732172667,
+    "union3_intrusion_other_gt_fraction": 0.9170588235294118,
+    "scene": "scene0012_01",
+    "view": 2,
+    "key": 8001,
+    "group": "training",
+    "gt_area": 4193
+   },
+   {
+    "iou1": 0.6326707000864304,
+    "iou2": 0.6080122902387143,
+    "iou3": 0.36771012006861065,
+    "delta": 0.0,
+    "ranked_groups": [
+     90,
+     57,
+     14
+    ],
+    "ranked_ious": [
+     0.6326707000864304,
+     0.0025868440502586844,
+     0.0
+    ],
+    "top1_area_over_gt": 0.7050934880722115,
+    "union3_area_over_gt": 1.4676982591876209,
+    "union3_intrusion_other_gt_fraction": 0.4858548585485855,
+    "scene": "scene0012_01",
+    "view": 2,
+    "key": 8017,
+    "group": "training",
+    "gt_area": 7755
+   },
+   {
+    "iou1": 0.3228800450007031,
+    "iou2": 0.5821028453569587,
+    "iou3": 0.4697674418604651,
+    "delta": 0.25922280035625556,
+    "ranked_groups": [
+     65,
+     14,
+     62
+    ],
+    "ranked_ious": [
+     0.3228800450007031,
+     0.2692963233503774,
+     0.04311474829064371
+    ],
+    "top1_area_over_gt": 0.37428780131482836,
+    "union3_area_over_gt": 1.0774287801314828,
+    "union3_intrusion_other_gt_fraction": 0.01184180790960452,
+    "scene": "scene0012_01",
+    "view": 2,
+    "key": 8019,
+    "group": "training",
+    "gt_area": 20535
+   },
+   {
+    "iou1": 0.0041327489041953665,
+    "iou2": 0.00244173140954495,
+    "iou3": 0.0023742715303259228,
+    "delta": 0.0,
+    "ranked_groups": [
+     65,
+     14,
+     57
+    ],
+    "ranked_ious": [
+     0.0041327489041953665,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 23.150602409638555,
+    "union3_area_over_gt": 40.963855421686745,
+    "union3_intrusion_other_gt_fraction": 0.9314705882352942,
+    "scene": "scene0012_01",
+    "view": 2,
+    "key": 8020,
+    "group": "training",
+    "gt_area": 332
+   },
+   {
+    "iou1": 0.008692120227457351,
+    "iou2": 0.005074456985677701,
+    "iou3": 0.004870721048798252,
+    "delta": 0.0,
+    "ranked_groups": [
+     65,
+     14,
+     57
+    ],
+    "ranked_ious": [
+     0.008692120227457351,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 1.5665564282761473,
+    "union3_area_over_gt": 3.562835882596114,
+    "union3_intrusion_other_gt_fraction": 0.9122237048210246,
+    "scene": "scene0012_01",
+    "view": 3,
+    "key": 8001,
+    "group": "training",
+    "gt_area": 4838
+   },
+   {
+    "iou1": 0.5227272727272727,
+    "iou2": 0.12698412698412698,
+    "iou3": 0.11800545133878468,
+    "delta": 0.0,
+    "ranked_groups": [
+     90,
+     14,
+     57
+    ],
+    "ranked_ious": [
+     0.5227272727272727,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 1.8643954575818302,
+    "union3_area_over_gt": 8.315965263861056,
+    "union3_intrusion_other_gt_fraction": 0.7049562213832437,
+    "scene": "scene0012_01",
+    "view": 3,
+    "key": 8017,
+    "group": "training",
+    "gt_area": 1497
+   },
+   {
+    "iou1": 0.31489056332974524,
+    "iou2": 0.5496338344020463,
+    "iou3": 0.4956152446086813,
+    "delta": 0.23474327107230103,
+    "ranked_groups": [
+     14,
+     65,
+     62
+    ],
+    "ranked_ious": [
+     0.31489056332974524,
+     0.2421248116612355,
+     0.06422611187593066
+    ],
+    "top1_area_over_gt": 0.31489056332974524,
+    "union3_area_over_gt": 0.9459634015069968,
+    "union3_intrusion_other_gt_fraction": 0.005499924138977394,
+    "scene": "scene0012_01",
+    "view": 3,
+    "key": 8019,
+    "group": "training",
+    "gt_area": 27870
+   },
+   {
+    "iou1": 0.004765487835465262,
+    "iou2": 0.0022686567164179106,
+    "iou3": 0.0021551724137931034,
+    "delta": 0.0,
+    "ranked_groups": [
+     65,
+     14,
+     57
+    ],
+    "ranked_ious": [
+     0.004765487835465262,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 17.503464203233257,
+    "union3_area_over_gt": 39.80831408775982,
+    "union3_intrusion_other_gt_fraction": 0.9162267215872831,
+    "scene": "scene0012_01",
+    "view": 3,
+    "key": 8020,
+    "group": "training",
+    "gt_area": 433
+   },
+   {
+    "iou1": 0.023681377825618945,
+    "iou2": 0.02217741935483871,
+    "iou3": 0.00782416957109325,
+    "delta": 0.0,
+    "ranked_groups": [
+     22,
+     14,
+     62
+    ],
+    "ranked_ious": [
+     0.023681377825618945,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 13.721362229102168,
+    "union3_area_over_gt": 42.86687306501548,
+    "union3_intrusion_other_gt_fraction": 0.42524916943521596,
+    "scene": "scene0009_00",
+    "view": 2,
+    "key": 18009,
+    "group": "training",
+    "gt_area": 323
+   },
+   {
+    "iou1": 0.35554990787216467,
+    "iou2": 0.3268778791012504,
+    "iou3": 0.28511843865585895,
+    "delta": 0.0,
+    "ranked_groups": [
+     62,
+     65,
+     22
+    ],
+    "ranked_ious": [
+     0.35554990787216467,
+     0.07641663384165213,
+     0.01783097215437225
+    ],
+    "top1_area_over_gt": 0.7436253677672442,
+    "union3_area_over_gt": 1.669172932330827,
+    "union3_intrusion_other_gt_fraction": 0.005385820603211908,
+    "scene": "scene0009_00",
+    "view": 2,
+    "key": 20017,
+    "group": "training",
+    "gt_area": 12236
+   },
+   {
+    "iou1": 0.034564254062038405,
+    "iou2": 0.02656675749318801,
+    "iou3": 0.013185327097537612,
+    "delta": 0.0,
+    "ranked_groups": [
+     22,
+     14,
+     62
+    ],
+    "ranked_ious": [
+     0.034564254062038405,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 3.6569148936170213,
+    "union3_area_over_gt": 10.955452127659575,
+    "union3_intrusion_other_gt_fraction": 0.2640043697274989,
+    "scene": "scene0009_00",
+    "view": 3,
+    "key": 18009,
+    "group": "training",
+    "gt_area": 1504
+   },
+   {
+    "iou1": 0.17419099716601857,
+    "iou2": 0.1941530908279402,
+    "iou3": 0.1758648375047998,
+    "delta": 0.019962093661921615,
+    "ranked_groups": [
+     22,
+     62,
+     65
+    ],
+    "ranked_ious": [
+     0.17419099716601857,
+     0.08732351135666053,
+     0.03707296044832417
+    ],
+    "top1_area_over_gt": 0.4465735628450796,
+    "union3_area_over_gt": 1.735060084443001,
+    "union3_intrusion_other_gt_fraction": 0.010950442229397726,
+    "scene": "scene0009_00",
+    "view": 3,
+    "key": 20017,
+    "group": "training",
+    "gt_area": 12316
+   },
+   {
+    "iou1": 0.21357469269191257,
+    "iou2": 0.22416663714619717,
+    "iou3": 0.21209988268811797,
+    "delta": 0.010591944454284602,
+    "ranked_groups": [
+     62,
+     90,
+     22
+    ],
+    "ranked_ious": [
+     0.21357469269191257,
+     0.01811572250833081,
+     0.0
+    ],
+    "top1_area_over_gt": 1.0756134504695547,
+    "union3_area_over_gt": 1.1910330202968797,
+    "union3_intrusion_other_gt_fraction": 0.4168277546037237,
+    "scene": "scene0001_01",
+    "view": 2,
+    "key": 5010,
+    "group": "training",
+    "gt_area": 16505
+   },
+   {
+    "iou1": 0.15248591721773205,
+    "iou2": 0.14683153013910355,
+    "iou3": 0.13782834453268172,
+    "delta": 0.0,
+    "ranked_groups": [
+     62,
+     92,
+     22
+    ],
+    "ranked_ious": [
+     0.15248591721773205,
+     0.04996983712045043,
+     0.0
+    ],
+    "top1_area_over_gt": 3.074112554112554,
+    "union3_area_over_gt": 4.160519480519481,
+    "union3_intrusion_other_gt_fraction": 0.46859782744412537,
+    "scene": "scene0001_01",
+    "view": 2,
+    "key": 5018,
+    "group": "training",
+    "gt_area": 5775
+   },
+   {
+    "iou1": 0.13669118470671696,
+    "iou2": 0.20031755409497082,
+    "iou3": 0.24600043830813062,
+    "delta": 0.10930925360141366,
+    "ranked_groups": [
+     62,
+     65,
+     22
+    ],
+    "ranked_ious": [
+     0.13669118470671696,
+     0.13579676674364896,
+     0.10087010087010087
+    ],
+    "top1_area_over_gt": 1.3988653376408478,
+    "union3_area_over_gt": 1.6879678512331573,
+    "union3_intrusion_other_gt_fraction": 0.43189244701708523,
+    "scene": "scene0001_01",
+    "view": 2,
+    "key": 6002,
+    "group": "training",
+    "gt_area": 12691
+   },
+   {
+    "iou1": 0.045624222314392365,
+    "iou2": 0.005455266812140448,
+    "iou3": 0.004948935978764566,
+    "delta": 0.0,
+    "ranked_groups": [
+     22,
+     62,
+     65
+    ],
+    "ranked_ious": [
+     0.045624222314392365,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 1.7551912568306012,
+    "union3_area_over_gt": 23.4120218579235,
+    "union3_intrusion_other_gt_fraction": 0.7411539538791896,
+    "scene": "scene0001_01",
+    "view": 2,
+    "key": 7006,
+    "group": "training",
+    "gt_area": 915
+   },
+   {
+    "iou1": 0.031919451585261355,
+    "iou2": 0.023748804590372968,
+    "iou3": 0.006201356806925542,
+    "delta": 0.0,
+    "ranked_groups": [
+     92,
+     22,
+     62
+    ],
+    "ranked_ious": [
+     0.031919451585261355,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 31.328859060402685,
+    "union3_area_over_gt": 161.25503355704697,
+    "union3_intrusion_other_gt_fraction": 0.6126441087110335,
+    "scene": "scene0001_01",
+    "view": 2,
+    "key": 7007,
+    "group": "training",
+    "gt_area": 149
+   },
+   {
+    "iou1": 0.22262864448311376,
+    "iou2": 0.27319862211016016,
+    "iou3": 0.27078493488208377,
+    "delta": 0.0505699776270464,
+    "ranked_groups": [
+     62,
+     90,
+     22
+    ],
+    "ranked_ious": [
+     0.22262864448311376,
+     0.08686104672441138,
+     0.0
+    ],
+    "top1_area_over_gt": 1.1000365987556424,
+    "union3_area_over_gt": 1.2022081249237526,
+    "union3_intrusion_other_gt_fraction": 0.3637424526865899,
+    "scene": "scene0001_01",
+    "view": 3,
+    "key": 5010,
+    "group": "training",
+    "gt_area": 16394
+   },
+   {
+    "iou1": 0.1534973787370708,
+    "iou2": 0.13877398919321782,
+    "iou3": 0.13748800118142213,
+    "delta": 0.0,
+    "ranked_groups": [
+     62,
+     92,
+     22
+    ],
+    "ranked_ious": [
+     0.1534973787370708,
+     0.039332835449340305,
+     0.0
+    ],
+    "top1_area_over_gt": 2.822663953670371,
+    "union3_area_over_gt": 3.8223509156362496,
+    "union3_intrusion_other_gt_fraction": 0.4370418901764874,
+    "scene": "scene0001_01",
+    "view": 3,
+    "key": 5018,
+    "group": "training",
+    "gt_area": 6389
+   },
+   {
+    "iou1": 0.1442390876917027,
+    "iou2": 0.2,
+    "iou3": 0.20974946591571178,
+    "delta": 0.06551037822400907,
+    "ranked_groups": [
+     62,
+     65,
+     22
+    ],
+    "ranked_ious": [
+     0.1442390876917027,
+     0.1301520344494244,
+     0.022686189443239333
+    ],
+    "top1_area_over_gt": 1.6299710773680405,
+    "union3_area_over_gt": 1.8149855386840203,
+    "union3_intrusion_other_gt_fraction": 0.474030177779991,
+    "scene": "scene0001_01",
+    "view": 3,
+    "key": 6002,
+    "group": "training",
+    "gt_area": 11064
+   },
+   {
+    "iou1": 0.07607843137254902,
+    "iou2": 0.07319649864171446,
+    "iou3": 0.019667477696674776,
+    "delta": 0.0,
+    "ranked_groups": [
+     92,
+     22,
+     62
+    ],
+    "ranked_ious": [
+     0.07607843137254902,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 8.475138121546962,
+    "union3_area_over_gt": 33.73066298342541,
+    "union3_intrusion_other_gt_fraction": 0.5696736415380206,
+    "scene": "scene0001_01",
+    "view": 3,
+    "key": 7007,
+    "group": "training",
+    "gt_area": 724
+   }
+  ],
+  "g0_step6000": [
+   {
+    "iou1": 0.23243456012595945,
+    "iou2": 0.267273369853331,
+    "iou3": 0.18430293807795856,
+    "delta": 0.03483880972737155,
+    "ranked_groups": [
+     52,
+     53,
+     14
+    ],
+    "ranked_ious": [
+     0.23243456012595945,
+     0.09384288747346073,
+     0.010619165881647684
+    ],
+    "top1_area_over_gt": 1.119478761211711,
+    "union3_area_over_gt": 2.42443729903537,
+    "union3_intrusion_other_gt_fraction": 0.5270836241798129,
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 5010,
+    "group": "unseen",
+    "gt_area": 5909
+   },
+   {
+    "iou1": 0.20508239031169348,
+    "iou2": 0.19783505771185933,
+    "iou3": 0.14638892574410686,
+    "delta": 0.0,
+    "ranked_groups": [
+     57,
+     53,
+     14
+    ],
+    "ranked_ious": [
+     0.20508239031169348,
+     0.038869257950530034,
+     0.00020710365537951746
+    ],
+    "top1_area_over_gt": 3.834085479161136,
+    "union3_area_over_gt": 5.881072471462702,
+    "union3_intrusion_other_gt_fraction": 0.6756793355601697,
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 5011,
+    "group": "unseen",
+    "gt_area": 3767
+   },
+   {
+    "iou1": 0.0,
+    "iou2": 0.0,
+    "iou3": 0.0,
+    "delta": 0.0,
+    "ranked_groups": [
+     11,
+     14,
+     22
+    ],
+    "ranked_ious": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 5.802955665024631,
+    "union3_area_over_gt": 25.43103448275862,
+    "union3_intrusion_other_gt_fraction": 0.7353026634382567,
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 5016,
+    "group": "unseen",
+    "gt_area": 406
+   },
+   {
+    "iou1": 0.20856887831002677,
+    "iou2": 0.1473263811848236,
+    "iou3": 0.05936912292699607,
+    "delta": 0.0,
+    "ranked_groups": [
+     22,
+     62,
+     57
+    ],
+    "ranked_ious": [
+     0.20856887831002677,
+     0.08208955223880597,
+     0.003727011669823425
+    ],
+    "top1_area_over_gt": 1.0463476070528968,
+    "union3_area_over_gt": 11.486146095717885,
+    "union3_intrusion_other_gt_fraction": 0.594078947368421,
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 5019,
+    "group": "unseen",
+    "gt_area": 1985
+   },
+   {
+    "iou1": 0.3988594704684318,
+    "iou2": 0.4409644393287696,
+    "iou3": 0.3394954230855102,
+    "delta": 0.04210496886033782,
+    "ranked_groups": [
+     14,
+     52,
+     35
+    ],
+    "ranked_ious": [
+     0.3988594704684318,
+     0.15363290567984011,
+     0.01887341993359352
+    ],
+    "top1_area_over_gt": 0.5223867364128025,
+    "union3_area_over_gt": 1.6596329461831723,
+    "union3_intrusion_other_gt_fraction": 0.1361718040493616,
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 6001,
+    "group": "unseen",
+    "gt_area": 11279
+   },
+   {
+    "iou1": 0.5940626218007016,
+    "iou2": 0.6154038822792737,
+    "iou3": 0.4536030457318472,
+    "delta": 0.0213412604785721,
+    "ranked_groups": [
+     57,
+     51,
+     14
+    ],
+    "ranked_ious": [
+     0.5940626218007016,
+     0.06399925037481259,
+     0.0038299742575500723
+    ],
+    "top1_area_over_gt": 1.430566561014263,
+    "union3_area_over_gt": 2.138866877971474,
+    "union3_intrusion_other_gt_fraction": 0.3797814207650273,
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 7007,
+    "group": "unseen",
+    "gt_area": 10096
+   },
+   {
+    "iou1": 0.29689521345407505,
+    "iou2": 0.33291457286432163,
+    "iou3": 0.15446412269490598,
+    "delta": 0.03601935941024659,
+    "ranked_groups": [
+     22,
+     11,
+     62
+    ],
+    "ranked_ious": [
+     0.29689521345407505,
+     0.18578932817251867,
+     0.012575514733078535
+    ],
+    "top1_area_over_gt": 1.074495602690119,
+    "union3_area_over_gt": 5.54216244180031,
+    "union3_intrusion_other_gt_fraction": 0.1687669186969103,
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 8032,
+    "group": "unseen",
+    "gt_area": 1933
+   },
+   {
+    "iou1": 0.08512299882858258,
+    "iou2": 0.02943181818181818,
+    "iou3": 0.017628641437517016,
+    "delta": 0.0,
+    "ranked_groups": [
+     11,
+     62,
+     14
+    ],
+    "ranked_ious": [
+     0.08512299882858258,
+     0.006154308015610927,
+     0.0
+    ],
+    "top1_area_over_gt": 5.569739952718676,
+    "union3_area_over_gt": 34.3451536643026,
+    "union3_intrusion_other_gt_fraction": 0.461522577092511,
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 8033,
+    "group": "unseen",
+    "gt_area": 423
+   },
+   {
+    "iou1": 0.0,
+    "iou2": 0.0,
+    "iou3": 0.0,
+    "delta": 0.0,
+    "ranked_groups": [
+     11,
+     14,
+     22
+    ],
+    "ranked_ious": [
+     0.0,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 336.57142857142856,
+    "union3_area_over_gt": 1475.0,
+    "union3_intrusion_other_gt_fraction": 0.7353026634382567,
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 20034,
+    "group": "unseen",
+    "gt_area": 7
+   },
+   {
+    "iou1": 0.1717439293598234,
+    "iou2": 0.22656927076884983,
+    "iou3": 0.13519419186579262,
+    "delta": 0.054825341409026424,
+    "ranked_groups": [
+     52,
+     53,
+     14
+    ],
+    "ranked_ious": [
+     0.1717439293598234,
+     0.11142857142857143,
+     0.008164780107626647
+    ],
+    "top1_area_over_gt": 0.705655526992288,
+    "union3_area_over_gt": 2.4500856898029135,
+    "union3_intrusion_other_gt_fraction": 0.5469091544985573,
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 5010,
+    "group": "unseen",
+    "gt_area": 4668
+   },
+   {
+    "iou1": 0.19676585592153223,
+    "iou2": 0.18860300671459979,
+    "iou3": 0.1405127758673225,
+    "delta": 0.0,
+    "ranked_groups": [
+     57,
+     53,
+     14
+    ],
+    "ranked_ious": [
+     0.19676585592153223,
+     0.03796296296296296,
+     0.0055079559363525096
+    ],
+    "top1_area_over_gt": 3.933879781420765,
+    "union3_area_over_gt": 6.158743169398907,
+    "union3_intrusion_other_gt_fraction": 0.6806264140898807,
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 5011,
+    "group": "unseen",
+    "gt_area": 3660
+   },
+   {
+    "iou1": 0.0036663611365719525,
+    "iou2": 0.0017726567693330379,
+    "iou3": 0.000746895714685837,
+    "delta": 0.0,
+    "ranked_groups": [
+     53,
+     11,
+     14
+    ],
+    "ranked_ious": [
+     0.0036663611365719525,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 7.938775510204081,
+    "union3_area_over_gt": 42.751020408163264,
+    "union3_intrusion_other_gt_fraction": 0.6754821462669467,
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 5016,
+    "group": "unseen",
+    "gt_area": 245
+   },
+   {
+    "iou1": 0.11231761112996268,
+    "iou2": 0.10770161638862477,
+    "iou3": 0.04988425925925926,
+    "delta": 0.0,
+    "ranked_groups": [
+     22,
+     62,
+     57
+    ],
+    "ranked_ious": [
+     0.11231761112996268,
+     0.07717721686269327,
+     0.0028935541464015268
+    ],
+    "top1_area_over_gt": 2.4651162790697674,
+    "union3_area_over_gt": 13.383192389006343,
+    "union3_intrusion_other_gt_fraction": 0.5694482840330161,
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 5019,
+    "group": "unseen",
+    "gt_area": 1892
+   },
+   {
+    "iou1": 0.48112321562734783,
+    "iou2": 0.44969964261272904,
+    "iou3": 0.31930190153685856,
+    "delta": 0.0,
+    "ranked_groups": [
+     14,
+     52,
+     62
+    ],
+    "ranked_ious": [
+     0.48112321562734783,
+     0.06550182179529646,
+     0.013767048728949223
+    ],
+    "top1_area_over_gt": 0.6474459417110624,
+    "union3_area_over_gt": 1.6453567324767575,
+    "union3_intrusion_other_gt_fraction": 0.1350390451399911,
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 6001,
+    "group": "unseen",
+    "gt_area": 9573
+   },
+   {
+    "iou1": 0.5512108682811577,
+    "iou2": 0.6045038705137228,
+    "iou3": 0.4570069520673253,
+    "delta": 0.05329300223256506,
+    "ranked_groups": [
+     57,
+     51,
+     14
+    ],
+    "ranked_ious": [
+     0.5512108682811577,
+     0.13686879988065936,
+     0.004113853680231265
+    ],
+    "top1_area_over_gt": 1.2135873229939311,
+    "union3_area_over_gt": 2.020734996628456,
+    "union3_intrusion_other_gt_fraction": 0.3457078501710186,
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 7007,
+    "group": "unseen",
+    "gt_area": 11864
+   },
+   {
+    "iou1": 0.1888222849083216,
+    "iou2": 0.24063439978124146,
+    "iou3": 0.13923768482056617,
+    "delta": 0.05181211487291987,
+    "ranked_groups": [
+     22,
+     11,
+     62
+    ],
+    "ranked_ious": [
+     0.1888222849083216,
+     0.18516527815103467,
+     0.013861867704280155
+    ],
+    "top1_area_over_gt": 2.2433862433862433,
+    "union3_area_over_gt": 6.375180375180375,
+    "union3_intrusion_other_gt_fraction": 0.1773804134600875,
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 8032,
+    "group": "unseen",
+    "gt_area": 2079
+   },
+   {
+    "iou1": 0.07025117739403454,
+    "iou2": 0.025681999771715557,
+    "iou3": 0.01504111237382178,
+    "delta": 0.0,
+    "ranked_groups": [
+     11,
+     62,
+     14
+    ],
+    "ranked_ious": [
+     0.07025117739403454,
+     0.006960205779996974,
+     0.0
+    ],
+    "top1_area_over_gt": 5.886363636363637,
+    "union3_area_over_gt": 37.343434343434346,
+    "union3_intrusion_other_gt_fraction": 0.4693670543684068,
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 8033,
+    "group": "unseen",
+    "gt_area": 396
+   },
+   {
+    "iou1": 0.0012409513960703205,
+    "iou2": 0.0008372871895060006,
+    "iou3": 0.0004489673750374139,
+    "delta": 0.0,
+    "ranked_groups": [
+     22,
+     11,
+     14
+    ],
+    "ranked_ious": [
+     0.0012409513960703205,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 26.350282485875706,
+    "union3_area_over_gt": 74.53672316384181,
+    "union3_intrusion_other_gt_fraction": 0.6517850375198969,
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 20031,
+    "group": "unseen",
+    "gt_area": 177
+   },
+   {
+    "iou1": 0.1197311046511628,
+    "iou2": 0.08410976388002553,
+    "iou3": 0.04696073540939215,
+    "delta": 0.0,
+    "ranked_groups": [
+     22,
+     11,
+     14
+    ],
+    "ranked_ious": [
+     0.1197311046511628,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 3.1114076050700468,
+    "union3_area_over_gt": 8.801200800533689,
+    "union3_intrusion_other_gt_fraction": 0.6022890927006747,
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 20034,
+    "group": "unseen",
+    "gt_area": 1499
+   },
+   {
+    "iou1": 0.27296710117939166,
+    "iou2": 0.2014775786037455,
+    "iou3": 0.1310925622298405,
+    "delta": 0.0,
+    "ranked_groups": [
+     14,
+     11,
+     57
+    ],
+    "ranked_ious": [
+     0.27296710117939166,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 2.319037022051386,
+    "union3_area_over_gt": 5.1408051790410685,
+    "union3_intrusion_other_gt_fraction": 0.35870292393058123,
+    "scene": "scene0072_02",
+    "view": 2,
+    "key": 8022,
+    "group": "unseen",
+    "gt_area": 4943
+   },
+   {
+    "iou1": 0.5955570075138844,
+    "iou2": 0.5596420539730135,
+    "iou3": 0.46089439364123935,
+    "delta": 0.0,
+    "ranked_groups": [
+     57,
+     62,
+     11
+    ],
+    "ranked_ious": [
+     0.5955570075138844,
+     0.13422500474293303,
+     0.0
+    ],
+    "top1_area_over_gt": 0.6231306081754736,
+    "union3_area_over_gt": 1.5165835825855767,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0072_02",
+    "view": 2,
+    "key": 20031,
+    "group": "unseen",
+    "gt_area": 15045
+   },
+   {
+    "iou1": 0.22181818181818183,
+    "iou2": 0.13944023193577162,
+    "iou3": 0.09632197188523012,
+    "delta": 0.0,
+    "ranked_groups": [
+     14,
+     11,
+     57
+    ],
+    "ranked_ious": [
+     0.22181818181818183,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 3.2902522578635938,
+    "union3_area_over_gt": 7.865151043288695,
+    "union3_intrusion_other_gt_fraction": 0.3053652742031281,
+    "scene": "scene0072_02",
+    "view": 3,
+    "key": 8022,
+    "group": "unseen",
+    "gt_area": 3211
+   },
+   {
+    "iou1": 0.6561728920275675,
+    "iou2": 0.5517510160904181,
+    "iou3": 0.4024855819998375,
+    "delta": 0.0,
+    "ranked_groups": [
+     57,
+     62,
+     11
+    ],
+    "ranked_ious": [
+     0.6561728920275675,
+     0.12457492632056223,
+     0.0
+    ],
+    "top1_area_over_gt": 0.7020811472542847,
+    "union3_area_over_gt": 2.019587268275621,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0072_02",
+    "view": 3,
+    "key": 20031,
+    "group": "unseen",
+    "gt_area": 11436
+   },
+   {
+    "iou1": 0.25473289597000937,
+    "iou2": 0.18418210517570824,
+    "iou3": 0.164190623191202,
+    "delta": 0.0,
+    "ranked_groups": [
+     52,
+     14,
+     53
+    ],
+    "ranked_ious": [
+     0.25473289597000937,
+     0.07128021932375177,
+     0.03797897592404205
+    ],
+    "top1_area_over_gt": 0.25473289597000937,
+    "union3_area_over_gt": 2.3930646672914713,
+    "union3_intrusion_other_gt_fraction": 0.39273126028041044,
+    "scene": "scene0132_01",
+    "view": 2,
+    "key": 5015,
+    "group": "unseen",
+    "gt_area": 5335
+   },
+   {
+    "iou1": 0.3104017975151996,
+    "iou2": 0.23855040572135883,
+    "iou3": 0.24194322545255073,
+    "delta": 0.0,
+    "ranked_groups": [
+     62,
+     57,
+     22
+    ],
+    "ranked_ious": [
+     0.3104017975151996,
+     0.10292564184999771,
+     0.015053763440860216
+    ],
+    "top1_area_over_gt": 1.5353535353535352,
+    "union3_area_over_gt": 3.6317606444188724,
+    "union3_intrusion_other_gt_fraction": 0.40466131530770316,
+    "scene": "scene0132_01",
+    "view": 2,
+    "key": 5016,
+    "group": "unseen",
+    "gt_area": 7821
+   },
+   {
+    "iou1": 0.26436781609195403,
+    "iou2": 0.008822401227464518,
+    "iou3": 0.008540660972892685,
+    "delta": 0.0,
+    "ranked_groups": [
+     22,
+     14,
+     35
+    ],
+    "ranked_ious": [
+     0.26436781609195403,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 1.5984251968503937,
+    "union3_area_over_gt": 63.15748031496063,
+    "union3_intrusion_other_gt_fraction": 0.7590076050367784,
+    "scene": "scene0132_01",
+    "view": 2,
+    "key": 5017,
+    "group": "unseen",
+    "gt_area": 127
+   },
+   {
+    "iou1": 0.49145299145299143,
+    "iou2": 0.24065073579046847,
+    "iou3": 0.23739761603516016,
+    "delta": 0.0,
+    "ranked_groups": [
+     65,
+     14,
+     22
+    ],
+    "ranked_ious": [
+     0.49145299145299143,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 2.000277315585136,
+    "union3_area_over_gt": 4.153078202995008,
+    "union3_intrusion_other_gt_fraction": 0.6370192307692307,
+    "scene": "scene0132_01",
+    "view": 2,
+    "key": 6013,
+    "group": "unseen",
+    "gt_area": 3606
+   },
+   {
+    "iou1": 0.1860458161373288,
+    "iou2": 0.3063770922672569,
+    "iou3": 0.34535579411889505,
+    "delta": 0.15930997798156626,
+    "ranked_groups": [
+     62,
+     14,
+     57
+    ],
+    "ranked_ious": [
+     0.1860458161373288,
+     0.1598590157454378,
+     0.1346790890269151
+    ],
+    "top1_area_over_gt": 0.4342700083179632,
+    "union3_area_over_gt": 1.2932986148783046,
+    "union3_intrusion_other_gt_fraction": 0.21800285226923186,
+    "scene": "scene0132_01",
+    "view": 2,
+    "key": 7012,
+    "group": "unseen",
+    "gt_area": 27651
+   },
+   {
+    "iou1": 0.0695910290237467,
+    "iou2": 0.060448114804034385,
+    "iou3": 0.06613416367697827,
+    "delta": 0.0,
+    "ranked_groups": [
+     14,
+     53,
+     52
+    ],
+    "ranked_ious": [
+     0.0695910290237467,
+     0.028634361233480177,
+     0.024684102262709375
+    ],
+    "top1_area_over_gt": 1.8589479870702321,
+    "union3_area_over_gt": 3.6282691742580075,
+    "union3_intrusion_other_gt_fraction": 0.3624362193245323,
+    "scene": "scene0132_01",
+    "view": 3,
+    "key": 5015,
+    "group": "unseen",
+    "gt_area": 3403
+   },
+   {
+    "iou1": 0.2843691148775895,
+    "iou2": 0.22775867930943297,
+    "iou3": 0.1838277891270543,
+    "delta": 0.0,
+    "ranked_groups": [
+     62,
+     57,
+     14
+    ],
+    "ranked_ious": [
+     0.2843691148775895,
+     0.11509983148649339,
+     0.0
+    ],
+    "top1_area_over_gt": 1.66948489118522,
+    "union3_area_over_gt": 5.078910286519493,
+    "union3_intrusion_other_gt_fraction": 0.46989734578747805,
+    "scene": "scene0132_01",
+    "view": 3,
+    "key": 5016,
+    "group": "unseen",
+    "gt_area": 6387
+   },
+   {
+    "iou1": 0.6283551273227804,
+    "iou2": 0.11925560197493354,
+    "iou3": 0.06622144112478032,
+    "delta": 0.0,
+    "ranked_groups": [
+     22,
+     51,
+     14
+    ],
+    "ranked_ious": [
+     0.6283551273227804,
+     0.0037084398976982096,
+     0.0
+    ],
+    "top1_area_over_gt": 0.7219796215429404,
+    "union3_area_over_gt": 10.038573508005822,
+    "union3_intrusion_other_gt_fraction": 0.36627274704560286,
+    "scene": "scene0132_01",
+    "view": 3,
+    "key": 5017,
+    "group": "unseen",
+    "gt_area": 1374
+   },
+   {
+    "iou1": 0.2532043530834341,
+    "iou2": 0.10008603383997705,
+    "iou3": 0.09141709595739107,
+    "delta": 0.0,
+    "ranked_groups": [
+     65,
+     14,
+     22
+    ],
+    "ranked_ious": [
+     0.2532043530834341,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 3.9493791786055397,
+    "union3_area_over_gt": 10.938872970391595,
+    "union3_intrusion_other_gt_fraction": 0.7874792630751768,
+    "scene": "scene0132_01",
+    "view": 3,
+    "key": 6013,
+    "group": "unseen",
+    "gt_area": 1047
+   },
+   {
+    "iou1": 0.2238427393785669,
+    "iou2": 0.35562671244181826,
+    "iou3": 0.4407152419200612,
+    "delta": 0.21687250254149426,
+    "ranked_groups": [
+     62,
+     14,
+     65
+    ],
+    "ranked_ious": [
+     0.2238427393785669,
+     0.17006619458128078,
+     0.12139279751967565
+    ],
+    "top1_area_over_gt": 0.44287078955019316,
+    "union3_area_over_gt": 0.8773518295468704,
+    "union3_intrusion_other_gt_fraction": 0.25823707631130466,
+    "scene": "scene0132_01",
+    "view": 3,
+    "key": 7012,
+    "group": "unseen",
+    "gt_area": 24077
+   },
+   {
+    "iou1": 0.39918157456362713,
+    "iou2": 0.5466495259521131,
+    "iou3": 0.6081632653061224,
+    "delta": 0.20898169074249529,
+    "ranked_groups": [
+     62,
+     57,
+     51
+    ],
+    "ranked_ious": [
+     0.39918157456362713,
+     0.2322135154007293,
+     0.08591821160838534
+    ],
+    "top1_area_over_gt": 0.734389729317233,
+    "union3_area_over_gt": 1.2461731831036496,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0472_01",
+    "view": 2,
+    "key": 4004,
+    "group": "unseen",
+    "gt_area": 22277
+   },
+   {
+    "iou1": 0.2518555430249941,
+    "iou2": 0.42151643106297043,
+    "iou3": 0.5413581054559727,
+    "delta": 0.28950256243097866,
+    "ranked_groups": [
+     62,
+     51,
+     22
+    ],
+    "ranked_ious": [
+     0.2518555430249941,
+     0.20444346122242588,
+     0.1454866364094806
+    ],
+    "top1_area_over_gt": 0.50850135895329,
+    "union3_area_over_gt": 0.8615447822514379,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0472_01",
+    "view": 3,
+    "key": 4004,
+    "group": "unseen",
+    "gt_area": 31642
+   },
+   {
+    "iou1": 0.3814806110458284,
+    "iou2": 0.3229021085252476,
+    "iou3": 0.31611441075336044,
+    "delta": 0.0,
+    "ranked_groups": [
+     14,
+     57,
+     65
+    ],
+    "ranked_ious": [
+     0.3814806110458284,
+     0.08753223221130392,
+     0.06687968756934275
+    ],
+    "top1_area_over_gt": 0.7229028665220705,
+    "union3_area_over_gt": 1.9616624655607011,
+    "union3_intrusion_other_gt_fraction": 0.22543628974420274,
+    "scene": "scene0559_01",
+    "view": 2,
+    "key": 6002,
+    "group": "unseen",
+    "gt_area": 17059
+   },
+   {
+    "iou1": 0.29566744730679156,
+    "iou2": 0.13589452372722335,
+    "iou3": 0.12869435091657314,
+    "delta": 0.0,
+    "ranked_groups": [
+     62,
+     57,
+     11
+    ],
+    "ranked_ious": [
+     0.29566744730679156,
+     0.043579210573316665,
+     0.0
+    ],
+    "top1_area_over_gt": 1.6204854943753702,
+    "union3_area_over_gt": 6.1450562462995855,
+    "union3_intrusion_other_gt_fraction": 0.3033529241738125,
+    "scene": "scene0559_01",
+    "view": 2,
+    "key": 6003,
+    "group": "unseen",
+    "gt_area": 3378
+   },
+   {
+    "iou1": 0.10232723396695684,
+    "iou2": 0.08518189884649512,
+    "iou3": 0.0301665444642296,
+    "delta": 0.0,
+    "ranked_groups": [
+     62,
+     11,
+     14
+    ],
+    "ranked_ious": [
+     0.10232723396695684,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 7.488372093023256,
+    "union3_area_over_gt": 25.908344733242135,
+    "union3_intrusion_other_gt_fraction": 0.7501452030202228,
+    "scene": "scene0559_01",
+    "view": 2,
+    "key": 7015,
+    "group": "unseen",
+    "gt_area": 731
+   },
+   {
+    "iou1": 0.18559843561281417,
+    "iou2": 0.2718990078369301,
+    "iou3": 0.34575145736015134,
+    "delta": 0.16015302174733717,
+    "ranked_groups": [
+     52,
+     14,
+     35
+    ],
+    "ranked_ious": [
+     0.18559843561281417,
+     0.147318843377215,
+     0.11002473112095243
+    ],
+    "top1_area_over_gt": 0.18559843561281417,
+    "union3_area_over_gt": 1.004888709955714,
+    "union3_intrusion_other_gt_fraction": 0.46451465201465203,
+    "scene": "scene0559_01",
+    "view": 2,
+    "key": 8013,
+    "group": "unseen",
+    "gt_area": 17387
+   },
+   {
+    "iou1": 0.20874849833933998,
+    "iou2": 0.19327401203873332,
+    "iou3": 0.10696697566628041,
+    "delta": 0.0,
+    "ranked_groups": [
+     57,
+     11,
+     14
+    ],
+    "ranked_ious": [
+     0.20874849833933998,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 4.790453622207177,
+    "union3_area_over_gt": 9.348679756262694,
+    "union3_intrusion_other_gt_fraction": 0.5495365005793743,
+    "scene": "scene0559_01",
+    "view": 2,
+    "key": 20009,
+    "group": "unseen",
+    "gt_area": 2954
+   },
+   {
+    "iou1": 0.41293670974258945,
+    "iou2": 0.4011087803416242,
+    "iou3": 0.4045443150482007,
+    "delta": 0.0,
+    "ranked_groups": [
+     14,
+     57,
+     65
+    ],
+    "ranked_ious": [
+     0.41293670974258945,
+     0.1084893496312342,
+     0.053999616343755996
+    ],
+    "top1_area_over_gt": 0.47811828152898733,
+    "union3_area_over_gt": 1.2457457275079256,
+    "union3_intrusion_other_gt_fraction": 0.17512504753268787,
+    "scene": "scene0559_01",
+    "view": 3,
+    "key": 6002,
+    "group": "unseen",
+    "gt_area": 27443
+   },
+   {
+    "iou1": 0.22851365015166836,
+    "iou2": 0.13328767709626332,
+    "iou3": 0.13234169145771355,
+    "delta": 0.0,
+    "ranked_groups": [
+     62,
+     57,
+     11
+    ],
+    "ranked_ious": [
+     0.22851365015166836,
+     0.056630486078338836,
+     0.0
+    ],
+    "top1_area_over_gt": 1.3725320026036016,
+    "union3_area_over_gt": 4.780863527880235,
+    "union3_intrusion_other_gt_fraction": 0.4084864987519855,
+    "scene": "scene0559_01",
+    "view": 3,
+    "key": 6003,
+    "group": "unseen",
+    "gt_area": 4609
+   },
+   {
+    "iou1": 0.12181650813132863,
+    "iou2": 0.118773373223635,
+    "iou3": 0.04008886196102191,
+    "delta": 0.0,
+    "ranked_groups": [
+     62,
+     11,
+     14
+    ],
+    "ranked_ious": [
+     0.12181650813132863,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 6.415821501014198,
+    "union3_area_over_gt": 19.892494929006084,
+    "union3_intrusion_other_gt_fraction": 0.7811767105128989,
+    "scene": "scene0559_01",
+    "view": 3,
+    "key": 7015,
+    "group": "unseen",
+    "gt_area": 986
+   },
+   {
+    "iou1": 0.2720269619643717,
+    "iou2": 0.3636488340192044,
+    "iou3": 0.1985863520607037,
+    "delta": 0.09162187205483269,
+    "ranked_groups": [
+     52,
+     35,
+     14
+    ],
+    "ranked_ious": [
+     0.2720269619643717,
+     0.13954167274850388,
+     0.06594149805557122
+    ],
+    "top1_area_over_gt": 0.368439226519337,
+    "union3_area_over_gt": 2.981698895027624,
+    "union3_intrusion_other_gt_fraction": 0.7078170237405906,
+    "scene": "scene0559_01",
+    "view": 3,
+    "key": 8013,
+    "group": "unseen",
+    "gt_area": 5792
+   },
+   {
+    "iou1": 0.23948987439118175,
+    "iou2": 0.23695390273286412,
+    "iou3": 0.12934376297937145,
+    "delta": 0.0,
+    "ranked_groups": [
+     57,
+     11,
+     14
+    ],
+    "ranked_ious": [
+     0.23948987439118175,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 4.091076599105028,
+    "union3_area_over_gt": 7.588839168202158,
+    "union3_intrusion_other_gt_fraction": 0.6351716961498439,
+    "scene": "scene0559_01",
+    "view": 3,
+    "key": 20009,
+    "group": "unseen",
+    "gt_area": 3799
+   },
+   {
+    "iou1": 0.23232829980434455,
+    "iou2": 0.3905230769230769,
+    "iou3": 0.47554521303980724,
+    "delta": 0.24321691323546268,
+    "ranked_groups": [
+     57,
+     62,
+     14
+    ],
+    "ranked_ious": [
+     0.23232829980434455,
+     0.18511354079058032,
+     0.1686777920410783
+    ],
+    "top1_area_over_gt": 0.40723554180630744,
+    "union3_area_over_gt": 1.0523903640686316,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0568_02",
+    "view": 2,
+    "key": 6006,
+    "group": "unseen",
+    "gt_area": 34911
+   },
+   {
+    "iou1": 0.22014764453689845,
+    "iou2": 0.38450191759268365,
+    "iou3": 0.4827758258664061,
+    "delta": 0.26262818132950766,
+    "ranked_groups": [
+     57,
+     62,
+     14
+    ],
+    "ranked_ious": [
+     0.22014764453689845,
+     0.19550139001993766,
+     0.18147873333492903
+    ],
+    "top1_area_over_gt": 0.4000407521685975,
+    "union3_area_over_gt": 1.0761192292018398,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0568_02",
+    "view": 3,
+    "key": 6006,
+    "group": "unseen",
+    "gt_area": 34354
+   },
+   {
+    "iou1": 0.3691860465116279,
+    "iou2": 0.22371505345606313,
+    "iou3": 0.22539030168108,
+    "delta": 0.0,
+    "ranked_groups": [
+     62,
+     57,
+     11
+    ],
+    "ranked_ious": [
+     0.3691860465116279,
+     0.08565045540470871,
+     0.008240482822655524
+    ],
+    "top1_area_over_gt": 1.3107113654946851,
+    "union3_area_over_gt": 4.015068333138652,
+    "union3_intrusion_other_gt_fraction": 0.11162831292002444,
+    "scene": "scene0615_00",
+    "view": 2,
+    "key": 5021,
+    "group": "unseen",
+    "gt_area": 8561
+   },
+   {
+    "iou1": 0.08050603795284646,
+    "iou2": 0.0220370978332239,
+    "iou3": 0.020105043203252952,
+    "delta": 0.0,
+    "ranked_groups": [
+     22,
+     57,
+     62
+    ],
+    "ranked_ious": [
+     0.08050603795284646,
+     0.016330056353091194,
+     0.01374921433060968
+    ],
+    "top1_area_over_gt": 0.11712247324613555,
+    "union3_area_over_gt": 20.478002378121285,
+    "union3_intrusion_other_gt_fraction": 0.32165253745209615,
+    "scene": "scene0615_00",
+    "view": 2,
+    "key": 8001,
+    "group": "unseen",
+    "gt_area": 1682
+   },
+   {
+    "iou1": 0.22227769456925722,
+    "iou2": 0.3555858310626703,
+    "iou3": 0.3557183098591549,
+    "delta": 0.1334406152898977,
+    "ranked_groups": [
+     65,
+     35,
+     62
+    ],
+    "ranked_ious": [
+     0.22227769456925722,
+     0.13848861511384886,
+     0.11272671615520012
+    ],
+    "top1_area_over_gt": 0.23377568732851783,
+    "union3_area_over_gt": 1.0211657987569294,
+    "union3_intrusion_other_gt_fraction": 0.3020781926852004,
+    "scene": "scene0615_00",
+    "view": 2,
+    "key": 13012,
+    "group": "unseen",
+    "gt_area": 17859
+   },
+   {
+    "iou1": 0.3633275563258232,
+    "iou2": 0.22183484123782632,
+    "iou3": 0.22285171977453122,
+    "delta": 0.0,
+    "ranked_groups": [
+     62,
+     57,
+     11
+    ],
+    "ranked_ious": [
+     0.3633275563258232,
+     0.0854926785155299,
+     0.005857544517338332
+    ],
+    "top1_area_over_gt": 1.3218417945690673,
+    "union3_area_over_gt": 4.020188902007084,
+    "union3_intrusion_other_gt_fraction": 0.11177351619629379,
+    "scene": "scene0615_00",
+    "view": 3,
+    "key": 5021,
+    "group": "unseen",
+    "gt_area": 8470
+   },
+   {
+    "iou1": 0.11495246326707001,
+    "iou2": 0.02701496775240336,
+    "iou3": 0.026406107725712686,
+    "delta": 0.0,
+    "ranked_groups": [
+     22,
+     57,
+     51
+    ],
+    "ranked_ious": [
+     0.11495246326707001,
+     0.016560404073859402,
+     0.015395381385584325
+    ],
+    "top1_area_over_gt": 0.4214876033057851,
+    "union3_area_over_gt": 15.147658402203858,
+    "union3_intrusion_other_gt_fraction": 0.10024369839595533,
+    "scene": "scene0615_00",
+    "view": 3,
+    "key": 8001,
+    "group": "unseen",
+    "gt_area": 1815
+   },
+   {
+    "iou1": 0.2275412049277156,
+    "iou2": 0.27099853722380474,
+    "iou3": 0.3384787127569482,
+    "delta": 0.11093750782923259,
+    "ranked_groups": [
+     65,
+     62,
+     35
+    ],
+    "ranked_ious": [
+     0.2275412049277156,
+     0.1168415714118519,
+     0.10056218448829739
+    ],
+    "top1_area_over_gt": 0.2518357044515833,
+    "union3_area_over_gt": 0.9946649839375861,
+    "union3_intrusion_other_gt_fraction": 0.30826460580194937,
+    "scene": "scene0615_00",
+    "view": 3,
+    "key": 13012,
+    "group": "unseen",
+    "gt_area": 17432
+   },
+   {
+    "iou1": 0.6199829205807003,
+    "iou2": 0.30438661710037174,
+    "iou3": 0.18908184001477923,
+    "delta": 0.0,
+    "ranked_groups": [
+     52,
+     14,
+     11
+    ],
+    "ranked_ious": [
+     0.6199829205807003,
+     0.08922546299767564,
+     0.0
+    ],
+    "top1_area_over_gt": 0.6600306278713629,
+    "union3_area_over_gt": 4.632465543644717,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0695_00",
+    "view": 2,
+    "key": 20017,
+    "group": "unseen",
+    "gt_area": 4571
+   },
+   {
+    "iou1": 0.49770431588613406,
+    "iou2": 0.06006760019314341,
+    "iou3": 0.0354618015963512,
+    "delta": 0.0,
+    "ranked_groups": [
+     52,
+     14,
+     11
+    ],
+    "ranked_ious": [
+     0.49770431588613406,
+     0.008090614886731391,
+     0.0
+    ],
+    "top1_area_over_gt": 1.6221864951768488,
+    "union3_area_over_gt": 28.19935691318328,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0695_00",
+    "view": 3,
+    "key": 20017,
+    "group": "unseen",
+    "gt_area": 622
+   },
+   {
+    "iou1": 0.02050034746351633,
+    "iou2": 0.012127410870835768,
+    "iou3": 0.009140969162995595,
+    "delta": 0.0,
+    "ranked_groups": [
+     51,
+     22,
+     11
+    ],
+    "ranked_ious": [
+     0.02050034746351633,
+     0.005911330049261084,
+     0.0
+    ],
+    "top1_area_over_gt": 30.24468085106383,
+    "union3_area_over_gt": 96.47872340425532,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0000_02",
+    "view": 2,
+    "key": 8059,
+    "group": "training",
+    "gt_area": 94
+   },
+   {
+    "iou1": 0.041727791361043196,
+    "iou2": 0.012149399648806417,
+    "iou3": 0.010521124445175079,
+    "delta": 0.0,
+    "ranked_groups": [
+     51,
+     14,
+     22
+    ],
+    "ranked_ious": [
+     0.041727791361043196,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 23.96484375,
+    "union3_area_over_gt": 95.046875,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0000_02",
+    "view": 3,
+    "key": 8059,
+    "group": "training",
+    "gt_area": 256
+   },
+   {
+    "iou1": 0.02895130202187082,
+    "iou2": 0.025081788440567066,
+    "iou3": 0.018549322042441654,
+    "delta": 0.0,
+    "ranked_groups": [
+     65,
+     11,
+     14
+    ],
+    "ranked_ious": [
+     0.02895130202187082,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 25.105788423153694,
+    "union3_area_over_gt": 39.333333333333336,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0016_01",
+    "view": 2,
+    "key": 8049,
+    "group": "training",
+    "gt_area": 501
+   },
+   {
+    "iou1": 0.03257650542941757,
+    "iou2": 0.021952436387826377,
+    "iou3": 0.011806797853309481,
+    "delta": 0.0,
+    "ranked_groups": [
+     52,
+     11,
+     14
+    ],
+    "ranked_ious": [
+     0.03257650542941757,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 30.696969696969695,
+    "union3_area_over_gt": 84.6969696969697,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0016_01",
+    "view": 2,
+    "key": 14030,
+    "group": "training",
+    "gt_area": 132
+   },
+   {
+    "iou1": 0.018619212390838687,
+    "iou2": 0.016469902346596708,
+    "iou3": 0.012160344363734194,
+    "delta": 0.0,
+    "ranked_groups": [
+     65,
+     11,
+     14
+    ],
+    "ranked_ious": [
+     0.018619212390838687,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 45.833333333333336,
+    "union3_area_over_gt": 70.25378787878788,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0016_01",
+    "view": 3,
+    "key": 8049,
+    "group": "training",
+    "gt_area": 264
+   },
+   {
+    "iou1": 0.020695144600689837,
+    "iou2": 0.014571268447599477,
+    "iou3": 0.007635082223962412,
+    "delta": 0.0,
+    "ranked_groups": [
+     52,
+     11,
+     14
+    ],
+    "ranked_ious": [
+     0.020695144600689837,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 48.32051282051282,
+    "union3_area_over_gt": 130.97435897435898,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0016_01",
+    "view": 3,
+    "key": 14030,
+    "group": "training",
+    "gt_area": 78
+   },
+   {
+    "iou1": 0.18858396456806986,
+    "iou2": 0.18858396456806986,
+    "iou3": 0.18858396456806986,
+    "delta": 0.0,
+    "ranked_groups": [
+     59
+    ],
+    "ranked_ious": [
+     0.18858396456806986
+    ],
+    "top1_area_over_gt": 1.6714112940738672,
+    "union3_area_over_gt": 1.6714112940738672,
+    "union3_intrusion_other_gt_fraction": 0.22247578759879774,
+    "scene": "scene0007_00",
+    "view": 3,
+    "key": 8006,
+    "group": "training",
+    "gt_area": 10749
+   },
+   {
+    "iou1": 0.17139059217014707,
+    "iou2": 0.17139059217014707,
+    "iou3": 0.17139059217014707,
+    "delta": 0.0,
+    "ranked_groups": [
+     59
+    ],
+    "ranked_ious": [
+     0.17139059217014707
+    ],
+    "top1_area_over_gt": 1.9210863986313087,
+    "union3_area_over_gt": 1.9210863986313087,
+    "union3_intrusion_other_gt_fraction": 0.2535901146610264,
+    "scene": "scene0007_00",
+    "view": 3,
+    "key": 8024,
+    "group": "training",
+    "gt_area": 9352
+   },
+   {
+    "iou1": 0.42560895325872283,
+    "iou2": 0.23931149361465853,
+    "iou3": 0.07305910272347158,
+    "delta": 0.0,
+    "ranked_groups": [
+     52,
+     11,
+     14
+    ],
+    "ranked_ious": [
+     0.42560895325872283,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 2.3495746326372777,
+    "union3_area_over_gt": 13.68754833720031,
+    "union3_intrusion_other_gt_fraction": 0.5769013447847214,
+    "scene": "scene0012_01",
+    "view": 2,
+    "key": 5002,
+    "group": "training",
+    "gt_area": 1293
+   },
+   {
+    "iou1": 0.11348937480751463,
+    "iou2": 0.13069662400833865,
+    "iou3": 0.11495365182846083,
+    "delta": 0.017207249200824018,
+    "ranked_groups": [
+     52,
+     14,
+     11
+    ],
+    "ranked_ious": [
+     0.11348937480751463,
+     0.10154997327632283,
+     0.0
+    ],
+    "top1_area_over_gt": 0.7245409015025042,
+    "union3_area_over_gt": 4.220844264249941,
+    "union3_intrusion_other_gt_fraction": 0.5224319132105323,
+    "scene": "scene0012_01",
+    "view": 2,
+    "key": 8001,
+    "group": "training",
+    "gt_area": 4193
+   },
+   {
+    "iou1": 0.13687272727272728,
+    "iou2": 0.19636363636363635,
+    "iou3": 0.23433707275470708,
+    "delta": 0.0974643454819798,
+    "ranked_groups": [
+     57,
+     51,
+     11
+    ],
+    "ranked_ious": [
+     0.13687272727272728,
+     0.10548033526756931,
+     0.09429065743944637
+    ],
+    "top1_area_over_gt": 1.0157317859445518,
+    "union3_area_over_gt": 1.4261766602192134,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0012_01",
+    "view": 2,
+    "key": 8017,
+    "group": "training",
+    "gt_area": 7755
+   },
+   {
+    "iou1": 0.2750009709114917,
+    "iou2": 0.4203600414147824,
+    "iou3": 0.4612404395310778,
+    "delta": 0.18623946861958607,
+    "ranked_groups": [
+     14,
+     65,
+     98
+    ],
+    "ranked_ious": [
+     0.2750009709114917,
+     0.22263113196101428,
+     0.05960555149744339
+    ],
+    "top1_area_over_gt": 0.5987338690041393,
+    "union3_area_over_gt": 1.1305575846116387,
+    "union3_intrusion_other_gt_fraction": 0.07964334941419711,
+    "scene": "scene0012_01",
+    "view": 2,
+    "key": 8019,
+    "group": "training",
+    "gt_area": 20535
+   },
+   {
+    "iou1": 0.03391752577319588,
+    "iou2": 0.0272689598010775,
+    "iou3": 0.013505747126436781,
+    "delta": 0.0,
+    "ranked_groups": [
+     65,
+     11,
+     14
+    ],
+    "ranked_ious": [
+     0.03391752577319588,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 29.207831325301203,
+    "union3_area_over_gt": 73.3644578313253,
+    "union3_intrusion_other_gt_fraction": 0.6149361579833312,
+    "scene": "scene0012_01",
+    "view": 2,
+    "key": 8020,
+    "group": "training",
+    "gt_area": 332
+   },
+   {
+    "iou1": 0.3498233215547703,
+    "iou2": 0.17265038149878748,
+    "iou3": 0.1508293287862347,
+    "delta": 0.0,
+    "ranked_groups": [
+     52,
+     14,
+     11
+    ],
+    "ranked_ious": [
+     0.3498233215547703,
+     0.06828418713590775,
+     0.0
+    ],
+    "top1_area_over_gt": 0.4212484497726333,
+    "union3_area_over_gt": 3.603555188094254,
+    "union3_intrusion_other_gt_fraction": 0.5220259263508088,
+    "scene": "scene0012_01",
+    "view": 3,
+    "key": 8001,
+    "group": "training",
+    "gt_area": 4838
+   },
+   {
+    "iou1": 0.12880143112701253,
+    "iou2": 0.07596931086450198,
+    "iou3": 0.06506688570758037,
+    "delta": 0.0,
+    "ranked_groups": [
+     57,
+     62,
+     11
+    ],
+    "ranked_ious": [
+     0.12880143112701253,
+     0.012214294352400533,
+     0.0
+    ],
+    "top1_area_over_gt": 4.901135604542418,
+    "union3_area_over_gt": 11.12625250501002,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0012_01",
+    "view": 3,
+    "key": 8017,
+    "group": "training",
+    "gt_area": 1497
+   },
+   {
+    "iou1": 0.28692581733345945,
+    "iou2": 0.3949523605609678,
+    "iou3": 0.4937640509581415,
+    "delta": 0.20683823362468207,
+    "ranked_groups": [
+     14,
+     65,
+     98
+    ],
+    "ranked_ious": [
+     0.28692581733345945,
+     0.16876025660152172,
+     0.13247219232149265
+    ],
+    "top1_area_over_gt": 0.4646573376390384,
+    "union3_area_over_gt": 1.0026193039110154,
+    "union3_intrusion_other_gt_fraction": 0.056150019682925954,
+    "scene": "scene0012_01",
+    "view": 3,
+    "key": 8019,
+    "group": "training",
+    "gt_area": 27870
+   },
+   {
+    "iou1": 0.038223323305609624,
+    "iou2": 0.03142275240034914,
+    "iou3": 0.016180987339875646,
+    "delta": 0.0,
+    "ranked_groups": [
+     65,
+     11,
+     14
+    ],
+    "ranked_ious": [
+     0.038223323305609624,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 26.099307159353348,
+    "union3_area_over_gt": 61.65588914549654,
+    "union3_intrusion_other_gt_fraction": 0.5953477918867288,
+    "scene": "scene0012_01",
+    "view": 3,
+    "key": 8020,
+    "group": "training",
+    "gt_area": 433
+   },
+   {
+    "iou1": 0.0297045101088647,
+    "iou2": 0.02511514730164248,
+    "iou3": 0.02307938029068839,
+    "delta": 0.0,
+    "ranked_groups": [
+     35,
+     52,
+     11
+    ],
+    "ranked_ious": [
+     0.0297045101088647,
+     0.01814814814814815,
+     0.0
+    ],
+    "top1_area_over_gt": 19.4984520123839,
+    "union3_area_over_gt": 38.6625386996904,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0009_00",
+    "view": 2,
+    "key": 18009,
+    "group": "training",
+    "gt_area": 323
+   },
+   {
+    "iou1": 0.22432,
+    "iou2": 0.2631320810240816,
+    "iou3": 0.22648487925157734,
+    "delta": 0.038812081024081596,
+    "ranked_groups": [
+     14,
+     57,
+     62
+    ],
+    "ranked_ious": [
+     0.22432,
+     0.12725465838509317,
+     0.04535392535392535
+    ],
+    "top1_area_over_gt": 0.2507355344883949,
+    "union3_area_over_gt": 1.7643020594965675,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0009_00",
+    "view": 2,
+    "key": 20017,
+    "group": "training",
+    "gt_area": 12236
+   },
+   {
+    "iou1": 0.05556939945178171,
+    "iou2": 0.04554628632938644,
+    "iou3": 0.03803798179570738,
+    "delta": 0.0,
+    "ranked_groups": [
+     52,
+     98,
+     14
+    ],
+    "ranked_ious": [
+     0.05556939945178171,
+     0.001848001848001848,
+     0.0
+    ],
+    "top1_area_over_gt": 7.449468085106383,
+    "union3_area_over_gt": 11.283909574468085,
+    "union3_intrusion_other_gt_fraction": 0.23628542808320074,
+    "scene": "scene0009_00",
+    "view": 3,
+    "key": 18009,
+    "group": "training",
+    "gt_area": 1504
+   },
+   {
+    "iou1": 0.23802565351518104,
+    "iou2": 0.2641168838494951,
+    "iou3": 0.20679998563888988,
+    "delta": 0.02609123033431407,
+    "ranked_groups": [
+     14,
+     53,
+     52
+    ],
+    "ranked_ious": [
+     0.23802565351518104,
+     0.09873060648801128,
+     0.048034934497816595
+    ],
+    "top1_area_over_gt": 0.2382266969795388,
+    "union3_area_over_gt": 1.7292140305293926,
+    "union3_intrusion_other_gt_fraction": 0.03141287505282434,
+    "scene": "scene0009_00",
+    "view": 3,
+    "key": 20017,
+    "group": "training",
+    "gt_area": 12316
+   },
+   {
+    "iou1": 0.4114374939006539,
+    "iou2": 0.6312022203827239,
+    "iou3": 0.5076290073718498,
+    "delta": 0.21976472648207002,
+    "ranked_groups": [
+     53,
+     51,
+     57
+    ],
+    "ranked_ious": [
+     0.4114374939006539,
+     0.27380952380952384,
+     0.07329009668563244
+    ],
+    "top1_area_over_gt": 0.7525598303544381,
+    "union3_area_over_gt": 1.664041199636474,
+    "union3_intrusion_other_gt_fraction": 0.1973420717276534,
+    "scene": "scene0001_01",
+    "view": 2,
+    "key": 5010,
+    "group": "training",
+    "gt_area": 16505
+   },
+   {
+    "iou1": 0.3919115757004541,
+    "iou2": 0.2849648191581286,
+    "iou3": 0.21820501914079116,
+    "delta": 0.0,
+    "ranked_groups": [
+     57,
+     51,
+     14
+    ],
+    "ranked_ious": [
+     0.3919115757004541,
+     0.004172326799922375,
+     0.0
+    ],
+    "top1_area_over_gt": 1.812987012987013,
+    "union3_area_over_gt": 3.4633766233766234,
+    "union3_intrusion_other_gt_fraction": 0.5936203189840508,
+    "scene": "scene0001_01",
+    "view": 2,
+    "key": 5018,
+    "group": "training",
+    "gt_area": 5775
+   },
+   {
+    "iou1": 0.38567839195979897,
+    "iou2": 0.3356257216003213,
+    "iou3": 0.3288903090336422,
+    "delta": 0.0,
+    "ranked_groups": [
+     14,
+     52,
+     65
+    ],
+    "ranked_ious": [
+     0.38567839195979897,
+     0.08925337089957738,
+     0.03536144988757921
+    ],
+    "top1_area_over_gt": 0.3905917579386967,
+    "union3_area_over_gt": 1.2939090694192734,
+    "union3_intrusion_other_gt_fraction": 0.055721332440168074,
+    "scene": "scene0001_01",
+    "view": 2,
+    "key": 6002,
+    "group": "training",
+    "gt_area": 12691
+   },
+   {
+    "iou1": 0.10213193436767497,
+    "iou2": 0.06575165277378557,
+    "iou3": 0.05202706544606812,
+    "delta": 0.0,
+    "ranked_groups": [
+     52,
+     14,
+     22
+    ],
+    "ranked_ious": [
+     0.10213193436767497,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 9.791256830601093,
+    "union3_area_over_gt": 19.220765027322404,
+    "union3_intrusion_other_gt_fraction": 0.3802240291124126,
+    "scene": "scene0001_01",
+    "view": 2,
+    "key": 7006,
+    "group": "training",
+    "gt_area": 915
+   },
+   {
+    "iou1": 0.0002618486514794449,
+    "iou2": 0.00011394712853236098,
+    "iou3": 7.49063670411985e-05,
+    "delta": 0.0,
+    "ranked_groups": [
+     22,
+     14,
+     51
+    ],
+    "ranked_ious": [
+     0.0002618486514794449,
+     0.0,
+     0.0
+    ],
+    "top1_area_over_gt": 24.63758389261745,
+    "union3_area_over_gt": 88.60402684563758,
+    "union3_intrusion_other_gt_fraction": 0.7185274958339646,
+    "scene": "scene0001_01",
+    "view": 2,
+    "key": 7007,
+    "group": "training",
+    "gt_area": 149
+   },
+   {
+    "iou1": 0.36380090497737555,
+    "iou2": 0.6466627634660421,
+    "iou3": 0.511572720707088,
+    "delta": 0.2828618584886666,
+    "ranked_groups": [
+     53,
+     51,
+     57
+    ],
+    "ranked_ious": [
+     0.36380090497737555,
+     0.354,
+     0.0649049049049049
+    ],
+    "top1_area_over_gt": 0.654629742588752,
+    "union3_area_over_gt": 1.680980846651214,
+    "union3_intrusion_other_gt_fraction": 0.21608970172000871,
+    "scene": "scene0001_01",
+    "view": 3,
+    "key": 5010,
+    "group": "training",
+    "gt_area": 16394
+   },
+   {
+    "iou1": 0.3814321398834305,
+    "iou2": 0.2782886404933649,
+    "iou3": 0.17634624714117403,
+    "delta": 0.0,
+    "ranked_groups": [
+     57,
+     51,
+     53
+    ],
+    "ranked_ious": [
+     0.3814321398834305,
+     0.037719298245614034,
+     0.0020484607280814703
+    ],
+    "top1_area_over_gt": 1.5968070120519644,
+    "union3_area_over_gt": 4.313351072155267,
+    "union3_intrusion_other_gt_fraction": 0.5711952971913782,
+    "scene": "scene0001_01",
+    "view": 3,
+    "key": 5018,
+    "group": "training",
+    "gt_area": 6389
+   },
+   {
+    "iou1": 0.4390860652036485,
+    "iou2": 0.36870283170999163,
+    "iou3": 0.34072670530539456,
+    "delta": 0.0,
+    "ranked_groups": [
+     14,
+     52,
+     65
+    ],
+    "ranked_ious": [
+     0.4390860652036485,
+     0.05511811023622047,
+     0.02947056645686783
+    ],
+    "top1_area_over_gt": 0.4402566883586406,
+    "union3_area_over_gt": 1.1744396240057846,
+    "union3_intrusion_other_gt_fraction": 0.0,
+    "scene": "scene0001_01",
+    "view": 3,
+    "key": 6002,
+    "group": "training",
+    "gt_area": 11064
+   },
+   {
+    "iou1": 0.01999008755988766,
+    "iou2": 0.02016739736946991,
+    "iou3": 0.01978881501759875,
+    "delta": 0.00017730980958224896,
+    "ranked_groups": [
+     22,
+     51,
+     11
+    ],
+    "ranked_ious": [
+     0.01999008755988766,
+     0.018292682926829267,
+     0.0
+    ],
+    "top1_area_over_gt": 7.527624309392265,
+    "union3_area_over_gt": 17.00828729281768,
+    "union3_intrusion_other_gt_fraction": 0.5271235991554328,
+    "scene": "scene0001_01",
+    "view": 3,
+    "key": 7007,
+    "group": "training",
+    "gt_area": 724
+   }
+  ]
+ },
+ "oracle": {
+  "g0plus_step6000": [
+   {
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 5010,
+    "gt_area": 5909,
+    "context_visible": true,
+    "oracle_iou": 0.5970348902017613,
+    "oracle_pred_area": 8418,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 5011,
+    "gt_area": 3767,
+    "context_visible": true,
+    "oracle_iou": 0.3866875217240181,
+    "oracle_pred_area": 4212,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 5016,
+    "gt_area": 406,
+    "context_visible": true,
+    "oracle_iou": 0.0,
+    "oracle_pred_area": 0,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 5019,
+    "gt_area": 1985,
+    "context_visible": true,
+    "oracle_iou": 0.4808454425363276,
+    "oracle_pred_area": 3620,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 6001,
+    "gt_area": 11279,
+    "context_visible": true,
+    "oracle_iou": 0.5204125279216767,
+    "oracle_pred_area": 20712,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 7007,
+    "gt_area": 10096,
+    "context_visible": true,
+    "oracle_iou": 0.7355836849507735,
+    "oracle_pred_area": 13350,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 8032,
+    "gt_area": 1933,
+    "context_visible": true,
+    "oracle_iou": 0.42451198418581665,
+    "oracle_pred_area": 3832,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 8033,
+    "gt_area": 423,
+    "context_visible": true,
+    "oracle_iou": 0.07043286867204696,
+    "oracle_pred_area": 2495,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 20034,
+    "gt_area": 7,
+    "context_visible": true,
+    "oracle_iou": 0.025974025974025976,
+    "oracle_pred_area": 230,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 5010,
+    "gt_area": 4668,
+    "context_visible": true,
+    "oracle_iou": 0.6257158440141806,
+    "oracle_pred_area": 7255,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 5011,
+    "gt_area": 3660,
+    "context_visible": true,
+    "oracle_iou": 0.38696109358569925,
+    "oracle_pred_area": 4254,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 5016,
+    "gt_area": 245,
+    "context_visible": true,
+    "oracle_iou": 0.0,
+    "oracle_pred_area": 0,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 5019,
+    "gt_area": 1892,
+    "context_visible": true,
+    "oracle_iou": 0.4726530612244898,
+    "oracle_pred_area": 3520,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 6001,
+    "gt_area": 9573,
+    "context_visible": true,
+    "oracle_iou": 0.5096770625967706,
+    "oracle_pred_area": 17728,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 7007,
+    "gt_area": 11864,
+    "context_visible": true,
+    "oracle_iou": 0.7152394952835968,
+    "oracle_pred_area": 16139,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 8032,
+    "gt_area": 2079,
+    "context_visible": true,
+    "oracle_iou": 0.3470268242356031,
+    "oracle_pred_area": 5102,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 8033,
+    "gt_area": 396,
+    "context_visible": true,
+    "oracle_iou": 0.07750397456279809,
+    "oracle_pred_area": 2315,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 20031,
+    "gt_area": 177,
+    "context_visible": true,
+    "oracle_iou": 0.109375,
+    "oracle_pred_area": 817,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 20034,
+    "gt_area": 1499,
+    "context_visible": true,
+    "oracle_iou": 0.6031746031746031,
+    "oracle_pred_area": 1329,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0072_02",
+    "view": 2,
+    "key": 8022,
+    "gt_area": 4943,
+    "context_visible": true,
+    "oracle_iou": 0.2547019116813521,
+    "oracle_pred_area": 19407,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0072_02",
+    "view": 2,
+    "key": 20031,
+    "gt_area": 15045,
+    "context_visible": true,
+    "oracle_iou": 0.5606901949092535,
+    "oracle_pred_area": 26833,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0072_02",
+    "view": 3,
+    "key": 8022,
+    "gt_area": 3211,
+    "context_visible": true,
+    "oracle_iou": 0.18649088163549774,
+    "oracle_pred_area": 17218,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0072_02",
+    "view": 3,
+    "key": 20031,
+    "gt_area": 11436,
+    "context_visible": true,
+    "oracle_iou": 0.4892615726876016,
+    "oracle_pred_area": 23374,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0132_01",
+    "view": 2,
+    "key": 5015,
+    "gt_area": 5335,
+    "context_visible": true,
+    "oracle_iou": 0.7506353715054567,
+    "oracle_pred_area": 6375,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0132_01",
+    "view": 2,
+    "key": 5016,
+    "gt_area": 7821,
+    "context_visible": true,
+    "oracle_iou": 0.3625534188034188,
+    "oracle_pred_area": 17686,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0132_01",
+    "view": 2,
+    "key": 5017,
+    "gt_area": 127,
+    "context_visible": true,
+    "oracle_iou": 0.09090909090909091,
+    "oracle_pred_area": 209,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0132_01",
+    "view": 2,
+    "key": 6013,
+    "gt_area": 3606,
+    "context_visible": true,
+    "oracle_iou": 0.674232048522794,
+    "oracle_pred_area": 4951,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0132_01",
+    "view": 2,
+    "key": 7012,
+    "gt_area": 27651,
+    "context_visible": true,
+    "oracle_iou": 0.6884171420989784,
+    "oracle_pred_area": 35977,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0132_01",
+    "view": 3,
+    "key": 5015,
+    "gt_area": 3403,
+    "context_visible": true,
+    "oracle_iou": 0.756,
+    "oracle_pred_area": 4499,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0132_01",
+    "view": 3,
+    "key": 5016,
+    "gt_area": 6387,
+    "context_visible": true,
+    "oracle_iou": 0.2181955099543465,
+    "oracle_pred_area": 19496,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0132_01",
+    "view": 3,
+    "key": 5017,
+    "gt_area": 1374,
+    "context_visible": true,
+    "oracle_iou": 0.3413734392735528,
+    "oracle_pred_area": 3353,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0132_01",
+    "view": 3,
+    "key": 6013,
+    "gt_area": 1047,
+    "context_visible": true,
+    "oracle_iou": 0.5091649694501018,
+    "oracle_pred_area": 1917,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0132_01",
+    "view": 3,
+    "key": 7012,
+    "gt_area": 24077,
+    "context_visible": true,
+    "oracle_iou": 0.6251700680272109,
+    "oracle_pred_area": 35648,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0472_01",
+    "view": 2,
+    "key": 4004,
+    "gt_area": 22277,
+    "context_visible": true,
+    "oracle_iou": 0.5211481776072615,
+    "oracle_pred_area": 42746,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0472_01",
+    "view": 3,
+    "key": 4004,
+    "gt_area": 31642,
+    "context_visible": true,
+    "oracle_iou": 0.5627345320030589,
+    "oracle_pred_area": 56229,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0559_01",
+    "view": 2,
+    "key": 6002,
+    "gt_area": 17059,
+    "context_visible": true,
+    "oracle_iou": 0.5550273845199959,
+    "oracle_pred_area": 28085,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0559_01",
+    "view": 2,
+    "key": 6003,
+    "gt_area": 3378,
+    "context_visible": true,
+    "oracle_iou": 0.4531905657647229,
+    "oracle_pred_area": 6665,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0559_01",
+    "view": 2,
+    "key": 7015,
+    "gt_area": 731,
+    "context_visible": true,
+    "oracle_iou": 0.15297805642633228,
+    "oracle_pred_area": 1108,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0559_01",
+    "view": 2,
+    "key": 8013,
+    "gt_area": 17387,
+    "context_visible": true,
+    "oracle_iou": 0.8437317215831546,
+    "oracle_pred_area": 20439,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0559_01",
+    "view": 2,
+    "key": 20009,
+    "gt_area": 2954,
+    "context_visible": true,
+    "oracle_iou": 0.18604651162790697,
+    "oracle_pred_area": 7858,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0559_01",
+    "view": 3,
+    "key": 6002,
+    "gt_area": 27443,
+    "context_visible": true,
+    "oracle_iou": 0.6584672259348784,
+    "oracle_pred_area": 30877,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0559_01",
+    "view": 3,
+    "key": 6003,
+    "gt_area": 4609,
+    "context_visible": true,
+    "oracle_iou": 0.5281257676246622,
+    "oracle_pred_area": 7833,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0559_01",
+    "view": 3,
+    "key": 7015,
+    "gt_area": 986,
+    "context_visible": true,
+    "oracle_iou": 0.08841295991213619,
+    "oracle_pred_area": 996,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0559_01",
+    "view": 3,
+    "key": 8013,
+    "gt_area": 5792,
+    "context_visible": true,
+    "oracle_iou": 0.39635940600834874,
+    "oracle_pred_area": 14613,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0559_01",
+    "view": 3,
+    "key": 20009,
+    "gt_area": 3799,
+    "context_visible": true,
+    "oracle_iou": 0.24386516853932586,
+    "oracle_pred_area": 10039,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0568_02",
+    "view": 2,
+    "key": 6006,
+    "gt_area": 34911,
+    "context_visible": true,
+    "oracle_iou": 0.5542924281155233,
+    "oracle_pred_area": 62983,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0568_02",
+    "view": 3,
+    "key": 6006,
+    "gt_area": 34354,
+    "context_visible": true,
+    "oracle_iou": 0.5430603857097692,
+    "oracle_pred_area": 63260,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0615_00",
+    "view": 2,
+    "key": 5021,
+    "gt_area": 8561,
+    "context_visible": true,
+    "oracle_iou": 0.3216189207195203,
+    "oracle_pred_area": 23179,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0615_00",
+    "view": 2,
+    "key": 8001,
+    "gt_area": 1682,
+    "context_visible": true,
+    "oracle_iou": 0.08805762081784387,
+    "oracle_pred_area": 3001,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0615_00",
+    "view": 2,
+    "key": 13012,
+    "gt_area": 17859,
+    "context_visible": true,
+    "oracle_iou": 0.48577831885341155,
+    "oracle_pred_area": 35840,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0615_00",
+    "view": 3,
+    "key": 5021,
+    "gt_area": 8470,
+    "context_visible": true,
+    "oracle_iou": 0.3213176668065464,
+    "oracle_pred_area": 23017,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0615_00",
+    "view": 3,
+    "key": 8001,
+    "gt_area": 1815,
+    "context_visible": true,
+    "oracle_iou": 0.09928488275403292,
+    "oracle_pred_area": 4795,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0615_00",
+    "view": 3,
+    "key": 13012,
+    "gt_area": 17432,
+    "context_visible": true,
+    "oracle_iou": 0.4850282485875706,
+    "oracle_pred_area": 35138,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0695_00",
+    "view": 2,
+    "key": 20017,
+    "gt_area": 4571,
+    "context_visible": true,
+    "oracle_iou": 0.24819460281261876,
+    "oracle_pred_area": 18417,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0695_00",
+    "view": 3,
+    "key": 20017,
+    "gt_area": 622,
+    "context_visible": true,
+    "oracle_iou": 0.04323347466462779,
+    "oracle_pred_area": 14387,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0000_02",
+    "view": 2,
+    "key": 8059,
+    "gt_area": 94,
+    "context_visible": true,
+    "oracle_iou": 0.013152371624457815,
+    "oracle_pred_area": 7147,
+    "group": "training"
+   },
+   {
+    "scene": "scene0000_02",
+    "view": 3,
+    "key": 8059,
+    "gt_area": 256,
+    "context_visible": true,
+    "oracle_iou": 0.02262083591057701,
+    "oracle_pred_area": 11317,
+    "group": "training"
+   },
+   {
+    "scene": "scene0016_01",
+    "view": 2,
+    "key": 8049,
+    "gt_area": 501,
+    "context_visible": true,
+    "oracle_iou": 0.053519923085140475,
+    "oracle_pred_area": 9361,
+    "group": "training"
+   },
+   {
+    "scene": "scene0016_01",
+    "view": 2,
+    "key": 14030,
+    "gt_area": 132,
+    "context_visible": true,
+    "oracle_iou": 0.018968242563586722,
+    "oracle_pred_area": 6959,
+    "group": "training"
+   },
+   {
+    "scene": "scene0016_01",
+    "view": 3,
+    "key": 8049,
+    "gt_area": 264,
+    "context_visible": true,
+    "oracle_iou": 0.030348315898379125,
+    "oracle_pred_area": 8699,
+    "group": "training"
+   },
+   {
+    "scene": "scene0016_01",
+    "view": 3,
+    "key": 14030,
+    "gt_area": 78,
+    "context_visible": true,
+    "oracle_iou": 0.012322274881516588,
+    "oracle_pred_area": 6330,
+    "group": "training"
+   },
+   {
+    "scene": "scene0007_00",
+    "view": 3,
+    "key": 8006,
+    "gt_area": 10749,
+    "context_visible": true,
+    "oracle_iou": 0.0,
+    "oracle_pred_area": 0,
+    "group": "training"
+   },
+   {
+    "scene": "scene0007_00",
+    "view": 3,
+    "key": 8024,
+    "gt_area": 9352,
+    "context_visible": true,
+    "oracle_iou": 0.10991688162797363,
+    "oracle_pred_area": 6138,
+    "group": "training"
+   },
+   {
+    "scene": "scene0012_01",
+    "view": 2,
+    "key": 5002,
+    "gt_area": 1293,
+    "context_visible": true,
+    "oracle_iou": 0.6414762741652021,
+    "oracle_pred_area": 1509,
+    "group": "training"
+   },
+   {
+    "scene": "scene0012_01",
+    "view": 2,
+    "key": 8001,
+    "gt_area": 4193,
+    "context_visible": true,
+    "oracle_iou": 0.6820490174431442,
+    "oracle_pred_area": 3425,
+    "group": "training"
+   },
+   {
+    "scene": "scene0012_01",
+    "view": 2,
+    "key": 8017,
+    "gt_area": 7755,
+    "context_visible": true,
+    "oracle_iou": 0.3802775462168391,
+    "oracle_pred_area": 20393,
+    "group": "training"
+   },
+   {
+    "scene": "scene0012_01",
+    "view": 2,
+    "key": 8019,
+    "gt_area": 20535,
+    "context_visible": true,
+    "oracle_iou": 0.565366780267054,
+    "oracle_pred_area": 35502,
+    "group": "training"
+   },
+   {
+    "scene": "scene0012_01",
+    "view": 2,
+    "key": 8020,
+    "gt_area": 332,
+    "context_visible": true,
+    "oracle_iou": 0.0023569023569023568,
+    "oracle_pred_area": 2645,
+    "group": "training"
+   },
+   {
+    "scene": "scene0012_01",
+    "view": 3,
+    "key": 8001,
+    "gt_area": 4838,
+    "context_visible": true,
+    "oracle_iou": 0.5860921352250832,
+    "oracle_pred_area": 4217,
+    "group": "training"
+   },
+   {
+    "scene": "scene0012_01",
+    "view": 3,
+    "key": 8017,
+    "gt_area": 1497,
+    "context_visible": true,
+    "oracle_iou": 0.09843503419253025,
+    "oracle_pred_area": 15208,
+    "group": "training"
+   },
+   {
+    "scene": "scene0012_01",
+    "view": 3,
+    "key": 8019,
+    "gt_area": 27870,
+    "context_visible": true,
+    "oracle_iou": 0.6661472246957554,
+    "oracle_pred_area": 39489,
+    "group": "training"
+   },
+   {
+    "scene": "scene0012_01",
+    "view": 3,
+    "key": 8020,
+    "gt_area": 433,
+    "context_visible": true,
+    "oracle_iou": 0.0,
+    "oracle_pred_area": 2877,
+    "group": "training"
+   },
+   {
+    "scene": "scene0009_00",
+    "view": 2,
+    "key": 18009,
+    "gt_area": 323,
+    "context_visible": true,
+    "oracle_iou": 0.02317405653608839,
+    "oracle_pred_area": 13938,
+    "group": "training"
+   },
+   {
+    "scene": "scene0009_00",
+    "view": 2,
+    "key": 20017,
+    "gt_area": 12236,
+    "context_visible": true,
+    "oracle_iou": 0.23614404117778184,
+    "oracle_pred_area": 48764,
+    "group": "training"
+   },
+   {
+    "scene": "scene0009_00",
+    "view": 3,
+    "key": 18009,
+    "gt_area": 1504,
+    "context_visible": true,
+    "oracle_iou": 0.05538370894093386,
+    "oracle_pred_area": 27156,
+    "group": "training"
+   },
+   {
+    "scene": "scene0009_00",
+    "view": 3,
+    "key": 20017,
+    "gt_area": 12316,
+    "context_visible": true,
+    "oracle_iou": 0.27983663176360946,
+    "oracle_pred_area": 34375,
+    "group": "training"
+   },
+   {
+    "scene": "scene0001_01",
+    "view": 2,
+    "key": 5010,
+    "gt_area": 16505,
+    "context_visible": true,
+    "oracle_iou": 0.6550543784392738,
+    "oracle_pred_area": 21692,
+    "group": "training"
+   },
+   {
+    "scene": "scene0001_01",
+    "view": 2,
+    "key": 5018,
+    "gt_area": 5775,
+    "context_visible": true,
+    "oracle_iou": 0.40357220334080557,
+    "oracle_pred_area": 13635,
+    "group": "training"
+   },
+   {
+    "scene": "scene0001_01",
+    "view": 2,
+    "key": 6002,
+    "gt_area": 12691,
+    "context_visible": true,
+    "oracle_iou": 0.5254390495867769,
+    "oracle_pred_area": 22748,
+    "group": "training"
+   },
+   {
+    "scene": "scene0001_01",
+    "view": 2,
+    "key": 7006,
+    "gt_area": 915,
+    "context_visible": true,
+    "oracle_iou": 0.0,
+    "oracle_pred_area": 0,
+    "group": "training"
+   },
+   {
+    "scene": "scene0001_01",
+    "view": 2,
+    "key": 7007,
+    "gt_area": 149,
+    "context_visible": true,
+    "oracle_iou": 0.04640151515151515,
+    "oracle_pred_area": 3166,
+    "group": "training"
+   },
+   {
+    "scene": "scene0001_01",
+    "view": 3,
+    "key": 5010,
+    "gt_area": 16394,
+    "context_visible": true,
+    "oracle_iou": 0.7045959970348407,
+    "oracle_pred_area": 20398,
+    "group": "training"
+   },
+   {
+    "scene": "scene0001_01",
+    "view": 3,
+    "key": 5018,
+    "gt_area": 6389,
+    "context_visible": true,
+    "oracle_iou": 0.4229144289294665,
+    "oracle_pred_area": 13482,
+    "group": "training"
+   },
+   {
+    "scene": "scene0001_01",
+    "view": 3,
+    "key": 6002,
+    "gt_area": 11064,
+    "context_visible": true,
+    "oracle_iou": 0.5095923261390888,
+    "oracle_pred_area": 20411,
+    "group": "training"
+   },
+   {
+    "scene": "scene0001_01",
+    "view": 3,
+    "key": 7007,
+    "gt_area": 724,
+    "context_visible": true,
+    "oracle_iou": 0.11372635283765949,
+    "oracle_pred_area": 4339,
+    "group": "training"
+   }
+  ],
+  "g0_step6000": [
+   {
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 5010,
+    "gt_area": 5909,
+    "context_visible": true,
+    "oracle_iou": 0.6505969300739056,
+    "oracle_pred_area": 8608,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 5011,
+    "gt_area": 3767,
+    "context_visible": true,
+    "oracle_iou": 0.22775881683731514,
+    "oracle_pred_area": 1629,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 5016,
+    "gt_area": 406,
+    "context_visible": true,
+    "oracle_iou": 0.0,
+    "oracle_pred_area": 0,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 5019,
+    "gt_area": 1985,
+    "context_visible": true,
+    "oracle_iou": 0.4579115610015983,
+    "oracle_pred_area": 3488,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 6001,
+    "gt_area": 11279,
+    "context_visible": true,
+    "oracle_iou": 0.5546522131887985,
+    "oracle_pred_area": 19699,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 7007,
+    "gt_area": 10096,
+    "context_visible": true,
+    "oracle_iou": 0.6860457087619968,
+    "oracle_pred_area": 14323,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 8032,
+    "gt_area": 1933,
+    "context_visible": true,
+    "oracle_iou": 0.33864360491579426,
+    "oracle_pred_area": 3949,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 8033,
+    "gt_area": 423,
+    "context_visible": true,
+    "oracle_iou": 0.03567274137262505,
+    "oracle_pred_area": 2248,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 2,
+    "key": 20034,
+    "gt_area": 7,
+    "context_visible": true,
+    "oracle_iou": 0.02459016393442623,
+    "oracle_pred_area": 243,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 5010,
+    "gt_area": 4668,
+    "context_visible": true,
+    "oracle_iou": 0.6605054151624549,
+    "oracle_pred_area": 6831,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 5011,
+    "gt_area": 3660,
+    "context_visible": true,
+    "oracle_iou": 0.2274892265819914,
+    "oracle_pred_area": 1752,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 5016,
+    "gt_area": 245,
+    "context_visible": true,
+    "oracle_iou": 0.0,
+    "oracle_pred_area": 0,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 5019,
+    "gt_area": 1892,
+    "context_visible": true,
+    "oracle_iou": 0.44395604395604393,
+    "oracle_pred_area": 3364,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 6001,
+    "gt_area": 9573,
+    "context_visible": true,
+    "oracle_iou": 0.5373057879460474,
+    "oracle_pred_area": 17439,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 7007,
+    "gt_area": 11864,
+    "context_visible": true,
+    "oracle_iou": 0.6852013755318529,
+    "oracle_pred_area": 17049,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 8032,
+    "gt_area": 2079,
+    "context_visible": true,
+    "oracle_iou": 0.31142136901299206,
+    "oracle_pred_area": 4684,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 8033,
+    "gt_area": 396,
+    "context_visible": true,
+    "oracle_iou": 0.04662104362703165,
+    "oracle_pred_area": 2051,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 20031,
+    "gt_area": 177,
+    "context_visible": true,
+    "oracle_iou": 0.005,
+    "oracle_pred_area": 1029,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "key": 20034,
+    "gt_area": 1499,
+    "context_visible": true,
+    "oracle_iou": 0.21651667548967707,
+    "oracle_pred_area": 799,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0072_02",
+    "view": 2,
+    "key": 8022,
+    "gt_area": 4943,
+    "context_visible": true,
+    "oracle_iou": 0.29685892392422686,
+    "oracle_pred_area": 16485,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0072_02",
+    "view": 2,
+    "key": 20031,
+    "gt_area": 15045,
+    "context_visible": true,
+    "oracle_iou": 0.4768772385812546,
+    "oracle_pred_area": 31549,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0072_02",
+    "view": 3,
+    "key": 8022,
+    "gt_area": 3211,
+    "context_visible": true,
+    "oracle_iou": 0.21160250432929267,
+    "oracle_pred_area": 14980,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0072_02",
+    "view": 3,
+    "key": 20031,
+    "gt_area": 11436,
+    "context_visible": true,
+    "oracle_iou": 0.4154164699044644,
+    "oracle_pred_area": 27529,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0132_01",
+    "view": 2,
+    "key": 5015,
+    "gt_area": 5335,
+    "context_visible": true,
+    "oracle_iou": 0.808420365535248,
+    "oracle_pred_area": 5747,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0132_01",
+    "view": 2,
+    "key": 5016,
+    "gt_area": 7821,
+    "context_visible": true,
+    "oracle_iou": 0.3314541387024609,
+    "oracle_pred_area": 7058,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0132_01",
+    "view": 2,
+    "key": 5017,
+    "gt_area": 127,
+    "context_visible": true,
+    "oracle_iou": 0.024271844660194174,
+    "oracle_pred_area": 928,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0132_01",
+    "view": 2,
+    "key": 6013,
+    "gt_area": 3606,
+    "context_visible": true,
+    "oracle_iou": 0.7457374254049446,
+    "oracle_pred_area": 4585,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0132_01",
+    "view": 2,
+    "key": 7012,
+    "gt_area": 27651,
+    "context_visible": true,
+    "oracle_iou": 0.6144469838631484,
+    "oracle_pred_area": 42282,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0132_01",
+    "view": 3,
+    "key": 5015,
+    "gt_area": 3403,
+    "context_visible": true,
+    "oracle_iou": 0.729318474067724,
+    "oracle_pred_area": 4666,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0132_01",
+    "view": 3,
+    "key": 5016,
+    "gt_area": 6387,
+    "context_visible": true,
+    "oracle_iou": 0.22236586942469294,
+    "oracle_pred_area": 4959,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0132_01",
+    "view": 3,
+    "key": 5017,
+    "gt_area": 1374,
+    "context_visible": true,
+    "oracle_iou": 0.23949416342412452,
+    "oracle_pred_area": 4997,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0132_01",
+    "view": 3,
+    "key": 6013,
+    "gt_area": 1047,
+    "context_visible": true,
+    "oracle_iou": 0.6228123114061557,
+    "oracle_pred_area": 1642,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0132_01",
+    "view": 3,
+    "key": 7012,
+    "gt_area": 24077,
+    "context_visible": true,
+    "oracle_iou": 0.5506799981045349,
+    "oracle_pred_area": 41371,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0472_01",
+    "view": 2,
+    "key": 4004,
+    "gt_area": 22277,
+    "context_visible": true,
+    "oracle_iou": 0.46577318725432804,
+    "oracle_pred_area": 47828,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0472_01",
+    "view": 3,
+    "key": 4004,
+    "gt_area": 31642,
+    "context_visible": true,
+    "oracle_iou": 0.5319950233699855,
+    "oracle_pred_area": 59478,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0559_01",
+    "view": 2,
+    "key": 6002,
+    "gt_area": 17059,
+    "context_visible": true,
+    "oracle_iou": 0.5255717255717256,
+    "oracle_pred_area": 30638,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0559_01",
+    "view": 2,
+    "key": 6003,
+    "gt_area": 3378,
+    "context_visible": true,
+    "oracle_iou": 0.41016141836464676,
+    "oracle_pred_area": 7280,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0559_01",
+    "view": 2,
+    "key": 7015,
+    "gt_area": 731,
+    "context_visible": true,
+    "oracle_iou": 0.0,
+    "oracle_pred_area": 0,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0559_01",
+    "view": 2,
+    "key": 8013,
+    "gt_area": 17387,
+    "context_visible": true,
+    "oracle_iou": 0.9069271175311885,
+    "oracle_pred_area": 17464,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0559_01",
+    "view": 2,
+    "key": 20009,
+    "gt_area": 2954,
+    "context_visible": true,
+    "oracle_iou": 0.21038629349792487,
+    "oracle_pred_area": 8420,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0559_01",
+    "view": 3,
+    "key": 6002,
+    "gt_area": 27443,
+    "context_visible": true,
+    "oracle_iou": 0.643584356819651,
+    "oracle_pred_area": 33580,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0559_01",
+    "view": 3,
+    "key": 6003,
+    "gt_area": 4609,
+    "context_visible": true,
+    "oracle_iou": 0.4724046549141606,
+    "oracle_pred_area": 8170,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0559_01",
+    "view": 3,
+    "key": 7015,
+    "gt_area": 986,
+    "context_visible": true,
+    "oracle_iou": 0.0,
+    "oracle_pred_area": 0,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0559_01",
+    "view": 3,
+    "key": 8013,
+    "gt_area": 5792,
+    "context_visible": true,
+    "oracle_iou": 0.503871248368856,
+    "oracle_pred_area": 11495,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0559_01",
+    "view": 3,
+    "key": 20009,
+    "gt_area": 3799,
+    "context_visible": true,
+    "oracle_iou": 0.2460478671730107,
+    "oracle_pred_area": 10310,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0568_02",
+    "view": 2,
+    "key": 6006,
+    "gt_area": 34911,
+    "context_visible": true,
+    "oracle_iou": 0.5435479853023604,
+    "oracle_pred_area": 64228,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0568_02",
+    "view": 3,
+    "key": 6006,
+    "gt_area": 34354,
+    "context_visible": true,
+    "oracle_iou": 0.5310886436013975,
+    "oracle_pred_area": 64686,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0615_00",
+    "view": 2,
+    "key": 5021,
+    "gt_area": 8561,
+    "context_visible": true,
+    "oracle_iou": 0.3451813077799823,
+    "oracle_pred_area": 23305,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0615_00",
+    "view": 2,
+    "key": 8001,
+    "gt_area": 1682,
+    "context_visible": true,
+    "oracle_iou": 0.055593685655456415,
+    "oracle_pred_area": 4470,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0615_00",
+    "view": 2,
+    "key": 13012,
+    "gt_area": 17859,
+    "context_visible": true,
+    "oracle_iou": 0.43381770145310433,
+    "oracle_pred_area": 36411,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0615_00",
+    "view": 3,
+    "key": 5021,
+    "gt_area": 8470,
+    "context_visible": true,
+    "oracle_iou": 0.34344422700587085,
+    "oracle_pred_area": 23109,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0615_00",
+    "view": 3,
+    "key": 8001,
+    "gt_area": 1815,
+    "context_visible": true,
+    "oracle_iou": 0.07037179981988936,
+    "oracle_pred_area": 6505,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0615_00",
+    "view": 3,
+    "key": 13012,
+    "gt_area": 17432,
+    "context_visible": true,
+    "oracle_iou": 0.44071458246780226,
+    "oracle_pred_area": 34585,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0695_00",
+    "view": 2,
+    "key": 20017,
+    "gt_area": 4571,
+    "context_visible": true,
+    "oracle_iou": 0.20788611970165544,
+    "oracle_pred_area": 21988,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0695_00",
+    "view": 3,
+    "key": 20017,
+    "gt_area": 622,
+    "context_visible": true,
+    "oracle_iou": 0.03447702455517987,
+    "oracle_pred_area": 18041,
+    "group": "unseen"
+   },
+   {
+    "scene": "scene0000_02",
+    "view": 2,
+    "key": 8059,
+    "gt_area": 94,
+    "context_visible": true,
+    "oracle_iou": 0.008436546401005206,
+    "oracle_pred_area": 11142,
+    "group": "training"
+   },
+   {
+    "scene": "scene0000_02",
+    "view": 3,
+    "key": 8059,
+    "gt_area": 256,
+    "context_visible": true,
+    "oracle_iou": 0.016127000125992188,
+    "oracle_pred_area": 15874,
+    "group": "training"
+   },
+   {
+    "scene": "scene0016_01",
+    "view": 2,
+    "key": 8049,
+    "gt_area": 501,
+    "context_visible": true,
+    "oracle_iou": 0.06186712768584836,
+    "oracle_pred_area": 8098,
+    "group": "training"
+   },
+   {
+    "scene": "scene0016_01",
+    "view": 2,
+    "key": 14030,
+    "gt_area": 132,
+    "context_visible": true,
+    "oracle_iou": 0.022132796780684104,
+    "oracle_pred_area": 5964,
+    "group": "training"
+   },
+   {
+    "scene": "scene0016_01",
+    "view": 3,
+    "key": 8049,
+    "gt_area": 264,
+    "context_visible": true,
+    "oracle_iou": 0.03616438356164384,
+    "oracle_pred_area": 7300,
+    "group": "training"
+   },
+   {
+    "scene": "scene0016_01",
+    "view": 3,
+    "key": 14030,
+    "gt_area": 78,
+    "context_visible": true,
+    "oracle_iou": 0.013610190193683477,
+    "oracle_pred_area": 5731,
+    "group": "training"
+   },
+   {
+    "scene": "scene0007_00",
+    "view": 3,
+    "key": 8006,
+    "gt_area": 10749,
+    "context_visible": true,
+    "oracle_iou": 0.20209653827401267,
+    "oracle_pred_area": 4044,
+    "group": "training"
+   },
+   {
+    "scene": "scene0007_00",
+    "view": 3,
+    "key": 8024,
+    "gt_area": 9352,
+    "context_visible": true,
+    "oracle_iou": 0.12153138447840926,
+    "oracle_pred_area": 13322,
+    "group": "training"
+   },
+   {
+    "scene": "scene0012_01",
+    "view": 2,
+    "key": 5002,
+    "gt_area": 1293,
+    "context_visible": true,
+    "oracle_iou": 0.5023094688221709,
+    "oracle_pred_area": 1309,
+    "group": "training"
+   },
+   {
+    "scene": "scene0012_01",
+    "view": 2,
+    "key": 8001,
+    "gt_area": 4193,
+    "context_visible": true,
+    "oracle_iou": 0.6903032891926527,
+    "oracle_pred_area": 3721,
+    "group": "training"
+   },
+   {
+    "scene": "scene0012_01",
+    "view": 2,
+    "key": 8017,
+    "gt_area": 7755,
+    "context_visible": true,
+    "oracle_iou": 0.3772254110322016,
+    "oracle_pred_area": 20558,
+    "group": "training"
+   },
+   {
+    "scene": "scene0012_01",
+    "view": 2,
+    "key": 8019,
+    "gt_area": 20535,
+    "context_visible": true,
+    "oracle_iou": 0.554978426361063,
+    "oracle_pred_area": 36046,
+    "group": "training"
+   },
+   {
+    "scene": "scene0012_01",
+    "view": 2,
+    "key": 8020,
+    "gt_area": 332,
+    "context_visible": true,
+    "oracle_iou": 0.0,
+    "oracle_pred_area": 1288,
+    "group": "training"
+   },
+   {
+    "scene": "scene0012_01",
+    "view": 3,
+    "key": 8001,
+    "gt_area": 4838,
+    "context_visible": true,
+    "oracle_iou": 0.6369316209649427,
+    "oracle_pred_area": 4594,
+    "group": "training"
+   },
+   {
+    "scene": "scene0012_01",
+    "view": 3,
+    "key": 8017,
+    "gt_area": 1497,
+    "context_visible": true,
+    "oracle_iou": 0.09335827876520113,
+    "oracle_pred_area": 16035,
+    "group": "training"
+   },
+   {
+    "scene": "scene0012_01",
+    "view": 3,
+    "key": 8019,
+    "gt_area": 27870,
+    "context_visible": true,
+    "oracle_iou": 0.6435995295360168,
+    "oracle_pred_area": 40604,
+    "group": "training"
+   },
+   {
+    "scene": "scene0012_01",
+    "view": 3,
+    "key": 8020,
+    "gt_area": 433,
+    "context_visible": true,
+    "oracle_iou": 0.0,
+    "oracle_pred_area": 1297,
+    "group": "training"
+   },
+   {
+    "scene": "scene0009_00",
+    "view": 2,
+    "key": 18009,
+    "gt_area": 323,
+    "context_visible": true,
+    "oracle_iou": 0.02628366832126292,
+    "oracle_pred_area": 12289,
+    "group": "training"
+   },
+   {
+    "scene": "scene0009_00",
+    "view": 2,
+    "key": 20017,
+    "gt_area": 12236,
+    "context_visible": true,
+    "oracle_iou": 0.24336194849271311,
+    "oracle_pred_area": 50044,
+    "group": "training"
+   },
+   {
+    "scene": "scene0009_00",
+    "view": 3,
+    "key": 18009,
+    "gt_area": 1504,
+    "context_visible": true,
+    "oracle_iou": 0.06048176297904854,
+    "oracle_pred_area": 24867,
+    "group": "training"
+   },
+   {
+    "scene": "scene0009_00",
+    "view": 3,
+    "key": 20017,
+    "gt_area": 12316,
+    "context_visible": true,
+    "oracle_iou": 0.29610113176201847,
+    "oracle_pred_area": 37615,
+    "group": "training"
+   },
+   {
+    "scene": "scene0001_01",
+    "view": 2,
+    "key": 5010,
+    "gt_area": 16505,
+    "context_visible": true,
+    "oracle_iou": 0.6698593235558216,
+    "oracle_pred_area": 22548,
+    "group": "training"
+   },
+   {
+    "scene": "scene0001_01",
+    "view": 2,
+    "key": 5018,
+    "gt_area": 5775,
+    "context_visible": true,
+    "oracle_iou": 0.4962103917450461,
+    "oracle_pred_area": 10610,
+    "group": "training"
+   },
+   {
+    "scene": "scene0001_01",
+    "view": 2,
+    "key": 6002,
+    "gt_area": 12691,
+    "context_visible": true,
+    "oracle_iou": 0.5359819765174819,
+    "oracle_pred_area": 22761,
+    "group": "training"
+   },
+   {
+    "scene": "scene0001_01",
+    "view": 2,
+    "key": 7006,
+    "gt_area": 915,
+    "context_visible": true,
+    "oracle_iou": 0.0,
+    "oracle_pred_area": 0,
+    "group": "training"
+   },
+   {
+    "scene": "scene0001_01",
+    "view": 2,
+    "key": 7007,
+    "gt_area": 149,
+    "context_visible": true,
+    "oracle_iou": 0.013027001421127428,
+    "oracle_pred_area": 4128,
+    "group": "training"
+   },
+   {
+    "scene": "scene0001_01",
+    "view": 3,
+    "key": 5010,
+    "gt_area": 16394,
+    "context_visible": true,
+    "oracle_iou": 0.7037667398217405,
+    "oracle_pred_area": 21646,
+    "group": "training"
+   },
+   {
+    "scene": "scene0001_01",
+    "view": 3,
+    "key": 5018,
+    "gt_area": 6389,
+    "context_visible": true,
+    "oracle_iou": 0.497553598434303,
+    "oracle_pred_area": 10445,
+    "group": "training"
+   },
+   {
+    "scene": "scene0001_01",
+    "view": 3,
+    "key": 6002,
+    "gt_area": 11064,
+    "context_visible": true,
+    "oracle_iou": 0.5102872854840239,
+    "oracle_pred_area": 20794,
+    "group": "training"
+   },
+   {
+    "scene": "scene0001_01",
+    "view": 3,
+    "key": 7007,
+    "gt_area": 724,
+    "context_visible": true,
+    "oracle_iou": 0.04330583756345178,
+    "oracle_pred_area": 5853,
+    "group": "training"
+   }
+  ]
+ },
+ "branch": {
+  "records_novel": 55,
+  "oracle_iou_ge_0.5": 22,
+  "oracle_feasible": false,
+  "fragmentation_mean_delta": 0.026312995130173825,
+  "fragmentation_count_delta_ge_0.10": 4,
+  "fragmentation_significant": false,
+  "branch": "STOP_ORACLE_INFEASIBLE",
+  "context_visible_instances": 85,
+  "context_visible_oracle_iou_ge_0.5": 31,
+  "context_visible_rate": 0.36470588235294116,
+  "stop_reason": "oracle read-out insufficient under this protocol"
+ },
+ "checkpoints_after": {
+  "g0plus_step6000": {
+   "dir": "workspace_group_plus/arm_g0plus/ckpt_step6000",
+   "arm": "g0plus",
+   "step": 6000,
+   "plan_sha256": "a2a65c1382da0307a68fb6d27e5c1345aa78b46331acb2927e88b47a3c3d08bb",
+   "model_sha256": "a63dd485cc2d1b3fefb8b68786f9845ff8253cfebedd90405e73484c87243be4",
+   "model_mtime": 1790353194.0
+  },
+  "g0_step6000": {
+   "dir": "workspace_group_locusgs/arm_g0/ckpt_step6000",
+   "arm": "g0",
+   "step": 6000,
+   "plan_sha256": "a2a65c1382da0307a68fb6d27e5c1345aa78b46331acb2927e88b47a3c3d08bb",
+   "model_sha256": "dbe5ea8311b466e61f2d2ab80f4b953ec39f0ab3ea9b3ffd63fbd976dc826332",
+   "model_mtime": 1790344454.0
+  }
+ },
+ "checkpoint_files_unchanged": {
+  "g0plus_step6000": true,
+  "g0_step6000": true
+ }
+}

@@ -1,0 +1,92 @@
+{
+ "step1_decision": "STOP_ORACLE_INFEASIBLE",
+ "stop_category": "oracle read-out insufficient under this protocol",
+ "novel_only_55": {
+  "oracle_pass_iou_ge_0.5": 22,
+  "threshold_required": 28,
+  "context_visible_instances": 55,
+  "context_visible_pass": 22,
+  "context_visible_rate": 0.4,
+  "context_visible_subset_empty": false,
+  "oracle_iou_percentiles": {
+   "0": 0.0,
+   "25": 0.2023431957949221,
+   "50": 0.4531905657647229,
+   "75": 0.5578587897146248,
+   "90": 0.6827431046685046,
+   "100": 0.8437317215831546
+  },
+  "pass_by_size_lt3000px": [
+   2,
+   20
+  ],
+  "pass_by_size_ge3000px": [
+   20,
+   35
+  ],
+  "per_scene_pass": {
+   "scene0059_00": [
+    7,
+    19
+   ],
+   "scene0072_02": [
+    1,
+    4
+   ],
+   "scene0132_01": [
+    6,
+    10
+   ],
+   "scene0472_01": [
+    2,
+    2
+   ],
+   "scene0559_01": [
+    4,
+    10
+   ],
+   "scene0568_02": [
+    2,
+    2
+   ],
+   "scene0615_00": [
+    0,
+    6
+   ],
+   "scene0695_00": [
+    0,
+    2
+   ]
+  },
+  "rest_fraction_by_scene": {
+   "scene0059_00": 0.13,
+   "scene0072_02": 0.283,
+   "scene0132_01": 0.02,
+   "scene0472_01": 0.301,
+   "scene0559_01": 0.041,
+   "scene0568_02": 0.097,
+   "scene0615_00": 0.067,
+   "scene0695_00": 0.627
+  }
+ },
+ "fragmentation_novel_55": {
+  "g0plus_step6000": {
+   "mean_delta": 0.026312995130173825,
+   "count_delta_ge_0.10": 4,
+   "mean_iou1": 0.18112862322947915,
+   "mean_iou3": 0.15916964814510826,
+   "mean_union3_area_over_gt": 27.055804367490932,
+   "mean_intrusion_other_gt": 0.39189794001734357
+  },
+  "g0_step6000": {
+   "mean_delta": 0.03947090367588808,
+   "count_delta_ge_0.10": 9,
+   "mean_iou1": 0.2668795561654907,
+   "mean_iou3": 0.19909201502308627
+  },
+  "thresholds": {
+   "mean_delta": 0.08,
+   "count_delta_ge_0.10": 14
+  }
+ }
+}
