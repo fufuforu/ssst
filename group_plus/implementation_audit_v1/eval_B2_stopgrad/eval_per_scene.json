@@ -1,0 +1,1110 @@
+{
+ "scene0059_00": {
+  "context": [
+   510,
+   524
+  ],
+  "novel": [
+   511,
+   516
+  ],
+  "records": [
+   {
+    "scene": "scene0059_00",
+    "view": 2,
+    "frame_id": 511,
+    "key": 5010,
+    "gt_area": 5909,
+    "iou1": 0.39739583333333334,
+    "iou2": 0.3026062322946176,
+    "iou3": 0.2215355261520594,
+    "fragmentation_delta": 0.0,
+    "bucket": "large"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 2,
+    "frame_id": 511,
+    "key": 5011,
+    "gt_area": 3767,
+    "iou1": 0.14091264085685595,
+    "iou2": 0.09587793213391027,
+    "iou3": 0.0484929928969092,
+    "fragmentation_delta": 0.0,
+    "bucket": "large"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 2,
+    "frame_id": 511,
+    "key": 5016,
+    "gt_area": 406,
+    "iou1": 0.0308205884636286,
+    "iou2": 0.02322859984787315,
+    "iou3": 0.016857749469214436,
+    "fragmentation_delta": 0.0,
+    "bucket": "small"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 2,
+    "frame_id": 511,
+    "key": 5019,
+    "gt_area": 1985,
+    "iou1": 0.052342971086739784,
+    "iou2": 0.03433055419323198,
+    "iou3": 0.016729068748506333,
+    "fragmentation_delta": 0.0,
+    "bucket": "small"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 2,
+    "frame_id": 511,
+    "key": 6001,
+    "gt_area": 11279,
+    "iou1": 0.16160838824491366,
+    "iou2": 0.16171711792897228,
+    "iou3": 0.1462242412272039,
+    "fragmentation_delta": 0.00010872968405861716,
+    "bucket": "large"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 2,
+    "frame_id": 511,
+    "key": 7007,
+    "gt_area": 10096,
+    "iou1": 0.2111346843221889,
+    "iou2": 0.16141842384920857,
+    "iou3": 0.09385060648434197,
+    "fragmentation_delta": 0.0,
+    "bucket": "large"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 2,
+    "frame_id": 511,
+    "key": 8032,
+    "gt_area": 1933,
+    "iou1": 0.0,
+    "iou2": 0.0,
+    "iou3": 0.0,
+    "fragmentation_delta": 0.0,
+    "bucket": "small"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 2,
+    "frame_id": 511,
+    "key": 8033,
+    "gt_area": 423,
+    "iou1": 0.0,
+    "iou2": 0.0,
+    "iou3": 0.0,
+    "fragmentation_delta": 0.0,
+    "bucket": "small"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 2,
+    "frame_id": 511,
+    "key": 20034,
+    "gt_area": 7,
+    "iou1": 0.0,
+    "iou2": 0.0,
+    "iou3": 0.0,
+    "fragmentation_delta": 0.0,
+    "bucket": "small"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "frame_id": 516,
+    "key": 5010,
+    "gt_area": 4668,
+    "iou1": 0.35814069516048563,
+    "iou2": 0.3101908534389629,
+    "iou3": 0.2933923705722071,
+    "fragmentation_delta": 0.0,
+    "bucket": "large"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "frame_id": 516,
+    "key": 5011,
+    "gt_area": 3660,
+    "iou1": 0.13765460375629868,
+    "iou2": 0.11349258804645454,
+    "iou3": 0.10556824170033374,
+    "fragmentation_delta": 0.0,
+    "bucket": "large"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "frame_id": 516,
+    "key": 5016,
+    "gt_area": 245,
+    "iou1": 0.02012847965738758,
+    "iou2": 0.01736367666617408,
+    "iou3": 0.016400307069579175,
+    "fragmentation_delta": 0.0,
+    "bucket": "small"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "frame_id": 516,
+    "key": 5019,
+    "gt_area": 1892,
+    "iou1": 0.046386468477703745,
+    "iou2": 0.03746248577046466,
+    "iou3": 0.0346146490724804,
+    "fragmentation_delta": 0.0,
+    "bucket": "small"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "frame_id": 516,
+    "key": 6001,
+    "gt_area": 9573,
+    "iou1": 0.20745920745920746,
+    "iou2": 0.17864793076857166,
+    "iou3": 0.16546962422126107,
+    "fragmentation_delta": 0.0,
+    "bucket": "large"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "frame_id": 516,
+    "key": 7007,
+    "gt_area": 11864,
+    "iou1": 0.16876087376763968,
+    "iou2": 0.20784005798502053,
+    "iou3": 0.1983170998789695,
+    "fragmentation_delta": 0.03907918421738085,
+    "bucket": "large"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "frame_id": 516,
+    "key": 8032,
+    "gt_area": 2079,
+    "iou1": 0.0,
+    "iou2": 0.0,
+    "iou3": 0.0,
+    "fragmentation_delta": 0.0,
+    "bucket": "small"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "frame_id": 516,
+    "key": 8033,
+    "gt_area": 396,
+    "iou1": 0.0,
+    "iou2": 0.0,
+    "iou3": 0.0,
+    "fragmentation_delta": 0.0,
+    "bucket": "small"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "frame_id": 516,
+    "key": 20031,
+    "gt_area": 177,
+    "iou1": 0.09168900804289544,
+    "iou2": 0.06428571428571428,
+    "iou3": 0.019140362659503023,
+    "fragmentation_delta": 0.0,
+    "bucket": "small"
+   },
+   {
+    "scene": "scene0059_00",
+    "view": 3,
+    "frame_id": 516,
+    "key": 20034,
+    "gt_area": 1499,
+    "iou1": 0.16759388038942977,
+    "iou2": 0.13129937346771997,
+    "iou3": 0.04846656611362494,
+    "fragmentation_delta": 0.0,
+    "bucket": "small"
+   }
+  ],
+  "gt_free": {
+   "novel": {
+    "tp": 0,
+    "fp": 7,
+    "fn": 19,
+    "n_gt": 19,
+    "ap50": 0.0
+   },
+   "context": {
+    "tp": 0,
+    "fp": 6,
+    "fn": 18,
+    "n_gt": 18,
+    "ap50": 0.0
+   },
+   "all_views": {
+    "tp": 0,
+    "fp": 13,
+    "fn": 37,
+    "n_gt": 37,
+    "ap50": 0.0
+   }
+  },
+  "gt_free_buckets_novel": {
+   "small_lt3000": {
+    "gt": 11,
+    "tp": 0
+   },
+   "large_ge3000": {
+    "gt": 8,
+    "tp": 0
+   }
+  },
+  "reconstruction": {
+   "scene": "scene0059_00",
+   "ctx_psnr": 15.62619686126709,
+   "novel_psnr": 15.361360549926758,
+   "ctx_ssim": 0.49317193031311035,
+   "novel_ssim": 0.465069055557251,
+   "ctx_grey": 10.754108428955078,
+   "novel_grey": 10.835637092590332,
+   "alpha_gt_05": 1.0
+  },
+  "context_conservation_error": 1.3113021850585938e-06
+ },
+ "scene0072_02": {
+  "context": [
+   744,
+   774
+  ],
+  "novel": [
+   752,
+   760
+  ],
+  "records": [
+   {
+    "scene": "scene0072_02",
+    "view": 2,
+    "frame_id": 752,
+    "key": 8022,
+    "gt_area": 4943,
+    "iou1": 0.441319285387082,
+    "iou2": 0.24496541903986982,
+    "iou3": 0.24496541903986982,
+    "fragmentation_delta": 0.0,
+    "bucket": "large"
+   },
+   {
+    "scene": "scene0072_02",
+    "view": 2,
+    "frame_id": 752,
+    "key": 20031,
+    "gt_area": 15045,
+    "iou1": 0.23643733111619206,
+    "iou2": 0.15150001664835347,
+    "iou3": 0.15150001664835347,
+    "fragmentation_delta": 0.0,
+    "bucket": "large"
+   },
+   {
+    "scene": "scene0072_02",
+    "view": 3,
+    "frame_id": 760,
+    "key": 8022,
+    "gt_area": 3211,
+    "iou1": 0.33558608464436074,
+    "iou2": 0.17133322020476272,
+    "iou3": 0.17133322020476272,
+    "fragmentation_delta": 0.0,
+    "bucket": "large"
+   },
+   {
+    "scene": "scene0072_02",
+    "view": 3,
+    "frame_id": 760,
+    "key": 20031,
+    "gt_area": 11436,
+    "iou1": 0.2579211020663745,
+    "iou2": 0.16599500282098814,
+    "iou3": 0.16599500282098814,
+    "fragmentation_delta": 0.0,
+    "bucket": "large"
+   }
+  ],
+  "gt_free": {
+   "novel": {
+    "tp": 0,
+    "fp": 4,
+    "fn": 4,
+    "n_gt": 4,
+    "ap50": 0.0
+   },
+   "context": {
+    "tp": 0,
+    "fp": 5,
+    "fn": 4,
+    "n_gt": 4,
+    "ap50": 0.0
+   },
+   "all_views": {
+    "tp": 0,
+    "fp": 9,
+    "fn": 8,
+    "n_gt": 8,
+    "ap50": 0.0
+   }
+  },
+  "gt_free_buckets_novel": {
+   "small_lt3000": {
+    "gt": 0,
+    "tp": 0
+   },
+   "large_ge3000": {
+    "gt": 4,
+    "tp": 0
+   }
+  },
+  "reconstruction": {
+   "scene": "scene0072_02",
+   "ctx_psnr": 18.60718536376953,
+   "novel_psnr": 18.118680953979492,
+   "ctx_ssim": 0.7209746241569519,
+   "novel_ssim": 0.7107462882995605,
+   "ctx_grey": 13.131959915161133,
+   "novel_grey": 12.204265594482422,
+   "alpha_gt_05": 1.0
+  },
+  "context_conservation_error": 1.2516975402832031e-06
+ },
+ "scene0132_01": {
+  "context": [
+   457,
+   472
+  ],
+  "novel": [
+   465,
+   470
+  ],
+  "records": [
+   {
+    "scene": "scene0132_01",
+    "view": 2,
+    "frame_id": 465,
+    "key": 5015,
+    "gt_area": 5335,
+    "iou1": 0.37145764834820727,
+    "iou2": 0.21315304793135978,
+    "iou3": 0.21315304793135978,
+    "fragmentation_delta": 0.0,
+    "bucket": "large"
+   },
+   {
+    "scene": "scene0132_01",
+    "view": 2,
+    "frame_id": 465,
+    "key": 5016,
+    "gt_area": 7821,
+    "iou1": 0.024081415300869772,
+    "iou2": 0.01399346742307031,
+    "iou3": 0.01399346742307031,
+    "fragmentation_delta": 0.0,
+    "bucket": "large"
+   },
+   {
+    "scene": "scene0132_01",
+    "view": 2,
+    "frame_id": 465,
+    "key": 5017,
+    "gt_area": 127,
+    "iou1": 0.0,
+    "iou2": 0.0,
+    "iou3": 0.0,
+    "fragmentation_delta": 0.0,
+    "bucket": "small"
+   },
+   {
+    "scene": "scene0132_01",
+    "view": 2,
+    "frame_id": 465,
+    "key": 6013,
+    "gt_area": 3606,
+    "iou1": 0.0,
+    "iou2": 0.0,
+    "iou3": 0.0,
+    "fragmentation_delta": 0.0,
+    "bucket": "large"
+   },
+   {
+    "scene": "scene0132_01",
+    "view": 2,
+    "frame_id": 465,
+    "key": 7012,
+    "gt_area": 27651,
+    "iou1": 0.3219663261310647,
+    "iou2": 0.421875,
+    "iou3": 0.421875,
+    "fragmentation_delta": 0.09990867386893532,
+    "bucket": "large"
+   },
+   {
+    "scene": "scene0132_01",
+    "view": 3,
+    "frame_id": 470,
+    "key": 5015,
+    "gt_area": 3403,
+    "iou1": 0.3271889400921659,
+    "iou2": 0.15984133790737565,
+    "iou3": 0.15984133790737565,
+    "fragmentation_delta": 0.0,
+    "bucket": "large"
+   },
+   {
+    "scene": "scene0132_01",
+    "view": 3,
+    "frame_id": 470,
+    "key": 5016,
+    "gt_area": 6387,
+    "iou1": 0.035897769395850945,
+    "iou2": 0.022933111757374326,
+    "iou3": 0.022933111757374326,
+    "fragmentation_delta": 0.0,
+    "bucket": "large"
+   },
+   {
+    "scene": "scene0132_01",
+    "view": 3,
+    "frame_id": 470,
+    "key": 5017,
+    "gt_area": 1374,
+    "iou1": 0.0,
+    "iou2": 0.0,
+    "iou3": 0.0,
+    "fragmentation_delta": 0.0,
+    "bucket": "small"
+   },
+   {
+    "scene": "scene0132_01",
+    "view": 3,
+    "frame_id": 470,
+    "key": 6013,
+    "gt_area": 1047,
+    "iou1": 0.0,
+    "iou2": 0.0,
+    "iou3": 0.0,
+    "fragmentation_delta": 0.0,
+    "bucket": "small"
+   },
+   {
+    "scene": "scene0132_01",
+    "view": 3,
+    "frame_id": 470,
+    "key": 7012,
+    "gt_area": 24077,
+    "iou1": 0.34271906701813243,
+    "iou2": 0.44237259246633714,
+    "iou3": 0.44237259246633714,
+    "fragmentation_delta": 0.09965352544820472,
+    "bucket": "large"
+   }
+  ],
+  "gt_free": {
+   "novel": {
+    "tp": 0,
+    "fp": 4,
+    "fn": 10,
+    "n_gt": 10,
+    "ap50": 0.0
+   },
+   "context": {
+    "tp": 0,
+    "fp": 5,
+    "fn": 9,
+    "n_gt": 9,
+    "ap50": 0.0
+   },
+   "all_views": {
+    "tp": 0,
+    "fp": 9,
+    "fn": 19,
+    "n_gt": 19,
+    "ap50": 0.0
+   }
+  },
+  "gt_free_buckets_novel": {
+   "small_lt3000": {
+    "gt": 3,
+    "tp": 0
+   },
+   "large_ge3000": {
+    "gt": 7,
+    "tp": 0
+   }
+  },
+  "reconstruction": {
+   "scene": "scene0132_01",
+   "ctx_psnr": 20.45803451538086,
+   "novel_psnr": 20.837697982788086,
+   "ctx_ssim": 0.6922242045402527,
+   "novel_ssim": 0.6748147010803223,
+   "ctx_grey": 9.205766677856445,
+   "novel_grey": 8.699963569641113,
+   "alpha_gt_05": 1.0
+  },
+  "context_conservation_error": 1.1324882507324219e-06
+ },
+ "scene0472_01": {
+  "context": [
+   77,
+   131
+  ],
+  "novel": [
+   105,
+   120
+  ],
+  "records": [
+   {
+    "scene": "scene0472_01",
+    "view": 2,
+    "frame_id": 105,
+    "key": 4004,
+    "gt_area": 22277,
+    "iou1": 0.2927050980986289,
+    "iou2": 0.20894392472827555,
+    "iou3": 0.20894392472827555,
+    "fragmentation_delta": 0.0,
+    "bucket": "large"
+   },
+   {
+    "scene": "scene0472_01",
+    "view": 3,
+    "frame_id": 120,
+    "key": 4004,
+    "gt_area": 31642,
+    "iou1": 0.17716007120361496,
+    "iou2": 0.19504313295905792,
+    "iou3": 0.16817398285673807,
+    "fragmentation_delta": 0.017883061755442964,
+    "bucket": "large"
+   }
+  ],
+  "gt_free": {
+   "novel": {
+    "tp": 0,
+    "fp": 5,
+    "fn": 2,
+    "n_gt": 2,
+    "ap50": 0.0
+   },
+   "context": {
+    "tp": 0,
+    "fp": 6,
+    "fn": 5,
+    "n_gt": 5,
+    "ap50": 0.0
+   },
+   "all_views": {
+    "tp": 0,
+    "fp": 11,
+    "fn": 7,
+    "n_gt": 7,
+    "ap50": 0.0
+   }
+  },
+  "gt_free_buckets_novel": {
+   "small_lt3000": {
+    "gt": 0,
+    "tp": 0
+   },
+   "large_ge3000": {
+    "gt": 2,
+    "tp": 0
+   }
+  },
+  "reconstruction": {
+   "scene": "scene0472_01",
+   "ctx_psnr": 18.775503158569336,
+   "novel_psnr": 18.356908798217773,
+   "ctx_ssim": 0.6158546805381775,
+   "novel_ssim": 0.5952993035316467,
+   "ctx_grey": 13.438082695007324,
+   "novel_grey": 12.82020092010498,
+   "alpha_gt_05": 1.0
+  },
+  "context_conservation_error": 1.3113021850585938e-06
+ },
+ "scene0559_01": {
+  "context": [
+   236,
+   277
+  ],
+  "novel": [
+   242,
+   260
+  ],
+  "records": [
+   {
+    "scene": "scene0559_01",
+    "view": 2,
+    "frame_id": 242,
+    "key": 6002,
+    "gt_area": 17059,
+    "iou1": 0.12874682004203075,
+    "iou2": 0.1565005806558646,
+    "iou3": 0.14457215836526183,
+    "fragmentation_delta": 0.02775376061383386,
+    "bucket": "large"
+   },
+   {
+    "scene": "scene0559_01",
+    "view": 2,
+    "frame_id": 242,
+    "key": 6003,
+    "gt_area": 3378,
+    "iou1": 0.04487577639751553,
+    "iou2": 0.03643469490670701,
+    "iou3": 0.03426200355660937,
+    "fragmentation_delta": 0.0,
+    "bucket": "large"
+   },
+   {
+    "scene": "scene0559_01",
+    "view": 2,
+    "frame_id": 242,
+    "key": 7015,
+    "gt_area": 731,
+    "iou1": 0.0,
+    "iou2": 0.0,
+    "iou3": 0.0,
+    "fragmentation_delta": 0.0,
+    "bucket": "small"
+   },
+   {
+    "scene": "scene0559_01",
+    "view": 2,
+    "frame_id": 242,
+    "key": 8013,
+    "gt_area": 17387,
+    "iou1": 0.08581123828147466,
+    "iou2": 0.08345910894963385,
+    "iou3": 0.07029190207156309,
+    "fragmentation_delta": 0.0,
+    "bucket": "large"
+   },
+   {
+    "scene": "scene0559_01",
+    "view": 2,
+    "frame_id": 242,
+    "key": 20009,
+    "gt_area": 2954,
+    "iou1": 0.0988149180899268,
+    "iou2": 0.07842323651452282,
+    "iou3": 0.0733221259537049,
+    "fragmentation_delta": 0.0,
+    "bucket": "small"
+   },
+   {
+    "scene": "scene0559_01",
+    "view": 3,
+    "frame_id": 260,
+    "key": 6002,
+    "gt_area": 27443,
+    "iou1": 0.10703244376532461,
+    "iou2": 0.14239010696137308,
+    "iou3": 0.14239010696137308,
+    "fragmentation_delta": 0.03535766319604847,
+    "bucket": "large"
+   },
+   {
+    "scene": "scene0559_01",
+    "view": 3,
+    "frame_id": 260,
+    "key": 6003,
+    "gt_area": 4609,
+    "iou1": 0.04418225178862809,
+    "iou2": 0.03927694711002008,
+    "iou3": 0.03927694711002008,
+    "fragmentation_delta": 0.0,
+    "bucket": "large"
+   },
+   {
+    "scene": "scene0559_01",
+    "view": 3,
+    "frame_id": 260,
+    "key": 7015,
+    "gt_area": 986,
+    "iou1": 0.0,
+    "iou2": 0.0,
+    "iou3": 0.0,
+    "fragmentation_delta": 0.0,
+    "bucket": "small"
+   },
+   {
+    "scene": "scene0559_01",
+    "view": 3,
+    "frame_id": 260,
+    "key": 8013,
+    "gt_area": 5792,
+    "iou1": 0.0,
+    "iou2": 0.0,
+    "iou3": 0.0,
+    "fragmentation_delta": 0.0,
+    "bucket": "large"
+   },
+   {
+    "scene": "scene0559_01",
+    "view": 3,
+    "frame_id": 260,
+    "key": 20009,
+    "gt_area": 3799,
+    "iou1": 0.026100027329871548,
+    "iou2": 0.022976061590280285,
+    "iou3": 0.022976061590280285,
+    "fragmentation_delta": 0.0,
+    "bucket": "large"
+   }
+  ],
+  "gt_free": {
+   "novel": {
+    "tp": 0,
+    "fp": 5,
+    "fn": 10,
+    "n_gt": 10,
+    "ap50": 0.0
+   },
+   "context": {
+    "tp": 0,
+    "fp": 5,
+    "fn": 9,
+    "n_gt": 9,
+    "ap50": 0.0
+   },
+   "all_views": {
+    "tp": 0,
+    "fp": 10,
+    "fn": 19,
+    "n_gt": 19,
+    "ap50": 0.0
+   }
+  },
+  "gt_free_buckets_novel": {
+   "small_lt3000": {
+    "gt": 3,
+    "tp": 0
+   },
+   "large_ge3000": {
+    "gt": 7,
+    "tp": 0
+   }
+  },
+  "reconstruction": {
+   "scene": "scene0559_01",
+   "ctx_psnr": 23.690319061279297,
+   "novel_psnr": 20.173673629760742,
+   "ctx_ssim": 0.7699406147003174,
+   "novel_ssim": 0.74237060546875,
+   "ctx_grey": 8.465027809143066,
+   "novel_grey": 8.730199813842773,
+   "alpha_gt_05": 1.0
+  },
+  "context_conservation_error": 1.1324882507324219e-06
+ },
+ "scene0568_02": {
+  "context": [
+   161,
+   182
+  ],
+  "novel": [
+   170,
+   174
+  ],
+  "records": [
+   {
+    "scene": "scene0568_02",
+    "view": 2,
+    "frame_id": 170,
+    "key": 6006,
+    "gt_area": 34911,
+    "iou1": 0.4337601329093982,
+    "iou2": 0.3725738396624473,
+    "iou3": 0.37871743486973947,
+    "fragmentation_delta": 0.0,
+    "bucket": "large"
+   },
+   {
+    "scene": "scene0568_02",
+    "view": 3,
+    "frame_id": 174,
+    "key": 6006,
+    "gt_area": 34354,
+    "iou1": 0.42760668335565,
+    "iou2": 0.38889012381354615,
+    "iou3": 0.4001383664115536,
+    "fragmentation_delta": 0.0,
+    "bucket": "large"
+   }
+  ],
+  "gt_free": {
+   "novel": {
+    "tp": 0,
+    "fp": 6,
+    "fn": 2,
+    "n_gt": 2,
+    "ap50": 0.0
+   },
+   "context": {
+    "tp": 0,
+    "fp": 6,
+    "fn": 2,
+    "n_gt": 2,
+    "ap50": 0.0
+   },
+   "all_views": {
+    "tp": 0,
+    "fp": 12,
+    "fn": 4,
+    "n_gt": 4,
+    "ap50": 0.0
+   }
+  },
+  "gt_free_buckets_novel": {
+   "small_lt3000": {
+    "gt": 0,
+    "tp": 0
+   },
+   "large_ge3000": {
+    "gt": 2,
+    "tp": 0
+   }
+  },
+  "reconstruction": {
+   "scene": "scene0568_02",
+   "ctx_psnr": 19.529953002929688,
+   "novel_psnr": 20.646404266357422,
+   "ctx_ssim": 0.7285608649253845,
+   "novel_ssim": 0.756438672542572,
+   "ctx_grey": 9.968693733215332,
+   "novel_grey": 9.806558609008789,
+   "alpha_gt_05": 1.0
+  },
+  "context_conservation_error": 1.1920928955078125e-06
+ },
+ "scene0615_00": {
+  "context": [
+   548,
+   566
+  ],
+  "novel": [
+   554,
+   555
+  ],
+  "records": [
+   {
+    "scene": "scene0615_00",
+    "view": 2,
+    "frame_id": 554,
+    "key": 5021,
+    "gt_area": 8561,
+    "iou1": 0.3680574296971987,
+    "iou2": 0.36698778321941766,
+    "iou3": 0.2372321180072363,
+    "fragmentation_delta": 0.0,
+    "bucket": "large"
+   },
+   {
+    "scene": "scene0615_00",
+    "view": 2,
+    "frame_id": 554,
+    "key": 8001,
+    "gt_area": 1682,
+    "iou1": 0.0,
+    "iou2": 0.0,
+    "iou3": 0.0,
+    "fragmentation_delta": 0.0,
+    "bucket": "small"
+   },
+   {
+    "scene": "scene0615_00",
+    "view": 2,
+    "frame_id": 554,
+    "key": 13012,
+    "gt_area": 17859,
+    "iou1": 0.08731404180528529,
+    "iou2": 0.0943483782727628,
+    "iou3": 0.09422410849309723,
+    "fragmentation_delta": 0.007034336467477503,
+    "bucket": "large"
+   },
+   {
+    "scene": "scene0615_00",
+    "view": 3,
+    "frame_id": 555,
+    "key": 5021,
+    "gt_area": 8470,
+    "iou1": 0.36686358462955937,
+    "iou2": 0.24552939896260292,
+    "iou3": 0.24552939896260292,
+    "fragmentation_delta": 0.0,
+    "bucket": "large"
+   },
+   {
+    "scene": "scene0615_00",
+    "view": 3,
+    "frame_id": 555,
+    "key": 8001,
+    "gt_area": 1815,
+    "iou1": 0.0,
+    "iou2": 0.0,
+    "iou3": 0.0,
+    "fragmentation_delta": 0.0,
+    "bucket": "small"
+   },
+   {
+    "scene": "scene0615_00",
+    "view": 3,
+    "frame_id": 555,
+    "key": 13012,
+    "gt_area": 17432,
+    "iou1": 0.08953558792592356,
+    "iou2": 0.10462001581673001,
+    "iou3": 0.10462001581673001,
+    "fragmentation_delta": 0.015084427890806454,
+    "bucket": "large"
+   }
+  ],
+  "gt_free": {
+   "novel": {
+    "tp": 0,
+    "fp": 5,
+    "fn": 6,
+    "n_gt": 6,
+    "ap50": 0.0
+   },
+   "context": {
+    "tp": 0,
+    "fp": 6,
+    "fn": 6,
+    "n_gt": 6,
+    "ap50": 0.0
+   },
+   "all_views": {
+    "tp": 0,
+    "fp": 11,
+    "fn": 12,
+    "n_gt": 12,
+    "ap50": 0.0
+   }
+  },
+  "gt_free_buckets_novel": {
+   "small_lt3000": {
+    "gt": 2,
+    "tp": 0
+   },
+   "large_ge3000": {
+    "gt": 4,
+    "tp": 0
+   }
+  },
+  "reconstruction": {
+   "scene": "scene0615_00",
+   "ctx_psnr": 17.414125442504883,
+   "novel_psnr": 17.53533363342285,
+   "ctx_ssim": 0.5864189863204956,
+   "novel_ssim": 0.5891695022583008,
+   "ctx_grey": 10.169862747192383,
+   "novel_grey": 10.451940536499023,
+   "alpha_gt_05": 1.0
+  },
+  "context_conservation_error": 1.2516975402832031e-06
+ },
+ "scene0695_00": {
+  "context": [
+   1502,
+   1522
+  ],
+  "novel": [
+   1517,
+   1521
+  ],
+  "records": [
+   {
+    "scene": "scene0695_00",
+    "view": 2,
+    "frame_id": 1517,
+    "key": 20017,
+    "gt_area": 4571,
+    "iou1": 0.4320250284414107,
+    "iou2": 0.3333577176298464,
+    "iou3": 0.2396025027603975,
+    "fragmentation_delta": 0.0,
+    "bucket": "large"
+   },
+   {
+    "scene": "scene0695_00",
+    "view": 3,
+    "frame_id": 1521,
+    "key": 20017,
+    "gt_area": 622,
+    "iou1": 0.07763354967548677,
+    "iou2": 0.041265839580707224,
+    "iou3": 0.030572622265913,
+    "fragmentation_delta": 0.0,
+    "bucket": "small"
+   }
+  ],
+  "gt_free": {
+   "novel": {
+    "tp": 0,
+    "fp": 6,
+    "fn": 2,
+    "n_gt": 2,
+    "ap50": 0.0
+   },
+   "context": {
+    "tp": 1,
+    "fp": 5,
+    "fn": 1,
+    "n_gt": 2,
+    "ap50": 0.5
+   },
+   "all_views": {
+    "tp": 1,
+    "fp": 11,
+    "fn": 3,
+    "n_gt": 4,
+    "ap50": 0.25
+   }
+  },
+  "gt_free_buckets_novel": {
+   "small_lt3000": {
+    "gt": 1,
+    "tp": 0
+   },
+   "large_ge3000": {
+    "gt": 1,
+    "tp": 0
+   }
+  },
+  "reconstruction": {
+   "scene": "scene0695_00",
+   "ctx_psnr": 20.095355987548828,
+   "novel_psnr": 20.847713470458984,
+   "ctx_ssim": 0.6614769697189331,
+   "novel_ssim": 0.7217531204223633,
+   "ctx_grey": 11.33325481414795,
+   "novel_grey": 12.031855583190918,
+   "alpha_gt_05": 1.0
+  },
+  "context_conservation_error": 1.0132789611816406e-06
+ }
+}

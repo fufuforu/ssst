@@ -263,6 +263,21 @@ class Options:
     group_recipe_seg_ramp_steps: int = 1500
     group_recipe_assign_coef: float = 0.02
     group_recipe_assign_every: int = 1
+    # How the recipe forward builds the group query features.
+    #   legacy_prefix -- the historical (recipe_v1/v2) path: the old
+    #                    cross-attention + query_norm + MLP runs first and the
+    #                    four-layer deep decoder is stacked on top of its output;
+    #   pure4         -- the specification-correct path: the four-layer deep
+    #                    decoder consumes the learned queries directly and the
+    #                    old cross_attn/query_norm/mlp are not called at all.
+    # Every historical checkpoint keeps ``legacy_prefix`` so its forward is
+    # bit-identical to what was published.
+    group_recipe_head_mode: Literal["legacy_prefix", "pure4"] = "legacy_prefix"
+    # B2 single variable: route the token-assignment auxiliary CE through a
+    # *separate* group-head forward whose shared inputs (tokens/anchor/radii) are
+    # detached, so the auxiliary term cannot push gradients into the shared
+    # token/anchor/encoder while still training the group head itself.
+    group_recipe_assign_stop_shared_grad: bool = False
     # --- joint one-stage loss curriculum and spatial regularization ---
     understanding_warmup_steps: int = 2000
     understanding_start_weight: float = 0.1

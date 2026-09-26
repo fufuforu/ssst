@@ -1,0 +1,414 @@
+{
+ "scope": "32/8 development split, novel views 2/3 only (55 records); not SIU3R official mAP/PQ; model uses GT poses, SIU3R is unposed",
+ "label": "recipe_v2_pure4",
+ "checkpoint": "workspace_group_plus/implementation_audit_v1/recipe_v2_pure4/run/ckpt_step6000",
+ "model_sha256": "02f2b35836509d64538bffde7df3c5d17476518be5e33c28a030b102f96ea441",
+ "effective_config": {
+  "config_source": "explicit/defaults",
+  "config_yaml_present": false,
+  "recipe": true,
+  "head_mode": "pure4",
+  "instance_outer_weight": 0.05,
+  "assign_coef": 0.2,
+  "assign_every": 1,
+  "assign_stop_shared_grad": false,
+  "num_views": 4,
+  "num_input_views": 2
+ },
+ "load_strict": true,
+ "provenance": {
+  "plan_sha256": "a2a65c1382da0307a68fb6d27e5c1345aa78b46331acb2927e88b47a3c3d08bb",
+  "preregistered_plan_sha256": "a2a65c1382da0307a68fb6d27e5c1345aa78b46331acb2927e88b47a3c3d08bb",
+  "split_sha256": "acf9afac57ca2e5287b9b1b545a62a369fee398a0d1a789cb77b851202b313d5",
+  "preregistered_split_sha256": "acf9afac57ca2e5287b9b1b545a62a369fee398a0d1a789cb77b851202b313d5",
+  "evaluator_source_sha256": "b5cc25b61b17b1521ddcbb92e0b764818ab83e683e9021f81a1674d1b7fbdfc7",
+  "main_metric_implementation": "group_plus/routing_v1 fragmentation IoU1",
+  "fragmentation_delta_definition": "max(IoU1, IoU1-2 union, IoU1-3 union) - IoU1  (NOT the baseline delta)"
+ },
+ "novel_only_55": {
+  "n": 55,
+  "mean_iou1": 0.18857210471517444,
+  "iou1_ge_0.5": 1,
+  "gt_free": {
+   "tp": 1,
+   "fp": 68,
+   "fn": 54,
+   "ap50": 0.015625
+  },
+  "paired_reference_missing": 0
+ },
+ "gate_recomputed": {
+  "novel_psnr": 17.740782260894775,
+  "novel_ssim": 0.63140669465065,
+  "ctx_psnr": 17.991182327270508,
+  "ctx_ssim": 0.634118065237999
+ },
+ "history_cross_check": {
+  "supplied": true,
+  "history_step": 6000,
+  "history_novel_psnr": 17.740782260894775,
+  "history_novel_ssim": 0.63140669465065,
+  "recomputed_novel_psnr": 17.740782260894775,
+  "recomputed_novel_ssim": 0.63140669465065,
+  "psnr_abs_diff": 0.0,
+  "ssim_abs_diff": 0.0,
+  "note": "history is a cross-check only; the reported values are recomputed from this checkpoint's current forward"
+ },
+ "buckets_novel": {
+  "small_lt3000": {
+   "n": 20,
+   "pass": 0,
+   "mean_iou1": 0.07220234991643278,
+   "gt_free_hits": {
+    "gt": 20,
+    "tp": 0
+   }
+  },
+  "large_ge3000": {
+   "n": 35,
+   "pass": 1,
+   "mean_iou1": 0.2550691074573125,
+   "gt_free_hits": {
+    "gt": 35,
+    "tp": 1
+   }
+  }
+ },
+ "per_scene_reconstruction": [
+  {
+   "scene": "scene0059_00",
+   "context": [
+    510,
+    524
+   ],
+   "novel": [
+    511,
+    516
+   ],
+   "ctx_psnr": 14.938745498657227,
+   "novel_psnr": 14.736560821533203,
+   "ctx_ssim": 0.4865097999572754,
+   "novel_ssim": 0.4586779475212097,
+   "ctx_grey": 10.754108428955078,
+   "novel_grey": 10.835637092590332,
+   "alpha_gt_05": 1.0
+  },
+  {
+   "scene": "scene0072_02",
+   "context": [
+    744,
+    774
+   ],
+   "novel": [
+    752,
+    760
+   ],
+   "ctx_psnr": 17.220613479614258,
+   "novel_psnr": 16.97173309326172,
+   "ctx_ssim": 0.7040723562240601,
+   "novel_ssim": 0.6981940269470215,
+   "ctx_grey": 13.131959915161133,
+   "novel_grey": 12.204265594482422,
+   "alpha_gt_05": 1.0
+  },
+  {
+   "scene": "scene0132_01",
+   "context": [
+    457,
+    472
+   ],
+   "novel": [
+    465,
+    470
+   ],
+   "ctx_psnr": 19.174549102783203,
+   "novel_psnr": 19.174789428710938,
+   "ctx_ssim": 0.6771323084831238,
+   "novel_ssim": 0.6578112840652466,
+   "ctx_grey": 9.205766677856445,
+   "novel_grey": 8.699963569641113,
+   "alpha_gt_05": 1.0
+  },
+  {
+   "scene": "scene0472_01",
+   "context": [
+    77,
+    131
+   ],
+   "novel": [
+    105,
+    120
+   ],
+   "ctx_psnr": 17.89577865600586,
+   "novel_psnr": 17.12640953063965,
+   "ctx_ssim": 0.6103453040122986,
+   "novel_ssim": 0.5832306146621704,
+   "ctx_grey": 13.438082695007324,
+   "novel_grey": 12.82020092010498,
+   "alpha_gt_05": 1.0
+  },
+  {
+   "scene": "scene0559_01",
+   "context": [
+    236,
+    277
+   ],
+   "novel": [
+    242,
+    260
+   ],
+   "ctx_psnr": 20.360553741455078,
+   "novel_psnr": 19.345287322998047,
+   "ctx_ssim": 0.6997190713882446,
+   "novel_ssim": 0.6870109438896179,
+   "ctx_grey": 8.465027809143066,
+   "novel_grey": 8.730199813842773,
+   "alpha_gt_05": 0.9999923706054688
+  },
+  {
+   "scene": "scene0568_02",
+   "context": [
+    161,
+    182
+   ],
+   "novel": [
+    170,
+    174
+   ],
+   "ctx_psnr": 18.036623001098633,
+   "novel_psnr": 18.1937255859375,
+   "ctx_ssim": 0.6812286376953125,
+   "novel_ssim": 0.6983704566955566,
+   "ctx_grey": 9.968693733215332,
+   "novel_grey": 9.806558609008789,
+   "alpha_gt_05": 1.0
+  },
+  {
+   "scene": "scene0615_00",
+   "context": [
+    548,
+    566
+   ],
+   "novel": [
+    554,
+    555
+   ],
+   "ctx_psnr": 16.996580123901367,
+   "novel_psnr": 16.74573516845703,
+   "ctx_ssim": 0.5696926116943359,
+   "novel_ssim": 0.5669269561767578,
+   "ctx_grey": 10.169862747192383,
+   "novel_grey": 10.451940536499023,
+   "alpha_gt_05": 1.0
+  },
+  {
+   "scene": "scene0695_00",
+   "context": [
+    1502,
+    1522
+   ],
+   "novel": [
+    1517,
+    1521
+   ],
+   "ctx_psnr": 19.306015014648438,
+   "novel_psnr": 19.632017135620117,
+   "ctx_ssim": 0.6442444324493408,
+   "novel_ssim": 0.7010313272476196,
+   "ctx_grey": 11.33325481414795,
+   "novel_grey": 12.031855583190918,
+   "alpha_gt_05": 1.0
+  }
+ ],
+ "context_and_all_views": {
+  "scene0059_00": {
+   "novel": {
+    "tp": 0,
+    "fp": 9,
+    "fn": 19,
+    "n_gt": 19,
+    "ap50": 0.0
+   },
+   "context": {
+    "tp": 1,
+    "fp": 7,
+    "fn": 17,
+    "n_gt": 18,
+    "ap50": 0.05
+   },
+   "all_views": {
+    "tp": 1,
+    "fp": 16,
+    "fn": 36,
+    "n_gt": 37,
+    "ap50": 0.025
+   }
+  },
+  "scene0072_02": {
+   "novel": {
+    "tp": 0,
+    "fp": 8,
+    "fn": 4,
+    "n_gt": 4,
+    "ap50": 0.0
+   },
+   "context": {
+    "tp": 0,
+    "fp": 6,
+    "fn": 4,
+    "n_gt": 4,
+    "ap50": 0.0
+   },
+   "all_views": {
+    "tp": 0,
+    "fp": 14,
+    "fn": 8,
+    "n_gt": 8,
+    "ap50": 0.0
+   }
+  },
+  "scene0132_01": {
+   "novel": {
+    "tp": 0,
+    "fp": 8,
+    "fn": 10,
+    "n_gt": 10,
+    "ap50": 0.0
+   },
+   "context": {
+    "tp": 0,
+    "fp": 8,
+    "fn": 9,
+    "n_gt": 9,
+    "ap50": 0.0
+   },
+   "all_views": {
+    "tp": 0,
+    "fp": 16,
+    "fn": 19,
+    "n_gt": 19,
+    "ap50": 0.0
+   }
+  },
+  "scene0472_01": {
+   "novel": {
+    "tp": 1,
+    "fp": 7,
+    "fn": 1,
+    "n_gt": 2,
+    "ap50": 0.125
+   },
+   "context": {
+    "tp": 1,
+    "fp": 6,
+    "fn": 4,
+    "n_gt": 5,
+    "ap50": 0.08333333333333333
+   },
+   "all_views": {
+    "tp": 2,
+    "fp": 13,
+    "fn": 5,
+    "n_gt": 7,
+    "ap50": 0.10416666666666666
+   }
+  },
+  "scene0559_01": {
+   "novel": {
+    "tp": 0,
+    "fp": 9,
+    "fn": 10,
+    "n_gt": 10,
+    "ap50": 0.0
+   },
+   "context": {
+    "tp": 1,
+    "fp": 8,
+    "fn": 8,
+    "n_gt": 9,
+    "ap50": 0.03125
+   },
+   "all_views": {
+    "tp": 1,
+    "fp": 17,
+    "fn": 18,
+    "n_gt": 19,
+    "ap50": 0.015625
+   }
+  },
+  "scene0568_02": {
+   "novel": {
+    "tp": 0,
+    "fp": 10,
+    "fn": 2,
+    "n_gt": 2,
+    "ap50": 0.0
+   },
+   "context": {
+    "tp": 0,
+    "fp": 9,
+    "fn": 2,
+    "n_gt": 2,
+    "ap50": 0.0
+   },
+   "all_views": {
+    "tp": 0,
+    "fp": 19,
+    "fn": 4,
+    "n_gt": 4,
+    "ap50": 0.0
+   }
+  },
+  "scene0615_00": {
+   "novel": {
+    "tp": 0,
+    "fp": 8,
+    "fn": 6,
+    "n_gt": 6,
+    "ap50": 0.0
+   },
+   "context": {
+    "tp": 0,
+    "fp": 8,
+    "fn": 6,
+    "n_gt": 6,
+    "ap50": 0.0
+   },
+   "all_views": {
+    "tp": 0,
+    "fp": 16,
+    "fn": 12,
+    "n_gt": 12,
+    "ap50": 0.0
+   }
+  },
+  "scene0695_00": {
+   "novel": {
+    "tp": 0,
+    "fp": 9,
+    "fn": 2,
+    "n_gt": 2,
+    "ap50": 0.0
+   },
+   "context": {
+    "tp": 0,
+    "fp": 9,
+    "fn": 2,
+    "n_gt": 2,
+    "ap50": 0.0
+   },
+   "all_views": {
+    "tp": 0,
+    "fp": 18,
+    "fn": 4,
+    "n_gt": 4,
+    "ap50": 0.0
+   }
+  }
+ },
+ "identity_after": {
+  "sha256": "02f2b35836509d64538bffde7df3c5d17476518be5e33c28a030b102f96ea441",
+  "mtime": 1790436749.0
+ },
+ "checkpoint_unchanged": true
+}

@@ -1,0 +1,361 @@
+{
+ "plan_sha256": "a2a65c1382da0307a68fb6d27e5c1345aa78b46331acb2927e88b47a3c3d08bb",
+ "preregistered_plan_sha256": "a2a65c1382da0307a68fb6d27e5c1345aa78b46331acb2927e88b47a3c3d08bb",
+ "note": "values are read from the on-disk runs (authoritative); the Git copy of recipe_v1/val_curves.jsonl stops at step 2500 and is not used",
+ "runs": {
+  "recipe_v1": {
+   "job": 55512,
+   "eval_job": 55591,
+   "run_dir": "workspace_group_plus/recipe_v1/run",
+   "instance_outer_weight": 0.1,
+   "plan_sha256": "a2a65c1382da0307a68fb6d27e5c1345aa78b46331acb2927e88b47a3c3d08bb",
+   "checkpoint_model_sha256": "39c53ce825b68a24292e84c838d836d02808526e4369bdb4483bbe934b7543ba",
+   "checkpoint_dir_exists": true,
+   "train_log_lines": 6000,
+   "train": {
+    "0": "missing",
+    "1000": {
+     "loss": 0.8312510251998901,
+     "recon_loss": 0.10435677319765091,
+     "loss_inst": 6.747006893157959,
+     "loss_sem": 3.046018600463867,
+     "assign_ce": 1.5070747137069702,
+     "assign_thing_tokens": 471.0,
+     "assign_rest_tokens": 145.0,
+     "assign_argmax_agreement": 0.43831169605255127,
+     "seg_ramp": 0.6666666865348816,
+     "instance_weight": 0.06666667014360428,
+     "semantic_weight": 0.02500000037252903,
+     "grad_norm": 23.78572654724121,
+     "alpha_mean": 0.8250161409378052,
+     "mask_alpha_max_error": 1.9073486328125e-06,
+     "fixed_void_max_abs": 0.0,
+     "lr": {
+      "decay": 5e-05,
+      "nodecay": 5e-05
+     },
+     "scene": "scene0007_00",
+     "context": [
+      63,
+      134
+     ],
+     "novel": [
+      85,
+      119
+     ]
+    },
+    "3000": {
+     "loss": 1.0482697486877441,
+     "recon_loss": 0.1209801733493805,
+     "loss_inst": 6.245187759399414,
+     "loss_sem": 2.404078960418701,
+     "assign_ce": 0.9128336310386658,
+     "assign_thing_tokens": 244.0,
+     "assign_rest_tokens": 267.0,
+     "assign_argmax_agreement": 0.835616409778595,
+     "seg_ramp": 1.0,
+     "instance_weight": 0.10000000149011612,
+     "semantic_weight": 0.05000000074505806,
+     "grad_norm": 10.093500137329102,
+     "alpha_mean": 0.9996218085289001,
+     "mask_alpha_max_error": 1.430511474609375e-06,
+     "fixed_void_max_abs": 0.0,
+     "lr": {
+      "decay": 8.56754342469541e-05,
+      "nodecay": 8.56754342469541e-05
+     },
+     "scene": "scene0010_00",
+     "context": [
+      620,
+      689
+     ],
+     "novel": [
+      631,
+      632
+     ]
+    },
+    "6000": {
+     "loss": 1.1501094102859497,
+     "recon_loss": 0.045640744268894196,
+     "loss_inst": 6.567183494567871,
+     "loss_sem": 1.5959901809692383,
+     "assign_ce": 1.83975350856781,
+     "assign_thing_tokens": 349.0,
+     "assign_rest_tokens": 25.0,
+     "assign_argmax_agreement": 0.29411765933036804,
+     "seg_ramp": 1.0,
+     "instance_weight": 0.10000000149011612,
+     "semantic_weight": 0.05000000074505806,
+     "grad_norm": 4.412347316741943,
+     "alpha_mean": 0.9754642248153687,
+     "mask_alpha_max_error": 1.1920928955078125e-06,
+     "fixed_void_max_abs": 0.0,
+     "lr": {
+      "decay": 2.000015112830962e-06,
+      "nodecay": 2.000015112830962e-06
+     },
+     "scene": "scene0001_00",
+     "context": [
+      369,
+      414
+     ],
+     "novel": [
+      382,
+      389
+     ]
+    }
+   },
+   "val": {
+    "0": {
+     "novel_psnr": 10.697368741035461,
+     "ctx_psnr": 10.80818247795105,
+     "novel_ssim": 0.4767509177327156,
+     "ctx_ssim": 0.4793427512049675,
+     "sem_miou": 0.013084806323780895,
+     "novel_ap50": 0.0,
+     "context_ap50": 0.0,
+     "novel_tp": 0,
+     "novel_fp": 0,
+     "novel_fn": 55,
+     "novel_best_over_groups_iou": 0.0,
+     "mask_alpha_max_error": 1.169741153717041e-06,
+     "background_mass_fraction": 0.008349139558518674,
+     "group_usage_active": 36.125,
+     "slot_entropy_mean": 4.500454664230347,
+     "p_thing_mean": 0.876923531293869
+    },
+    "1000": {
+     "novel_psnr": 15.092458128929138,
+     "ctx_psnr": 15.094634532928467,
+     "novel_ssim": 0.5813798233866692,
+     "ctx_ssim": 0.5839270278811455,
+     "sem_miou": 0.09515584386888723,
+     "novel_ap50": 0.0,
+     "context_ap50": 0.015625,
+     "novel_tp": 0,
+     "novel_fp": 48,
+     "novel_fn": 55,
+     "novel_best_over_groups_iou": 0.15759093910926397,
+     "mask_alpha_max_error": 1.862645149230957e-06,
+     "background_mass_fraction": 0.29702510511335284,
+     "group_usage_active": 4.875,
+     "slot_entropy_mean": 0.5597677491605282,
+     "p_thing_mean": 0.04793108766898513
+    },
+    "3000": {
+     "novel_psnr": 16.009188175201416,
+     "ctx_psnr": 16.276339530944824,
+     "novel_ssim": 0.5935444086790085,
+     "ctx_ssim": 0.5984838306903839,
+     "sem_miou": 0.14408502358625214,
+     "novel_ap50": 0.03194444444444444,
+     "context_ap50": 0.026562500000000003,
+     "novel_tp": 4,
+     "novel_fp": 67,
+     "novel_fn": 51,
+     "novel_best_over_groups_iou": 0.17672952314136292,
+     "mask_alpha_max_error": 1.4156103134155273e-06,
+     "background_mass_fraction": 0.1211014981955664,
+     "group_usage_active": 8.125,
+     "slot_entropy_mean": 1.2359987124800682,
+     "p_thing_mean": 0.17204599827528
+    },
+    "6000": {
+     "novel_psnr": 17.359416007995605,
+     "ctx_psnr": 17.75143873691559,
+     "novel_ssim": 0.6267547383904457,
+     "ctx_ssim": 0.6312228664755821,
+     "sem_miou": 0.1742891476325516,
+     "novel_ap50": 0.09375,
+     "context_ap50": 0.10052083333333334,
+     "novel_tp": 8,
+     "novel_fp": 91,
+     "novel_fn": 47,
+     "novel_best_over_groups_iou": 0.2931114063536938,
+     "mask_alpha_max_error": 1.3634562492370605e-06,
+     "background_mass_fraction": 0.1538447740073295,
+     "group_usage_active": 6.75,
+     "slot_entropy_mean": 0.8264260292053223,
+     "p_thing_mean": 0.12254459969699383
+    }
+   }
+  },
+  "recipe_v2": {
+   "job": 55609,
+   "eval_job": 55610,
+   "run_dir": "workspace_group_plus/recipe_v2/run",
+   "instance_outer_weight": 0.05,
+   "plan_sha256": "a2a65c1382da0307a68fb6d27e5c1345aa78b46331acb2927e88b47a3c3d08bb",
+   "checkpoint_model_sha256": "373cac99ab1aa95ab7118b85ea4d7ebc56befb618928cc8c74d8804054caddcb",
+   "checkpoint_dir_exists": true,
+   "train_log_lines": 6000,
+   "train": {
+    "0": "missing",
+    "1000": {
+     "loss": 0.5089676380157471,
+     "recon_loss": 0.09312406927347183,
+     "loss_inst": 6.617483139038086,
+     "loss_sem": 2.7457094192504883,
+     "assign_ce": 0.9496352672576904,
+     "assign_thing_tokens": 287.0,
+     "assign_rest_tokens": 195.0,
+     "assign_argmax_agreement": 0.5394191145896912,
+     "seg_ramp": 0.6666666865348816,
+     "instance_weight": 0.03333333507180214,
+     "semantic_weight": 0.02500000037252903,
+     "grad_norm": 4.846012115478516,
+     "alpha_mean": 0.9604684114456177,
+     "mask_alpha_max_error": 1.3709068298339844e-06,
+     "fixed_void_max_abs": 0.0,
+     "lr": {
+      "decay": 5e-05,
+      "nodecay": 5e-05
+     },
+     "scene": "scene0007_00",
+     "context": [
+      63,
+      134
+     ],
+     "novel": [
+      85,
+      119
+     ]
+    },
+    "3000": {
+     "loss": 0.7296082377433777,
+     "recon_loss": 0.105733223259449,
+     "loss_inst": 6.679697513580322,
+     "loss_sem": 2.2636594772338867,
+     "assign_ce": 0.8835357427597046,
+     "assign_thing_tokens": 197.0,
+     "assign_rest_tokens": 296.0,
+     "assign_argmax_agreement": 0.8154157996177673,
+     "seg_ramp": 1.0,
+     "instance_weight": 0.05000000074505806,
+     "semantic_weight": 0.05000000074505806,
+     "grad_norm": 2.6825976371765137,
+     "alpha_mean": 0.9696545004844666,
+     "mask_alpha_max_error": 1.1920928955078125e-06,
+     "fixed_void_max_abs": 0.0,
+     "lr": {
+      "decay": 8.56754342469541e-05,
+      "nodecay": 8.56754342469541e-05
+     },
+     "scene": "scene0010_00",
+     "context": [
+      620,
+      689
+     ],
+     "novel": [
+      631,
+      632
+     ]
+    },
+    "6000": {
+     "loss": 0.8394832611083984,
+     "recon_loss": 0.0434277206659317,
+     "loss_inst": 6.914153575897217,
+     "loss_sem": 1.4924169778823853,
+     "assign_ce": 1.8786349296569824,
+     "assign_thing_tokens": 489.0,
+     "assign_rest_tokens": 1.0,
+     "assign_argmax_agreement": 0.13061223924160004,
+     "seg_ramp": 1.0,
+     "instance_weight": 0.05000000074505806,
+     "semantic_weight": 0.05000000074505806,
+     "grad_norm": 3.339003801345825,
+     "alpha_mean": 0.9698147773742676,
+     "mask_alpha_max_error": 1.0728836059570312e-06,
+     "fixed_void_max_abs": 0.0,
+     "lr": {
+      "decay": 2.000015112830962e-06,
+      "nodecay": 2.000015112830962e-06
+     },
+     "scene": "scene0001_00",
+     "context": [
+      369,
+      414
+     ],
+     "novel": [
+      382,
+      389
+     ]
+    }
+   },
+   "val": {
+    "0": {
+     "novel_psnr": 10.697368741035461,
+     "ctx_psnr": 10.80818247795105,
+     "novel_ssim": 0.4767509177327156,
+     "ctx_ssim": 0.4793427512049675,
+     "sem_miou": 0.013084806323780895,
+     "novel_ap50": 0.0,
+     "context_ap50": 0.0,
+     "novel_tp": 0,
+     "novel_fp": 0,
+     "novel_fn": 55,
+     "novel_best_over_groups_iou": 0.0,
+     "mask_alpha_max_error": 1.169741153717041e-06,
+     "background_mass_fraction": 0.008349139558518674,
+     "group_usage_active": 36.125,
+     "slot_entropy_mean": 4.500454664230347,
+     "p_thing_mean": 0.876923531293869
+    },
+    "1000": {
+     "novel_psnr": 16.617077827453613,
+     "ctx_psnr": 16.595115423202515,
+     "novel_ssim": 0.6084780991077423,
+     "ctx_ssim": 0.609991729259491,
+     "sem_miou": 0.14539048607274363,
+     "novel_ap50": 0.0,
+     "context_ap50": 0.0,
+     "novel_tp": 0,
+     "novel_fp": 15,
+     "novel_fn": 55,
+     "novel_best_over_groups_iou": 0.06066657347236208,
+     "mask_alpha_max_error": 1.4528632164001465e-06,
+     "background_mass_fraction": 0.41249521200528516,
+     "group_usage_active": 3.75,
+     "slot_entropy_mean": 0.8671926707029343,
+     "p_thing_mean": 0.06197122344747186
+    },
+    "3000": {
+     "novel_psnr": 17.315136909484863,
+     "ctx_psnr": 17.31809425354004,
+     "novel_ssim": 0.6255524605512619,
+     "ctx_ssim": 0.6265613660216331,
+     "sem_miou": 0.15757532786121803,
+     "novel_ap50": 0.025,
+     "context_ap50": 0.04375,
+     "novel_tp": 2,
+     "novel_fp": 36,
+     "novel_fn": 53,
+     "novel_best_over_groups_iou": 0.16602208788274087,
+     "mask_alpha_max_error": 1.3187527656555176e-06,
+     "background_mass_fraction": 0.2361696301575651,
+     "group_usage_active": 5.75,
+     "slot_entropy_mean": 1.074526846408844,
+     "p_thing_mean": 0.14463844802230597
+    },
+    "6000": {
+     "novel_psnr": 18.10482406616211,
+     "ctx_psnr": 18.169618368148804,
+     "novel_ssim": 0.6387840583920479,
+     "ctx_ssim": 0.639505498111248,
+     "sem_miou": 0.15451429396221336,
+     "novel_ap50": 0.075,
+     "context_ap50": 0.0453125,
+     "novel_tp": 3,
+     "novel_fp": 59,
+     "novel_fn": 52,
+     "novel_best_over_groups_iou": 0.26278047595181236,
+     "mask_alpha_max_error": 1.2218952178955078e-06,
+     "background_mass_fraction": 0.22189869355573721,
+     "group_usage_active": 7.0,
+     "slot_entropy_mean": 0.9373640492558479,
+     "p_thing_mean": 0.11975421570241451
+    }
+   }
+  }
+ }
+}

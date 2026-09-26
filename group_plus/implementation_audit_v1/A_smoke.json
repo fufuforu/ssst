@@ -1,0 +1,206 @@
+{
+ "checks": {
+  "step0_params_identical": true,
+  "step0_required_forward_identical": true,
+  "recon_outputs_identical_to_control": true,
+  "control_uses_historical_prefix": true,
+  "run_prefix_calls_match_head_mode": true,
+  "deep_is_four_layers": true,
+  "step0_recon_loss_within_1e-4": true,
+  "plan_sha256_matches_preregistered": true,
+  "split_sha256_matches_preregistered": true,
+  "plan_sha256_matches_reference": true,
+  "losses_finite": true,
+  "grads_finite": true,
+  "loss_dropped_within_20": true,
+  "old_params_received_grad": true,
+  "old_params_updated": true,
+  "new_decoder_updated": true,
+  "alpha_conservation_le_2e-6": true,
+  "assignment_rows_sum_ok": true,
+  "fixed_void_is_zero": true,
+  "all_deep_params_in_optimizer_once": true,
+  "logit_scale_not_a_parameter": true,
+  "main_reaches_group_head": true,
+  "aux_reaches_group_head": true
+ },
+ "step0_parameter_check": {
+  "reference": "workspace_group_plus/recipe_v2/run/ckpt_step0",
+  "missing_in_reference": [],
+  "unexpected_in_reference": [],
+  "n_differing_tensors": 0,
+  "differing_examples": [],
+  "max_abs_delta": 0.0,
+  "bitwise_equal": true
+ },
+ "window": {
+  "scene": "scene0000_02",
+  "context": [
+   5238,
+   5255
+  ],
+  "novel": [
+   5239,
+   5250
+  ]
+ },
+ "step0_forward_max_abs_diff": {
+  "gaussians": 0.0,
+  "group.slot_logits": 3.1100711822509766,
+  "group.slot_prob": 0.05454041063785553,
+  "recon_loss": 2.384185791015625e-06,
+  "render.alphas_pred": 0.0,
+  "render.depths_pred": 0.0,
+  "render.images_pred": 0.0,
+  "render.means2d_pred": 0.00035750865936279297,
+  "state.anchor_update": 0.0,
+  "state.mu": 0.0,
+  "state.radii": 0.0,
+  "state.radius_update": 0.0,
+  "state.rho": 0.0,
+  "state.tokens": 0.0
+ },
+ "step0_reference_self_max_abs_diff": {
+  "gaussians": 0.0,
+  "group.slot_logits": 0.0,
+  "group.slot_prob": 0.0,
+  "recon_loss": 8.940696716308594e-08,
+  "render.alphas_pred": 0.0,
+  "render.depths_pred": 0.0,
+  "render.images_pred": 0.0,
+  "render.means2d_pred": 3.141164779663086e-05,
+  "state.anchor_update": 0.0,
+  "state.mu": 0.0,
+  "state.radii": 0.0,
+  "state.radius_update": 0.0,
+  "state.rho": 0.0,
+  "state.tokens": 0.0
+ },
+ "strict_equal_keys": [
+  "gaussians",
+  "render.images_pred",
+  "render.depths_pred",
+  "render.alphas_pred",
+  "state.tokens",
+  "state.mu",
+  "state.radii",
+  "state.rho",
+  "state.anchor_update",
+  "state.radius_update"
+ ],
+ "head_mode": {
+  "run": "pure4",
+  "control": "legacy_prefix",
+  "matches_control": false,
+  "recon_outputs_identical": true,
+  "slot_logits_differs_by_design": true,
+  "slot_logits_max_abs_diff": 3.1100711822509766,
+  "deep_layers_run": 4,
+  "deep_layers_control": 4
+ },
+ "head_call_counts": {
+  "control_prefix_calls": 1,
+  "run_prefix_calls": 0,
+  "control_mode_calls": {
+   "legacy_prefix": 1,
+   "pure4": 0
+  },
+  "run_mode_calls": {
+   "legacy_prefix": 0,
+   "pure4": 1
+  }
+ },
+ "rasterizer_intermediate_note": "render.means2d_pred diff = 0.00035750865936279297 (reference self-noise = 3.141164779663086e-05); not gated",
+ "step0_loss_gap": {
+  "reference_total": 0.21856197714805603,
+  "v2_total": 0.21857403218746185,
+  "reference_instance_weight": 3.333333370392211e-05,
+  "v2_instance_weight": 3.333333370392211e-05,
+  "seg_ramp": 0.0006666666595265269,
+  "loss_inst_total": 12.589877128601074,
+  "expected_gap_from_instance_weight": 0.0,
+  "actual_gap": 1.2055039405822754e-05,
+  "recon_identical": true,
+  "sem_weight_reference": 2.499999936844688e-05,
+  "sem_weight_v2": 2.499999936844688e-05
+ },
+ "loss_gap_with_different_head_mode": {
+  "actual_gap": 1.2055039405822754e-05,
+  "expected_from_weight_only": 0.0,
+  "note": "head modes differ; the instance loss itself differs by design"
+ },
+ "provenance": {
+  "plan_sha256": "a2a65c1382da0307a68fb6d27e5c1345aa78b46331acb2927e88b47a3c3d08bb",
+  "preregistered_plan_sha256": "a2a65c1382da0307a68fb6d27e5c1345aa78b46331acb2927e88b47a3c3d08bb",
+  "split_sha256": "acf9afac57ca2e5287b9b1b545a62a369fee398a0d1a789cb77b851202b313d5",
+  "preregistered_split_sha256": "acf9afac57ca2e5287b9b1b545a62a369fee398a0d1a789cb77b851202b313d5",
+  "reference_plan_sha256": "a2a65c1382da0307a68fb6d27e5c1345aa78b46331acb2927e88b47a3c3d08bb"
+ },
+ "training_smoke": {
+  "initial_loss": 0.21859899163246155,
+  "initial_loss_with_ramps_zero": 0.21747174859046936,
+  "weights_fixed_at_step1_ramp": 0.0006666666666666666,
+  "losses": [
+   0.21859899163246155,
+   0.2185952067375183,
+   0.21858762204647064,
+   0.21857628226280212,
+   0.21857133507728577,
+   0.21854734420776367,
+   0.21852467954158783,
+   0.21850842237472534,
+   0.21845784783363342,
+   0.21844927966594696,
+   0.2184472382068634,
+   0.21840587258338928,
+   0.2183455526828766,
+   0.21832741796970367,
+   0.2183007150888443,
+   0.21825525164604187,
+   0.21822164952754974,
+   0.21814779937267303,
+   0.21811284124851227,
+   0.22187024354934692
+  ],
+  "grad_norms": [
+   4.697404861450195,
+   4.696648597717285,
+   4.696469306945801,
+   4.696202278137207,
+   4.695950031280518,
+   4.695093631744385,
+   4.6943678855896,
+   4.692888259887695,
+   4.691289901733398,
+   4.69045352935791,
+   4.688785552978516,
+   4.687503337860107,
+   4.68428373336792,
+   4.681768417358398,
+   4.676397800445557,
+   4.671210765838623,
+   4.666144847869873,
+   4.660639762878418,
+   4.649011135101318,
+   4.6748881340026855
+  ],
+  "old_param_max_update": 1.0725590982474387e-05,
+  "new_decoder_max_update": 1.0690392628021073e-05,
+  "alpha_conservation_error": 1.1920928955078125e-06,
+  "assign_ce": 4.267484664916992,
+  "assign_argmax_agreement": 0.44117647409439087
+ },
+ "optimizer_membership": {
+  "deep_parameters": 74,
+  "deep_parameters_in_optimizer": 74,
+  "deep_parameters_missing": [],
+  "logit_scale_is_parameter": false
+ },
+ "gradient_routing": {
+  "main_head_norm": 0.005639872891873033,
+  "aux_head_norm": 0.0023763654237240056,
+  "main_head_any_none": 11,
+  "aux_head_any_none": 15
+ },
+ "all_checks_passed": true
+}

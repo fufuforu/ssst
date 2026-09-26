@@ -1,0 +1,105 @@
+{
+ "baseline": "g0plus",
+ "gates": {
+  "g0plus": {
+   "n": 55,
+   "mean_iou1": 0.18112862322947915,
+   "iou1_ge_0.5": 3,
+   "tp": 3,
+   "fp": 71,
+   "fn": 52,
+   "ap50": 0.1375,
+   "novel_psnr": 19.157370567321777,
+   "novel_ssim": 0.6597932651638985,
+   "checkpoint": "workspace_group_plus/arm_g0plus/ckpt_step6000",
+   "head_mode": "legacy_prefix",
+   "paired_iou1_ge_0.5_delta": 3,
+   "alignment": {
+    "missing_vs_baseline": 0,
+    "extra_vs_baseline": 0
+   },
+   "mean_iou1_delta_vs_baseline": 0.0
+  },
+  "recipe_v1": {
+   "n": 55,
+   "mean_iou1": 0.26562649487464624,
+   "iou1_ge_0.5": 8,
+   "tp": 8,
+   "fp": 91,
+   "fn": 47,
+   "ap50": 0.09375000000000001,
+   "novel_psnr": 17.359416007995605,
+   "novel_ssim": 0.6267547383904457,
+   "checkpoint": "workspace_group_plus/recipe_v1/run/ckpt_step6000",
+   "head_mode": "legacy_prefix",
+   "paired_iou1_ge_0.5_delta": 8,
+   "alignment": {
+    "missing_vs_baseline": 0,
+    "extra_vs_baseline": 0
+   },
+   "mean_iou1_delta_vs_baseline": 0.08449787164516709,
+   "gates": {
+    "novel_psnr_ge_18.957": false,
+    "iou_mean_ge_0.2311": true,
+    "iou_ge05_ge_6": true,
+    "gt_free_tp_ge_6": true,
+    "ap50_ge_0.1675": false,
+    "all_five": false
+   }
+  },
+  "recipe_v2": {
+   "n": 55,
+   "mean_iou1": 0.1926948244579435,
+   "iou1_ge_0.5": 3,
+   "tp": 3,
+   "fp": 59,
+   "fn": 52,
+   "ap50": 0.075,
+   "novel_psnr": 18.10482406616211,
+   "novel_ssim": 0.6387840583920479,
+   "checkpoint": "workspace_group_plus/recipe_v2/run/ckpt_step6000",
+   "head_mode": "legacy_prefix",
+   "paired_iou1_ge_0.5_delta": 3,
+   "alignment": {
+    "missing_vs_baseline": 0,
+    "extra_vs_baseline": 0
+   },
+   "mean_iou1_delta_vs_baseline": 0.011566201228464357,
+   "gates": {
+    "novel_psnr_ge_18.957": false,
+    "iou_mean_ge_0.2311": false,
+    "iou_ge05_ge_6": false,
+    "gt_free_tp_ge_6": false,
+    "ap50_ge_0.1675": false,
+    "all_five": false
+   }
+  },
+  "recipe_v2_pure4": {
+   "n": 55,
+   "mean_iou1": 0.18857210471517444,
+   "iou1_ge_0.5": 1,
+   "tp": 1,
+   "fp": 68,
+   "fn": 54,
+   "ap50": 0.015625,
+   "novel_psnr": 17.740782260894775,
+   "novel_ssim": 0.63140669465065,
+   "checkpoint": "workspace_group_plus/implementation_audit_v1/recipe_v2_pure4/run/ckpt_step6000",
+   "head_mode": "pure4",
+   "paired_iou1_ge_0.5_delta": 1,
+   "alignment": {
+    "missing_vs_baseline": 0,
+    "extra_vs_baseline": 0
+   },
+   "mean_iou1_delta_vs_baseline": 0.007443481485695291,
+   "gates": {
+    "novel_psnr_ge_18.957": false,
+    "iou_mean_ge_0.2311": false,
+    "iou_ge05_ge_6": false,
+    "gt_free_tp_ge_6": false,
+    "ap50_ge_0.1675": false,
+    "all_five": false
+   }
+  }
+ }
+}

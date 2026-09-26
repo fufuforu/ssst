@@ -1,0 +1,16 @@
+{
+ "entry_conditions": {
+  "implementation_audit_passed": "PASSED (runtime_diagnostics.json, 0 failures)",
+  "official_format_smoke_passed": "PASSED (export_smoke.json + B1_smoke_ok.json)",
+  "no_unresolved_training_behaviour_bug": "PASSED for the audited paths; the six static defects are fixed and the two new arms trained without incident",
+  "candidate_arm_reaches_all_five_dev_gates_at_step6000": "FAILED: pure4 0/5; pure4+stop-gradient 1/5 (PSNR only)"
+ },
+ "candidate": "BLOCKED",
+ "blocked": true,
+ "gate_rule": "pure4 is selected only if it passes all five; otherwise the stop-gradient arm is selected only if it passes all five; otherwise BLOCKED",
+ "evidence": {
+  "A_pure4": "group_plus/implementation_audit_v1/final_table.json",
+  "B2_stopgrad": "group_plus/implementation_audit_v1/B2_final_table.json",
+  "official": "group_plus/implementation_audit_v1/B1_official_summary.json"
+ }
+}

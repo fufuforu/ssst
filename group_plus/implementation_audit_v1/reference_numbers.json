@@ -1,0 +1,58 @@
+{
+ "source": {
+  "paper": "SIU3R (arXiv:2507.02705), Table 1",
+  "protocol": "ScanNet official val_pair, 1860 pairs, 312 scenes, 2 context views, "
+              "unposed input, 256x256; the 3D-aware metrics are evaluated on the novel views",
+  "note": "read-only reference values; they are NOT produced by this repository and are "
+          "not directly comparable to the 32/8 development numbers here (different split, "
+          "different pose input, different metric definitions)"
+ },
+ "reference_values": {
+  "siu3r_full": {
+   "novel_psnr": 25.96,
+   "novel_ssim": 0.8220,
+   "novel_semantic_miou": 0.5920,
+   "novel_instance_map": 0.2714,
+   "novel_panoptic_pq": 0.6495,
+   "context_2d_only_miou": 0.5922,
+   "context_2d_only_map": 0.2817,
+   "context_2d_only_pq": 0.6612
+  },
+  "siu3r_without_understanding_to_reconstruction": {
+   "novel_psnr": 25.51,
+   "delta_psnr_from_mask_guided_geometry_refinement": 0.45,
+   "note": "the reference method's mask-guided geometry refinement makes the "
+           "understanding term complement reconstruction (PSNR +0.45), i.e. its "
+           "understanding-vs-reconstruction trade-off is negative-cost, not a sacrifice"
+  },
+  "lsm": {"novel_psnr": 21.88, "novel_semantic_miou": 0.2707,
+          "instance_or_panoptic": "not supported"},
+  "mask2former_2d_only_context": {"miou": 0.5466, "map": 0.2486, "pq": 0.6071}
+ },
+ "reference_training_setting": {
+  "hardware": "8x RTX 4090",
+  "epochs": 100,
+  "total_batch": 24,
+  "wall_clock": "about 2 hours",
+  "init": "MASt3R ViT-L encoder (frozen during pre-training) + COCO-pre-trained panoptic head",
+  "mask_loss_weight": 0.05
+ },
+ "policy_implications_for_this_project": {
+  "psnr_gate": "the -0.20 dB novel-PSNR guard used in the recipe rounds is a self-imposed "
+               "engineering threshold, not an SIU3R-protocol threshold; the reference "
+               "method shows no PSNR sacrifice, so a mask-guided geometry-refinement style "
+               "complementary term (intra-instance depth continuity, lambda ~0.05) belongs "
+               "on the strategic option list AFTER a recipe passes the gates",
+  "architecture_note": "SIU3R's mask is a unified-query 2D mask-logit head (Mask2Former "
+                       "style) aggregated across views by pixel-aligned Gaussians; this "
+                       "project's mask medium is token-assignment composited through the "
+                       "Gaussian renderer, whose measured oracle ceiling on the development "
+                       "split is 36/55.  If a future arm approaches that ceiling but stays "
+                       "far below the reference mAP 0.27, the evidence points at the read-out "
+                       "(direct 2D mask + Gaussian aggregation) rather than at training.",
+  "comparison_rule": "any 'close to SIU3R' statement must be made from B1 official-evaluator "
+                     "numbers on the full 1860-pair manifest; development values are "
+                     "process instruments only.  This model uses GT camera poses to build "
+                     "rays while SIU3R is unposed, so the input conditions are not equal."
+ }
+}

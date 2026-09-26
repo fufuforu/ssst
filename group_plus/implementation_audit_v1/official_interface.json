@@ -1,0 +1,40 @@
+{
+ "siu3r": {
+  "repo": "/space/mawb/SIU3R",
+  "head_commit": "8ea80166be76854f938e90521f1a5b688b755c87",
+  "expected_commit": "8ea80166be76854f938e90521f1a5b688b755c87",
+  "commit_matches": true,
+  "files": {
+   "src/evaluator.py": "51c4882e051eff33fb07bdbbdd044bf18f88785b1c1e1d36908cbeef88eb1a39",
+   "src/config.py": "b6fabd56c91490ce444263589a96f98d5acaa8c5ce2fa1b416e4acc607a32a19",
+   "src/utils/scannet_constant.py": "b80848b2410e5621f752109539fb24af65e839bbfb8e1bb7c68666d83d1162a6",
+   "data/scannet/val_pair.json": "59cf5594ec2f3223a41d27d7af4da49d348ce9b00c1d151020378c9a8f4b4b3b"
+  },
+  "venv": "/space/mawb/SIU3R/.venv_gpu_v4"
+ },
+ "adapter": {
+  "repo": "/space/mawb/gaussian-grouping-instok3d-adapter",
+  "head_commit": "",
+  "files": {
+   "gg_adapter/evaluator.py": "3919fe5e9521d2a63311c8048eec02582f6e4e9d33c1f7a4b680d80f04515145",
+   "gg_adapter/dataset_export.py": "450f41613906dc29c37c707486cfde8586e60692cf403a7a622aab0afe161534"
+  }
+ },
+ "ssst_wrappers": {
+  "scripts/evaluate_ssst_validation.py": "ab3e61399c5b7865b7902301f2a8a048ef3f1d5c69cd87fe19207321c2f71b27",
+  "scripts/invoke_siu3r_official_evaluator.py": "900c55f62ca88b0f6c908efefc2aa66021870b7829ce78203c979a9cb69c7040"
+ },
+ "reader_contract": {
+  "pred_png_naming": "{scene}_pred{frame}.png; GT is the same name with 'pred'->'gt'",
+  "packing": "packed = semantic_1based*1000 + instance; PNG R/G/B = byte0/1/2",
+  "pred_json": "list of {id, label_id, score}; the reader looks up info['id']==instance_id and averages info['score'] -> the official mAP DOES consume our score",
+  "map_labels": "0-based (semantic-1); GT stuff classes are dropped from mAP GT, predictions are not filtered",
+  "miou": "MeanIoU(num_classes=len(id2label)+1, include_background=False, index format) over the concatenated pair frames",
+  "target_vs_context": "context_seg_* covers the 2 context frames; target_seg_* covers all six frames the model saw (2 context + 4 novel), i.e. the official 'target' metrics INCLUDE the context frames",
+  "stuff_serialization": "stuff keeps its 1-based semantic id with instance id 0",
+  "depth": "depth/ PNG = metres*1000; the reader fits a per-image scale+shift from GT before absrel/rmse"
+ },
+ "notes": [
+  "the official evaluator is the pinned SIU3R implementation; only the EvaluatorCfg we construct is ours (semantic-only and image/depth switches)"
+ ]
+}

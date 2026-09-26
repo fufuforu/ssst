@@ -1,0 +1,52 @@
+{
+ "recipe_v1": {
+  "psnr": 15.423391398135907,
+  "ssim": 0.589393830000286,
+  "lpips": 0.6632453563472916,
+  "absrel": 0.21304685861851994,
+  "rmse": 0.46518371143214754,
+  "context_miou": 0.03179000546952011,
+  "target_miou": 0.03202112371218391,
+  "context_pq": 0.006149711208622705,
+  "target_pq": 0.006097571595248301,
+  "context_map": 4.988735236111097e-05,
+  "target_map": 6.473606481449679e-05,
+  "context_ap50": 0.000261402630712837,
+  "target_ap50": 0.00023179801064543426,
+  "context_ap75": 1.3144118611307931e-06,
+  "target_ap75": 1.83664064934419e-06,
+  "semantic_only_context_miou": 0.03500496064171443,
+  "semantic_only_target_miou": 0.035269139760458756,
+  "semantic_only_keys": [
+   "context_ious_per_class",
+   "context_miou",
+   "target_ious_per_class",
+   "target_miou"
+  ]
+ },
+ "g0plus": {
+  "psnr": 17.419589876701327,
+  "ssim": 0.6192453794007767,
+  "lpips": 0.6548993128829211,
+  "absrel": 0.20396170742754693,
+  "rmse": 0.45109722343019765,
+  "context_miou": 0.0483623812233418,
+  "target_miou": 0.04834878937235772,
+  "context_pq": 0.02859243281526816,
+  "target_pq": 0.028478927102036998,
+  "context_map": 3.5242162994109094e-05,
+  "target_map": 3.158334220643155e-05,
+  "context_ap50": 0.00016412472177762538,
+  "target_ap50": 0.00015610599075444043,
+  "context_ap75": 9.336400580650661e-06,
+  "target_ap75": 2.634061729622772e-06,
+  "semantic_only_context_miou": 0.04083394936471905,
+  "semantic_only_target_miou": 0.040921621028400065,
+  "semantic_only_keys": [
+   "context_ious_per_class",
+   "context_miou",
+   "target_ious_per_class",
+   "target_miou"
+  ]
+ }
+}

@@ -1,0 +1,77 @@
+{
+ "arms": {
+  "recipe_v1": {
+   "arm": "recipe_v1",
+   "checks": {
+    "has_scene_dir": true,
+    "panoptic_rgb_present": true,
+    "panoptic_rgb_gt_present": true,
+    "panoptic_depth_present": true,
+    "panoptic_depth_gt_present": true,
+    "panoptic_context_seg_pred_present": true,
+    "panoptic_context_seg_gt_present": true,
+    "panoptic_target_seg_pred_present": true,
+    "panoptic_target_seg_gt_present": true,
+    "panoptic_pred_json": true,
+    "panoptic_context_has_2": true,
+    "panoptic_target_has_6": true,
+    "semantic_target_has_6": true,
+    "semantic_has_no_rgb": true,
+    "official_reader_ran": true,
+    "official_miou_finite": true,
+    "no_pq_or_map_for_semantic_only": true
+   },
+   "scene_dirs": [
+    "scene0011_00_context1727_1744"
+   ],
+   "official_semantic": {
+    "target_miou": 0.02764320159330964,
+    "context_miou": 0.027620922308415174,
+    "keys": [
+     "context_ious_per_class",
+     "context_miou",
+     "target_ious_per_class",
+     "target_miou"
+    ]
+   },
+   "passed": true
+  },
+  "g0plus": {
+   "arm": "g0plus",
+   "checks": {
+    "has_scene_dir": true,
+    "panoptic_rgb_present": true,
+    "panoptic_rgb_gt_present": true,
+    "panoptic_depth_present": true,
+    "panoptic_depth_gt_present": true,
+    "panoptic_context_seg_pred_present": true,
+    "panoptic_context_seg_gt_present": true,
+    "panoptic_target_seg_pred_present": true,
+    "panoptic_target_seg_gt_present": true,
+    "panoptic_pred_json": true,
+    "panoptic_context_has_2": true,
+    "panoptic_target_has_6": true,
+    "semantic_target_has_6": true,
+    "semantic_has_no_rgb": true,
+    "official_reader_ran": true,
+    "official_miou_finite": true,
+    "no_pq_or_map_for_semantic_only": true
+   },
+   "scene_dirs": [
+    "scene0011_00_context1727_1744"
+   ],
+   "official_semantic": {
+    "target_miou": 0.025471193389967083,
+    "context_miou": 0.024987824121490122,
+    "keys": [
+     "context_ious_per_class",
+     "context_miou",
+     "target_ious_per_class",
+     "target_miou"
+    ]
+   },
+   "passed": true
+  }
+ },
+ "all_passed": true
+}

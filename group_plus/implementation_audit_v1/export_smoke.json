@@ -1,0 +1,48 @@
+{
+ "checks": {
+  "png_round_trip_exact": true,
+  "pred_json_ids_match_instance_ids": true,
+  "official_reader_semantics_exact": true,
+  "official_reader_instances_exact": true,
+  "official_reader_scores_from_pred_json": true,
+  "gt_copy_prediction_is_complete": true,
+  "missing_thing_is_an_fn": true
+ },
+ "notes": [],
+ "round_trip": {
+  "semantic_exact": true,
+  "instance_exact": true,
+  "pred_json_ids": [
+   7,
+   9
+  ],
+  "ids_match_instances": true
+ },
+ "official_reader": {
+  "semantics_equal": true,
+  "instances_equal": true,
+  "gt_labels": [
+   2,
+   4
+  ],
+  "pred_labels": [
+   2,
+   4
+  ],
+  "pred_scores": [
+   0.91,
+   0.77
+  ],
+  "n_gt_masks": 2,
+  "n_pred_masks": 2,
+  "stuff_dropped_from_map_gt": true,
+  "scores_match_pred_json": true
+ },
+ "ideal_vs_missing": {
+  "ideal_gt_masks": 2,
+  "ideal_pred_masks": 2,
+  "missing_gt_masks": 2,
+  "missing_pred_masks": 1
+ },
+ "all_checks_passed": true
+}

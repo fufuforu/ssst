@@ -1,0 +1,68 @@
+{
+ "run_name": "recipe_full_50000",
+ "steps": 50000,
+ "seed": 42,
+ "peak_lr": 2e-05,
+ "cosine_floor": 4e-07,
+ "warmup": 2000,
+ "optimizer": "AdamW betas (0.9, 0.95), weight_decay 0.05 for 2-D weights, 0.0 for 1-D/bias, grad clip 1.0",
+ "schedule": "linear warmup to peak, then cosine to the floor",
+ "recipe": {
+  "instance_outer_weight": 0.05,
+  "instance_ramp_steps": 1500,
+  "assign_coef": 0.2,
+  "assign_every": 1,
+  "assign_stop_shared_grad": "per the selected candidate",
+  "semantic_outer_weight": 0.05,
+  "semantic_ramp_steps": 2000,
+  "head_mode": "per the selected candidate"
+ },
+ "data": {
+  "train_scenes": 1201,
+  "val_scenes": 312,
+  "context_views": 2,
+  "novel_views": 2,
+  "dtype": "fp32"
+ },
+ "init": "arm_g0/ckpt_step0 + deep decoder seed 1743 (same cold start as 32/8)",
+ "why_low_lr": "the historical full-data reconstruction run collapsed at lr 1e-4 and recovered under a 2e-5 cap; this is a new full-data stability recipe, not a single-variable change, and the low-LR cold start is not yet demonstrated stable",
+ "monitoring": {
+  "windows": 8,
+  "every_steps": 2500,
+  "final_report_step": 50000,
+  "keep_checkpoints": "latest 2 plus 25000/50000"
+ },
+ "plan_path": "/space/mawb/ssst/group_plus/implementation_audit_v1/plan_full_50000.json",
+ "plan_sha256": null,
+ "split_path": "/space/mawb/ssst/group_plus/implementation_audit_v1/full_split.json",
+ "split_sha256": "58f7df853f763fc7b8afb298e71a899e6ded536b7e283586d654ea933a1c182c",
+ "contamination_note": {
+  "old_dev_scenes_in_official_train": [
+   "scene0059_00",
+   "scene0072_02",
+   "scene0132_01",
+   "scene0472_01",
+   "scene0615_00"
+  ],
+  "old_dev_scenes_in_official_val": [
+   "scene0559_01",
+   "scene0568_02",
+   "scene0695_00"
+  ],
+  "consequence": "after the full run the old 55/110 development numbers are no longer unseen-validation results"
+ },
+ "official_val_pair": {
+  "records": 1860,
+  "scenes": 312
+ },
+ "estimated_cost": {
+  "reference_6000_steps": "58m06s (recipe_v1, 1x3090)",
+  "linear_50000_estimate_hours": 8.06,
+  "planning_range_hours": "8-12 (I/O and the extra probe forwards can exceed the linear estimate; this is a plan, not a measurement)",
+  "scene_sampling_density": {
+   "full": 41.63,
+   "dev": 187.5,
+   "steps_needed_to_match_dev_density": 225187
+  }
+ }
+}

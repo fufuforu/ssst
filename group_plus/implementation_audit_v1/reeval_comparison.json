@@ -1,0 +1,137 @@
+{
+ "tolerances": {
+  "iou": 1e-06,
+  "ap": 1e-06,
+  "psnr": 0.0001,
+  "counts": "exact"
+ },
+ "arms": {
+  "g0plus": {
+   "published": {
+    "mean_iou1": 0.18112862322947915,
+    "ge05": 3,
+    "gt_free": {
+     "tp": 3,
+     "fp": 71,
+     "fn": 52
+    },
+    "ap50": 0.1375,
+    "novel_psnr": 19.157370567321777,
+    "novel_ssim": 0.6597932651638985
+   },
+   "recomputed": {
+    "mean_iou1": 0.18112862322947915,
+    "ge05": 3,
+    "gt_free": {
+     "tp": 3,
+     "fp": 71,
+     "fn": 52
+    },
+    "ap50": 0.1375,
+    "novel_psnr": 19.157370567321777,
+    "novel_ssim": 0.6597932651638985,
+    "n_records": 55
+   },
+   "records_new": 55,
+   "key_format": "(scene, view, frame_id, key)",
+   "iou_abs_diff": 0.0,
+   "ap_abs_diff": 0.0,
+   "psnr_abs_diff": 0.0,
+   "ssim_abs_diff": 0.0,
+   "ge05_identical": true,
+   "gt_free_identical": true,
+   "passes": true
+  },
+  "recipe_v1": {
+   "published": {
+    "mean_iou1": 0.26562649487464624,
+    "ge05": 8,
+    "gt_free": {
+     "tp": 8,
+     "fp": 91,
+     "fn": 47
+    },
+    "ap50": 0.09375000000000001,
+    "novel_psnr": 17.359416007995605,
+    "novel_ssim": 0.6267547383904457
+   },
+   "recomputed": {
+    "mean_iou1": 0.26562649487464624,
+    "ge05": 8,
+    "gt_free": {
+     "tp": 8,
+     "fp": 91,
+     "fn": 47
+    },
+    "ap50": 0.09375000000000001,
+    "novel_psnr": 17.359416007995605,
+    "novel_ssim": 0.6267547383904457,
+    "n_records": 55
+   },
+   "records_new": 55,
+   "key_format": "(scene, view, frame_id, key)",
+   "iou_abs_diff": 0.0,
+   "ap_abs_diff": 0.0,
+   "psnr_abs_diff": 0.0,
+   "ssim_abs_diff": 0.0,
+   "ge05_identical": true,
+   "gt_free_identical": true,
+   "passes": true
+  },
+  "recipe_v2": {
+   "published": {
+    "mean_iou1": 0.1926948244579435,
+    "ge05": 3,
+    "gt_free": {
+     "tp": 3,
+     "fp": 59,
+     "fn": 52
+    },
+    "ap50": 0.075,
+    "novel_psnr": 18.10482406616211,
+    "novel_ssim": 0.6387840583920479
+   },
+   "recomputed": {
+    "mean_iou1": 0.1926948244579435,
+    "ge05": 3,
+    "gt_free": {
+     "tp": 3,
+     "fp": 59,
+     "fn": 52
+    },
+    "ap50": 0.075,
+    "novel_psnr": 18.10482406616211,
+    "novel_ssim": 0.6387840583920479,
+    "n_records": 55
+   },
+   "records_new": 55,
+   "key_format": "(scene, view, frame_id, key)",
+   "iou_abs_diff": 0.0,
+   "ap_abs_diff": 0.0,
+   "psnr_abs_diff": 0.0,
+   "ssim_abs_diff": 0.0,
+   "ge05_identical": true,
+   "gt_free_identical": true,
+   "passes": true
+  }
+ },
+ "record_alignment": {
+  "g0plus": {
+   "n": 55,
+   "same_keys_as_g0plus": true,
+   "unique": true
+  },
+  "recipe_v1": {
+   "n": 55,
+   "same_keys_as_g0plus": true,
+   "unique": true
+  },
+  "recipe_v2": {
+   "n": 55,
+   "same_keys_as_g0plus": true,
+   "unique": true
+  }
+ },
+ "failures": [],
+ "all_passed": true
+}

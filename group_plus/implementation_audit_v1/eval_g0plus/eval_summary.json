@@ -1,0 +1,406 @@
+{
+ "scope": "32/8 development split, novel views 2/3 only (55 records); not SIU3R official mAP/PQ; model uses GT poses, SIU3R is unposed",
+ "label": "g0plus",
+ "checkpoint": "workspace_group_plus/arm_g0plus/ckpt_step6000",
+ "model_sha256": "a63dd485cc2d1b3fefb8b68786f9845ff8253cfebedd90405e73484c87243be4",
+ "effective_config": {
+  "config_source": "explicit/defaults",
+  "config_yaml_present": false,
+  "recipe": false,
+  "head_mode": "legacy_prefix",
+  "instance_outer_weight": 0.05,
+  "assign_coef": 0.2,
+  "assign_every": 1,
+  "assign_stop_shared_grad": false,
+  "num_views": 4,
+  "num_input_views": 2
+ },
+ "load_strict": true,
+ "provenance": {
+  "plan_sha256": "a2a65c1382da0307a68fb6d27e5c1345aa78b46331acb2927e88b47a3c3d08bb",
+  "preregistered_plan_sha256": "a2a65c1382da0307a68fb6d27e5c1345aa78b46331acb2927e88b47a3c3d08bb",
+  "split_sha256": "acf9afac57ca2e5287b9b1b545a62a369fee398a0d1a789cb77b851202b313d5",
+  "preregistered_split_sha256": "acf9afac57ca2e5287b9b1b545a62a369fee398a0d1a789cb77b851202b313d5",
+  "evaluator_source_sha256": "b5cc25b61b17b1521ddcbb92e0b764818ab83e683e9021f81a1674d1b7fbdfc7",
+  "main_metric_implementation": "group_plus/routing_v1 fragmentation IoU1",
+  "fragmentation_delta_definition": "max(IoU1, IoU1-2 union, IoU1-3 union) - IoU1  (NOT the baseline delta)"
+ },
+ "novel_only_55": {
+  "n": 55,
+  "mean_iou1": 0.18112862322947915,
+  "iou1_ge_0.5": 3,
+  "gt_free": {
+   "tp": 3,
+   "fp": 71,
+   "fn": 52,
+   "ap50": 0.1375
+  },
+  "paired_reference_missing": 0
+ },
+ "gate_recomputed": {
+  "novel_psnr": 19.157370567321777,
+  "novel_ssim": 0.6597932651638985,
+  "ctx_psnr": 19.62238836288452,
+  "ctx_ssim": 0.6655895486474037
+ },
+ "history_cross_check": {
+  "supplied": false
+ },
+ "buckets_novel": {
+  "small_lt3000": {
+   "n": 20,
+   "pass": 0,
+   "mean_iou1": 0.09184745405610927,
+   "gt_free_hits": {
+    "gt": 20,
+    "tp": 0
+   }
+  },
+  "large_ge3000": {
+   "n": 35,
+   "pass": 3,
+   "mean_iou1": 0.2321464341856905,
+   "gt_free_hits": {
+    "gt": 35,
+    "tp": 3
+   }
+  }
+ },
+ "per_scene_reconstruction": [
+  {
+   "scene": "scene0059_00",
+   "context": [
+    510,
+    524
+   ],
+   "novel": [
+    511,
+    516
+   ],
+   "ctx_psnr": 16.143495559692383,
+   "novel_psnr": 15.937992095947266,
+   "ctx_ssim": 0.5024620294570923,
+   "novel_ssim": 0.4762604236602783,
+   "ctx_grey": 10.754108428955078,
+   "novel_grey": 10.835637092590332,
+   "alpha_gt_05": 1.0
+  },
+  {
+   "scene": "scene0072_02",
+   "context": [
+    744,
+    774
+   ],
+   "novel": [
+    752,
+    760
+   ],
+   "ctx_psnr": 19.09653663635254,
+   "novel_psnr": 19.77373695373535,
+   "ctx_ssim": 0.7231748104095459,
+   "novel_ssim": 0.7184354662895203,
+   "ctx_grey": 13.131959915161133,
+   "novel_grey": 12.204265594482422,
+   "alpha_gt_05": 1.0
+  },
+  {
+   "scene": "scene0132_01",
+   "context": [
+    457,
+    472
+   ],
+   "novel": [
+    465,
+    470
+   ],
+   "ctx_psnr": 20.377307891845703,
+   "novel_psnr": 20.16444969177246,
+   "ctx_ssim": 0.6992440223693848,
+   "novel_ssim": 0.6746842265129089,
+   "ctx_grey": 9.205766677856445,
+   "novel_grey": 8.699963569641113,
+   "alpha_gt_05": 1.0
+  },
+  {
+   "scene": "scene0472_01",
+   "context": [
+    77,
+    131
+   ],
+   "novel": [
+    105,
+    120
+   ],
+   "ctx_psnr": 19.062402725219727,
+   "novel_psnr": 17.817358016967773,
+   "ctx_ssim": 0.6147424578666687,
+   "novel_ssim": 0.582067608833313,
+   "ctx_grey": 13.438082695007324,
+   "novel_grey": 12.82020092010498,
+   "alpha_gt_05": 1.0
+  },
+  {
+   "scene": "scene0559_01",
+   "context": [
+    236,
+    277
+   ],
+   "novel": [
+    242,
+    260
+   ],
+   "ctx_psnr": 23.455284118652344,
+   "novel_psnr": 18.809450149536133,
+   "ctx_ssim": 0.7700904607772827,
+   "novel_ssim": 0.7322200536727905,
+   "ctx_grey": 8.465027809143066,
+   "novel_grey": 8.730199813842773,
+   "alpha_gt_05": 1.0
+  },
+  {
+   "scene": "scene0568_02",
+   "context": [
+    161,
+    182
+   ],
+   "novel": [
+    170,
+    174
+   ],
+   "ctx_psnr": 20.157791137695312,
+   "novel_psnr": 21.410659790039062,
+   "ctx_ssim": 0.7386904954910278,
+   "novel_ssim": 0.7651160955429077,
+   "ctx_grey": 9.968693733215332,
+   "novel_grey": 9.806558609008789,
+   "alpha_gt_05": 1.0
+  },
+  {
+   "scene": "scene0615_00",
+   "context": [
+    548,
+    566
+   ],
+   "novel": [
+    554,
+    555
+   ],
+   "ctx_psnr": 18.083913803100586,
+   "novel_psnr": 18.154129028320312,
+   "ctx_ssim": 0.6023290753364563,
+   "novel_ssim": 0.6032659411430359,
+   "ctx_grey": 10.169862747192383,
+   "novel_grey": 10.451940536499023,
+   "alpha_gt_05": 1.0
+  },
+  {
+   "scene": "scene0695_00",
+   "context": [
+    1502,
+    1522
+   ],
+   "novel": [
+    1517,
+    1521
+   ],
+   "ctx_psnr": 20.602375030517578,
+   "novel_psnr": 21.19118881225586,
+   "ctx_ssim": 0.6739830374717712,
+   "novel_ssim": 0.7262963056564331,
+   "ctx_grey": 11.33325481414795,
+   "novel_grey": 12.031855583190918,
+   "alpha_gt_05": 1.0
+  }
+ ],
+ "context_and_all_views": {
+  "scene0059_00": {
+   "novel": {
+    "tp": 0,
+    "fp": 12,
+    "fn": 19,
+    "n_gt": 19,
+    "ap50": 0.0
+   },
+   "context": {
+    "tp": 0,
+    "fp": 11,
+    "fn": 18,
+    "n_gt": 18,
+    "ap50": 0.0
+   },
+   "all_views": {
+    "tp": 0,
+    "fp": 23,
+    "fn": 37,
+    "n_gt": 37,
+    "ap50": 0.0
+   }
+  },
+  "scene0072_02": {
+   "novel": {
+    "tp": 0,
+    "fp": 5,
+    "fn": 4,
+    "n_gt": 4,
+    "ap50": 0.0
+   },
+   "context": {
+    "tp": 0,
+    "fp": 6,
+    "fn": 4,
+    "n_gt": 4,
+    "ap50": 0.0
+   },
+   "all_views": {
+    "tp": 0,
+    "fp": 11,
+    "fn": 8,
+    "n_gt": 8,
+    "ap50": 0.0
+   }
+  },
+  "scene0132_01": {
+   "novel": {
+    "tp": 0,
+    "fp": 8,
+    "fn": 10,
+    "n_gt": 10,
+    "ap50": 0.0
+   },
+   "context": {
+    "tp": 0,
+    "fp": 8,
+    "fn": 9,
+    "n_gt": 9,
+    "ap50": 0.0
+   },
+   "all_views": {
+    "tp": 0,
+    "fp": 16,
+    "fn": 19,
+    "n_gt": 19,
+    "ap50": 0.0
+   }
+  },
+  "scene0472_01": {
+   "novel": {
+    "tp": 2,
+    "fp": 7,
+    "fn": 0,
+    "n_gt": 2,
+    "ap50": 1.0
+   },
+   "context": {
+    "tp": 1,
+    "fp": 7,
+    "fn": 4,
+    "n_gt": 5,
+    "ap50": 0.25
+   },
+   "all_views": {
+    "tp": 3,
+    "fp": 14,
+    "fn": 4,
+    "n_gt": 7,
+    "ap50": 0.625
+   }
+  },
+  "scene0559_01": {
+   "novel": {
+    "tp": 1,
+    "fp": 9,
+    "fn": 9,
+    "n_gt": 10,
+    "ap50": 0.1
+   },
+   "context": {
+    "tp": 2,
+    "fp": 7,
+    "fn": 7,
+    "n_gt": 9,
+    "ap50": 0.225
+   },
+   "all_views": {
+    "tp": 3,
+    "fp": 16,
+    "fn": 16,
+    "n_gt": 19,
+    "ap50": 0.1625
+   }
+  },
+  "scene0568_02": {
+   "novel": {
+    "tp": 0,
+    "fp": 12,
+    "fn": 2,
+    "n_gt": 2,
+    "ap50": 0.0
+   },
+   "context": {
+    "tp": 0,
+    "fp": 12,
+    "fn": 2,
+    "n_gt": 2,
+    "ap50": 0.0
+   },
+   "all_views": {
+    "tp": 0,
+    "fp": 24,
+    "fn": 4,
+    "n_gt": 4,
+    "ap50": 0.0
+   }
+  },
+  "scene0615_00": {
+   "novel": {
+    "tp": 0,
+    "fp": 9,
+    "fn": 6,
+    "n_gt": 6,
+    "ap50": 0.0
+   },
+   "context": {
+    "tp": 0,
+    "fp": 9,
+    "fn": 6,
+    "n_gt": 6,
+    "ap50": 0.0
+   },
+   "all_views": {
+    "tp": 0,
+    "fp": 18,
+    "fn": 12,
+    "n_gt": 12,
+    "ap50": 0.0
+   }
+  },
+  "scene0695_00": {
+   "novel": {
+    "tp": 0,
+    "fp": 9,
+    "fn": 2,
+    "n_gt": 2,
+    "ap50": 0.0
+   },
+   "context": {
+    "tp": 0,
+    "fp": 9,
+    "fn": 2,
+    "n_gt": 2,
+    "ap50": 0.0
+   },
+   "all_views": {
+    "tp": 0,
+    "fp": 18,
+    "fn": 4,
+    "n_gt": 4,
+    "ap50": 0.0
+   }
+  }
+ },
+ "identity_after": {
+  "sha256": "a63dd485cc2d1b3fefb8b68786f9845ff8253cfebedd90405e73484c87243be4",
+  "mtime": 1790353194.0
+ },
+ "checkpoint_unchanged": true
+}

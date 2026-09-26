@@ -115,6 +115,9 @@ class GroupQueryHead(InstanceQueryHead):
         # registered so old checkpoints still load with strict=True; with the
         # switch off this module does not exist and the forward is unchanged.
         self.recipe = bool(getattr(opt, "group_recipe", False))
+        self.head_mode = str(getattr(opt, "group_recipe_head_mode", "legacy_prefix"))
+        if self.head_mode not in ("legacy_prefix", "pure4"):
+            raise ValueError(f"unknown group_recipe_head_mode {self.head_mode!r}")
         if self.recipe:
             self.deep = DeepGroupDecoder(opt)
         else:
@@ -126,9 +129,23 @@ class GroupQueryHead(InstanceQueryHead):
         anchors: torch.Tensor | None = None,
         radii: torch.Tensor | None = None,
         recipe: bool | None = None,
+        head_mode: str | None = None,
     ):
-        """Return ``(slot_logits[B,T,Q+1], objectness[B,Q], class_logits[B,Q,20], q_feat[B,Q,C])``."""
+        """Return ``(slot_logits[B,T,Q+1], objectness[B,Q], class_logits[B,Q,20], q_feat[B,Q,C])``.
+
+        ``head_mode`` selects how the query features are built (see
+        ``Options.group_recipe_head_mode``).  With ``recipe=False`` the legacy
+        single-layer path is used verbatim and the background slot keeps its
+        learnable shared bias, so old G0/G0+/G1 forwards are unchanged.
+        """
         batch, num_tokens, _ = tokens.shape
+        # call counter for the smoke assertion "legacy prefix ran N times / pure4 M times"
+        recipe_on = self.recipe if recipe is None else bool(recipe)
+        if recipe_on:
+            resolved = self.head_mode if head_mode is None else str(head_mode)
+            if not hasattr(self, "mode_calls"):
+                self.mode_calls = {"legacy_prefix": 0, "pure4": 0}
+            self.mode_calls[resolved] = self.mode_calls.get(resolved, 0) + 1
         token_features = self.token_proj(self.token_norm(tokens))
         if anchors is not None and radii is not None:
             token_features = token_features + self.spatial_proj(
@@ -140,15 +157,37 @@ class GroupQueryHead(InstanceQueryHead):
                 )
             )
         queries = self.queries.unsqueeze(0).expand(batch, -1, -1)
-        attended, _ = self.cross_attn(queries, token_features, token_features)
-        query_features = self.query_norm(queries + attended)
-        query_features = query_features + self.mlp(query_features)
         use_recipe = self.recipe if recipe is None else bool(recipe)
-        if use_recipe:
+        mode = self.head_mode if head_mode is None else str(head_mode)
+        if mode not in ("legacy_prefix", "pure4"):
+            raise ValueError(f"unknown head_mode {mode!r}")
+        if not use_recipe:
+            # historical non-recipe path -- unchanged
+            self.prefix_calls = getattr(self, "prefix_calls", 0) + 1
+            attended, _ = self.cross_attn(queries, token_features, token_features)
+            query_features = self.query_norm(queries + attended)
+            query_features = query_features + self.mlp(query_features)
+        elif mode == "pure4":
             if self.deep is None:
                 raise RuntimeError("recipe forward requested but the deep decoder "
                                    "was not constructed (group_recipe=False)")
+            # specification-correct: no legacy cross_attn/query_norm/mlp at all
+            query_features = self.deep(queries, token_features)
+        else:
+            if self.deep is None:
+                raise RuntimeError("recipe forward requested but the deep decoder "
+                                   "was not constructed (group_recipe=False)")
+            self.prefix_calls = getattr(self, "prefix_calls", 0) + 1
+            attended, _ = self.cross_attn(queries, token_features, token_features)
+            query_features = self.query_norm(queries + attended)
+            query_features = query_features + self.mlp(query_features)
             query_features = self.deep(query_features, token_features)
+        capture = getattr(self, "capture", None)
+        if capture is not None:
+            # read-only diagnostic capture (no effect on the forward computation)
+            capture["token_features"] = token_features.detach()
+            capture["queries"] = queries.detach()
+            capture["query_features"] = query_features.detach()
         similarity = (
             torch.einsum("btc,bqc->btq", token_features, query_features) * self.logit_scale
         )
@@ -159,6 +198,8 @@ class GroupQueryHead(InstanceQueryHead):
             else self.background_bias.expand(batch, num_tokens, 1)
         )
         slot_logits = torch.cat([similarity, background], dim=-1)
+        if capture is not None:
+            capture["slot_logits"] = slot_logits.detach()
         objectness = self.objectness(query_features).squeeze(-1)
         class_logits = self.semantic(query_features)
         return slot_logits, objectness, class_logits, query_features
@@ -362,10 +403,15 @@ class LocusGSGroupRecon(LocusGSRecon):
         # of the learnable shared background_bias (and no background pixel
         # supervision), plus a token-assignment auxiliary CE.
         self.recipe = bool(getattr(opt, "group_recipe", False))
+        self.head_mode = str(getattr(opt, "group_recipe_head_mode", "legacy_prefix"))
         self.seg_weight = float(getattr(opt, "group_recipe_seg_weight", 0.1))
         self.seg_ramp_steps = int(getattr(opt, "group_recipe_seg_ramp_steps", 1500))
         self.assign_coef = float(getattr(opt, "group_recipe_assign_coef", 0.02))
         self.assign_every = int(getattr(opt, "group_recipe_assign_every", 1))
+        self.assign_stop_shared_grad = bool(
+            getattr(opt, "group_recipe_assign_stop_shared_grad", False)
+        )
+        self.group_head_calls = 0
         self.last_assignment_metrics: dict | None = None
         # smoke-only: when set, both ramps use this constant value instead of
         # the step schedule (harness measurement switch; default None)
@@ -390,7 +436,7 @@ class LocusGSGroupRecon(LocusGSRecon):
 
     def _group_hook(self, tokens, mu, radii):
         slot_logits, objectness, class_logits, query_features = self.groups.forward_full(
-            tokens, mu, radii, recipe=self.recipe
+            tokens, mu, radii, recipe=self.recipe, head_mode=self.head_mode
         )
         slot_prob = torch.softmax(slot_logits, dim=-1)
         self.layer10_group = {
@@ -399,7 +445,12 @@ class LocusGSGroupRecon(LocusGSRecon):
             "objectness": objectness,
             "class_logits": class_logits,
             "query_features": query_features,
+            # B2 needs the step's original (graph-carrying) shared inputs so the
+            # auxiliary CE can be recomputed in a separate group-head forward
+            # with those inputs detached.  The main forward is untouched.
+            "inputs": (tokens, mu, radii),
         }
+        self.group_head_calls = getattr(self, "group_head_calls", 0) + 1
         if not self.use_feedback:
             return tokens
         return self.feedback(tokens, slot_prob, query_features)
@@ -666,10 +717,17 @@ class LocusGSGroupRecon(LocusGSRecon):
         target = torch.where(kept.unsqueeze(-1), target, torch.zeros_like(target))
         return target.detach(), kept, total
 
-    def assignment_ce(self, target, kept):
-        """Class-balanced CE of the current token->101 softmax against the target."""
+    def assignment_ce(self, target, kept, slot_logits=None):
+        """Class-balanced CE of the current token->101 softmax against the target.
+
+        ``slot_logits`` may be supplied explicitly (B2 recomputes the auxiliary
+        term from a separate group-head forward).  When omitted the class-balanced
+        CE reads the main branch's ``layer10_group`` slot logits exactly as before.
+        """
         group = self.layer10_group
-        log_prob = torch.log_softmax(group["slot_logits"][0].float(), dim=-1)
+        if slot_logits is None:
+            slot_logits = group["slot_logits"]
+        log_prob = torch.log_softmax(slot_logits[0].float(), dim=-1)
         ce = -(target * log_prob).sum(-1)
         thing_tokens = kept & (target[:, : self.num_groups].sum(-1) > 0)
         rest_tokens = kept & (~thing_tokens)
@@ -678,7 +736,7 @@ class LocusGSGroupRecon(LocusGSRecon):
             terms.append(0.5 * ce[thing_tokens].mean())
         if bool(rest_tokens.any()):
             terms.append(0.5 * ce[rest_tokens].mean())
-        zero = group["slot_logits"].sum() * 0.0
+        zero = slot_logits.sum() * 0.0
         loss = torch.stack(terms).sum() if terms else zero
         stats = {
             "assign_ce": loss.detach(),
@@ -724,7 +782,16 @@ class LocusGSGroupRecon(LocusGSRecon):
             target, kept, _ = self.assignment_target(
                 contributions, instance["segment_keys"], instance["matched_rows"]
             )
-        ce_loss, ce_stats = self.assignment_ce(target, kept)
+        probe_aux_logits = None
+        if self.assign_stop_shared_grad:
+            # mirror the training path: the auxiliary CE is recomputed from a
+            # separate group-head forward whose shared inputs are detached
+            tokens_in, mu_in, radii_in = self.layer10_group["inputs"]
+            probe_aux_logits, _, _, _ = self.groups.forward_full(
+                tokens_in.detach(), mu_in.detach(), radii_in.detach(),
+                recipe=True, head_mode=self.head_mode,
+            )
+        ce_loss, ce_stats = self.assignment_ce(target, kept, probe_aux_logits)
         main = seg_ramp * self.seg_weight * instance["loss"]
         aux = seg_ramp * self.assign_coef * ce_loss
         stats = {
@@ -795,7 +862,19 @@ class LocusGSGroupRecon(LocusGSRecon):
                     target, kept, _ = self.assignment_target(
                         contributions, instance["segment_keys"], instance["matched_rows"]
                     )
-                assign_loss, assign_stats = self.assignment_ce(target, kept)
+                aux_logits = None
+                if self.assign_stop_shared_grad:
+                    # B2: identical group head, but its shared inputs are detached,
+                    # so this term cannot push gradients into the shared
+                    # token/anchor/encoder.  The detach sits before
+                    # token_norm/token_proj/spatial_proj, so those head layers
+                    # still receive the auxiliary gradient.
+                    tokens_in, mu_in, radii_in = self.layer10_group["inputs"]
+                    aux_logits, _, _, _ = self.groups.forward_full(
+                        tokens_in.detach(), mu_in.detach(), radii_in.detach(),
+                        recipe=True, head_mode=self.head_mode,
+                    )
+                assign_loss, assign_stats = self.assignment_ce(target, kept, aux_logits)
         else:
             seg_ramp = ramp
         total = recon_loss + instance_weight * instance_total + semantic_weight * semantic

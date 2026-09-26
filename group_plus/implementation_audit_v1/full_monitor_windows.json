@@ -1,0 +1,125 @@
+{
+ "source": "official val_pair.json, sorted by (scene, context), first pair of the first 8 distinct scenes",
+ "windows": [
+  {
+   "scene": "scene0011_00",
+   "context": [
+    68,
+    87
+   ],
+   "target": [
+    68,
+    69,
+    70,
+    71,
+    72,
+    87
+   ]
+  },
+  {
+   "scene": "scene0011_01",
+   "context": [
+    134,
+    160
+   ],
+   "target": [
+    134,
+    137,
+    152,
+    153,
+    158,
+    160
+   ]
+  },
+  {
+   "scene": "scene0015_00",
+   "context": [
+    91,
+    105
+   ],
+   "target": [
+    91,
+    93,
+    100,
+    101,
+    103,
+    105
+   ]
+  },
+  {
+   "scene": "scene0019_00",
+   "context": [
+    18,
+    45
+   ],
+   "target": [
+    18,
+    21,
+    36,
+    37,
+    42,
+    45
+   ]
+  },
+  {
+   "scene": "scene0019_01",
+   "context": [
+    13,
+    34
+   ],
+   "target": [
+    13,
+    14,
+    15,
+    27,
+    32,
+    34
+   ]
+  },
+  {
+   "scene": "scene0025_00",
+   "context": [
+    79,
+    101
+   ],
+   "target": [
+    79,
+    80,
+    81,
+    82,
+    86,
+    101
+   ]
+  },
+  {
+   "scene": "scene0025_01",
+   "context": [
+    48,
+    67
+   ],
+   "target": [
+    48,
+    49,
+    50,
+    62,
+    65,
+    67
+   ]
+  },
+  {
+   "scene": "scene0025_02",
+   "context": [
+    45,
+    81
+   ],
+   "target": [
+    45,
+    48,
+    51,
+    73,
+    80,
+    81
+   ]
+  }
+ ]
+}

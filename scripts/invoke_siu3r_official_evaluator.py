@@ -33,12 +33,20 @@ def evaluate(
     *,
     device: str = "cuda",
     segmentation: bool = True,
+    semantic_only: bool = False,
+    image_quality: bool = True,
+    depth_quality: bool = True,
 ) -> dict:
     """Run the pinned SIU3R evaluator.
 
     ``segmentation=False`` keeps only image/depth quality metrics, which is the
     reconstruction-only protocol (the prediction directory then has no
     semantic/instance maps).
+
+    ``semantic_only=True`` keeps the semantic mIoU on both context and target
+    splits but disables panoptic/mAP, so a semantic-only prediction directory can
+    never fabricate instance metrics.  Only the ``EvaluatorCfg`` we construct is
+    affected; the SIU3R implementation is untouched.
     """
     sys.path.insert(0, SIU3R_REPO)
     try:
@@ -58,13 +66,13 @@ def evaluate(
     cfg = EvaluatorCfg(
         dataset_name="scannet",
         eval_context_miou=segmentation,
-        eval_context_pq=segmentation,
-        eval_context_map=segmentation,
+        eval_context_pq=segmentation and not semantic_only,
+        eval_context_map=segmentation and not semantic_only,
         eval_target_miou=segmentation,
-        eval_target_pq=segmentation,
-        eval_target_map=segmentation,
-        eval_image_quality=True,
-        eval_depth_quality=True,
+        eval_target_pq=segmentation and not semantic_only,
+        eval_target_map=segmentation and not semantic_only,
+        eval_image_quality=image_quality,
+        eval_depth_quality=depth_quality,
         id2label=PANOPTIC_SEMANTIC2NAME,
         stuffs=STUFF_CLASSES,
         things=THING_CLASSES,
@@ -86,9 +94,21 @@ def main() -> int:
         action="store_true",
         help="Image/depth quality metrics only (reconstruction-only predictions).",
     )
+    parser.add_argument(
+        "--semantic-only",
+        action="store_true",
+        help="Semantic mIoU only: disable panoptic and mAP so a semantic-only "
+             "prediction directory cannot fabricate instance metrics.",
+    )
+    parser.add_argument("--no-image-depth", action="store_true",
+                        help="Skip PSNR/SSIM/LPIPS and depth metrics (the semantic-only "
+                             "prediction tree has no rgb/depth directories).")
     args = parser.parse_args()
     result = evaluate(
-        args.eval_path, device=args.device, segmentation=not args.recon_only
+        args.eval_path, device=args.device, segmentation=not args.recon_only,
+        semantic_only=args.semantic_only,
+        image_quality=not args.no_image_depth,
+        depth_quality=not args.no_image_depth,
     )
     Path(args.output).parent.mkdir(parents=True, exist_ok=True)
     Path(args.output).write_text(

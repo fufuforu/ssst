@@ -1,0 +1,39 @@
+{
+ "checks": {
+  "step0_params_identical": true,
+  "slot_logits_agree_1e-6": true,
+  "aux_shared_none_or_zero_for_stop": true,
+  "aux_shared_nonzero_for_control": true,
+  "main_shared_nonzero_for_both": true,
+  "aux_head_nonzero_for_stop": true,
+  "aux_grads_finite": true,
+  "forward_aux_identical": true,
+  "forward_main_identical": true,
+  "total_loss_identical": true
+ },
+ "step0_param_max_delta": 0.0,
+ "control": {
+  "main_norm_head": 2.8199368595720826,
+  "aux_norm_head": 1.188182738480091,
+  "main_norm_shared": 7.785034418012753,
+  "aux_norm_shared": 4.992823863343839,
+  "aux_shared_all_none_or_zero": false,
+  "aux_any_nonfinite": false,
+  "forward_aux": 0.3038652539253235,
+  "forward_main": 0.20983129739761353
+ },
+ "stop": {
+  "main_norm_head": 2.8199368600659267,
+  "aux_norm_head": 1.188182738480091,
+  "main_norm_shared": 7.7850345314315845,
+  "aux_norm_shared": 0.0,
+  "aux_shared_all_none_or_zero": true,
+  "aux_any_nonfinite": false,
+  "forward_aux": 0.3038652539253235,
+  "forward_main": 0.20983129739761353
+ },
+ "slot_logits_max_abs_diff": 0.0,
+ "total_loss_control": 0.7686130404472351,
+ "total_loss_stop": 0.7686130404472351,
+ "all_checks_passed": true
+}
