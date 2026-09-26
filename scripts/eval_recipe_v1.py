@@ -36,6 +36,7 @@ from scripts.audit_bg_counterfactual import variant_metrics  # noqa: E402
 from scripts.audit_group_routing import fragmentation  # noqa: E402
 from scripts.audit_mask_failure import hard_metrics, load_model  # noqa: E402
 from scripts.group_eval_v2 import build_val_entries, forward_group, group_predictions_v2  # noqa: E402
+from scripts.object_locusgs_eval import gt_instances, instance_metrics  # noqa: E402
 
 
 def file_identity(path: Path) -> dict:
@@ -75,7 +76,19 @@ def per_record_metrics(model, opt, entry, device):
         "context": variant_metrics(forward, semantic, instance, (0, 1)),
         "all_views": variant_metrics(forward, semantic, instance, (0, 1, 2, 3)),
     }
-    return records, gt_free, forward, semantic, instance
+    # GT-free hits split by the pre-registered novel area buckets (<3000 / >=3000)
+    # by reusing the *same* GT-free matcher with those two cuts only.
+    free_buckets = {"small_lt3000": {"gt": 0, "tp": 0},
+                    "large_ge3000": {"gt": 0, "tp": 0}}
+    for view in (2, 3):
+        predictions, _ = group_predictions_v2(forward, view)
+        instances = gt_instances(semantic, instance, view)
+        result = instance_metrics(predictions, instances, buckets=(3000, 1 << 62))
+        free_buckets["small_lt3000"]["gt"] += result["buckets"]["small"]["gt"]
+        free_buckets["small_lt3000"]["tp"] += result["buckets"]["small"]["tp"]
+        free_buckets["large_ge3000"]["gt"] += result["buckets"]["medium"]["gt"]
+        free_buckets["large_ge3000"]["tp"] += result["buckets"]["medium"]["tp"]
+    return records, gt_free, free_buckets, forward, semantic, instance
 
 
 def main() -> int:
@@ -111,18 +124,24 @@ def main() -> int:
     model.eval()
     entries = build_val_entries(opt, split, device)
     rows, per_scene, reads = [], {}, {}
+    free_buckets_total = {"small_lt3000": {"gt": 0, "tp": 0},
+                          "large_ge3000": {"gt": 0, "tp": 0}}
     for entry in entries:
-        records, gt_free, forward, semantic, instance = per_record_metrics(
+        records, gt_free, free_buckets, forward, semantic, instance = per_record_metrics(
             model, opt, entry, device
         )
+        for name, payload in free_buckets.items():
+            for field in ("gt", "tp"):
+                free_buckets_total[name][field] += payload[field]
         rows.extend(records)
         per_scene[entry["scene"]] = {
             "context": entry["context"], "novel": entry["novel"],
             "records": records,
-            "gt_free": {k: {kk: v[kk] for kk in ("tp", "fp", "fn", "n_gt", "ap50", "n_pred")}
+            "gt_free": {k: {kk: v[kk] for kk in ("tp", "fp", "fn", "n_gt", "ap50")}
                         for k, v in gt_free.items()},
+            "gt_free_buckets_novel": free_buckets,
             "context_conservation_error": float(
-                (forward["masks"]["group_mass"][0, :2].sum(0)
+                (forward["masks"]["group_mass"][0, :2].sum(1)
                  + forward["masks"]["background_mass"][0, :2, 0]
                  - forward["masks"]["alpha"][0, :2, 0]).abs().max()
             ),
@@ -143,7 +162,8 @@ def main() -> int:
         subset = [r for r in rows if predicate(r)]
         buckets[name] = {"n": len(subset),
                          "recipe_pass": sum(1 for r in subset if r["iou1"] >= 0.5),
-                         "recipe_mean_iou1": float(np.mean([r["iou1"] for r in subset]))}
+                         "recipe_mean_iou1": float(np.mean([r["iou1"] for r in subset])),
+                         "gt_free_hits": free_buckets_total[name]}
     novel = {k: 0 for k in ("tp", "fp", "fn")}
     ap = []
     for payload in per_scene.values():
