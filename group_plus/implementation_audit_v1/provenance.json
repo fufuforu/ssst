@@ -1,0 +1,47 @@
+{
+ "static_audit_baseline": "f16d83386fcc1f495f9721083cb73e47fb3abd22",
+ "head_at_audit_start": "e637b0c8de3f3e2d43f789914e4947b33e721941",
+ "worktree_clean_at_start": true,
+ "agends_md_found": false,
+ "plan": {
+  "path": "object_locusgs/plan_6000.json",
+  "sha256": "a2a65c1382da0307a68fb6d27e5c1345aa78b46331acb2927e88b47a3c3d08bb",
+  "preregistered": "a2a65c1382da0307a68fb6d27e5c1345aa78b46331acb2927e88b47a3c3d08bb"
+ },
+ "split": {
+  "path": "workspace_recon_diag/cross_scene/split.json",
+  "sha256": "acf9afac57ca2e5287b9b1b545a62a369fee398a0d1a789cb77b851202b313d5",
+  "preregistered": "acf9afac57ca2e5287b9b1b545a62a369fee398a0d1a789cb77b851202b313d5"
+ },
+ "checkpoints": {
+  "g0_step0": {
+   "path": "workspace_group_locusgs/arm_g0/ckpt_step0/model.pt",
+   "sha256": "6e596e80e29661b6af1cb10a32ebd9ddc266b2cd68833e21bc72a1bd70134761"
+  },
+  "g0plus_step6000": {
+   "path": "workspace_group_plus/arm_g0plus/ckpt_step6000/model.pt",
+   "sha256": "a63dd485cc2d1b3fefb8b68786f9845ff8253cfebedd90405e73484c87243be4"
+  },
+  "recipe_v1_step6000": {
+   "path": "workspace_group_plus/recipe_v1/run/ckpt_step6000/model.pt",
+   "sha256": "39c53ce825b68a24292e84c838d836d02808526e4369bdb4483bbe934b7543ba"
+  },
+  "recipe_v2_step6000": {
+   "path": "workspace_group_plus/recipe_v2/run/ckpt_step6000/model.pt",
+   "sha256": "373cac99ab1aa95ab7118b85ea4d7ebc56befb618928cc8c74d8804054caddcb"
+  },
+  "recipe_v2_pure4_step6000": {
+   "path": "workspace_group_plus/implementation_audit_v1/recipe_v2_pure4/run/ckpt_step6000/model.pt",
+   "sha256": "02f2b35836509d64538bffde7df3c5d17476518be5e33c28a030b102f96ea441"
+  },
+  "recipe_v2_pure4_stopgrad_step6000": {
+   "path": "workspace_group_plus/implementation_audit_v1/recipe_v2_pure4_stopgrad/run/ckpt_step6000/model.pt",
+   "sha256": "b4c1d52809fd8c46d727efc31a757b57b98d61ca709e779daf1dda55dfff8360",
+   "note": "minimal checkpoint: model.pt + step/meta/RNG, optimizer state omitted (disk budget)"
+  }
+ },
+ "official": {
+  "siu3r_head": "8ea80166be76854f938e90521f1a5b688b755c87 (matches)",
+  "interface": "3b1b8f26024cb89a95e970b3a5faf46039c3642534eb21f8cb3f2022cba31720"
+ }
+}

@@ -1,0 +1,132 @@
+{
+ "g0plus": {
+  "all_four_views_110": {
+   "tp": 6,
+   "fp": 140,
+   "fn": 104,
+   "n_gt": 110,
+   "ap50_mean_per_scene": 0.0984375
+  },
+  "context_55": {
+   "tp": 3,
+   "fp": 69,
+   "fn": 52
+  },
+  "novel_55": {
+   "n": 55,
+   "mean_iou1": 0.18112862322947915,
+   "iou1_ge_0.5": 3,
+   "gt_free": {
+    "tp": 3,
+    "fp": 71,
+    "fn": 52,
+    "ap50": 0.1375
+   },
+   "paired_reference_missing": 0
+  }
+ },
+ "recipe_v1": {
+  "all_four_views_110": {
+   "tp": 15,
+   "fp": 176,
+   "fn": 95,
+   "n_gt": 110,
+   "ap50_mean_per_scene": 0.09713541666666667
+  },
+  "context_55": {
+   "tp": 7,
+   "fp": 85,
+   "fn": 48
+  },
+  "novel_55": {
+   "n": 55,
+   "mean_iou1": 0.26562649487464624,
+   "iou1_ge_0.5": 8,
+   "gt_free": {
+    "tp": 8,
+    "fp": 91,
+    "fn": 47,
+    "ap50": 0.09375000000000001
+   },
+   "paired_reference_missing": 0
+  }
+ },
+ "recipe_v2": {
+  "all_four_views_110": {
+   "tp": 6,
+   "fp": 115,
+   "fn": 104,
+   "n_gt": 110,
+   "ap50_mean_per_scene": 0.06015625
+  },
+  "context_55": {
+   "tp": 3,
+   "fp": 56,
+   "fn": 52
+  },
+  "novel_55": {
+   "n": 55,
+   "mean_iou1": 0.1926948244579435,
+   "iou1_ge_0.5": 3,
+   "gt_free": {
+    "tp": 3,
+    "fp": 59,
+    "fn": 52,
+    "ap50": 0.075
+   },
+   "paired_reference_missing": 0
+  }
+ },
+ "recipe_v2_pure4": {
+  "all_four_views_110": {
+   "tp": 4,
+   "fp": 129,
+   "fn": 106,
+   "n_gt": 110,
+   "ap50_mean_per_scene": 0.01809895833333333
+  },
+  "context_55": {
+   "tp": 3,
+   "fp": 61,
+   "fn": 52
+  },
+  "novel_55": {
+   "n": 55,
+   "mean_iou1": 0.18857210471517444,
+   "iou1_ge_0.5": 1,
+   "gt_free": {
+    "tp": 1,
+    "fp": 68,
+    "fn": 54,
+    "ap50": 0.015625
+   },
+   "paired_reference_missing": 0
+  }
+ },
+ "recipe_v2_pure4_stopgrad": {
+  "all_four_views_110": {
+   "tp": 1,
+   "fp": 86,
+   "fn": 109,
+   "n_gt": 110,
+   "ap50_mean_per_scene": 0.03125
+  },
+  "context_55": {
+   "tp": 1,
+   "fp": 44,
+   "fn": 54
+  },
+  "novel_55": {
+   "n": 55,
+   "mean_iou1": 0.14863323592647157,
+   "iou1_ge_0.5": 0,
+   "gt_free": {
+    "tp": 0,
+    "fp": 42,
+    "fn": 55,
+    "ap50": 0.0
+   },
+   "paired_reference_missing": 0
+  }
+ }
+}

@@ -1,0 +1,7 @@
+{
+ "A_pure4": "A_smoke.json",
+ "B2_stopgrad": "B2_smoke.json",
+ "official_export_format": "export_smoke.json",
+ "official_real_model": "B1_smoke_ok.json",
+ "note": "four separate smokes; each is a self-contained JSON report with its checks"
+}
