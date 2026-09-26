@@ -1,0 +1,46 @@
+{
+ "role": "recipe_v2 single arm: recipe_v1 with the main instance/group outer weight 0.1 -> 0.05; every other field identical (single variable)",
+ "preset": "train_siu3r_group_locusgs_ab",
+ "excluded_metadata": [
+  "experiment_name",
+  "workspace"
+ ],
+ "n_fields_compared": 158,
+ "differing_fields": {
+  "group_recipe_seg_weight": {
+   "recipe_v1": 0.1,
+   "recipe_v2": 0.05
+  }
+ },
+ "single_variable_ok": true,
+ "recipe_v1": {
+  "out_dir": "workspace_group_plus/recipe_v1/run",
+  "checkpoint_step6000": "workspace_group_plus/recipe_v1/run/ckpt_step6000",
+  "instance_outer_weight": 0.1,
+  "assign_coef": 0.2,
+  "assign_every": 1,
+  "commit": "de37ef0",
+  "train_job": 55512,
+  "eval_job": 55591
+ },
+ "recipe_v2": {
+  "out_dir": "workspace_group_plus/recipe_v2/run",
+  "instance_outer_weight": 0.05,
+  "assign_coef": 0.2,
+  "assign_every": 1,
+  "cold_start": "workspace_group_locusgs/arm_g0/ckpt_step0",
+  "new_module_seed": 1743
+ },
+ "unchanged_explicitly": {
+  "seg_ramp": "min(1, step/1500) (linear, steps 1..1500)",
+  "assign_term": "seg_ramp * 0.2 * CE_balanced (NOT scaled by the instance weight)",
+  "semantic": "0.05, min(1, step/2000)",
+  "deep_group_decoder": "4 layers, width 1024, 8 heads, MLP 2048, dropout 0",
+  "slot_softmax": "101 columns, 101st logit fixed 0",
+  "hungarian_and_mask_sampling": "unchanged (BCE/Dice on the 4096-point sample)",
+  "gt_free_thresholds": "P(thing)>=0.5, thing class, mask>0.5, area>=50 px",
+  "optimizer": "AdamW, lr 1e-4, warmup 2000, cosine to 2% over 6000, clip 1.0",
+  "seed": 42,
+  "plan_sha256": "a2a65c1382da0307a68fb6d27e5c1345aa78b46331acb2927e88b47a3c3d08bb"
+ }
+}

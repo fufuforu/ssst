@@ -1,0 +1,273 @@
+{
+ "scope": "32/8 development split, novel views 2/3 only (55 records); not SIU3R official mAP/PQ; model uses GT poses, SIU3R is unposed",
+ "checkpoint": "workspace_group_plus/recipe_v2/run/ckpt_step6000",
+ "model_sha256": "373cac99ab1aa95ab7118b85ea4d7ebc56befb618928cc8c74d8804054caddcb",
+ "main_metric_implementation": "group_plus/routing_v1 per-record fragmentation (IoU1), aligned by (scene, view, key)",
+ "novel_only_55": {
+  "mean_iou1": 0.1926948244579435,
+  "iou1_ge_0.5": 3,
+  "gt_free": {
+   "tp": 3,
+   "fp": 59,
+   "fn": 52,
+   "ap50": 0.075
+  }
+ },
+ "context_and_all_views": {
+  "scene0059_00": {
+   "novel": {
+    "tp": 0,
+    "fp": 8,
+    "fn": 19,
+    "n_gt": 19,
+    "ap50": 0.0
+   },
+   "context": {
+    "tp": 0,
+    "fp": 8,
+    "fn": 18,
+    "n_gt": 18,
+    "ap50": 0.0
+   },
+   "all_views": {
+    "tp": 0,
+    "fp": 16,
+    "fn": 37,
+    "n_gt": 37,
+    "ap50": 0.0
+   }
+  },
+  "scene0072_02": {
+   "novel": {
+    "tp": 0,
+    "fp": 8,
+    "fn": 4,
+    "n_gt": 4,
+    "ap50": 0.0
+   },
+   "context": {
+    "tp": 1,
+    "fp": 7,
+    "fn": 3,
+    "n_gt": 4,
+    "ap50": 0.25
+   },
+   "all_views": {
+    "tp": 1,
+    "fp": 15,
+    "fn": 7,
+    "n_gt": 8,
+    "ap50": 0.125
+   }
+  },
+  "scene0132_01": {
+   "novel": {
+    "tp": 0,
+    "fp": 8,
+    "fn": 10,
+    "n_gt": 10,
+    "ap50": 0.0
+   },
+   "context": {
+    "tp": 0,
+    "fp": 7,
+    "fn": 9,
+    "n_gt": 9,
+    "ap50": 0.0
+   },
+   "all_views": {
+    "tp": 0,
+    "fp": 15,
+    "fn": 19,
+    "n_gt": 19,
+    "ap50": 0.0
+   }
+  },
+  "scene0472_01": {
+   "novel": {
+    "tp": 0,
+    "fp": 7,
+    "fn": 2,
+    "n_gt": 2,
+    "ap50": 0.0
+   },
+   "context": {
+    "tp": 0,
+    "fp": 7,
+    "fn": 5,
+    "n_gt": 5,
+    "ap50": 0.0
+   },
+   "all_views": {
+    "tp": 0,
+    "fp": 14,
+    "fn": 7,
+    "n_gt": 7,
+    "ap50": 0.0
+   }
+  },
+  "scene0559_01": {
+   "novel": {
+    "tp": 2,
+    "fp": 5,
+    "fn": 8,
+    "n_gt": 10,
+    "ap50": 0.1
+   },
+   "context": {
+    "tp": 2,
+    "fp": 5,
+    "fn": 7,
+    "n_gt": 9,
+    "ap50": 0.1125
+   },
+   "all_views": {
+    "tp": 4,
+    "fp": 10,
+    "fn": 15,
+    "n_gt": 19,
+    "ap50": 0.10625000000000001
+   }
+  },
+  "scene0568_02": {
+   "novel": {
+    "tp": 0,
+    "fp": 8,
+    "fn": 2,
+    "n_gt": 2,
+    "ap50": 0.0
+   },
+   "context": {
+    "tp": 0,
+    "fp": 7,
+    "fn": 2,
+    "n_gt": 2,
+    "ap50": 0.0
+   },
+   "all_views": {
+    "tp": 0,
+    "fp": 15,
+    "fn": 4,
+    "n_gt": 4,
+    "ap50": 0.0
+   }
+  },
+  "scene0615_00": {
+   "novel": {
+    "tp": 0,
+    "fp": 8,
+    "fn": 6,
+    "n_gt": 6,
+    "ap50": 0.0
+   },
+   "context": {
+    "tp": 0,
+    "fp": 8,
+    "fn": 6,
+    "n_gt": 6,
+    "ap50": 0.0
+   },
+   "all_views": {
+    "tp": 0,
+    "fp": 16,
+    "fn": 12,
+    "n_gt": 12,
+    "ap50": 0.0
+   }
+  },
+  "scene0695_00": {
+   "novel": {
+    "tp": 1,
+    "fp": 7,
+    "fn": 1,
+    "n_gt": 2,
+    "ap50": 0.5
+   },
+   "context": {
+    "tp": 0,
+    "fp": 7,
+    "fn": 2,
+    "n_gt": 2,
+    "ap50": 0.0
+   },
+   "all_views": {
+    "tp": 1,
+    "fp": 14,
+    "fn": 3,
+    "n_gt": 4,
+    "ap50": 0.25
+   }
+  }
+ },
+ "buckets_novel": {
+  "small_lt3000": {
+   "n": 20,
+   "recipe_pass": 0,
+   "recipe_mean_iou1": 0.057211430739210443,
+   "gt_free_hits": {
+    "gt": 20,
+    "tp": 0
+   }
+  },
+  "large_ge3000": {
+   "n": 35,
+   "recipe_pass": 3,
+   "recipe_mean_iou1": 0.27011390658293377,
+   "gt_free_hits": {
+    "gt": 35,
+    "tp": 3
+   }
+  }
+ },
+ "gate": {
+  "novel_psnr": 18.10482406616211,
+  "novel_ssim": 0.6387840583920479,
+  "ctx_psnr": 18.169618368148804
+ },
+ "acceptance": {
+  "mask_iou_mean": {
+   "value": 0.1926948244579435,
+   "baseline": 0.18112862322947915,
+   "delta": 0.011566201228464357,
+   "required_delta": 0.05,
+   "passed": false
+  },
+  "mask_pass_count": {
+   "value": 3,
+   "baseline": 3,
+   "delta": 0,
+   "required_delta": 3,
+   "passed": false
+  },
+  "gt_free_tp": {
+   "value": 3,
+   "baseline": 3,
+   "delta": 0,
+   "required_delta": 3,
+   "passed": false,
+   "fp": 59,
+   "fp_baseline": 71,
+   "fn": 52
+  },
+  "gt_free_ap50": {
+   "value": 0.075,
+   "baseline": 0.1375,
+   "delta": -0.06250000000000001,
+   "required_delta": 0.03,
+   "passed": false
+  },
+  "gate_novel_psnr": {
+   "value": 18.10482406616211,
+   "baseline": 19.157370567321777,
+   "delta": -1.052546501159668,
+   "allowed_drop": 0.2,
+   "passed": false
+  },
+  "overall_passed": false
+ },
+ "identity_after": {
+  "sha256": "373cac99ab1aa95ab7118b85ea4d7ebc56befb618928cc8c74d8804054caddcb",
+  "mtime": 1790425961.0
+ },
+ "checkpoint_unchanged": true
+}

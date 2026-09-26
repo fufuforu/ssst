@@ -101,6 +101,10 @@ def main() -> int:
     parser.add_argument("--device", default="cuda")
     parser.add_argument("--seed", type=int, default=42)
     parser.add_argument("--figures", type=int, default=3)
+    parser.add_argument("--history",
+                        default="workspace_group_plus/recipe_v1/run/val_history.jsonl",
+                        help="fixed-window validation history of THIS arm; its last line "
+                             "supplies the novel/context PSNR+SSIM gate values")
     args = parser.parse_args()
 
     device = torch.device(args.device)
@@ -175,7 +179,7 @@ def main() -> int:
         per_scene[s]["gt_free"]["novel"].get("psnr", 0.0) for s in per_scene
     ])) if False else None
     # novel PSNR from the training-time eval history (same 8 windows/checkpoint)
-    history = Path("workspace_group_plus/recipe_v1/run/val_history.jsonl")
+    history = Path(args.history)
     psnr_novel = ssim_novel = None
     if history.is_file():
         last = json.loads(history.read_text(encoding="utf-8").strip().splitlines()[-1])

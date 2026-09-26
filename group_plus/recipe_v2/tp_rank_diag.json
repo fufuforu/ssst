@@ -1,0 +1,837 @@
+{
+ "scope": "8 unseen windows, novel views 2/3; GT-free read-out unchanged",
+ "reader": "P(thing)>=0.5, thing class, mask>0.5, area>=50; greedy AP50 match",
+ "variants": {
+  "g0plus_step6000": {
+   "label": "g0plus_step6000",
+   "checkpoint": "workspace_group_plus/arm_g0plus/ckpt_step6000",
+   "n_candidates_total": 74,
+   "tp": 3,
+   "fp": 71,
+   "fn": 52,
+   "tp_median_rank": 1.0,
+   "tp_rank_le_1": 3,
+   "tp_rank_le_3": 3,
+   "tp_rank_le_5": 3,
+   "tp_score_min": 0.9255694150924683,
+   "tp_score_median": 0.9255694150924683,
+   "per_view": [
+    {
+     "scene": "scene0059_00",
+     "view": 2,
+     "frame_id": 511,
+     "n_candidates": 6,
+     "n_gt": 9,
+     "tp": 0,
+     "fp": 6,
+     "fn": 9,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0059_00",
+     "view": 3,
+     "frame_id": 516,
+     "n_candidates": 6,
+     "n_gt": 10,
+     "tp": 0,
+     "fp": 6,
+     "fn": 10,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0072_02",
+     "view": 2,
+     "frame_id": 752,
+     "n_candidates": 2,
+     "n_gt": 2,
+     "tp": 0,
+     "fp": 2,
+     "fn": 2,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0072_02",
+     "view": 3,
+     "frame_id": 760,
+     "n_candidates": 3,
+     "n_gt": 2,
+     "tp": 0,
+     "fp": 3,
+     "fn": 2,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0132_01",
+     "view": 2,
+     "frame_id": 465,
+     "n_candidates": 4,
+     "n_gt": 5,
+     "tp": 0,
+     "fp": 4,
+     "fn": 5,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0132_01",
+     "view": 3,
+     "frame_id": 470,
+     "n_candidates": 4,
+     "n_gt": 5,
+     "tp": 0,
+     "fp": 4,
+     "fn": 5,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0472_01",
+     "view": 2,
+     "frame_id": 105,
+     "n_candidates": 5,
+     "n_gt": 1,
+     "tp": 1,
+     "fp": 4,
+     "fn": 0,
+     "tp_ranks": [
+      {
+       "rank": 1,
+       "group": 92,
+       "score": 0.9255694150924683,
+       "iou": 0.5637488947833775,
+       "gt_index": 0
+      }
+     ]
+    },
+    {
+     "scene": "scene0472_01",
+     "view": 3,
+     "frame_id": 120,
+     "n_candidates": 4,
+     "n_gt": 1,
+     "tp": 1,
+     "fp": 3,
+     "fn": 0,
+     "tp_ranks": [
+      {
+       "rank": 1,
+       "group": 92,
+       "score": 0.9255694150924683,
+       "iou": 0.5401344883988611,
+       "gt_index": 0
+      }
+     ]
+    },
+    {
+     "scene": "scene0559_01",
+     "view": 2,
+     "frame_id": 242,
+     "n_candidates": 5,
+     "n_gt": 5,
+     "tp": 1,
+     "fp": 4,
+     "fn": 4,
+     "tp_ranks": [
+      {
+       "rank": 1,
+       "group": 62,
+       "score": 0.9478697776794434,
+       "iou": 0.5526607246453246,
+       "gt_index": 0
+      }
+     ]
+    },
+    {
+     "scene": "scene0559_01",
+     "view": 3,
+     "frame_id": 260,
+     "n_candidates": 5,
+     "n_gt": 5,
+     "tp": 0,
+     "fp": 5,
+     "fn": 5,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0568_02",
+     "view": 2,
+     "frame_id": 170,
+     "n_candidates": 6,
+     "n_gt": 1,
+     "tp": 0,
+     "fp": 6,
+     "fn": 1,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0568_02",
+     "view": 3,
+     "frame_id": 174,
+     "n_candidates": 6,
+     "n_gt": 1,
+     "tp": 0,
+     "fp": 6,
+     "fn": 1,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0615_00",
+     "view": 2,
+     "frame_id": 554,
+     "n_candidates": 4,
+     "n_gt": 3,
+     "tp": 0,
+     "fp": 4,
+     "fn": 3,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0615_00",
+     "view": 3,
+     "frame_id": 555,
+     "n_candidates": 5,
+     "n_gt": 3,
+     "tp": 0,
+     "fp": 5,
+     "fn": 3,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0695_00",
+     "view": 2,
+     "frame_id": 1517,
+     "n_candidates": 5,
+     "n_gt": 1,
+     "tp": 0,
+     "fp": 5,
+     "fn": 1,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0695_00",
+     "view": 3,
+     "frame_id": 1521,
+     "n_candidates": 4,
+     "n_gt": 1,
+     "tp": 0,
+     "fp": 4,
+     "fn": 1,
+     "tp_ranks": []
+    }
+   ],
+   "tps": [
+    {
+     "rank": 1,
+     "group": 92,
+     "score": 0.9255694150924683,
+     "iou": 0.5637488947833775,
+     "gt_index": 0,
+     "scene": "scene0472_01",
+     "view": 2
+    },
+    {
+     "rank": 1,
+     "group": 92,
+     "score": 0.9255694150924683,
+     "iou": 0.5401344883988611,
+     "gt_index": 0,
+     "scene": "scene0472_01",
+     "view": 3
+    },
+    {
+     "rank": 1,
+     "group": 62,
+     "score": 0.9478697776794434,
+     "iou": 0.5526607246453246,
+     "gt_index": 0,
+     "scene": "scene0559_01",
+     "view": 2
+    }
+   ]
+  },
+  "recipe_v1_step6000": {
+   "label": "recipe_v1_step6000",
+   "checkpoint": "workspace_group_plus/recipe_v1/run/ckpt_step6000",
+   "n_candidates_total": 99,
+   "tp": 8,
+   "fp": 91,
+   "fn": 47,
+   "tp_median_rank": 3.0,
+   "tp_rank_le_1": 2,
+   "tp_rank_le_3": 6,
+   "tp_rank_le_5": 8,
+   "tp_score_min": 0.873488187789917,
+   "tp_score_median": 0.8897042274475098,
+   "per_view": [
+    {
+     "scene": "scene0059_00",
+     "view": 2,
+     "frame_id": 511,
+     "n_candidates": 7,
+     "n_gt": 9,
+     "tp": 0,
+     "fp": 7,
+     "fn": 9,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0059_00",
+     "view": 3,
+     "frame_id": 516,
+     "n_candidates": 7,
+     "n_gt": 10,
+     "tp": 1,
+     "fp": 6,
+     "fn": 9,
+     "tp_ranks": [
+      {
+       "rank": 3,
+       "group": 97,
+       "score": 0.900974690914154,
+       "iou": 0.6834170854271356,
+       "gt_index": 9
+      }
+     ]
+    },
+    {
+     "scene": "scene0072_02",
+     "view": 2,
+     "frame_id": 752,
+     "n_candidates": 6,
+     "n_gt": 2,
+     "tp": 0,
+     "fp": 6,
+     "fn": 2,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0072_02",
+     "view": 3,
+     "frame_id": 760,
+     "n_candidates": 6,
+     "n_gt": 2,
+     "tp": 0,
+     "fp": 6,
+     "fn": 2,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0132_01",
+     "view": 2,
+     "frame_id": 465,
+     "n_candidates": 6,
+     "n_gt": 5,
+     "tp": 0,
+     "fp": 6,
+     "fn": 5,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0132_01",
+     "view": 3,
+     "frame_id": 470,
+     "n_candidates": 6,
+     "n_gt": 5,
+     "tp": 0,
+     "fp": 6,
+     "fn": 5,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0472_01",
+     "view": 2,
+     "frame_id": 105,
+     "n_candidates": 6,
+     "n_gt": 1,
+     "tp": 0,
+     "fp": 6,
+     "fn": 1,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0472_01",
+     "view": 3,
+     "frame_id": 120,
+     "n_candidates": 6,
+     "n_gt": 1,
+     "tp": 0,
+     "fp": 6,
+     "fn": 1,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0559_01",
+     "view": 2,
+     "frame_id": 242,
+     "n_candidates": 7,
+     "n_gt": 5,
+     "tp": 3,
+     "fp": 4,
+     "fn": 2,
+     "tp_ranks": [
+      {
+       "rank": 1,
+       "group": 14,
+       "score": 0.9275892972946167,
+       "iou": 0.6117046224399395,
+       "gt_index": 0
+      },
+      {
+       "rank": 3,
+       "group": 35,
+       "score": 0.8897042274475098,
+       "iou": 0.5328693851728302,
+       "gt_index": 3
+      },
+      {
+       "rank": 4,
+       "group": 97,
+       "score": 0.873488187789917,
+       "iou": 0.6127068670344303,
+       "gt_index": 1
+      }
+     ]
+    },
+    {
+     "scene": "scene0559_01",
+     "view": 3,
+     "frame_id": 260,
+     "n_candidates": 7,
+     "n_gt": 5,
+     "tp": 3,
+     "fp": 4,
+     "fn": 2,
+     "tp_ranks": [
+      {
+       "rank": 1,
+       "group": 14,
+       "score": 0.9275892972946167,
+       "iou": 0.5149044062221613,
+       "gt_index": 0
+      },
+      {
+       "rank": 3,
+       "group": 35,
+       "score": 0.8897042274475098,
+       "iou": 0.5216716417910447,
+       "gt_index": 3
+      },
+      {
+       "rank": 4,
+       "group": 97,
+       "score": 0.873488187789917,
+       "iou": 0.653874758292429,
+       "gt_index": 1
+      }
+     ]
+    },
+    {
+     "scene": "scene0568_02",
+     "view": 2,
+     "frame_id": 170,
+     "n_candidates": 5,
+     "n_gt": 1,
+     "tp": 0,
+     "fp": 5,
+     "fn": 1,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0568_02",
+     "view": 3,
+     "frame_id": 174,
+     "n_candidates": 6,
+     "n_gt": 1,
+     "tp": 0,
+     "fp": 6,
+     "fn": 1,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0615_00",
+     "view": 2,
+     "frame_id": 554,
+     "n_candidates": 6,
+     "n_gt": 3,
+     "tp": 0,
+     "fp": 6,
+     "fn": 3,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0615_00",
+     "view": 3,
+     "frame_id": 555,
+     "n_candidates": 5,
+     "n_gt": 3,
+     "tp": 0,
+     "fp": 5,
+     "fn": 3,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0695_00",
+     "view": 2,
+     "frame_id": 1517,
+     "n_candidates": 7,
+     "n_gt": 1,
+     "tp": 1,
+     "fp": 6,
+     "fn": 0,
+     "tp_ranks": [
+      {
+       "rank": 2,
+       "group": 35,
+       "score": 0.881088137626648,
+       "iou": 0.5317589576547231,
+       "gt_index": 0
+      }
+     ]
+    },
+    {
+     "scene": "scene0695_00",
+     "view": 3,
+     "frame_id": 1521,
+     "n_candidates": 6,
+     "n_gt": 1,
+     "tp": 0,
+     "fp": 6,
+     "fn": 1,
+     "tp_ranks": []
+    }
+   ],
+   "tps": [
+    {
+     "rank": 3,
+     "group": 97,
+     "score": 0.900974690914154,
+     "iou": 0.6834170854271356,
+     "gt_index": 9,
+     "scene": "scene0059_00",
+     "view": 3
+    },
+    {
+     "rank": 1,
+     "group": 14,
+     "score": 0.9275892972946167,
+     "iou": 0.6117046224399395,
+     "gt_index": 0,
+     "scene": "scene0559_01",
+     "view": 2
+    },
+    {
+     "rank": 3,
+     "group": 35,
+     "score": 0.8897042274475098,
+     "iou": 0.5328693851728302,
+     "gt_index": 3,
+     "scene": "scene0559_01",
+     "view": 2
+    },
+    {
+     "rank": 4,
+     "group": 97,
+     "score": 0.873488187789917,
+     "iou": 0.6127068670344303,
+     "gt_index": 1,
+     "scene": "scene0559_01",
+     "view": 2
+    },
+    {
+     "rank": 1,
+     "group": 14,
+     "score": 0.9275892972946167,
+     "iou": 0.5149044062221613,
+     "gt_index": 0,
+     "scene": "scene0559_01",
+     "view": 3
+    },
+    {
+     "rank": 3,
+     "group": 35,
+     "score": 0.8897042274475098,
+     "iou": 0.5216716417910447,
+     "gt_index": 3,
+     "scene": "scene0559_01",
+     "view": 3
+    },
+    {
+     "rank": 4,
+     "group": 97,
+     "score": 0.873488187789917,
+     "iou": 0.653874758292429,
+     "gt_index": 1,
+     "scene": "scene0559_01",
+     "view": 3
+    },
+    {
+     "rank": 2,
+     "group": 35,
+     "score": 0.881088137626648,
+     "iou": 0.5317589576547231,
+     "gt_index": 0,
+     "scene": "scene0695_00",
+     "view": 2
+    }
+   ]
+  },
+  "recipe_v2_step6000": {
+   "label": "recipe_v2_step6000",
+   "checkpoint": "workspace_group_plus/recipe_v2/run/ckpt_step6000",
+   "n_candidates_total": 62,
+   "tp": 3,
+   "fp": 59,
+   "fn": 52,
+   "tp_median_rank": 2.0,
+   "tp_rank_le_1": 1,
+   "tp_rank_le_3": 3,
+   "tp_rank_le_5": 3,
+   "tp_score_min": 0.8700084090232849,
+   "tp_score_median": 0.9343529939651489,
+   "per_view": [
+    {
+     "scene": "scene0059_00",
+     "view": 2,
+     "frame_id": 511,
+     "n_candidates": 4,
+     "n_gt": 9,
+     "tp": 0,
+     "fp": 4,
+     "fn": 9,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0059_00",
+     "view": 3,
+     "frame_id": 516,
+     "n_candidates": 4,
+     "n_gt": 10,
+     "tp": 0,
+     "fp": 4,
+     "fn": 10,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0072_02",
+     "view": 2,
+     "frame_id": 752,
+     "n_candidates": 4,
+     "n_gt": 2,
+     "tp": 0,
+     "fp": 4,
+     "fn": 2,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0072_02",
+     "view": 3,
+     "frame_id": 760,
+     "n_candidates": 4,
+     "n_gt": 2,
+     "tp": 0,
+     "fp": 4,
+     "fn": 2,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0132_01",
+     "view": 2,
+     "frame_id": 465,
+     "n_candidates": 4,
+     "n_gt": 5,
+     "tp": 0,
+     "fp": 4,
+     "fn": 5,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0132_01",
+     "view": 3,
+     "frame_id": 470,
+     "n_candidates": 4,
+     "n_gt": 5,
+     "tp": 0,
+     "fp": 4,
+     "fn": 5,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0472_01",
+     "view": 2,
+     "frame_id": 105,
+     "n_candidates": 3,
+     "n_gt": 1,
+     "tp": 0,
+     "fp": 3,
+     "fn": 1,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0472_01",
+     "view": 3,
+     "frame_id": 120,
+     "n_candidates": 4,
+     "n_gt": 1,
+     "tp": 0,
+     "fp": 4,
+     "fn": 1,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0559_01",
+     "view": 2,
+     "frame_id": 242,
+     "n_candidates": 4,
+     "n_gt": 5,
+     "tp": 1,
+     "fp": 3,
+     "fn": 4,
+     "tp_ranks": [
+      {
+       "rank": 2,
+       "group": 92,
+       "score": 0.9343529939651489,
+       "iou": 0.6732926696438296,
+       "gt_index": 0
+      }
+     ]
+    },
+    {
+     "scene": "scene0559_01",
+     "view": 3,
+     "frame_id": 260,
+     "n_candidates": 3,
+     "n_gt": 5,
+     "tp": 1,
+     "fp": 2,
+     "fn": 4,
+     "tp_ranks": [
+      {
+       "rank": 2,
+       "group": 92,
+       "score": 0.9343529939651489,
+       "iou": 0.5830537820582188,
+       "gt_index": 0
+      }
+     ]
+    },
+    {
+     "scene": "scene0568_02",
+     "view": 2,
+     "frame_id": 170,
+     "n_candidates": 4,
+     "n_gt": 1,
+     "tp": 0,
+     "fp": 4,
+     "fn": 1,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0568_02",
+     "view": 3,
+     "frame_id": 174,
+     "n_candidates": 4,
+     "n_gt": 1,
+     "tp": 0,
+     "fp": 4,
+     "fn": 1,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0615_00",
+     "view": 2,
+     "frame_id": 554,
+     "n_candidates": 4,
+     "n_gt": 3,
+     "tp": 0,
+     "fp": 4,
+     "fn": 3,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0615_00",
+     "view": 3,
+     "frame_id": 555,
+     "n_candidates": 4,
+     "n_gt": 3,
+     "tp": 0,
+     "fp": 4,
+     "fn": 3,
+     "tp_ranks": []
+    },
+    {
+     "scene": "scene0695_00",
+     "view": 2,
+     "frame_id": 1517,
+     "n_candidates": 4,
+     "n_gt": 1,
+     "tp": 1,
+     "fp": 3,
+     "fn": 0,
+     "tp_ranks": [
+      {
+       "rank": 1,
+       "group": 61,
+       "score": 0.8700084090232849,
+       "iou": 0.5784548422198041,
+       "gt_index": 0
+      }
+     ]
+    },
+    {
+     "scene": "scene0695_00",
+     "view": 3,
+     "frame_id": 1521,
+     "n_candidates": 4,
+     "n_gt": 1,
+     "tp": 0,
+     "fp": 4,
+     "fn": 1,
+     "tp_ranks": []
+    }
+   ],
+   "tps": [
+    {
+     "rank": 2,
+     "group": 92,
+     "score": 0.9343529939651489,
+     "iou": 0.6732926696438296,
+     "gt_index": 0,
+     "scene": "scene0559_01",
+     "view": 2
+    },
+    {
+     "rank": 2,
+     "group": 92,
+     "score": 0.9343529939651489,
+     "iou": 0.5830537820582188,
+     "gt_index": 0,
+     "scene": "scene0559_01",
+     "view": 3
+    },
+    {
+     "rank": 1,
+     "group": 61,
+     "score": 0.8700084090232849,
+     "iou": 0.5784548422198041,
+     "gt_index": 0,
+     "scene": "scene0695_00",
+     "view": 2
+    }
+   ]
+  }
+ },
+ "identity_after": {
+  "g0plus_step6000": {
+   "sha256": "a63dd485cc2d1b3fefb8b68786f9845ff8253cfebedd90405e73484c87243be4",
+   "mtime": 1790353194.0
+  },
+  "recipe_v1_step6000": {
+   "sha256": "39c53ce825b68a24292e84c838d836d02808526e4369bdb4483bbe934b7543ba",
+   "mtime": 1790412379.0
+  },
+  "recipe_v2_step6000": {
+   "sha256": "373cac99ab1aa95ab7118b85ea4d7ebc56befb618928cc8c74d8804054caddcb",
+   "mtime": 1790425961.0
+  }
+ },
+ "checkpoints_unchanged": true
+}

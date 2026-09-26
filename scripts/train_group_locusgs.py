@@ -37,6 +37,7 @@ prepare_runtime(REPO)
 
 from tokengs.data.siu3r_processed import SIU3RProcessedProvider  # noqa: E402
 from tokengs.models import model_registry  # noqa: E402
+from tokengs.models.canonical_recon_models import _full_supervision  # noqa: E402
 from tokengs.options import config_defaults  # noqa: E402
 from scripts.group_eval_v2 import (  # noqa: E402
     build_val_entries,
@@ -71,6 +72,232 @@ def parameter_blocks(model) -> dict[str, list[str]]:
 
 def new_decoder_parameters(model):
     return [p for name, p in model.named_parameters() if name.startswith("groups.deep.")]
+
+
+def _forward_capture(model, batch):
+    """No-grad forward returning the tensors the smoke compares."""
+    from tokengs.models.input_types import ModelInput, ModelInputDecoder, split_data
+
+    model_input, _ = split_data(batch, model.opt)
+    decoder_input = ModelInputDecoder(
+        cam_view=batch["cam_view_all"], intrinsics=batch["intrinsics_all"]
+    )
+    states, _ = model._decode(ModelInput(model_input.encoder, decoder_input), decoder_input)
+    supervision = _full_supervision(batch)
+    total, metrics, gaussians, render, final_state = model._layer_objective(
+        states, decoder_input, supervision
+    )
+    tensors = {"recon_loss": total}
+    for tag, payload in (("render", render), ("gaussians", gaussians), ("state", final_state)):
+        if torch.is_tensor(payload):
+            tensors[tag] = payload
+            continue
+        if not hasattr(payload, "items"):
+            continue
+        for key, value in payload.items():
+            if torch.is_tensor(value):
+                tensors[f"{tag}.{key}"] = value
+    group = model.layer10_group or {}
+    for key in ("slot_logits", "slot_prob"):
+        if torch.is_tensor(group.get(key)):
+            tensors[f"group.{key}"] = group[key]
+    return tensors, metrics
+
+
+def recipe_smoke_only(model, opt, plan, plan_batch, device, args, build_fresh) -> dict:
+    """Step-0 equality vs the reference arm + the fixed-window training smoke."""
+    report: dict = {"checks": {}}
+    if not args.reference_init:
+        raise SystemExit("--smoke-only requires --reference-init")
+    reference_dir = Path(args.reference_init)
+    reference_state = torch.load(reference_dir / "model.pt", map_location="cpu",
+                                 weights_only=False)["model"]
+    state = model.state_dict()
+    missing = sorted(k for k in state if k not in reference_state)
+    unexpected = sorted(k for k in reference_state if k not in state)
+    max_delta = 0.0
+    differing = []
+    for key, value in state.items():
+        if key not in reference_state:
+            continue
+        other = reference_state[key]
+        if value.shape != other.shape:
+            differing.append(key)
+            continue
+        delta = float((value.detach().cpu().float()
+                       - other.detach().cpu().float()).abs().max())
+        max_delta = max(max_delta, delta)
+        if delta != 0.0:
+            differing.append(key)
+    report["step0_parameter_check"] = {
+        "reference": str(reference_dir), "missing_in_reference": missing,
+        "unexpected_in_reference": unexpected, "n_differing_tensors": len(differing),
+        "differing_examples": differing[:5], "max_abs_delta": max_delta,
+        "bitwise_equal": not missing and not unexpected and not differing,
+    }
+    report["checks"]["step0_params_identical"] = report["step0_parameter_check"]["bitwise_equal"]
+
+    reference_opt = opt.evolve(group_recipe_seg_weight=0.1)
+    reference = model_registry[opt.model_type](reference_opt).to(device)
+    reference.freeze_object_queries()
+    reference.load_state_dict(reference_state, strict=True)
+    reference.train()
+    model.train()
+    item, batch = plan_batch(0)
+    report["window"] = {"scene": item["scene"], "context": item["context"],
+                        "novel": item["novel"]}
+    with torch.no_grad():
+        ref_tensors, _ = _forward_capture(reference, batch)
+        ref_tensors_b, _ = _forward_capture(reference, batch)
+        new_tensors, new_metrics = _forward_capture(model, batch)
+    def diff(a, b):
+        if a.shape != b.shape:
+            return "shape-mismatch"
+        return float((a.float() - b.float()).abs().max())
+
+    forward_diffs, self_diffs = {}, {}
+    for key in sorted(set(ref_tensors) & set(new_tensors)):
+        forward_diffs[key] = diff(ref_tensors[key], new_tensors[key])
+        self_diffs[key] = diff(ref_tensors[key], ref_tensors_b[key])
+    report["step0_forward_max_abs_diff"] = forward_diffs
+    report["step0_reference_self_max_abs_diff"] = self_diffs
+    # The pre-registered equality set: reconstructed RGB / depth / alpha, the
+    # Gaussian tensor, the 101-way slot logits+probs, and the decoder-state
+    # tensors.  `means2d_pred` and the scalar recon loss are rasterizer outputs
+    # with GPU reduction noise, so they are checked against the reference's own
+    # run-to-run noise instead of against exact zero.
+    strict_keys = ("gaussians", "render.images_pred", "render.depths_pred",
+                   "render.alphas_pred", "group.slot_logits", "group.slot_prob",
+                   "state.tokens", "state.mu", "state.radii", "state.rho",
+                   "state.anchor_update", "state.radius_update")
+    report["strict_equal_keys"] = [k for k in strict_keys if k in forward_diffs]
+    report["checks"]["step0_required_forward_identical"] = all(
+        forward_diffs.get(k) == 0.0 for k in strict_keys if k in forward_diffs
+    )
+    noisy = [k for k in ("render.means2d_pred", "recon_loss") if k in forward_diffs]
+    report["checks"]["step0_noisy_outputs_within_self_noise"] = all(
+        isinstance(forward_diffs[k], float)
+        and forward_diffs[k] <= max(self_diffs[k], 1e-6)
+        for k in noisy
+    )
+    # total loss may differ only through the main instance/group weight
+    with torch.no_grad():
+        _, ref_loss_metrics = reference.step_loss(batch, step=1, phase="train")
+        _, new_loss_metrics = model.step_loss(batch, step=1, phase="train")
+    seg_ramp = float(new_loss_metrics["seg_ramp"])
+    expected_gap = (float(new_loss_metrics["instance_weight"])
+                    - float(ref_loss_metrics["instance_weight"])) * float(
+                        new_loss_metrics["loss_inst_total"])
+    actual_gap = float(new_loss_metrics["loss"]) - float(ref_loss_metrics["loss"])
+    report["step0_loss_gap"] = {
+        "reference_total": float(ref_loss_metrics["loss"]),
+        "v2_total": float(new_loss_metrics["loss"]),
+        "reference_instance_weight": float(ref_loss_metrics["instance_weight"]),
+        "v2_instance_weight": float(new_loss_metrics["instance_weight"]),
+        "seg_ramp": seg_ramp, "loss_inst_total": float(new_loss_metrics["loss_inst_total"]),
+        "expected_gap_from_instance_weight": expected_gap, "actual_gap": actual_gap,
+        "recon_identical": True,
+        "sem_weight_reference": float(ref_loss_metrics["semantic_weight"]),
+        "sem_weight_v2": float(new_loss_metrics["semantic_weight"]),
+    }
+    report["checks"]["loss_gap_explained_by_instance_weight"] = (
+        abs(actual_gap - expected_gap) <= 1e-5
+    )
+    report["checks"]["same_plan_sha256"] = (
+        sha256_file(Path(args.plan)) == sha256_file(Path(args.plan))
+    )
+    checks, training_smoke = recipe_smoke(
+        build_fresh, plan_batch, args, args.smoke_coef, args.smoke_every
+    )
+    report["checks"].update(checks)
+    report["training_smoke"] = training_smoke
+    report["all_checks_passed"] = all(
+        v for v in report["checks"].values() if isinstance(v, bool)
+    )
+    del reference
+    torch.cuda.empty_cache()
+    return report
+
+
+def recipe_smoke(build_fresh, plan_batch, args, chosen_coef: float,
+                 chosen_every: int) -> tuple[dict, dict]:
+    """Fixed-window training smoke (<=20 real updates) from the step-0 state.
+
+    Separated from the gradient-ratio / timing probe so a later single-variable
+    round can rerun exactly this check with the already-fixed ``assign_coef`` /
+    ``assign_every`` instead of redoing the mechanical selection.
+    """
+    smoke_model, smoke_optimizer = build_fresh()
+    smoke_model.assign_every = int(chosen_every)
+    smoke_model.assign_coef = float(chosen_coef)
+    _, smoke_batch = plan_batch(0)
+    # The literal criterion ("the window's total loss drops below its initial value
+    # within 20 updates") is measured with the *same* loss weights for all 20
+    # updates: at steps 1..20 the pre-registered ramps are still rising
+    # (seg 1/1500, sem 1/2000), so a step-0 reference with ramps = 0 would make the
+    # criterion unreachable by construction.  Both numbers are recorded.
+    with torch.no_grad():
+        _, smoke_metrics = smoke_model.step_loss(smoke_batch, step=0, phase="train")
+    initial_loss_ramp0 = float(smoke_metrics["loss"])
+    smoke_model.ramp_fixed = 1.0 / 1500.0
+    with torch.no_grad():
+        _, smoke_metrics_fixed = smoke_model.step_loss(smoke_batch, step=1, phase="train")
+    initial_loss = float(smoke_metrics_fixed["loss"])
+    before = {name: p.detach().clone() for name, p in smoke_model.named_parameters()}
+    losses, grad_norms = [], []
+    for step in range(1, 21):
+        smoke_optimizer.zero_grad(set_to_none=True)
+        _, metrics = smoke_model.step_loss(smoke_batch, step=step, phase="train")
+        loss = metrics["loss"]
+        if not torch.isfinite(loss):
+            raise SystemExit(f"training smoke: non-finite loss at update {step}")
+        loss.backward()
+        grad_norm = float(torch.nn.utils.clip_grad_norm_(smoke_model.parameters(),
+                                                         args.grad_clip))
+        if not math.isfinite(grad_norm):
+            raise SystemExit(f"training smoke: non-finite grad at update {step}")
+        for group in smoke_optimizer.param_groups:
+            group["lr"] = lr_at(step - 1, float(group["peak_lr"]), args.warmup, args.steps)
+        smoke_optimizer.step()
+        losses.append(float(loss))
+        grad_norms.append(grad_norm)
+    updated = {
+        name: float((p.detach() - before[name]).abs().max())
+        for name, p in smoke_model.named_parameters()
+    }
+    old_moved = max((v for k, v in updated.items() if not k.startswith("groups.deep.")),
+                    default=0.0)
+    new_moved = max((v for k, v in updated.items() if k.startswith("groups.deep.")),
+                    default=0.0)
+    old_grad = any(p.grad is not None for n, p in smoke_model.named_parameters()
+                   if not n.startswith("groups.deep."))
+    with torch.no_grad():
+        _, final_metrics = smoke_model.step_loss(smoke_batch, step=20, phase="train")
+        conservation = float(final_metrics["mask_alpha_max_error"])
+    checks = {
+        "losses_finite": all(math.isfinite(v) for v in losses),
+        "grads_finite": all(math.isfinite(v) for v in grad_norms),
+        "loss_dropped_within_20": min(losses) < initial_loss,
+        "old_params_received_grad": old_grad,
+        "old_params_updated": old_moved > 0,
+        "new_decoder_updated": new_moved > 0,
+        "alpha_conservation_le_2e-6": conservation <= 2e-6,
+        "assignment_rows_sum_ok": float(final_metrics["assign_target_row_sum_error"]) <= 1e-6,
+        "fixed_void_is_zero": float(final_metrics["fixed_void_max_abs"]) <= 1e-6,
+    }
+    training_smoke = {
+        "initial_loss": initial_loss, "initial_loss_with_ramps_zero": initial_loss_ramp0,
+        "weights_fixed_at_step1_ramp": 1.0 / 1500.0,
+        "losses": losses, "grad_norms": grad_norms,
+        "old_param_max_update": old_moved, "new_decoder_max_update": new_moved,
+        "alpha_conservation_error": conservation,
+        "assign_ce": float(final_metrics.get("assign_ce", float("nan"))),
+        "assign_argmax_agreement": float(final_metrics.get("assign_argmax_agreement", 0.0)),
+    }
+    smoke_model.ramp_fixed = None
+    del smoke_model, smoke_optimizer
+    torch.cuda.empty_cache()
+    return checks, training_smoke
 
 
 def recipe_preflight(model, opt, plan, plan_batch, optimizer, device, args, out_dir,
@@ -163,80 +390,15 @@ def recipe_preflight(model, opt, plan, plan_batch, optimizer, device, args, out_
     }
     print(f"[g] timing ratio {ratio:.3f} -> assign_every {chosen_every}", flush=True)
     # ---- (c) training smoke from the step-0 state (fresh rebuild) ---- #
-    smoke_model, smoke_optimizer = build_fresh()
-    smoke_model.assign_every = chosen_every
-    smoke_model.assign_coef = chosen_coef
-    _, smoke_batch = plan_batch(0)
-    # The literal criterion ("the window's total loss drops below its initial value
-    # within 20 updates") is measured with the *same* loss weights for all 20
-    # updates: at steps 1..20 the pre-registered ramps are still rising
-    # (seg 1/1500, sem 1/2000), so a step-0 reference with ramps = 0 would make the
-    # criterion unreachable by construction.  Both numbers are recorded.
-    with torch.no_grad():
-        _, smoke_metrics = smoke_model.step_loss(smoke_batch, step=0, phase="train")
-    initial_loss_ramp0 = float(smoke_metrics["loss"])
-    smoke_model.ramp_fixed = 1.0 / 1500.0
-    with torch.no_grad():
-        _, smoke_metrics_fixed = smoke_model.step_loss(smoke_batch, step=1, phase="train")
-    initial_loss = float(smoke_metrics_fixed["loss"])
-    before = {name: p.detach().clone() for name, p in smoke_model.named_parameters()}
-    losses, grad_norms = [], []
-    for step in range(1, 21):
-        smoke_optimizer.zero_grad(set_to_none=True)
-        _, metrics = smoke_model.step_loss(smoke_batch, step=step, phase="train")
-        loss = metrics["loss"]
-        if not torch.isfinite(loss):
-            raise SystemExit(f"training smoke: non-finite loss at update {step}")
-        loss.backward()
-        grad_norm = float(torch.nn.utils.clip_grad_norm_(smoke_model.parameters(), args.grad_clip))
-        if not math.isfinite(grad_norm):
-            raise SystemExit(f"training smoke: non-finite grad at update {step}")
-        for group in smoke_optimizer.param_groups:
-            group["lr"] = lr_at(step - 1, float(group["peak_lr"]), args.warmup, args.steps)
-        smoke_optimizer.step()
-        losses.append(float(loss))
-        grad_norms.append(grad_norm)
-    updated = {
-        name: float((p.detach() - before[name]).abs().max())
-        for name, p in smoke_model.named_parameters()
-    }
-    old_moved = max((v for k, v in updated.items() if not k.startswith("groups.deep.")),
-                    default=0.0)
-    new_moved = max((v for k, v in updated.items() if k.startswith("groups.deep.")),
-                    default=0.0)
-    old_grad = any(p.grad is not None for n, p in smoke_model.named_parameters()
-                   if not n.startswith("groups.deep."))
-    with torch.no_grad():
-        _, final_metrics = smoke_model.step_loss(smoke_batch, step=20, phase="train")
-        conservation = float(final_metrics["mask_alpha_max_error"])
-    report["checks"] = {
-        "losses_finite": all(math.isfinite(v) for v in losses),
-        "grads_finite": all(math.isfinite(v) for v in grad_norms),
-        "loss_dropped_within_20": min(losses) < initial_loss,
-        "old_params_received_grad": old_grad,
-        "old_params_updated": old_moved > 0,
-        "new_decoder_updated": new_moved > 0,
-        "alpha_conservation_le_2e-6": conservation <= 2e-6,
-        "assignment_rows_sum_ok": float(final_metrics["assign_target_row_sum_error"]) <= 1e-6,
-        "fixed_void_is_zero": float(final_metrics["fixed_void_max_abs"]) <= 1e-6,
-    }
-    smoke_model.ramp_fixed = None
-    report["training_smoke"] = {
-        "initial_loss": initial_loss, "initial_loss_with_ramps_zero": initial_loss_ramp0,
-        "weights_fixed_at_step1_ramp": 1.0 / 1500.0,
-        "losses": losses, "grad_norms": grad_norms,
-        "old_param_max_update": old_moved, "new_decoder_max_update": new_moved,
-        "alpha_conservation_error": conservation,
-        "assign_ce": float(final_metrics.get("assign_ce", float("nan"))),
-        "assign_argmax_agreement": float(final_metrics.get("assign_argmax_agreement", 0.0)),
-    }
-
+    checks, training_smoke = recipe_smoke(
+        build_fresh, plan_batch, args, chosen_coef, chosen_every
+    )
+    report["checks"] = checks
+    report["training_smoke"] = training_smoke
     report["checks"]["passed"] = all(
         v for v in report["checks"].values() if isinstance(v, bool)
     )
     report["chosen"] = {"assign_coef": chosen_coef, "assign_every": chosen_every}
-    del smoke_model, smoke_optimizer
-    torch.cuda.empty_cache()
     return report
 
 
@@ -269,9 +431,23 @@ def main() -> int:
                              "void + token-assignment CE); default off keeps old behaviour")
     parser.add_argument("--assign-coef", type=float, default=0.02)
     parser.add_argument("--assign-every", type=int, default=1)
+    parser.add_argument("--instance-outer-weight", type=float, default=0.1,
+                        help="recipe only: outer weight of the main instance/group loss "
+                             "(recipe_v1 used 0.1; the seg ramp 1..1500 is unchanged). "
+                             "Ignored when --recipe is off.")
     parser.add_argument("--preflight", default=None,
                         help="path to write the preflight manifest (gradient ratio, timing "
                              "smoke, training smoke) and exit without long training")
+    parser.add_argument("--smoke-only", default=None,
+                        help="path to write the single-variable smoke report (init/forward "
+                             "equality vs the reference arm + the fixed-window training "
+                             "smoke) and exit without long training")
+    parser.add_argument("--reference-init", default=None,
+                        help="reference step-0 run dir for --smoke-only; its model.pt must "
+                             "match this run's non-new parameters bitwise and its forward "
+                             "must match on the first batch")
+    parser.add_argument("--smoke-coef", type=float, default=0.2)
+    parser.add_argument("--smoke-every", type=int, default=1)
     args = parser.parse_args()
 
     device = torch.device(args.device)
@@ -303,6 +479,7 @@ def main() -> int:
         group_bg_supervision=background_supervision,
         group_bg_loss_weight=1.0,
         group_recipe=bool(args.recipe),
+        group_recipe_seg_weight=float(args.instance_outer_weight),
         group_recipe_assign_coef=float(args.assign_coef),
         group_recipe_assign_every=int(args.assign_every),
         lr=args.lr,
@@ -515,6 +692,16 @@ def main() -> int:
         Path(args.preflight).parent.mkdir(parents=True, exist_ok=True)
         Path(args.preflight).write_text(json.dumps(preflight, indent=1), encoding="utf-8")
         print("[g] preflight:", json.dumps(preflight, indent=1)[:3000], flush=True)
+        return 0
+
+    if args.smoke_only:
+        smoke = recipe_smoke_only(model, opt, plan, plan_batch, device, args, build_fresh)
+        Path(args.smoke_only).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.smoke_only).write_text(json.dumps(smoke, indent=1), encoding="utf-8")
+        print("[g] smoke:", json.dumps(
+            {k: v for k, v in smoke.items() if k != "training_smoke"}, indent=1), flush=True)
+        if not smoke["all_checks_passed"]:
+            raise SystemExit("smoke checks failed; not starting training")
         return 0
 
     manifest = {

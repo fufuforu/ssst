@@ -133,10 +133,23 @@ gt_free_tp ✅, gt_free_ap50 ❌, gate_novel_psnr ❌).
 | scene0615_00 | 6 | 0.2509 | 0.2503 | −0.0006 | 0 → 0 |
 | scene0695_00 | 2 | 0.1763 | 0.3279 | +0.1516 | 0 → 1 |
 
-Per-record: 16 records improved, 39 unchanged, 0 decreased in best IoU; 7
-crossed to ≥0.5 (scene0059_00 v3/20034, scene0559_01 v2·3/6003, v2·3/8013,
-v3/6002, scene0695_00 v2/20017), while **2 records lost** ≥0.5
-(scene0472_01 v2·3/4004).  The gain is **not** a single-scene artefact.
+Per-record: **37 records improved, 16 decreased, 2 unchanged** in best-over-groups
+IoU; 7 crossed to ≥0.5 (scene0059_00 v3/20034, scene0559_01 v2·3/6003, v2·3/8013,
+v3/6002, scene0695_00 v2/20017), while **2 records lost** ≥0.5.  Both losses are
+the same GT instance, `scene0472_01` key `4004`, in the two novel views
+(0.564→0.364 at v2, 0.540→0.345 at v3) — the single instance-level regression
+case.  The count identity holds: 3 − 2 + 7 = 8 ≥0.5 records at step 6000.  The
+gain is **not** a single-scene artefact, but it is **not** uniform either.
+
+> **Erratum (added in the recipe_v2 round).**  An earlier version of this report
+> said "16 improved, 39 unchanged, 0 decreased".  That was wrong: it was read off
+> the `delta` column of `eval_per_instance.csv`, which is the **routing_v1
+> fragmentation Δ (union of the top-3 groups minus the best single group)** — a
+> non-negative quantity by construction — **not** the recipe-minus-baseline IoU.
+> The per-record recipe-vs-G0+ comparison, recomputed directly from `iou1` vs
+> `baseline_iou1` (join verified row-by-row against
+> `routing_v1/fragmentation.csv`, 0 mismatches, 0 nulls), is **37 up / 16 down /
+> 2 unchanged**.  The CSV and the evaluation definition are unchanged.
 
 ### Context and all-4-view (never mixed with the 55-record figures)
 
