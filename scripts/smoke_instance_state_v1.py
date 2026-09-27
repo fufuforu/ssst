@@ -30,7 +30,7 @@ from tokengs.models import model_registry  # noqa: E402
 from tokengs.models.input_types import ModelInput, ModelInputDecoder, split_data  # noqa: E402
 from tokengs.options import config_defaults  # noqa: E402
 from scripts.run_instance_state_v1 import (  # noqa: E402
-    BASE_PRESET, PRESET_C, PRESET_E, PRETRAINED, SEED, build_options,
+    ARM_C, ARM_E, BASE_PRESET, PRESET_C, PRESET_E, PRETRAINED, SEED, build_options,
     transfer_reconstruction_weights, write_json,
 )
 
@@ -324,40 +324,82 @@ def run_all(reports: Path, run_root: Path, device: str = "cuda") -> int:
                   all(np.isfinite(v) for v in cases.values()), json.dumps(cases))
     del deg, deg2, m_deg, m_deg2
 
-    # ---------------- H. checkpoint resume ------------------------------ #
-    model_h = copy.deepcopy(model_c).to(device).train()
-    opt_h = torch.optim.AdamW([p for p in model_h.parameters() if p.requires_grad], lr=1e-4)
-    run_named_steps(model_h, opt_c, opt_h, batches, steps=4, coupled=False, step_offset=0)
-    state = {"model": {k: v.detach().cpu().clone() for k, v in model_h.state_dict().items()},
-             "optimizer": opt_h.state_dict(), "step": 4,
-             "torch_rng": torch.get_rng_state(), "numpy_rng": np.random.get_state()}
-    ckpt_dir = run_root / "smoke_resume"
-    ckpt_dir.mkdir(parents=True, exist_ok=True)
-    torch.save(state, ckpt_dir / "state.pt")
-    torch.save(state, ckpt_dir / "state_copy.pt")
-    reload_a = torch.load(ckpt_dir / "state.pt", map_location="cpu", weights_only=False)
-    reload_b = torch.load(ckpt_dir / "state_copy.pt", map_location="cpu", weights_only=False)
-    identical = all(torch.equal(reload_a["model"][k], reload_b["model"][k]) for k in reload_a["model"])
-    checks.record("H.serialise_reload_identical", identical,
-                  "checkpoint bytes reload to identical tensors")
-    reference = run_named_steps(copy.deepcopy(model_c).to(device).train(), opt_c,
-                                None, batches, steps=8, coupled=False, step_offset=0)
-    model_r = copy.deepcopy(model_c).to(device).train()
-    opt_r = torch.optim.AdamW([p for p in model_r.parameters() if p.requires_grad], lr=1e-4)
-    model_r.load_state_dict(reload_a["model"])
-    opt_r.load_state_dict(reload_a["optimizer"])
-    torch.set_rng_state(reload_a["torch_rng"])
-    np.random.set_state(reload_a["numpy_rng"])
-    resumed = run_named_steps(model_r, opt_c, opt_r, batches, steps=4, coupled=False,
-                              step_offset=4)
-    d_param = max(float((a - b).abs().max()) for a, b in zip(
-        model_r.state_dict().values(),
-        [v.to(device) if torch.is_tensor(v) else v for v in state["model"].values()]))
-    checks.record("H.resume_loss_continuity",
-                  abs(reference[-1] - resumed[-1]) <= 1e-4,
-                  f"8-step {reference[-1]:.6f} vs 4+4 {resumed[-1]:.6f}")
-    checks.record("H.resume_param_drift", d_param <= 1e-5, f"max|dW| {d_param:.3e}")
-    del model_h, opt_h, model_r, opt_r
+    # ---------------- H. shared-prefix fork resume (step8 vs step8) ------ #
+    from scripts.instance_state_runtime import (
+        build_optimizer as rt_build_optimizer, capture_rng, checkpoint_payload,
+        restore_rng, save_checkpoint_atomic, train_one_step, verify_state_dict,
+    )
+    traces = {}
+    for arm in (ARM_C, ARM_E):
+        import random as _random
+        _random.seed(SEED)
+        np.random.seed(SEED)
+        torch.manual_seed(SEED)
+        if device.type == "cuda":
+            torch.cuda.manual_seed_all(SEED)
+        model_live = copy.deepcopy(model_c).to(device).train()
+        opt_live, _ = rt_build_optimizer(model_live)
+        cached = [build_batch(opt_c, windows[i], device) for i in range(4)]
+        losses = []
+        for step in range(1, 5):                       # shared real prefix 1..4
+            losses.append(train_one_step(model_live, opt_live, cached[(step - 1) % 4],
+                                         step, arm, 2000, 100))
+        rng4 = capture_rng()
+        payload = checkpoint_payload(model_live, opt_live, 4, arm, "smoke-plan", 2000, 100,
+                                     {"preset": PRESET_C})
+        ckpt_dir = run_root / f"smoke_resume_{arm}"
+        ckpt_dir.mkdir(parents=True, exist_ok=True)
+        ckpt = save_checkpoint_atomic(payload, ckpt_dir / "ckpt_step4")
+        back = torch.load(ckpt / "train_state.pt", map_location="cpu", weights_only=False)
+        same_weights = all(torch.equal(back["model"][k], payload["model"][k])
+                           for k in payload["model"])
+        same_opt = (len(back["optimizer"]["state"]) == len(payload["optimizer"]["state"])
+                    and all(torch.equal(back["optimizer"]["state"][k][kk],
+                                        payload["optimizer"]["state"][k][kk])
+                            for k in payload["optimizer"]["state"]
+                            for kk in payload["optimizer"]["state"][k]
+                            if torch.is_tensor(payload["optimizer"]["state"][k][kk])))
+        checks.record(f"H.{arm}.serialise_reload_identical",
+                      same_weights and same_opt
+                      and int(back["step"]) == 4 and int(back["plan_position"]) == 4,
+                      "model bitwise, optimizer state equal, step/plan_position == 4")
+        # path 1: continue the live model from step 4 -> 8
+        restore_rng(rng4)
+        ref_steps = []
+        for step in range(5, 9):
+            ref_steps.append(train_one_step(model_live, opt_live, cached[(step - 1) % 4],
+                                            step, arm, 2000, 100))
+        ref8 = {k: v.detach().cpu().clone() for k, v in model_live.state_dict().items()}
+        del model_live, opt_live
+        if device.type == "cuda":
+            torch.cuda.empty_cache()
+        # path 2: fresh model + optimizer, load step 4, restore rng4 -> 8
+        model_r = copy.deepcopy(model_c).to(device).train()
+        opt_r, _ = rt_build_optimizer(model_r)
+        model_r.load_state_dict(back["model"])
+        opt_r.load_state_dict(back["optimizer"])
+        restore_rng(back["rng"])                       # after all construction
+        res_steps = []
+        for step in range(5, 9):
+            res_steps.append(train_one_step(model_r, opt_r, cached[(step - 1) % 4],
+                                            step, arm, 2000, 100))
+        res8 = {k: v.detach().cpu().clone() for k, v in model_r.state_dict().items()}
+        deltas = {k: float((ref8[k].float() - res8[k].float()).abs().max()) for k in ref8}
+        worst = max(deltas, key=deltas.get)
+        loss_diffs = [abs(a["loss"] - b["loss"]) for a, b in zip(ref_steps, res_steps)]
+        lr_same = all(a["lr"] == b["lr"] for a, b in zip(ref_steps, res_steps))
+        traces[arm] = {"prefix_losses": [r["loss"] for r in losses],
+                       "loss_diffs": loss_diffs, "lr_equal": lr_same,
+                       "max_param_delta": max(deltas.values()), "worst_param": worst,
+                       "ref8_step": ref_steps[-1]["step"], "res8_step": res_steps[-1]["step"]}
+        checks.record(f"H.{arm}.resume_param_drift", max(deltas.values()) <= 1e-5,
+                      f"step8 vs step8 max|dW| {max(deltas.values()):.3e} at {worst}")
+        checks.record(f"H.{arm}.resume_loss_continuity", max(loss_diffs) <= 1e-4,
+                      f"max per-step loss diff {max(loss_diffs):.3e}, lr equal {lr_same}")
+        del model_r, opt_r
+        if device.type == "cuda":
+            torch.cuda.empty_cache()
+    write_json(run_root / "resume_trace_C_E.json", traces)
 
     # ---------------- J. timing ----------------------------------------- #
     model_t = copy.deepcopy(model_c).to(device).train()

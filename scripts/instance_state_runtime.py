@@ -112,7 +112,7 @@ def train_one_step(model, optimizer, batch, step: int, arm: str,
     model.understanding_step = int(step)
     lrs = set_lrs(optimizer, step, total_steps, warmup)
     optimizer.zero_grad(set_to_none=True)
-    _, metrics = model.step_loss(batch, step=step, coupled=(arm == "E"))
+    output, metrics = model.step_loss(batch, step=step, coupled=(arm == "E"))
     for key in ("loss", "loss_recon", "loss_understanding"):
         if not bool(torch.isfinite(metrics[key])):
             raise RuntimeError(f"non-finite {key} at step {step}: {float(metrics[key])}")
@@ -127,13 +127,21 @@ def train_one_step(model, optimizer, batch, step: int, arm: str,
             "loss_sem": float(metrics["loss_sem"]), "loss_id": float(metrics["loss_id"]),
             "rseg": float(metrics["rseg"]),
             "n_gt_thing": metrics.get("n_gt_thing"),
-            "beta": float(metrics["rseg"])}
+            "beta": float(output["prediction"]["beta"])}
 
 
 def checkpoint_payload(model, optimizer, step: int, arm: str, plan_sha: str,
                        total_steps: int, warmup: int, config: dict) -> dict:
+    def cpu_state(state: dict) -> dict:
+        out = dict(state)
+        out["state"] = {
+            k: {kk: (vv.detach().cpu() if torch.is_tensor(vv) else vv)
+                for kk, vv in v.items()}
+            for k, v in state["state"].items()}
+        return out
+
     return {"model": {k: v.detach().cpu() for k, v in model.state_dict().items()},
-            "optimizer": optimizer.state_dict(), "step": int(step), "arm": arm,
+            "optimizer": cpu_state(optimizer.state_dict()), "step": int(step), "arm": arm,
             "plan_sha256": plan_sha, "plan_position": int(step),
             "scheduler": {"total_steps": int(total_steps), "warmup": int(warmup),
                           "backbone_peak_lr": BACKBONE_PEAK_LR,

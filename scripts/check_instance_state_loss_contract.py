@@ -166,7 +166,11 @@ def main() -> int:
     m = ref_region[0, :, :NUM_THING].double().numpy()
     m = np.transpose(m, (1, 0, 2, 3)).reshape(NUM_THING, -1)
     z_np = np.log(np.clip(m, 1e-6, 1 - 1e-6) / (1 - np.clip(m, 1e-6, 1 - 1e-6)))
-    y_np = np.concatenate([np.ones((1, 4)), np.zeros((1, 4))], axis=1)
+    # Match the actual [V,H,W] flattening order, independently of loss code.
+    sem_np = ref_sem[0].detach().cpu().numpy()
+    ins_np = ref_ins[0].detach().cpu().numpy()
+    y_np = ((sem_np == 12) & (ins_np == 7)).astype(np.float64).reshape(1, -1)
+    assert np.array_equal(y_np, np.array([[1, 1, 0, 0, 1, 1, 0, 0]]))
     pts = z_np.shape[1]
     pair = np.logaddexp(0, z_np).mean(1, keepdims=True) - (z_np @ y_np.T) / pts
     sig = 1 / (1 + np.exp(-z_np))

@@ -32,8 +32,8 @@
     },
     {
       "check": "L4c.thing_loss_matches_numpy_reference",
-      "ok": false,
-      "detail": "implementation 10.859805 vs reference 20.266098"
+      "ok": true,
+      "detail": "implementation 10.859805 vs reference 10.859804"
     },
     {
       "check": "c.empty_thing_finite",
@@ -81,9 +81,7 @@
       "detail": "1.353731"
     }
   ],
-  "failed": [
-    "L4c.thing_loss_matches_numpy_reference"
-  ],
-  "ok": false,
+  "failed": [],
+  "ok": true,
   "note": "CPU contract only; GPU smoke evidence lives in smoke.json"
 }

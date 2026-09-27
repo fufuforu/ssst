@@ -1,14 +1,14 @@
 #!/usr/bin/env python3
-"""Paired C/E training driver for LOCUSGS_INSTANCE_STATE_V1 (spec sections 9-12).
+"""Paired C/E training driver for LOCUSGS_INSTANCE_STATE_V1 (closure round).
 
-Only the loop / optimizer / checkpoint / schedule plumbing lives here; the
-network, the losses and every metric definition stay in their own modules.
+Only orchestration lives here: gating, plan validation, batch caching, the
+production `train_one_step`, in-loop evaluation, atomic endpoints and the full
+phase.  Network, losses and metrics stay in their own modules.
 """
 
 from __future__ import annotations
 
 import json
-import math
 import sys
 import time
 from pathlib import Path
@@ -27,17 +27,21 @@ prepare_runtime(REPO)
 
 from tokengs.data.siu3r_processed import SIU3RProcessedProvider  # noqa: E402
 from tokengs.models import model_registry  # noqa: E402
-from tokengs.options import config_defaults  # noqa: E402
+from scripts.instance_state_runtime import (  # noqa: E402
+    build_optimizer, checkpoint_payload, save_checkpoint_atomic, train_one_step,
+)
 from scripts.run_instance_state_v1 import (  # noqa: E402
-    ARM_C, ARM_E, PRESET_C, PRESET_E, PRETRAINED, SEED, build_options,
-    build_optimizer, sha256_file, transfer_reconstruction_weights, write_json,
+    ARM_C, ARM_E, PRESET_C, PRESET_E, PRETRAINED, SEED, build_options, sha256_file,
+    transfer_reconstruction_weights, write_json,
 )
 
 PAIRED_STEPS = 2000
-WARMUP = 100
+PAIRED_WARMUP = 100
 FULL_STEPS = 50000
 FULL_WARMUP = 2000
-EVAL_STEPS = (0, 200, 500, 1000, 2000)
+PAIRED_EVAL_STEPS = (0, 200, 500, 1000, 2000)
+VAL_EVAL_STEPS = (0, 1000, 2000)
+REGISTERED_PLAN_SHA = "32c40a72e45843a9"      # prefix of the locked paired plan
 
 
 def move(value, device):
@@ -50,11 +54,50 @@ def move(value, device):
     return value
 
 
-def lr_at(step: int, peak: float, warmup: int, total: int) -> float:
-    if step <= warmup:
-        return peak * step / warmup
-    progress = (step - warmup) / max(1, total - warmup)
-    return peak * (0.02 + 0.98 * 0.5 * (1.0 + math.cos(math.pi * progress)))
+def require_green(reports: Path, *, phase: str) -> dict:
+    """Training may only start from a fully green smoke, contract and plan."""
+    contract = json.loads((reports / "loss_contract.json").read_text(encoding="utf-8"))
+    smoke_path = reports / "smoke.json"
+    smoke = json.loads(smoke_path.read_text(encoding="utf-8")) if smoke_path.is_file() else {}
+    if not contract.get("ok"):
+        raise SystemExit(f"loss contract not green: {contract.get('failed')}")
+    if not smoke.get("ok"):
+        raise SystemExit(f"smoke not green: {smoke.get('failed')}")
+    digest = sha256_file(reports / "plan_paired_2000.json")
+    if not digest.startswith(REGISTERED_PLAN_SHA):
+        raise SystemExit(f"paired plan SHA {digest[:16]} != registered {REGISTERED_PLAN_SHA}")
+    return {"smoke_steps": len(smoke.get("checks", [])), "plan_sha256": digest}
+
+
+def validate_plan(plan: dict, windows: list[dict]) -> None:
+    entries = plan["entries"]
+    if len(entries) != PAIRED_STEPS:
+        raise SystemExit(f"plan has {len(entries)} entries, expected {PAIRED_STEPS}")
+    for index, entry in enumerate(entries):
+        if int(entry["step"]) != index + 1:
+            raise SystemExit(f"plan step {entry['step']} != {index + 1}")
+        window = windows[index % 4]
+        if entry["scene"] != window["scene"] or list(entry["context"]) != list(window["context"]) \
+                or list(entry["novel"]) != list(window["novel"]):
+            raise SystemExit(f"plan entry {index} does not match locked window {index % 4}")
+
+
+def cache_batches(opt, windows, device):
+    """Fix the four training windows once; the loop only moves them to the device."""
+    cached = []
+    for window in windows:
+        provider = SIU3RProcessedProvider(opt, root="/space/mawb/SIU3R/data/scannet/train",
+                                          subset=[window["scene"]], training=True, rank=0)
+        want = [*window["context"], *window["novel"]]
+        provider.pin_pair(scene_id=window["scene"], context_frame_ids=window["context"],
+                          novel_frame_ids=window["novel"],
+                          pair_iou=float(window.get("pair_iou") or float("nan")))
+        batch = default_collate([provider[0]])
+        frames = [int(x) for x in batch["frame_ids"][0]]
+        if frames != want:
+            raise SystemExit(f"{window['scene']}: frames {frames} != locked {want}")
+        cached.append(batch)
+    return cached
 
 
 def build_arm_model(arm: str, device):
@@ -66,146 +109,171 @@ def build_arm_model(arm: str, device):
     return model.to(device), opt
 
 
-def paired_batch(opt, window, device):
-    provider = SIU3RProcessedProvider(opt, root="/space/mawb/SIU3R/data/scannet/train",
-                                      subset=[window["scene"]], training=True, rank=0)
-    want = np.array([*window["context"], *window["novel"]], dtype=np.int64)
-    provider._get_indices_static = lambda idx: (want, [])      # noqa: SLF001
-    batch = move(default_collate([provider[0]]), device)
-    frames = [int(x) for x in batch["frame_ids"][0]]
-    if frames != want.tolist():
-        raise RuntimeError(f"frame order {frames} != plan {want.tolist()}")
-    return batch
-
-
 def run_paired(reports: Path, run_root: Path, device: str = "cuda", arm: str | None = None):
-    device = torch.device(device if torch.cuda.is_available() else "cpu")
+    if not torch.cuda.is_available() and device.startswith("cuda"):
+        raise SystemExit("GPU phase requires CUDA; refusing to fall back to CPU")
+    device = torch.device(device)
     torch.backends.cudnn.allow_tf32 = False
     torch.backends.cuda.matmul.allow_tf32 = False
+    gate = require_green(reports, phase="paired")
     plan = json.loads((reports / "plan_paired_2000.json").read_text(encoding="utf-8"))
-    if sha256_file(reports / "plan_paired_2000.json") == "":
-        raise SystemExit("plan hash unavailable")
+    pilot = json.loads((reports / "pilot_windows.json").read_text(encoding="utf-8"))
+    monitor = json.loads((reports / "monitor_8pairs.json").read_text(encoding="utf-8"))
+    windows = pilot["windows"]
+    validate_plan(plan, windows)
+    from scripts.eval_instance_state_v1 import evaluate_windows, aggregate
     arms = [arm] if arm else [ARM_C, ARM_E]
-    summaries = {}
+    results = {}
     for current in arms:
         torch.manual_seed(SEED)
         np.random.seed(SEED)
         model, opt = build_arm_model(current, device)
-        optimizer, groups = build_optimizer(model, opt)
+        optimizer, groups = build_optimizer(model)
         write_json(reports / f"optimizer_groups_{current}.json", groups)
-        model.train()
+        cached = cache_batches(opt, windows, device)
+        plan_entries = plan["entries"]
         out_dir = run_root / f"arm_{current}"
         out_dir.mkdir(parents=True, exist_ok=True)
-        history = []
+        history_path = reports / f"history_{current}.jsonl"
         started = time.time()
-        for entry in plan["entries"]:
+        curves = {}
+        for index, entry in enumerate(plan_entries):
             step = int(entry["step"])
-            batch = paired_batch(opt, entry, device)
-            optimizer.zero_grad(set_to_none=True)
-            _, metrics = model.step_loss(batch, step=step)
-            metrics["loss"].backward()
-            norm = float(torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0))
-            for group in optimizer.param_groups:
-                group["lr"] = lr_at(step, group["lr"] if False else
-                                    (1e-4 if group["name"].startswith("instance_state")
-                                     else 1e-5), WARMUP, PAIRED_STEPS)
-            optimizer.step()
-            if step % 100 == 0 or step == 1:
-                history.append({"arm": current, "step": step,
-                                "scene": entry["scene"], "context": entry["context"],
-                                "novel": entry["novel"],
-                                "loss": float(metrics["loss"]),
-                                "loss_recon": float(metrics["loss_recon"]),
-                                "loss_understanding": float(metrics["loss_understanding"]),
-                                "loss_thing": float(metrics["loss_thing"]),
-                                "loss_stuff": float(metrics["loss_stuff"]),
-                                "loss_sem": float(metrics["loss_sem"]),
-                                "loss_id": float(metrics["loss_id"]),
-                                "rseg": float(metrics["rseg"]), "grad_norm": norm,
-                                "n_gt_thing": metrics.get("n_gt_thing"),
-                                "lr_backbone": 1e-5, "lr_state": 1e-4})
-                print(f"[paired] {current} step {step} loss {float(metrics['loss']):.4f} "
-                      f"recon {float(metrics['loss_recon']):.4f} "
-                      f"und {float(metrics['loss_understanding']):.4f} grad {norm:.2f}",
-                      flush=True)
-            if step == PAIRED_STEPS:
-                payload = {"model": model.state_dict(), "arm": current, "step": step,
-                           "config": {"preset": PRESET_C if current == ARM_C else PRESET_E,
-                                      "coupled": current == ARM_E},
-                           "plan_sha256": sha256_file(reports / "plan_paired_2000.json")}
-                torch.save(payload, out_dir / "endpoint_model.pt")
-                (out_dir / "COMPLETE").write_text(f"endpoint {current} step {step}\n")
-        (out_dir / "history.jsonl").write_text(
-            "\n".join(json.dumps(row) for row in history) + "\n", encoding="utf-8")
-        summaries[current] = {"steps": len(plan["entries"]),
-                              "wall_seconds": time.time() - started,
-                              "final": history[-1] if history else None}
-        del model, optimizer
+            batch = move(cached[index % 4], device)
+            record = train_one_step(model, optimizer, batch, step, current,
+                                    PAIRED_STEPS, PAIRED_WARMUP)
+            record["scene"] = entry["scene"]
+            with history_path.open("a", encoding="utf-8") as handle:
+                handle.write(json.dumps(record) + "\n")
+                handle.flush()
+            if step % 100 == 0:
+                print(f"[paired] {current} step {step} loss {record['loss']:.4f} "
+                      f"recon {record['loss_recon']:.4f} und {record['loss_understanding']:.4f} "
+                      f"lr_state {record['lr']['instance_state_decay']:.2e}", flush=True)
+            if step in PAIRED_EVAL_STEPS and step > 0:
+                rows = []
+                for scope in ("context", "target"):
+                    res = evaluate_windows(model, opt, windows, step, scope,
+                                           reports / f"eval_paired_{current}",
+                                           arm=current, device=str(device),
+                                           batch_builder=_batch_from_cache(cached, scope))
+                    rows.append(aggregate(res["windows"]))
+                curves[step] = {"context": rows[0], "target": rows[1]}
+                print(f"[paired] {current} EVAL {step} ctx mIoU "
+                      f"{rows[0]['semantic_miou']:.3f} recall {rows[0]['recall50_class_aware']:.3f} "
+                      f"rawR {rows[0]['raw_recall50']:.3f} pqTP {rows[0]['n_thing_tp_panoptic']} "
+                      f"| novel PSNR {rows[1]['psnr']:.2f}", flush=True)
+            if step in VAL_EVAL_STEPS and step > 0:
+                res = evaluate_windows(model, opt, monitor["pairs"], step, "target",
+                                       reports / f"eval_val8_{current}", arm=current,
+                                       device=str(device), batch_builder=_monitor_builder(monitor))
+                curves[f"val8_{step}"] = aggregate(res["windows"])
+                print(f"[paired] {current} VAL8 {step} mIoU "
+                      f"{curves[f'val8_{step}']['semantic_miou']:.3f} recall "
+                      f"{curves[f'val8_{step}']['recall50_class_aware']:.3f}", flush=True)
+        payload = checkpoint_payload(model, optimizer, PAIRED_STEPS, current,
+                                     gate["plan_sha256"], PAIRED_STEPS, PAIRED_WARMUP,
+                                     {"preset": PRESET_C if current == ARM_C else PRESET_E,
+                                      "coupled": current == ARM_E})
+        save_checkpoint_atomic(payload, out_dir / "endpoint")
+        torch.save(payload["model"], out_dir / "endpoint_model.pt")
+        results[current] = {"wall_seconds": time.time() - started,
+                            "curves": curves,
+                            "endpoint": str(out_dir / "endpoint_model.pt")}
+        write_json(reports / f"curves_{current}.json", curves)
+        del model, optimizer, cached
         if device.type == "cuda":
             torch.cuda.empty_cache()
-    write_json(reports / "paired_run_summary.json", summaries)
+    write_json(reports / "paired_run_summary.json", results)
     return 0
+
+
+def _batch_from_cache(cached, scope):
+    def builder(opt, window, device):
+        index = next(i for i, w in enumerate(cached)
+                     if w["frame_ids"][0][0].item() == window["context"][0])
+        return move(cached[index], device)
+    del scope
+    return builder
+
+
+def _monitor_builder(monitor):
+    cache = {}
+
+    def builder(opt, window, device):
+        key = (window["scene"], tuple(window["context"]))
+        if key not in cache:
+            provider = SIU3RProcessedProvider(
+                opt, root="/space/mawb/SIU3R/data/scannet/val", subset=[window["scene"]],
+                training=False, val_pair_json="/space/mawb/SIU3R/data/scannet/val_pair.json",
+                rank=0)
+            index = next(i for i, r in enumerate(provider.dataset.val_pairs)
+                         if r["scan"] == window["scene"]
+                         and [int(x) for x in r["context_ids"]] == list(window["context"]))
+            cache[key] = default_collate([provider[index]])
+        return move(cache[key], device)
+    del monitor
+    return builder
 
 
 def run_full(reports: Path, run_root: Path, device: str = "cuda",
              until_step: int | None = None, resume: str | None = None,
              arm: str | None = None):
-    """Full-data continuation of a passing arm (5000-step serial segments)."""
-    device = torch.device(device if torch.cuda.is_available() else "cpu")
+    """Full-data continuation of the gate-selected arm (5000-step segments)."""
+    if not torch.cuda.is_available() and device.startswith("cuda"):
+        raise SystemExit("GPU phase requires CUDA")
+    gate_path = reports / "gate.json"
+    if not gate_path.is_file():
+        raise SystemExit("gate.json is missing: the full phase needs a passing gate")
+    gate = json.loads(gate_path.read_text(encoding="utf-8"))
+    selected = gate.get("selected_arm")
+    if selected not in (ARM_C, ARM_E):
+        raise SystemExit(f"gate.selected_arm is {selected!r}; refusing to pick a default")
+    if arm and arm != selected:
+        raise SystemExit(f"--arm {arm} contradicts gate.selected_arm {selected}")
+    current = selected
+    if until_step and until_step > 5000 and not resume:
+        raise SystemExit("until_step > 5000 requires --resume of the previous segment")
     plan_path = reports / "plan_full_50000.json"
     if not plan_path.is_file():
-        raise SystemExit(
-            "plan_full_50000.json is missing: generate it with scripts/gen_object_plan.py "
-            "--split <verified full_split copy> --preset <new preset> --steps 50000 "
-            "--seed 42 --verify-batches 8 before the full phase")
+        raise SystemExit("plan_full_50000.json missing (generate with scripts/gen_object_plan.py)")
     plan = json.loads(plan_path.read_text(encoding="utf-8"))
-    current = arm or ARM_E
+    entries = plan["entries"] if isinstance(plan, dict) else plan
+    device = torch.device(device)
     model, opt = build_arm_model(current, device)
-    optimizer, groups = build_optimizer(model, opt)
-    start_step = 1
-    out_dir = run_root / f"full_{current}"
-    out_dir.mkdir(parents=True, exist_ok=True)
+    optimizer, groups = build_optimizer(model)
+    start = 1
     if resume:
         payload = torch.load(Path(resume) / "train_state.pt", map_location="cpu",
                              weights_only=False)
         model.load_state_dict(payload["model"])
         optimizer.load_state_dict(payload["optimizer"])
-        torch.set_rng_state(payload["torch_rng"])
-        np.random.set_state(payload["numpy_rng"])
-        start_step = int(payload["step"]) + 1
+        from scripts.instance_state_runtime import restore_rng
+        restore_rng(payload["rng"])
+        start = int(payload["step"]) + 1
     stop = min(until_step or FULL_STEPS, FULL_STEPS)
-    entries = plan["entries"] if isinstance(plan, dict) else plan
-    model.train()
+    cached = {}
     for entry in entries:
         step = int(entry["step"])
-        if step < start_step or step > stop:
+        if step < start or step > stop:
             continue
-        batch = paired_batch(opt, entry, device)
-        optimizer.zero_grad(set_to_none=True)
-        _, metrics = model.step_loss(batch, step=step)
-        metrics["loss"].backward()
-        torch.nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-        for group in optimizer.param_groups:
-            peak = 1e-4 if group["name"].startswith("instance_state") else 1e-5
-            group["lr"] = lr_at(step, peak, FULL_WARMUP, FULL_STEPS)
-        optimizer.step()
+        key = (entry["scene"], tuple(entry["context"]), tuple(entry["novel"]))
+        if key not in cached:
+            provider = SIU3RProcessedProvider(
+                opt, root="/space/mawb/SIU3R/data/scannet/train", subset=[entry["scene"]],
+                training=True, rank=0)
+            provider.pin_pair(scene_id=entry["scene"], context_frame_ids=entry["context"],
+                              novel_frame_ids=entry["novel"])
+            cached = {(key): default_collate([provider[0]])}
+        record = train_one_step(model, optimizer, move(cached[key], device), step, current,
+                                FULL_STEPS, FULL_WARMUP)
         if step % 500 == 0:
-            print(f"[full] {current} step {step} loss {float(metrics['loss']):.4f}",
-                  flush=True)
-    payload = {"model": model.state_dict(), "optimizer": optimizer.state_dict(),
-               "step": stop, "arm": current, "plan_sha256": sha256_file(plan_path),
-               "torch_rng": torch.get_rng_state(), "numpy_rng": np.random.get_state()}
-    tmp = out_dir / ".inprogress"
-    tmp.mkdir(parents=True, exist_ok=True)
-    torch.save(payload, tmp / "train_state.pt")
-    (tmp / "COMPLETE").write_text(f"full {current} step {stop}\n")
-    final = out_dir / f"ckpt_step{stop}"
-    if final.exists():
-        import shutil
-        shutil.rmtree(tmp)
-    else:
-        tmp.rename(final)
+            print(f"[full] {current} step {step} loss {record['loss']:.4f}", flush=True)
+    payload = checkpoint_payload(model, optimizer, stop, current,
+                                 sha256_file(plan_path), FULL_STEPS, FULL_WARMUP,
+                                 {"preset": PRESET_C if current == ARM_C else PRESET_E})
+    save_checkpoint_atomic(payload, run_root / f"full_{current}" / f"ckpt_step{stop}")
     return 0
 
 
-__all__ = ["run_paired", "run_full", "lr_at"]
+__all__ = ["run_paired", "run_full"]

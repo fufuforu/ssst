@@ -1,0 +1,31 @@
+[runtime] fused-ssim extension unavailable; using import stand-in /space/mawb/ssst/third_party/shims
+[runtime] preloaded precompiled gsplat extension from /space/mawb/tokengs_siu3r_joint_v1/.torch_extensions_v4/gsplat_cuda/gsplat_cuda.so
+[isv1] phase smoke must run on a SLURM GPU node; see scripts/submit_instance_state_v1.sh
+[smoke] PASS A.strict_transfer: matched 450 keys, new 59
+[smoke] PASS A.C_E_identical_init: new modules share one initialisation
+[smoke] PASS A.beta0_h_mu_rho_bitwise: max|dh|=0.000e+00 max|dmu|=0.000e+00 max|drho|=0.000e+00
+[smoke] PASS A.beta0_render_and_gs: max|drgb|=0.000e+00 max|dalpha|=0.000e+00 max|dgs|=0.000e+00
+[smoke] PASS B.sum103_eq_alpha: max err 8.941e-07
+[smoke] PASS B.S_plus_void_eq_1: max err 8.345e-07
+[smoke] PASS B.assignment_rows_sum1: max err 2.384e-07
+[smoke] PASS B.all_finite: assignment and region mass finite
+[smoke] PASS B.radius_positive: radii min 1.366e-02
+[smoke] PASS B.fps_100_distinct: 100 distinct indices
+[smoke] PASS B.decode_radius_frozen: activation head decode radius == 0.15
+[smoke] PASS C.slot_identity_varies: within-token assignment spread 2.135e-03
+[smoke] PASS C.perturbation_propagates: de-bias perturbation changes slot assignment by 5.167e-02
+[smoke] PASS D.understanding_gradients_reach: {"instance_state.proj_de": true, "instance_state.proj_e": true, "instance_state.thing_classifier": true, "activation_head": true, "enc_dec_backbone": true}
+[smoke] PASS D.recon_gradients_reach: {"enc_dec_backbone": true, "activation_head": true, "anchor_decoder": true}
+[smoke] PASS D.losses_finite: losses [3.6837, 2.4185, 2.5955]
+[smoke] PASS E.coupling_changes_geometry: max|dmu|=7.855e-03 max|dr|=1.685e-02 max|dgs|=1.770e-01
+[smoke] PASS E.armC_zero_init_inert: arm C step201 vs step0 renders differ by 0.000e+00
+[smoke] PASS F.prediction_independent_of_labels: max|dgs| after label/novel/GT replacement 0.000e+00
+[smoke] PASS G.degenerate_labels_finite: {"stuff_only": 0.6957458853721619, "with_255": 0.7639659643173218}
+[smoke] FAIL H.C.serialise_reload_identical: model bitwise, optimizer state equal, step/plan_position == 4
+[smoke] PASS H.C.resume_param_drift: step8 vs step8 max|dW| 6.214e-07 at activation_head.deconv.weight
+[smoke] FAIL H.C.resume_loss_continuity: max per-step loss diff 1.115e-04, lr equal True
+[smoke] PASS H.E.serialise_reload_identical: model bitwise, optimizer state equal, step/plan_position == 4
+[smoke] PASS H.E.resume_param_drift: step8 vs step8 max|dW| 1.904e-06 at instance_state.proj_wgs.weight
+[smoke] FAIL H.E.resume_loss_continuity: max per-step loss diff 1.110e-04, lr equal True
+[smoke] PASS J.timing_measured: median 0.425s p95 0.439s peak 15.16GB
+[smoke] FAILURES: ['H.C.serialise_reload_identical', 'H.C.resume_loss_continuity', 'H.E.resume_loss_continuity']
