@@ -1,0 +1,86 @@
+{
+ "plan_entry_index": 2,
+ "scene": "scene0009_02",
+ "context": [
+  209,
+  253
+ ],
+ "novel": [
+  215,
+  247
+ ],
+ "frames": [
+  209,
+  253,
+  215,
+  247
+ ],
+ "pair_iou": 0.34302523732185364,
+ "sentinels": [
+  {
+   "packed_key": 18032,
+   "internal_class": 17,
+   "class_name_index": 18,
+   "stats": {
+    "context": {
+     "pixels": 4261,
+     "covered": 4261,
+     "coverage": 1.0
+    },
+    "novel": {
+     "2": {
+      "pixels": 1752,
+      "covered": 1752,
+      "coverage": 1.0
+     },
+     "3": {
+      "pixels": 2797,
+      "covered": 2797,
+      "coverage": 1.0
+     }
+    }
+   }
+  },
+  {
+   "packed_key": 20030,
+   "internal_class": 19,
+   "class_name_index": 20,
+   "stats": {
+    "context": {
+     "pixels": 2181,
+     "covered": 2181,
+     "coverage": 1.0
+    },
+    "novel": {
+     "2": {
+      "pixels": 972,
+      "covered": 972,
+      "coverage": 1.0
+     },
+     "3": {
+      "pixels": 1229,
+      "covered": 1229,
+      "coverage": 1.0
+     }
+    }
+   }
+  }
+ ],
+ "selection_rule": {
+  "context_valid_pixels_min": 500,
+  "novel_valid_pixels_min_in_at_least_one_view": 300,
+  "alpha_coverage_min": 0.7,
+  "per_class_instance": "largest context-merged area of that class"
+ },
+ "eliminated": {
+  "scene_not_official_train": 0,
+  "fewer_than_two_thing_classes": 2,
+  "no_qualifying_sentinel_pair": 0
+ },
+ "sha256": "98a4d35d97eea33169d2fb4f7346ed7c128c0385a385e223ab36732690bc83df",
+ "selection_eliminations": {
+  "scene_not_official_train": 0,
+  "fewer_than_two_thing_classes": 2,
+  "no_qualifying_sentinel_pair": 0
+ }
+}

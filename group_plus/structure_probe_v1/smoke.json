@@ -1,0 +1,22 @@
+{
+ "attribution": {
+  "file": "attribution_smoke.json",
+  "job": 55735,
+  "passed": true
+ },
+ "probe": {
+  "file": "smoke.json",
+  "job": 55736,
+  "passed": true,
+  "checks": true
+ },
+ "void_counter_fix": {
+  "file": "void_counter_fix.json",
+  "jobs": [
+   55739,
+   55742
+  ],
+  "passed": true
+ },
+ "note": "each entry is a self-contained JSON with its own checks"
+}

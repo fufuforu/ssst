@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/datapool/mawb/ssst/scripts/structure_probe_attribution.py", line 436, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/datapool/mawb/ssst/scripts/structure_probe_attribution.py", line 416, in main
+    payload["arms"][arm] = analyse_arm(arm, args.preset, args.seed, device, plan,
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/datapool/mawb/ssst/scripts/structure_probe_attribution.py", line 344, in analyse_arm
+    assembly.append(assembly_block(forward, batch,
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/datapool/mawb/ssst/scripts/structure_probe_attribution.py", line 307, in assembly_block
+    conf_pan += np.bincount((sem[valid] * SEMANTIC_CLASSES + pred_pan[valid]),
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+ValueError: 'list' argument must have no negative elements

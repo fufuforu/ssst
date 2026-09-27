@@ -1,0 +1,17 @@
+Traceback (most recent call last):
+  File "/datapool/mawb/ssst/scripts/structure_probe_attribution.py", line 443, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/datapool/mawb/ssst/scripts/structure_probe_attribution.py", line 423, in main
+    payload["arms"][arm] = analyse_arm(arm, args.preset, args.seed, device, plan,
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/datapool/mawb/ssst/scripts/structure_probe_attribution.py", line 351, in analyse_arm
+    assembly.append(assembly_block(forward, batch,
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/datapool/mawb/ssst/scripts/structure_probe_attribution.py", line 295, in assembly_block
+    pan_maps, _, stats = panoptic_prediction(forward, forward["semantic_prob"], alpha_t,
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/space/mawb/ssst/scripts/group_official_export.py", line 163, in panoptic_prediction
+    + (covered & unassigned
+                         ^^^
+NameError: name 'THING_CLASSES' is not defined

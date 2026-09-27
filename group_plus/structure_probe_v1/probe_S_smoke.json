@@ -1,0 +1,28 @@
+{
+ "probe": "S",
+ "config": {
+  "lr": 0.001,
+  "steps": 800,
+  "optimizer": "AdamW wd=0",
+  "clip": 1.0,
+  "frozen": "all but attributes.semantic.*"
+ },
+ "optimizer_parameter_names": [
+  "attributes.semantic.weight",
+  "attributes.semantic.bias"
+ ],
+ "optimizer_exactly_semantic_head": true,
+ "smoke": {
+  "loss": 0.7273571491241455,
+  "supervised_pixels": 259198,
+  "grad_norms": {
+   "attributes.semantic.weight": 0.39517533779144287,
+   "attributes.semantic.bias": 0.054997801780700684
+  },
+  "updates": {
+   "attributes.semantic.weight": 0.0010000020265579224,
+   "attributes.semantic.bias": 0.0009999996982514858
+  },
+  "passed": true
+ }
+}

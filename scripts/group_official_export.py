@@ -65,6 +65,7 @@ MASK_THRESHOLD = 0.5
 MIN_PRED_PIXELS = 50
 STUFF_CLASSES = (0, 1)          # internal ids: wall, floor
 THING_MIN, THING_MAX = 2, 19    # internal ids
+THING_CLASSES = tuple(range(THING_MIN, THING_MAX + 1))
 VOID_ALPHA = 0.05
 
 
@@ -150,8 +151,17 @@ def panoptic_prediction(forward, semantic_prob, alpha, num_views):
                                "overlap_pixels": int(overlaps),
                                "thing_pixels": int((chosen >= 0).sum()),
                                "stuff_pixels": int(stuff.sum()),
+                               # Report-only fix: the real void pixels of the panoptic
+                               # product are (a) uncovered pixels and (b) covered pixels
+                               # that no query claimed whose independent-semantic argmax
+                               # is a thing class.  The previous expression reduced to
+                               # `~covered` and silently dropped (b).  Prediction arrays
+                               # and therefore every PNG and every official metric are
+                               # unchanged (see structure_probe_v1/void_counter_fix.json).
                                "void_pixels": int(
-                                   (~covered | ~(unassigned | (chosen >= 0).numpy())).sum())})
+                                   (~covered).sum()
+                                   + (covered & unassigned
+                                      & np.isin(labels, THING_CLASSES)).sum())})
         results.append((semantic, instance))
     # pred.json: one entry per query id (the pinned evaluator looks up
     # `info["id"] == instance_id` and averages `score` over matches).

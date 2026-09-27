@@ -1,0 +1,58 @@
+{
+ "capacity_pass": false,
+ "probe_S": {
+  "passed": false,
+  "final_step": 800,
+  "context_sentinel_iou": {
+   "17": 0.2896958327750235,
+   "19": 0.36541708882134416
+  },
+  "novel_sentinel_iou": {
+   "17": 0.3725260225773347,
+   "19": 0.5200599925009374
+  },
+  "semantic_loss": 0.22590816020965576,
+  "blocker": "context IoU below 0.50"
+ },
+ "probe_I": {
+  "passed": false,
+  "final_step": 1200,
+  "per_sentinel": {
+   "18032": {
+    "gt_class": 17,
+    "best_raw_query": 65,
+    "best_raw_iou": 0.4210097719869707,
+    "best_query_class": 17,
+    "best_query_class_correct": true,
+    "best_query_p_thing": 1.0
+   },
+   "20030": {
+    "gt_class": 19,
+    "best_raw_query": 22,
+    "best_raw_iou": 0.5345454545454545,
+    "best_query_class": 7,
+    "best_query_class_correct": false,
+    "best_query_p_thing": 1.8666666452035567e-15
+   }
+  },
+  "distinct_queries": true,
+  "reader_context": {
+   "tp": 0,
+   "fp": 6,
+   "fn": 7
+  },
+  "reader_novel": {
+   "tp": 0,
+   "fp": 6,
+   "fn": 7
+  },
+  "loss_inst_total": 2.537201166152954,
+  "blocker": "raw mask IoU below 0.50 for a sentinel"
+ },
+ "criteria": {
+  "S": "both sentinel classes: context IoU >= 0.50 and novel IoU >= 0.25",
+  "I": "both sentinels: distinct query with raw mask IoU >= 0.50 and correct query class; formal reader TP >= 2 in context and >= 1 in novel"
+ },
+ "scope": "single-sample local capacity; success does not imply generalisation and is not an official metric",
+ "checkpoint_unchanged": true
+}

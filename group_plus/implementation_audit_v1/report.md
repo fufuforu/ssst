@@ -16,9 +16,9 @@ clean at that commit and no uncommitted work existed.  Findings are in
 | static audit of the six requested items | **complete** (all six confirmed, 3 metrics-neutral, 2 reporting-layer, 1 real specification bug) |
 | corrected re-evaluation of G0+ / v1 / v2 | **complete — reproduces every published number exactly** |
 | condition A (`recipe_v2_pure4`, 6000 steps) | **complete — failed all five gates** |
-| B1 official export + pinned evaluator | export for `recipe_v1` complete (1860 pairs); G0+ export + both official evaluations **in progress** |
-| condition B2 (stop-gradient) | smoke **passed**; 6000-step run **in progress** |
-| full-run preparation | **complete** (`full_config.json`, `full_split.json`, `plan_full_50000.json`, `gate.json`, `submit_full.sh` — all fail-fast, not launched) |
+| B1 official export + pinned evaluator | **complete** — both arms exported 1860/1860 with unchanged checkpoints and evaluated with the pinned SIU3R evaluator (see §6) |
+| condition B2 (stop-gradient) | **complete** — 6000 steps, smoke passed, result: PSNR gate passed, instance output collapsed (see §5) |
+| full-run preparation | **complete** (`full_config.json`, `full_split.json`, `plan_full_50000.json`, `gate.json`, `submit_full.sh` — all fail-fast, **not launched**; `gate.json` is BLOCKED) |
 
 ## 1. What the audit found (§A of `implementation_audit.md`)
 

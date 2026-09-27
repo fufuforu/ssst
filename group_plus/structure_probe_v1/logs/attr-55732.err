@@ -1,0 +1,17 @@
+Traceback (most recent call last):
+  File "/datapool/mawb/ssst/scripts/structure_probe_attribution.py", line 435, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/datapool/mawb/ssst/scripts/structure_probe_attribution.py", line 415, in main
+    payload["arms"][arm] = analyse_arm(arm, args.preset, args.seed, device, plan,
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/datapool/mawb/ssst/scripts/structure_probe_attribution.py", line 343, in analyse_arm
+    assembly.append(assembly_block(forward, batch,
+                    ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/datapool/mawb/ssst/scripts/structure_probe_attribution.py", line 289, in assembly_block
+    sem_maps = semantic_prediction(forward, forward["semantic_prob"], alpha_t, num_views)
+               ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/space/mawb/ssst/scripts/group_official_export.py", line 105, in semantic_prediction
+    covered = alpha[0, view, 0].float().cpu().numpy() > VOID_ALPHA
+              ~~~~~^^^^^^^^^^^^
+IndexError: index 1 is out of bounds for dimension 1 with size 1

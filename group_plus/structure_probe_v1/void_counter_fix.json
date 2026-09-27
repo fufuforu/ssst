@@ -1,0 +1,32 @@
+{
+ "checks": {
+  "png_bytes_identical": true,
+  "pred_json_identical": true,
+  "counter_changed": true,
+  "official_metrics_identical": true
+ },
+ "n_png": {
+  "before": 112,
+  "after": 112
+ },
+ "png_bytes_identical": true,
+ "void_counter": {
+  "g0plus": {
+   "before_counter": 0,
+   "after_counter": 1046
+  },
+  "recipe_v1": {
+   "before_counter": 0,
+   "after_counter": 1301
+  }
+ },
+ "official": {
+  "recipe_v1": {
+   "identical": true
+  },
+  "g0plus": {
+   "identical": true
+  }
+ },
+ "all_checks_passed": true
+}

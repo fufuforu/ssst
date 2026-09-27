@@ -1,0 +1,72 @@
+{
+ "static_baseline": "fb48c459da1119240cabc85d3a8792da8a277d3e",
+ "head_at_round_start": "fb48c459da1119240cabc85d3a8792da8a277d3e",
+ "worktree_clean_at_start": true,
+ "agends_md_found": false,
+ "disk_free_bytes_at_start": 1080176640,
+ "checkpoints": {
+  "g0plus_step6000": {
+   "sha256": "a63dd485cc2d1b3fefb8b68786f9845ff8253cfebedd90405e73484c87243be4",
+   "mtime": 1790353194.0,
+   "config": {
+    "group_recipe": false,
+    "group_bg_supervision": true,
+    "head_mode": "legacy_prefix"
+   }
+  },
+  "recipe_v1_step6000": {
+   "sha256": "39c53ce825b68a24292e84c838d836d02808526e4369bdb4483bbe934b7543ba",
+   "mtime": 1790412379.0,
+   "config": {
+    "group_recipe": true,
+    "head_mode": "legacy_prefix",
+    "instance_outer_weight": 0.1,
+    "assign_coef": 0.2,
+    "assign_every": 1
+   }
+  }
+ },
+ "checkpoints_unchanged": true,
+ "windows": {
+  "train7": {
+   "count": 7,
+   "source": "build_train_entries(...,8)"
+  },
+  "dev8": {
+   "count": 8,
+   "source": "build_val_entries"
+  },
+  "val32": {
+   "count": 32,
+   "listing_sha256": "801c26714c3a54e086a126f50201720eb9293856a512a6d07c172a49ad96b70f",
+   "source": "official val_pair.json, sorted by (scene, context), first pair per scene"
+  }
+ },
+ "plan_sha256": "a2a65c1382da0307a68fb6d27e5c1345aa78b46331acb2927e88b47a3c3d08bb",
+ "split_sha256": "acf9afac57ca2e5287b9b1b545a62a369fee398a0d1a789cb77b851202b313d5",
+ "probe_sample": "98a4d35d97eea33169d2fb4f7346ed7c128c0385a385e223ab36732690bc83df",
+ "void_counter_fix": {
+  "file": "group_plus/structure_probe_v1/void_counter_fix.json",
+  "source_file": "scripts/group_official_export.py",
+  "checks": {
+   "png_bytes_identical": true,
+   "pred_json_identical": true,
+   "counter_changed": true,
+   "official_metrics_identical": true
+  }
+ },
+ "jobs": {
+  "attribution_smoke": 55735,
+  "attribution_full": [
+   55741,
+   55744
+  ],
+  "probe_smoke": 55736,
+  "probe_full": 55738,
+  "void_fix_bytes": 55739,
+  "void_fix_official": 55742
+ },
+ "not_started": [
+  "full 50000-step group run (capacity_pass=false; disk 0.98 GB free vs ~3.1 GB per checkpoint / ~12 GB for the retention policy)"
+ ]
+}

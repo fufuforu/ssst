@@ -1,0 +1,72 @@
+[runtime] fused-ssim extension unavailable; using import stand-in /space/mawb/ssst/third_party/shims
+[runtime] preloaded precompiled gsplat extension from /space/mawb/tokengs_siu3r_joint_v1/.torch_extensions_v4/gsplat_cuda/gsplat_cuda.so
+[probe] reusing the fixed sample
+[probe] sample scene0009_02 [209, 253, 215, 247] entry 2
+[S] step 0 loss 0.7274 ctx {'17': 0.0, '19': 0.0} novel {'17': 0.0, '19': 0.0}
+[S] step 100 loss 0.2758 ctx {'17': 0.18806801524479624, '19': 0.3238434163701068} novel {'17': 0.2243150684931507, '19': 0.49182941410920683}
+[S] step 200 loss 0.2526 ctx {'17': 0.22460431654676258, '19': 0.33472657610588646} novel {'17': 0.25536121673003803, '19': 0.49922239502332816}
+[S] step 400 loss 0.2368 ctx {'17': 0.25686794031515825, '19': 0.34736481861738533} novel {'17': 0.3046909903201787, '19': 0.5097439816583874}
+[S] step 800 loss 0.2259 ctx {'17': 0.2896958327750235, '19': 0.36541708882134416} novel {'17': 0.3725260225773347, '19': 0.5200599925009374}
+[I] step 0 loss 4.4445 ctx reader TP 0 novel TP 0
+[I] step 100 loss 2.6432 ctx reader TP 0 novel TP 0
+[I] step 300 loss 2.5414 ctx reader TP 0 novel TP 0
+[I] step 600 loss 2.5405 ctx reader TP 0 novel TP 0
+[I] step 1200 loss 2.5372 ctx reader TP 0 novel TP 0
+{
+ "capacity_pass": false,
+ "probe_S": {
+  "passed": false,
+  "final_step": 800,
+  "context_sentinel_iou": {
+   "17": 0.2896958327750235,
+   "19": 0.36541708882134416
+  },
+  "novel_sentinel_iou": {
+   "17": 0.3725260225773347,
+   "19": 0.5200599925009374
+  },
+  "semantic_loss": 0.22590816020965576,
+  "blocker": "context IoU below 0.50"
+ },
+ "probe_I": {
+  "passed": false,
+  "final_step": 1200,
+  "per_sentinel": {
+   "18032": {
+    "gt_class": 17,
+    "best_raw_query": 65,
+    "best_raw_iou": 0.4210097719869707,
+    "best_query_class": 17,
+    "best_query_class_correct": true,
+    "best_query_p_thing": 1.0
+   },
+   "20030": {
+    "gt_class": 19,
+    "best_raw_query": 22,
+    "best_raw_iou": 0.5345454545454545,
+    "best_query_class": 7,
+    "best_query_class_correct": false,
+    "best_query_p_thing": 1.8666666452035567e-15
+   }
+  },
+  "distinct_queries": true,
+  "reader_context": {
+   "tp": 0,
+   "fp": 6,
+   "fn": 7
+  },
+  "reader_novel": {
+   "tp": 0,
+   "fp": 6,
+   "fn": 7
+  },
+  "loss_inst_total": 2.537201166152954,
+  "blocker": "raw mask IoU below 0.50 for a sentinel"
+ },
+ "criteria": {
+  "S": "both sentinel classes: context IoU >= 0.50 and novel IoU >= 0.25",
+  "I": "both sentinels: distinct query with raw mask IoU >= 0.50 and correct query class; formal reader TP >= 2 in context and >= 1 in novel"
+ },
+ "scope": "single-sample local capacity; success does not imply generalisation and is not an official metric",
+ "checkpoint_unchanged": true
+}
