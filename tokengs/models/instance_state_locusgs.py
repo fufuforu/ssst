@@ -41,8 +41,9 @@ from tokengs.models.locusgs_recon import (
 
 NUM_THING = 100
 NUM_STUFF = 2
-VOID_INDEX = 102
-NUM_STATES = NUM_THING + NUM_STUFF + 1
+NUM_QUERIES = NUM_THING + NUM_STUFF          # 102 learnable states / queries
+VOID_INDEX = NUM_QUERIES                      # 102
+NUM_REGION_CHANNELS = NUM_QUERIES + 1         # 103 rendered region channels
 STATE_DIM = 256
 ID_DIM = 16
 FEAT_DIM = 2 * STATE_DIM + 6
@@ -88,7 +89,7 @@ class InstanceStateController(nn.Module):
         self.ln_u = nn.LayerNorm(self.D, eps=1e-5)
         self.proj_u = nn.Linear(self.D, ID_DIM)
         # 100 thing + 2 stuff learnable states; the void channel is not a query
-        self.query_init = nn.Parameter(torch.empty(NUM_THING + NUM_STUFF, self.D))
+        self.query_init = nn.Parameter(torch.empty(NUM_QUERIES, self.D))
         self.gru = nn.GRUCell(self.D, self.D)
         self.ln_gru = nn.LayerNorm(self.D, eps=1e-5)
         self.ffn_fc1 = nn.Linear(self.D, 2 * self.D)
@@ -114,11 +115,12 @@ class InstanceStateController(nn.Module):
 
     def _init_weights(self) -> None:
         for module in (self.proj_h, self.proj_m, self.proj_e, self.proj_u,
-                       self.ffn_fc1, self.ffn_fc2, self.proj_vq, self.proj_wh,
-                       self.proj_wmu, self.proj_wr, self.proj_off,
+                       self.ffn_fc1, self.ffn_fc2, self.proj_vq, self.proj_off,
                        self.thing_classifier):
             xavier_(module)
-        for module in (self.token_void, self.proj_wgs, self.proj_de, self.proj_gvoid):
+        # every coupling write-back projection is zero-initialised (spec 5.4)
+        for module in (self.token_void, self.proj_wgs, self.proj_de, self.proj_gvoid,
+                       self.proj_wh, self.proj_wmu, self.proj_wr):
             zero_(module)
         hidden = self.gru.hidden_size
         with torch.no_grad():
@@ -159,18 +161,17 @@ class InstanceStateController(nn.Module):
         """103-channel softmax over 100 thing + 2 stuff + 1 void."""
         u_thing = self.embed_query(q[:, :NUM_THING])
         u_stuff = self.embed_query(q[:, NUM_THING:NUM_THING + NUM_STUFF])
-        dot_thing = torch.einsum("bmd,bqd->bmq", e, u_thing) * 10.0
+        # single cosine temperature 0.1 -> cos/0.1 == 10*cos; the distance and void
+        # terms are NOT divided by it again (repair S1)
+        dot_thing = torch.einsum("bmd,bqd->bmq", e, u_thing) / ASSIGN_TEMPERATURE
         delta = (pos.unsqueeze(2) - c[:, :NUM_THING].unsqueeze(1)) / s[:, :NUM_THING].unsqueeze(1)
         tight = torch.clamp((delta ** 2).sum(-1), max=ASSIGN_CLAMP) * ASSIGN_TIGHTNESS
-        stuff = torch.einsum("bmd,bqd->bmq", e, u_stuff) * 10.0
+        stuff = torch.einsum("bmd,bqd->bmq", e, u_stuff) / ASSIGN_TEMPERATURE
         logits = torch.cat([dot_thing - tight, stuff, void_logit], dim=-1)
-        return torch.softmax(logits / ASSIGN_TEMPERATURE, dim=-1)
+        return torch.softmax(logits, dim=-1)
 
-    def update_states(self, x, mu, r, q, c, s, void_logit):
-        """One registration update (spec step 5.2)."""
-        ell = torch.clamp(
-            (mu - mu.mean(dim=1, keepdim=True)).pow(2).sum(-1).mean(-1).sqrt(),
-            min=0.05).detach()
+    def update_states(self, x, mu, r, q, c, s, void_logit, ell):
+        """One registration update (spec step 5.2); ``ell`` is fixed at layer 6."""
         e = self.embed(x)
         A_pre = self.assign(e, mu, q, c, s, void_logit)
         mass = A_pre.sum(dim=1)
@@ -191,6 +192,9 @@ class InstanceStateController(nn.Module):
         s_new = torch.clamp(0.5 * s[:, :NUM_THING] + 0.5 * shat, lo, hi)
         low_mass = (mass[:, :NUM_THING] < 1e-4).unsqueeze(-1)
         self.last_low_mass_states = int(low_mass.sum())
+        # low-mass queries keep their previous q as well (repair S4)
+        keep_q = (mass[:, :NUM_QUERIES] < 1e-4).unsqueeze(-1)
+        q_new = torch.where(keep_q, q_old, q_new)
         c_new = torch.where(low_mass, c[:, :NUM_THING], c_new)
         s_new = torch.where(low_mass, s[:, :NUM_THING], s_new)
         c_full = torch.cat([c_new, c[:, NUM_THING:]], dim=1)
@@ -370,7 +374,7 @@ class InstanceStateDecoder(LocusGSAnchorDecoder):
                 x = controller.encode_token(tokens, mu, radii, ell)
                 void_logit = controller.token_void(x)
                 q, c, s, A_post, ell = controller.update_states(
-                    x, mu, radii, q, c, s, void_logit)
+                    x, mu, radii, q, c, s, void_logit, ell)
                 f_vec, _ = controller.token_message(x, mu, A_post, q, c, s, ell)
                 if beta != 0.0:
                     tokens, mu, r_new = controller.custom_fwd(
@@ -424,18 +428,12 @@ class LocusGSInstanceStateRecon(LocusGSRecon):
         xyz = base_xyz + beta * 0.1 * GS_DECODE_RADIUS * delta
         return torch.cat([xyz.reshape(B, -1, 3), base[..., 3:]], dim=-1)
 
-    def forward_instance_state(self, model_input, *, render_decoder_input=None,
-                               coupled=None, step=None) -> dict:
-        decoder_input = render_decoder_input or model_input.decoder
-        if coupled is None:
-            coupled = bool(getattr(self.opt, "instance_state_coupled", False))
-        states, ray_stats = self.decode_stateful(model_input, decoder_input, coupled, step)
-        final = states[-1]
-        beta = float(final["beta"])
-        gaussians = self._gaussians_from_state(final, beta)
-        reconstruction = self._reconstruction_from_gaussians(gaussians)
-        render = self.render_reconstruction(reconstruction, decoder_input)
+    def _region_prediction_from_state(self, final, gaussians, context_decoder) -> dict:
+        """Understanding fields (region mass / class scores / identity / alpha).
 
+        Rendered on the *requests* of ``context_decoder`` only, sharing the exact
+        same final Gaussian tensor as the reconstruction render (spec repair L1/S6).
+        """
         ctrl = self.instance_state
         B, T = final["tokens"].shape[0], final["tokens"].shape[1]
         patches = gaussians.shape[1] // T
@@ -453,10 +451,10 @@ class LocusGSInstanceStateRecon(LocusGSRecon):
                           final["s"], void_gs)
         channel = self.gs.render_feature_channels(
             gaussians, torch.cat([A_g, e_gs], dim=-1),
-            decoder_input.cam_view, decoder_input.intrinsics)
-        M = channel["images_pred"][..., :NUM_STATES, :, :]
-        E_render = channel["images_pred"][..., NUM_STATES:, :, :]
-        alpha = render["alphas_pred"]
+            context_decoder.cam_view, context_decoder.intrinsics)
+        M = channel["images_pred"][..., :NUM_REGION_CHANNELS, :, :]
+        E_render = channel["images_pred"][..., NUM_REGION_CHANNELS:, :, :]
+        alpha = channel["alphas_pred"]
         p_class = torch.softmax(ctrl.thing_classifier(final["q"][:, :NUM_THING]), dim=-1)
         S = torch.zeros(B, M.shape[1], 20, *M.shape[-2:], device=M.device, dtype=M.dtype)
         thing_mass = M[:, :, :NUM_THING]
@@ -472,31 +470,43 @@ class LocusGSInstanceStateRecon(LocusGSRecon):
         pad = torch.full_like(logits21[:, :, :1], -1e4)
         thing_logits = torch.cat([pad, pad, logits21], dim=-1)
         return {
-            "gaussians": gaussians, "render": render, "states": states,
             "thing_class_logits": thing_logits, "assignment": A_g,
             "region_mass": M, "semantic_scores": S, "pixel_void_mass": Svoid,
-            "identity_render": E_render, "alpha": alpha, "ray_stats": ray_stats,
-            "p_class": p_class, "beta": beta,
+            "identity_render": E_render, "alpha": alpha, "p_class": p_class,
         }
 
-    # -- training ------------------------------------------------------- #
-    def step_loss(self, batch: dict, *, step: int, phase: str = "train",
-                  coupled=None, rseg_override=None):
-        from tokengs.models.instance_state_loss import instance_state_losses
-        del phase
-        model_input, _ = split_data(batch, self.opt)
-        decoder_input = ModelInputDecoder(
-            cam_view=batch["cam_view_all"], intrinsics=batch["intrinsics_all"])
+    def forward_instance_state(self, model_input, *, render_decoder_input=None,
+                               context_decoder=None, coupled=None, step=None) -> dict:
+        decoder_input = render_decoder_input or model_input.decoder
+        region_decoder = context_decoder or decoder_input
         if coupled is None:
             coupled = bool(getattr(self.opt, "instance_state_coupled", False))
-        prediction = self.forward_instance_state(
-            ModelInput(model_input.encoder, decoder_input),
-            render_decoder_input=decoder_input, coupled=coupled, step=step)
-        supervision = _full_supervision(batch)
+        states, ray_stats = self.decode_stateful(model_input, decoder_input, coupled, step)
+        final = states[-1]
+        beta = float(final["beta"])
+        gaussians = self._gaussians_from_state(final, beta)
+        reconstruction = self._reconstruction_from_gaussians(gaussians)
+        render = self.render_reconstruction(reconstruction, decoder_input)
+        out = {"gaussians": gaussians, "render": render, "states": states,
+               "ray_stats": ray_stats, "beta": beta}
+        out.update(self._region_prediction_from_state(final, gaussians, region_decoder))
+        return out
+
+    # -- reconstruction-only interfaces must stay on the stateful path (S6) --- #
+    def _decode(self, model_input, decoder_input):
+        return self.decode_stateful(
+            model_input, decoder_input,
+            bool(getattr(self.opt, "instance_state_coupled", False)), self.understanding_step)
+
+    def forward_reconstruction_only(self, model_input, *, render_decoder_input=None) -> dict:
+        return self.forward_instance_state(model_input,
+                                           render_decoder_input=render_decoder_input)
+
+    def _layer_objective(self, states, decoder_input, supervision):
         metrics: dict = {}
         total = None
         for layer, weight in zip(self.supervised_layers, self.layer_weights):
-            state = prediction["states"][layer - 1]
+            state = states[layer - 1]
             gaussians = self._gaussians_from_state(state, float(state["beta"]))
             render = self.render_reconstruction(
                 self._reconstruction_from_gaussians(gaussians), decoder_input)
@@ -512,6 +522,28 @@ class LocusGSInstanceStateRecon(LocusGSRecon):
                         "loss_anchor_visibility", "psnr"):
                 if key in layer_loss:
                     metrics[f"{key}_layer{layer}"] = layer_loss[key]
+        return total, metrics, None, None, None
+
+    # -- training ------------------------------------------------------- #
+    def step_loss(self, batch: dict, *, step: int, phase: str = "train",
+                  coupled=None, rseg_override=None):
+        from tokengs.models.instance_state_loss import instance_state_losses
+        del phase
+        model_input, _ = split_data(batch, self.opt)
+        decoder_input = ModelInputDecoder(
+            cam_view=batch["cam_view_all"], intrinsics=batch["intrinsics_all"])
+        # understanding channels are rendered on the two CONTEXT cameras only
+        context_decoder = ModelInputDecoder(
+            cam_view=batch["cam_view_all"][:, :2], intrinsics=batch["intrinsics_all"][:, :2])
+        if coupled is None:
+            coupled = bool(getattr(self.opt, "instance_state_coupled", False))
+        prediction = self.forward_instance_state(
+            ModelInput(model_input.encoder, decoder_input),
+            render_decoder_input=decoder_input, context_decoder=context_decoder,
+            coupled=coupled, step=step)
+        supervision = _full_supervision(batch)
+        total, metrics, _, _, _ = self._layer_objective(
+            prediction["states"], decoder_input, supervision)
         metrics["loss_recon"] = total
         metrics["psnr"] = metrics[f"psnr_layer{self.supervised_layers[-1]}"]
         rseg = 0.2 + 0.8 * min(max(float(step), 0.0) / SEG_RAMP_STEPS, 1.0)
@@ -519,9 +551,13 @@ class LocusGSInstanceStateRecon(LocusGSRecon):
             rseg = float(rseg_override)
         seg, seg_metrics = instance_state_losses(
             prediction=prediction, batch=batch, opt=self.opt, context_views=2)
+        metrics["loss_thing"] = float(seg_metrics["loss_thing"])
+        metrics["loss_stuff"] = float(seg_metrics["loss_stuff"])
+        metrics["loss_sem"] = float(seg_metrics["loss_sem"])
+        metrics["loss_id"] = float(seg_metrics["loss_id"])
         metrics.update(seg_metrics)
-        metrics["rseg"] = torch.tensor(rseg, device=total.device, dtype=torch.float32)
-        metrics["loss_understanding"] = seg
+        metrics["rseg"] = float(rseg)
+        metrics["loss_understanding"] = seg           # keeps the autograd graph
         metrics["loss"] = total + rseg * seg
         return {"prediction": prediction}, metrics
 

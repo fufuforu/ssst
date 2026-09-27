@@ -1,0 +1,10 @@
+{
+  "actual_free_bytes": 361977032704,
+  "actual_free_gib": 337.11738204956055,
+  "model_state_dict_bytes_file": 880165419,
+  "measured_full_checkpoint_bytes": 891358595,
+  "method": "in-memory torch.save of {model, optimizer(with initialised Adam moments), step, RNG}",
+  "full_peak_estimate_bytes": 4616789852,
+  "note": "uses the measured serialised size, not the old 880165419*3 estimate",
+  "full_allowed": true
+}

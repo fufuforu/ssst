@@ -1,0 +1,52 @@
+[runtime] fused-ssim extension unavailable; using import stand-in /space/mawb/ssst/workspace_group_plus/instance_state_v1_repair/e0e6805_src2/third_party/shims
+[runtime] preloaded precompiled gsplat extension from /space/mawb/tokengs_siu3r_joint_v1/.torch_extensions_v4/gsplat_cuda/gsplat_cuda.so
+[smoke] PASS A.strict_transfer: matched 450 keys, new 59
+[smoke] PASS A.C_E_identical_init: new modules share one initialisation
+[smoke] PASS A.beta0_h_mu_rho_bitwise: max|dh|=0.000e+00 max|dmu|=0.000e+00 max|drho|=0.000e+00
+[smoke] PASS A.beta0_render_and_gs: max|drgb|=0.000e+00 max|dalpha|=0.000e+00 max|dgs|=0.000e+00
+[smoke] PASS B.sum103_eq_alpha: max err 1.371e-06
+[smoke] PASS B.S_plus_void_eq_1: max err 1.371e-06
+[smoke] PASS B.assignment_rows_sum1: max err 2.980e-07
+[smoke] PASS B.all_finite: assignment and region mass finite
+[smoke] PASS B.radius_positive: radii min 1.366e-02
+[smoke] PASS B.fps_100_distinct: 100 distinct indices
+[smoke] PASS B.decode_radius_frozen: activation head decode radius == 0.15
+[smoke] PASS C.slot_identity_varies: within-token assignment spread 1.385e-04
+[smoke] PASS C.perturbation_propagates: de-bias perturbation changes slot assignment by 3.600e-05
+/pytorch/aten/src/ATen/native/cuda/IndexKernel.cu:93: operator(): block: [11,0,0], thread: [125,0,0] Assertion `-sizes[i] <= index && index < sizes[i] && "index out of bounds"` failed.
+/pytorch/aten/src/ATen/native/cuda/IndexKernel.cu:93: operator(): block: [11,0,0], thread: [126,0,0] Assertion `-sizes[i] <= index && index < sizes[i] && "index out of bounds"` failed.
+/pytorch/aten/src/ATen/native/cuda/IndexKernel.cu:93: operator(): block: [11,0,0], thread: [127,0,0] Assertion `-sizes[i] <= index && index < sizes[i] && "index out of bounds"` failed.
+/pytorch/aten/src/ATen/native/cuda/IndexKernel.cu:93: operator(): block: [19,0,0], thread: [125,0,0] Assertion `-sizes[i] <= index && index < sizes[i] && "index out of bounds"` failed.
+/pytorch/aten/src/ATen/native/cuda/IndexKernel.cu:93: operator(): block: [19,0,0], thread: [126,0,0] Assertion `-sizes[i] <= index && index < sizes[i] && "index out of bounds"` failed.
+/pytorch/aten/src/ATen/native/cuda/IndexKernel.cu:93: operator(): block: [19,0,0], thread: [127,0,0] Assertion `-sizes[i] <= index && index < sizes[i] && "index out of bounds"` failed.
+/pytorch/aten/src/ATen/native/cuda/IndexKernel.cu:93: operator(): block: [3,0,0], thread: [125,0,0] Assertion `-sizes[i] <= index && index < sizes[i] && "index out of bounds"` failed.
+/pytorch/aten/src/ATen/native/cuda/IndexKernel.cu:93: operator(): block: [3,0,0], thread: [126,0,0] Assertion `-sizes[i] <= index && index < sizes[i] && "index out of bounds"` failed.
+/pytorch/aten/src/ATen/native/cuda/IndexKernel.cu:93: operator(): block: [3,0,0], thread: [127,0,0] Assertion `-sizes[i] <= index && index < sizes[i] && "index out of bounds"` failed.
+/pytorch/aten/src/ATen/native/cuda/IndexKernel.cu:93: operator(): block: [27,0,0], thread: [125,0,0] Assertion `-sizes[i] <= index && index < sizes[i] && "index out of bounds"` failed.
+/pytorch/aten/src/ATen/native/cuda/IndexKernel.cu:93: operator(): block: [27,0,0], thread: [126,0,0] Assertion `-sizes[i] <= index && index < sizes[i] && "index out of bounds"` failed.
+/pytorch/aten/src/ATen/native/cuda/IndexKernel.cu:93: operator(): block: [27,0,0], thread: [127,0,0] Assertion `-sizes[i] <= index && index < sizes[i] && "index out of bounds"` failed.
+Traceback (most recent call last):
+  File "/datapool/mawb/ssst/workspace_group_plus/instance_state_v1_repair/e0e6805_src2/scripts/smoke_instance_state_v1.py", line 390, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/datapool/mawb/ssst/workspace_group_plus/instance_state_v1_repair/e0e6805_src2/scripts/smoke_instance_state_v1.py", line 113, in main
+    return run_all(reports=REPO / args.reports, run_root=REPO / args.run_root,
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/datapool/mawb/ssst/workspace_group_plus/instance_state_v1_repair/e0e6805_src2/scripts/smoke_instance_state_v1.py", line 228, in run_all
+    losses = run_named_steps(model_d, opt_c, optimizer, batches, steps=3, coupled=False,
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/datapool/mawb/ssst/workspace_group_plus/instance_state_v1_repair/e0e6805_src2/scripts/smoke_instance_state_v1.py", line 98, in run_named_steps
+    _, metrics = model.step_loss(batch, step=step_offset + index, coupled=coupled)
+                 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/space/mawb/ssst/workspace_group_plus/instance_state_v1_repair/e0e6805_src2/tokengs/models/instance_state_locusgs.py", line 520, in step_loss
+    seg, seg_metrics = instance_state_losses(
+                       ^^^^^^^^^^^^^^^^^^^^^^
+  File "/space/mawb/ssst/workspace_group_plus/instance_state_v1_repair/e0e6805_src2/tokengs/models/instance_state_loss.py", line 264, in instance_state_losses
+    thing, thing_metrics = thing_loss(prediction, batch)
+                           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/space/mawb/ssst/workspace_group_plus/instance_state_v1_repair/e0e6805_src2/tokengs/models/instance_state_loss.py", line 120, in thing_loss
+    y = tgt.reshape(tgt.shape[0], -1)[:, flat_idx]             # [M,P]
+        ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+RuntimeError: CUDA error: device-side assert triggered
+Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions.
+

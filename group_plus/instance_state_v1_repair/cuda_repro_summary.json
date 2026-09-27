@@ -1,0 +1,12 @@
+{
+  "command": "CUDA_LAUNCH_BLOCKING=1 python scripts/smoke_instance_state_v1.py (pristine e0e6805 copy at workspace_group_plus/instance_state_v1_repair/e0e6805_src2)",
+  "checks_passed_before_crash": 13,
+  "first_failing_frame": [
+    "  File \"/space/mawb/ssst/workspace_group_plus/instance_state_v1_repair/e0e6805_src2/tokengs/models/instance_state_loss.py\", line 264, in instance_state_losses",
+    "  File \"/space/mawb/ssst/workspace_group_plus/instance_state_v1_repair/e0e6805_src2/tokengs/models/instance_state_loss.py\", line 120, in thing_loss",
+    "RuntimeError: CUDA error: device-side assert triggered",
+    "Compile with `TORCH_USE_CUDA_DSA` to enable device-side assertions."
+  ],
+  "confirmed": "thing_loss indexed a 2-view GT tensor with a flat index built from the 4-view valid mask (the static finding instance_state_loss.py:92-120)",
+  "evidence_boundary": "synchronous kernel reported by CUDA_LAUNCH_BLOCKING=1; the asynchronous run could not attribute it"
+}

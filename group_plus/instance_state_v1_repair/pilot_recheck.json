@@ -1,0 +1,95 @@
+{
+  "windows": [
+    {
+      "scene": "scene0009_02",
+      "context": [
+        209,
+        253
+      ],
+      "novel": [
+        215,
+        247
+      ],
+      "thing_instances_ge100px": [
+        30,
+        32,
+        35
+      ],
+      "n_qualified": 3,
+      "semantic_range": [
+        0,
+        255
+      ],
+      "qualified": true
+    },
+    {
+      "scene": "scene0000_00",
+      "context": [
+        5238,
+        5251
+      ],
+      "novel": [
+        5239,
+        5243
+      ],
+      "thing_instances_ge100px": [
+        3,
+        6,
+        9,
+        33,
+        35
+      ],
+      "n_qualified": 5,
+      "semantic_range": [
+        0,
+        255
+      ],
+      "qualified": true
+    },
+    {
+      "scene": "scene0000_01",
+      "context": [
+        5238,
+        5255
+      ],
+      "novel": [
+        5239,
+        5250
+      ],
+      "thing_instances_ge100px": [
+        27,
+        35,
+        38,
+        59,
+        60
+      ],
+      "n_qualified": 5,
+      "semantic_range": [
+        1,
+        255
+      ],
+      "qualified": true
+    },
+    {
+      "scene": "scene0000_02",
+      "context": [
+        2253,
+        2279
+      ],
+      "novel": [
+        2258,
+        2261
+      ],
+      "thing_instances_ge100px": [
+        4,
+        6
+      ],
+      "n_qualified": 2,
+      "semantic_range": [
+        0,
+        255
+      ],
+      "qualified": true
+    }
+  ]
+}

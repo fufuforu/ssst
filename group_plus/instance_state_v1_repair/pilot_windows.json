@@ -1,0 +1,91 @@
+{
+  "windows": [
+    {
+      "scene": "scene0009_02",
+      "context": [
+        209,
+        253
+      ],
+      "novel": [
+        215,
+        247
+      ],
+      "pair_iou": 0.34302523732185364,
+      "sentinel_instances": [
+        {
+          "instance": 18032,
+          "class": 17
+        },
+        {
+          "instance": 20030,
+          "class": 19
+        }
+      ]
+    },
+    {
+      "scene": "scene0000_00",
+      "context": [
+        5238,
+        5251
+      ],
+      "novel": [
+        5239,
+        5243
+      ],
+      "pair_iou": 0.5871444344520569,
+      "attempt": 0,
+      "thing_instances": 5,
+      "thing_area_total": 91244,
+      "gt_instance_ids": [
+        3,
+        6,
+        9,
+        33,
+        35
+      ]
+    },
+    {
+      "scene": "scene0000_01",
+      "context": [
+        5238,
+        5255
+      ],
+      "novel": [
+        5239,
+        5250
+      ],
+      "pair_iou": 0.6154846549034119,
+      "attempt": 0,
+      "thing_instances": 5,
+      "thing_area_total": 114591,
+      "gt_instance_ids": [
+        27,
+        35,
+        38,
+        59,
+        60
+      ]
+    },
+    {
+      "scene": "scene0000_02",
+      "context": [
+        2253,
+        2279
+      ],
+      "novel": [
+        2258,
+        2261
+      ],
+      "pair_iou": 0.677299976348877,
+      "attempt": 1,
+      "thing_instances": 2,
+      "thing_area_total": 104848,
+      "gt_instance_ids": [
+        4,
+        6
+      ]
+    }
+  ],
+  "skipped_scenes": [],
+  "selection": "official provider pairs, seed42, first window with >=2 things each >=100px GT area in the context frames"
+}

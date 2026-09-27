@@ -207,6 +207,50 @@ def optimize_groups(model) -> dict:
     }
 
 
+def build_optimizer(model, opt, *, report: bool = False):
+    """The single parameter-grouping implementation used by prepare, smoke and training.
+
+    Returns ``(optimizer, report)``; the four groups are backbone decay/nodecay and
+    instance_state decay/nodecay with the registered peaks, ``query_init`` and every
+    bias/norm (or ``_no_weight_decay``) parameter excluded from weight decay.
+    """
+    import torch as _torch
+    report_rows = optimize_groups(model)
+    backbone_decay, backbone_nodecay, state_decay, state_nodecay = [], [], [], []
+    seen: set[int] = set()
+    for name, param in model.named_parameters():
+        if not param.requires_grad or id(param) in seen:
+            continue
+        seen.add(id(param))
+        is_state = name.startswith("instance_state.")
+        no_decay = (param.dim() == 1) or name.endswith("query_init") \
+            or bool(getattr(param, "_no_weight_decay", False))
+        if is_state:
+            (state_decay if not no_decay else state_nodecay).append(param)
+        else:
+            (backbone_decay if not no_decay else backbone_nodecay).append(param)
+    groups = [
+        {"params": backbone_decay, "weight_decay": 0.05, "lr": 1e-5,
+         "name": "backbone_decay"},
+        {"params": backbone_nodecay, "weight_decay": 0.0, "lr": 1e-5,
+         "name": "backbone_nodecay"},
+        {"params": state_decay, "weight_decay": 0.05, "lr": 1e-4,
+         "name": "instance_state_decay"},
+        {"params": state_nodecay, "weight_decay": 0.0, "lr": 1e-4,
+         "name": "instance_state_nodecay"},
+    ]
+    optimizer = _torch.optim.AdamW(groups, betas=(0.9, 0.95))
+    report_rows["actual_optimizer_groups"] = [
+        {"name": g["name"], "params": len(g["params"]), "lr": g["lr"],
+         "weight_decay": g["weight_decay"],
+         "numel": int(sum(p.numel() for p in g["params"]))} for g in groups]
+    report_rows["groups"] = {g["name"]: len(g["params"]) for g in groups}
+    report_rows["numel"] = {g["name"]: int(sum(p.numel() for p in g["params"]))
+                            for g in groups}
+    del opt, report
+    return optimizer, report_rows
+
+
 def sample_scene_window(opt, train_root: Path, scene: str, seed: int, tries: int,
                         min_instances: int = 2, min_area: int = 100):
     """First officially-legal 2+2 pair whose context frames carry enough GT thing."""
@@ -289,13 +333,13 @@ def phase_prepare(reports: Path, run_root: Path) -> int:
     write_json(reports / "spec.json", SPEC)
 
     # ---- 2. pretrained provenance -------------------------------------- #
-    digest = sha256_file(PRETRAINED)
+    pretrained_digest = sha256_file(PRETRAINED)
     cfg_path = PRETRAINED.parent / "config.yaml"
     rec_path = PRETRAINED.parent / "training_record.json"
     payload = torch.load(PRETRAINED, map_location="cpu", weights_only=False)
     init_report = {
-        "checkpoint": str(PRETRAINED), "sha256": digest,
-        "sha256_expected": PRETRAINED_SHA, "sha256_ok": digest == PRETRAINED_SHA,
+        "checkpoint": str(PRETRAINED), "sha256": pretrained_digest,
+        "sha256_expected": PRETRAINED_SHA, "sha256_ok": pretrained_digest == PRETRAINED_SHA,
         "step_in_file": int(payload.get("step", -1)), "step_expected": PRETRAINED_STEP,
         "config_yaml_present": cfg_path.is_file(),
         "training_record_present": rec_path.is_file(),
@@ -303,7 +347,7 @@ def phase_prepare(reports: Path, run_root: Path) -> int:
                         "docs/full_train_cleanup_manifest.json"],
     }
     if not init_report["sha256_ok"]:
-        raise SystemExit(f"pretrained sha256 mismatch: {digest}")
+        raise SystemExit(f"pretrained sha256 mismatch: {pretrained_digest}")
     init_report["training_record"] = (json.loads(rec_path.read_text(encoding="utf-8"))
                                       if rec_path.is_file() else None)
 
@@ -386,6 +430,33 @@ def phase_prepare(reports: Path, run_root: Path) -> int:
                {"windows": windows, "skipped_scenes": skipped,
                 "selection": "official provider pairs, seed42, first window with >=2 things "
                              "each >=100px GT area in the context frames"})
+    # ---- 5b. re-verify the selected windows with the corrected GT rule ------ #
+    recheck = []
+    for window in windows:
+        provider = SIU3RProcessedProvider(opt, root=str(train_root),
+                                          subset=[window["scene"]], training=True, rank=0)
+        want = np.array([*window["context"], *window["novel"]], dtype=np.int64)
+        provider._get_indices_static = lambda idx: (want, [])      # noqa: SLF001
+        sample = provider[0]
+        sem = sample["semantic_label_all"][:2]
+        ins = sample["instance_label_all"][:2]
+        areas: dict[int, int] = {}
+        for view in range(2):
+            thing = (sem[view] >= 2) & (sem[view] <= 19) & (ins[view] > 0)
+            for value in torch.unique(ins[view][thing]).tolist():
+                area = int((thing & (ins[view] == int(value))).sum())
+                areas[int(value)] = areas.get(int(value), 0) + area
+        good = sorted(k for k, a in areas.items() if a >= 100)
+        recheck.append({"scene": window["scene"],
+                        "context": window["context"], "novel": window["novel"],
+                        "thing_instances_ge100px": good, "n_qualified": len(good),
+                        "semantic_range": [int(sem.min()), int(sem.max())],
+                        "qualified": len(good) >= 2})
+    write_json(reports / "pilot_recheck.json", {"windows": recheck})
+    failed = [r["scene"] for r in recheck if not r["qualified"]]
+    if failed:
+        raise SystemExit(f"DATA_PROTOCOL_BLOCKED: windows failing the corrected GT rule: {failed}")
+    print(f"[prepare] pilot recheck passed for all {len(recheck)} windows", flush=True)
 
     # ---- 6. monitor pairs ---------------------------------------------- #
     val_pairs = json.loads((Path(split["val_root"]).parent / "val_pair.json").read_text(
@@ -416,9 +487,13 @@ def phase_prepare(reports: Path, run_root: Path) -> int:
                          "novel": window["novel"]})
     write_json(reports / "plan_paired_2000.json",
                {"steps": len(plan), "arms": [ARM_C, ARM_E], "entries": plan})
+    digests = {}
     for name in ("pilot_windows.json", "plan_paired_2000.json", "monitor_8pairs.json"):
-        digest = sha256_file(reports / name)
-        print(f"[prepare] {name} sha256 {digest[:16]}", flush=True)
+        digests[name] = sha256_file(reports / name)
+        print(f"[prepare] {name} sha256 {digests[name][:16]}", flush=True)
+    pilot_digest = digests["pilot_windows.json"]
+    plan_digest = digests["plan_paired_2000.json"]
+    monitor_digest = digests["monitor_8pairs.json"]
 
     # ---- 8. storage budget --------------------------------------------- #
     stat = os.statvfs(REPO)
@@ -448,7 +523,10 @@ def phase_prepare(reports: Path, run_root: Path) -> int:
         "commit": head, "git_status": status.splitlines(),
         "split": str(split_path), "split_sha256": sha256_file(split_path),
         "train_scenes": len(train_scenes), "val_scenes": len(val_scenes),
-        "pretrained": str(PRETRAINED), "pretrained_sha256": digest,
+        "pretrained": str(PRETRAINED), "pretrained_sha256": pretrained_digest,
+        "pilot_windows_sha256": pilot_digest,
+        "plan_paired_2000_sha256": plan_digest,
+        "monitor_8pairs_sha256": monitor_digest,
         "siu3r_commit": "8ea80166be76854f938e90521f1a5b688b755c87",
         "python": sys.version.split()[0], "torch": torch.__version__,
         "gpu": torch.cuda.get_device_name(0) if torch.cuda.is_available() else "cpu",

@@ -1,0 +1,77 @@
+{
+  "checks": [
+    {
+      "check": "b.logit_roundtrip",
+      "ok": true,
+      "detail": "sigmoid(logit(0.9))=0.900000, sigmoid(log(0.9))=0.473684"
+    },
+    {
+      "check": "L2.permute_before_flatten",
+      "ok": true,
+      "detail": "direct reshape differs from permuted reshape for [V,Q,H,W]"
+    },
+    {
+      "check": "L2.flat_index_decoding",
+      "ok": true,
+      "detail": "idx=((v*H)+y)*W+x reproduces the flat order"
+    },
+    {
+      "check": "a.context_swap_invariance",
+      "ok": true,
+      "detail": "13.542975 vs 13.542974"
+    },
+    {
+      "check": "L4.ce_weighted_mean",
+      "ok": true,
+      "detail": "cross_entropy=0.126928 closed form=0.126928"
+    },
+    {
+      "check": "c.empty_thing_finite",
+      "ok": true,
+      "detail": "loss 6.088012"
+    },
+    {
+      "check": "c.rejects_out_of_range_label",
+      "ok": true,
+      "detail": "thing_loss: semantic labels outside 0..19/255: [77]"
+    },
+    {
+      "check": "c.rejects_cross_class_instance",
+      "ok": true,
+      "detail": "instance 11 carries several semantic classes [2, 19]"
+    },
+    {
+      "check": "d.novel_labels_ignored",
+      "ok": true,
+      "detail": "understanding loss identical with 2 or 4 GT views"
+    },
+    {
+      "check": "L6.identity_unit_norm",
+      "ok": true,
+      "detail": "identity vectors have unit norm along dim=2"
+    },
+    {
+      "check": "stuff.finite",
+      "ok": true,
+      "detail": "12.825563"
+    },
+    {
+      "check": "semantic.finite",
+      "ok": true,
+      "detail": "3.399923"
+    },
+    {
+      "check": "identity.finite",
+      "ok": true,
+      "detail": "0.628449"
+    },
+    {
+      "check": "thing.finite",
+      "ok": true,
+      "detail": "1.354298"
+    }
+  ],
+  "failed": [],
+  "ok": true,
+  "note": "CPU contract only; GPU smoke evidence lives in smoke.json"
+}
