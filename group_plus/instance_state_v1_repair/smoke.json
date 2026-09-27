@@ -1,0 +1,180 @@
+{
+  "checks": [
+    {
+      "check": "A.strict_transfer",
+      "ok": true,
+      "detail": "matched 450 keys, new 59",
+      "value": {
+        "source_keys": 450,
+        "matched": 450,
+        "new_keys": 59,
+        "mismatched": [],
+        "missing_in_source": [],
+        "shape_mismatch": [],
+        "alias_conflicts": [],
+        "strict_after_transfer": true
+      }
+    },
+    {
+      "check": "A.C_E_identical_init",
+      "ok": true,
+      "detail": "new modules share one initialisation"
+    },
+    {
+      "check": "A.beta0_h_mu_rho_bitwise",
+      "ok": true,
+      "detail": "max|dh|=0.000e+00 max|dmu|=0.000e+00 max|drho|=0.000e+00"
+    },
+    {
+      "check": "A.beta0_render_and_gs",
+      "ok": true,
+      "detail": "max|drgb|=0.000e+00 max|dalpha|=0.000e+00 max|dgs|=0.000e+00"
+    },
+    {
+      "check": "B.sum103_eq_alpha",
+      "ok": true,
+      "detail": "max err 8.941e-07"
+    },
+    {
+      "check": "B.S_plus_void_eq_1",
+      "ok": true,
+      "detail": "max err 8.345e-07"
+    },
+    {
+      "check": "B.assignment_rows_sum1",
+      "ok": true,
+      "detail": "max err 2.384e-07"
+    },
+    {
+      "check": "B.all_finite",
+      "ok": true,
+      "detail": "assignment and region mass finite"
+    },
+    {
+      "check": "B.radius_positive",
+      "ok": true,
+      "detail": "radii min 1.366e-02"
+    },
+    {
+      "check": "B.fps_100_distinct",
+      "ok": true,
+      "detail": "100 distinct indices"
+    },
+    {
+      "check": "B.decode_radius_frozen",
+      "ok": true,
+      "detail": "activation head decode radius == 0.15"
+    },
+    {
+      "check": "C.slot_identity_varies",
+      "ok": true,
+      "detail": "within-token assignment spread 2.135e-03"
+    },
+    {
+      "check": "C.perturbation_propagates",
+      "ok": true,
+      "detail": "de-bias perturbation changes slot assignment by 5.167e-02"
+    },
+    {
+      "check": "D.understanding_gradients_reach",
+      "ok": true,
+      "detail": "{\"instance_state.proj_de\": true, \"instance_state.proj_e\": true, \"instance_state.thing_classifier\": true, \"activation_head\": true, \"enc_dec_backbone\": true}",
+      "value": {
+        "groups": [
+          "activation_head",
+          "anchor_decoder",
+          "enc_dec_backbone",
+          "gs_tokens",
+          "instance_state.ffn_fc1",
+          "instance_state.ffn_fc2",
+          "instance_state.gru",
+          "instance_state.ln_de",
+          "instance_state.ln_e",
+          "instance_state.ln_ffn",
+          "instance_state.ln_gru",
+          "instance_state.ln_h",
+          "instance_state.ln_u",
+          "instance_state.ln_void",
+          "instance_state.ln_x",
+          "instance_state.proj_de",
+          "instance_state.proj_e",
+          "instance_state.proj_gvoid",
+          "instance_state.proj_h",
+          "instance_state.proj_m",
+          "instance_state.proj_off",
+          "instance_state.proj_u",
+          "instance_state.query_init",
+          "instance_state.thing_classifier",
+          "instance_state.token_void",
+          "patch_embed",
+          "patch_plucker_embed"
+        ]
+      }
+    },
+    {
+      "check": "D.recon_gradients_reach",
+      "ok": true,
+      "detail": "{\"enc_dec_backbone\": true, \"activation_head\": true, \"anchor_decoder\": true}"
+    },
+    {
+      "check": "D.losses_finite",
+      "ok": true,
+      "detail": "losses [3.6162, 2.3543, 2.5685]"
+    },
+    {
+      "check": "E.coupling_changes_geometry",
+      "ok": true,
+      "detail": "max|dmu|=7.855e-03 max|dr|=1.685e-02 max|dgs|=1.770e-01"
+    },
+    {
+      "check": "E.armC_zero_init_inert",
+      "ok": true,
+      "detail": "arm C step201 vs step0 renders differ by 0.000e+00"
+    },
+    {
+      "check": "F.prediction_independent_of_labels",
+      "ok": true,
+      "detail": "max|dgs| after label/novel/GT replacement 0.000e+00"
+    },
+    {
+      "check": "G.degenerate_labels_finite",
+      "ok": true,
+      "detail": "{\"stuff_only\": 0.6957454085350037, \"with_255\": 0.7504737973213196}"
+    },
+    {
+      "check": "H.serialise_reload_identical",
+      "ok": true,
+      "detail": "checkpoint bytes reload to identical tensors"
+    },
+    {
+      "check": "H.resume_loss_continuity",
+      "ok": false,
+      "detail": "8-step 0.423365 vs 4+4 0.404943"
+    },
+    {
+      "check": "H.resume_param_drift",
+      "ok": false,
+      "detail": "max|dW| 4.062e-04"
+    },
+    {
+      "check": "J.timing_measured",
+      "ok": true,
+      "detail": "median 0.429s p95 0.442s peak 20.17GB",
+      "value": {
+        "median_s": 0.4290808439254761,
+        "p95_s": 0.442252266407013,
+        "peak_gpu_gb": 20.167463936,
+        "checkpoint_bytes": 2640496257
+      }
+    }
+  ],
+  "failed": [
+    "H.resume_loss_continuity",
+    "H.resume_param_drift"
+  ],
+  "ok": false,
+  "device": "cuda",
+  "not_run": [
+    "I.official-reader synthetic checks (needs the SIU3R venv and is executed in scripts/eval_instance_state_v1.py)"
+  ]
+}

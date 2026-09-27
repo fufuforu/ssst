@@ -91,6 +91,9 @@ def forward_predictions(model, opt, batch, coupled, step):
 
 def run_named_steps(model, opt, optimizer, batches, steps, coupled, step_offset=0,
                     lr=1e-4):
+    if optimizer is None:                     # bind the optimizer to THIS model
+        optimizer = torch.optim.AdamW([p for p in model.parameters()
+                                       if p.requires_grad], lr=lr)
     losses = []
     for index in range(steps):
         batch = batches[index % len(batches)]
@@ -229,7 +232,8 @@ def run_all(reports: Path, run_root: Path, device: str = "cuda") -> int:
                              step_offset=201, lr=1e-4)
     _, metrics_d = model_d.step_loss(batches[0], step=205, coupled=False)
     model_d.zero_grad(set_to_none=True)
-    (0.1 * metrics_d["loss_thing"] + 0.1 * metrics_d["loss_sem"]).backward(retain_graph=True)
+    # loss_understanding keeps the autograd graph; the logged items are detached (L8)
+    metrics_d["loss_understanding"].backward(retain_graph=True)
     groups = {}
     for name, param in model_d.named_parameters():
         if param.grad is None:
@@ -289,9 +293,11 @@ def run_all(reports: Path, run_root: Path, device: str = "cuda") -> int:
     batch_f["instance_label_all"] = torch.randint_like(batch["instance_label_all"], 0, 40)
     batch_f["images_all"] = torch.rand_like(batch["images_all"])
     batch_f["cam_view_all"] = batch["cam_view_all"]
+    # the modified batch must be re-split: context RGB / rays / cameras unchanged
+    mi_f, _ = split_data(batch_f, opt_c)
     with torch.no_grad():
         out_f = model_c.forward_instance_state(
-            ModelInput(model_input.encoder, decoder), render_decoder_input=decoder,
+            ModelInput(mi_f.encoder, decoder), render_decoder_input=decoder,
             coupled=False, step=0)
     d_f = float((out_f["gaussians"] - out_new["gaussians"]).abs().max())
     checks.record("F.prediction_independent_of_labels", d_f <= 1e-6,
@@ -335,9 +341,7 @@ def run_all(reports: Path, run_root: Path, device: str = "cuda") -> int:
     checks.record("H.serialise_reload_identical", identical,
                   "checkpoint bytes reload to identical tensors")
     reference = run_named_steps(copy.deepcopy(model_c).to(device).train(), opt_c,
-                                torch.optim.AdamW([p for p in model_c.parameters()
-                                                   if p.requires_grad], lr=1e-4),
-                                batches, steps=8, coupled=False, step_offset=0)
+                                None, batches, steps=8, coupled=False, step_offset=0)
     model_r = copy.deepcopy(model_c).to(device).train()
     opt_r = torch.optim.AdamW([p for p in model_r.parameters() if p.requires_grad], lr=1e-4)
     model_r.load_state_dict(reload_a["model"])
