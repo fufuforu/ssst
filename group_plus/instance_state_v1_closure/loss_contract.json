@@ -1,0 +1,89 @@
+{
+  "checks": [
+    {
+      "check": "b.logit_roundtrip",
+      "ok": true,
+      "detail": "sigmoid(logit(0.9))=0.900000, sigmoid(log(0.9))=0.473684"
+    },
+    {
+      "check": "L2.permute_before_flatten",
+      "ok": true,
+      "detail": "direct reshape differs from permuted reshape for [V,Q,H,W]"
+    },
+    {
+      "check": "L2.flat_index_decoding",
+      "ok": true,
+      "detail": "idx=((v*H)+y)*W+x reproduces the flat order"
+    },
+    {
+      "check": "a.context_swap_invariance",
+      "ok": true,
+      "detail": "13.537310 vs 13.537310"
+    },
+    {
+      "check": "L4b.matcher_softmax_invariance",
+      "ok": true,
+      "detail": "costs unchanged under a +100 logit shift (max\u0394 0.00e+00)"
+    },
+    {
+      "check": "L4b.matcher_picks_better_query",
+      "ok": true,
+      "detail": "argmin query 0 (query0 has the larger GT logit)"
+    },
+    {
+      "check": "L4c.thing_loss_matches_numpy_reference",
+      "ok": false,
+      "detail": "implementation 10.859805 vs reference 20.266098"
+    },
+    {
+      "check": "c.empty_thing_finite",
+      "ok": true,
+      "detail": "loss 6.088012"
+    },
+    {
+      "check": "c.rejects_out_of_range_label",
+      "ok": true,
+      "detail": "thing_loss: semantic labels outside 0..19/255: [77]"
+    },
+    {
+      "check": "c.rejects_cross_class_instance",
+      "ok": true,
+      "detail": "instance 11 carries several semantic classes [2, 19] across the context views"
+    },
+    {
+      "check": "d.novel_labels_ignored",
+      "ok": true,
+      "detail": "3 label settings (context only / +novelA / +novelB): loss equal True, parts equal True, grads equal True"
+    },
+    {
+      "check": "L6.identity_unit_norm",
+      "ok": true,
+      "detail": "identity vectors have unit norm along dim=2"
+    },
+    {
+      "check": "stuff.finite",
+      "ok": true,
+      "detail": "12.825563"
+    },
+    {
+      "check": "semantic.finite",
+      "ok": true,
+      "detail": "3.399923"
+    },
+    {
+      "check": "identity.finite",
+      "ok": true,
+      "detail": "0.628449"
+    },
+    {
+      "check": "thing.finite",
+      "ok": true,
+      "detail": "1.353731"
+    }
+  ],
+  "failed": [
+    "L4c.thing_loss_matches_numpy_reference"
+  ],
+  "ok": false,
+  "note": "CPU contract only; GPU smoke evidence lives in smoke.json"
+}

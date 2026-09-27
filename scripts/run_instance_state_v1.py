@@ -163,6 +163,13 @@ def transfer_reconstruction_weights(model, source_state: dict, opt) -> dict:
 
 
 def optimize_groups(model) -> dict:
+    """Deprecated shim: the single grouping implementation lives in the runtime module."""
+    from scripts.instance_state_runtime import build_optimizer
+    _, report = build_optimizer(model)
+    return report
+
+
+def _legacy_optimize_groups(model) -> dict:
     """Parameter groups with object-identity dedup (shared/aliased tensors once)."""
     backbone_decay, backbone_nodecay, state_decay, state_nodecay = [], [], [], []
     seen: set[int] = set()
@@ -207,48 +214,11 @@ def optimize_groups(model) -> dict:
     }
 
 
-def build_optimizer(model, opt, *, report: bool = False):
-    """The single parameter-grouping implementation used by prepare, smoke and training.
-
-    Returns ``(optimizer, report)``; the four groups are backbone decay/nodecay and
-    instance_state decay/nodecay with the registered peaks, ``query_init`` and every
-    bias/norm (or ``_no_weight_decay``) parameter excluded from weight decay.
-    """
-    import torch as _torch
-    report_rows = optimize_groups(model)
-    backbone_decay, backbone_nodecay, state_decay, state_nodecay = [], [], [], []
-    seen: set[int] = set()
-    for name, param in model.named_parameters():
-        if not param.requires_grad or id(param) in seen:
-            continue
-        seen.add(id(param))
-        is_state = name.startswith("instance_state.")
-        no_decay = (param.dim() == 1) or name.endswith("query_init") \
-            or bool(getattr(param, "_no_weight_decay", False))
-        if is_state:
-            (state_decay if not no_decay else state_nodecay).append(param)
-        else:
-            (backbone_decay if not no_decay else backbone_nodecay).append(param)
-    groups = [
-        {"params": backbone_decay, "weight_decay": 0.05, "lr": 1e-5,
-         "name": "backbone_decay"},
-        {"params": backbone_nodecay, "weight_decay": 0.0, "lr": 1e-5,
-         "name": "backbone_nodecay"},
-        {"params": state_decay, "weight_decay": 0.05, "lr": 1e-4,
-         "name": "instance_state_decay"},
-        {"params": state_nodecay, "weight_decay": 0.0, "lr": 1e-4,
-         "name": "instance_state_nodecay"},
-    ]
-    optimizer = _torch.optim.AdamW(groups, betas=(0.9, 0.95))
-    report_rows["actual_optimizer_groups"] = [
-        {"name": g["name"], "params": len(g["params"]), "lr": g["lr"],
-         "weight_decay": g["weight_decay"],
-         "numel": int(sum(p.numel() for p in g["params"]))} for g in groups]
-    report_rows["groups"] = {g["name"]: len(g["params"]) for g in groups}
-    report_rows["numel"] = {g["name"]: int(sum(p.numel() for p in g["params"]))
-                            for g in groups}
+def build_optimizer(model, opt=None, *, report: bool = False):
+    """Delegate to the single runtime implementation (see scripts/instance_state_runtime)."""
+    from scripts.instance_state_runtime import build_optimizer as _build
     del opt, report
-    return optimizer, report_rows
+    return _build(model)
 
 
 def sample_scene_window(opt, train_root: Path, scene: str, seed: int, tries: int,

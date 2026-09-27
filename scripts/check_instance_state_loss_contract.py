@@ -16,6 +16,7 @@ import sys
 from pathlib import Path
 
 import numpy as np
+from scipy.optimize import linear_sum_assignment
 import torch
 import torch.nn.functional as F
 
@@ -24,7 +25,8 @@ if str(REPO) not in sys.path:
     sys.path.insert(0, str(REPO))
 
 from tokengs.models.instance_state_loss import (  # noqa: E402
-    NUM_THING, thing_loss, stuff_loss, semantic_loss, identity_loss,
+    NUM_THING, _matching_cost, instance_state_losses, thing_loss, stuff_loss,
+    semantic_loss, identity_loss,
 )
 
 B, V, H, W = 1, 2, 3, 5
@@ -118,15 +120,78 @@ def main() -> int:
                   abs(float(ref_thing) - float(swap_thing)) <= 1e-5,
                   f"{float(ref_thing):.6f} vs {float(swap_thing):.6f}")
 
-    # ---- a. CE weight semantics (matched 1.0 / unmatched 0.1) ----------- #
-    logits = torch.tensor([[2.0, 0.0], [0.0, 2.0]])
-    target = torch.tensor([0, 1])
-    weight = torch.tensor([1.0, 0.1])
-    got = float(F.cross_entropy(logits, target, weight=weight, reduction="mean"))
-    per = -np.log(np.exp(2.0) / (np.exp(2.0) + np.exp(0.0)))
-    want = float((per * 1.0 + per * 0.1) / (1.0 + 0.1))
-    checks.record("L4.ce_weighted_mean", abs(got - want) < 1e-6,
-                  f"cross_entropy={got:.6f} closed form={want:.6f}")
+    # ---- matcher cost must use softmax probabilities, not raw logits ----- #
+    logits = torch.zeros(NUM_THING, 19)
+    logits[0, 3] = 2.0                      # query 0: GT class logit 2
+    logits[1, 3] = 1.0                      # query 1: GT class logit 1
+    logits[2:, :] = -3.0                    # the rest clearly worse
+    gt_class = torch.tensor([5])            # internal class 5 -> column 3
+    z = torch.zeros(NUM_THING, 4)
+    y = torch.ones(1, 4)
+    base = _matching_cost(logits, z, y, gt_class)
+    shifted = _matching_cost(logits + 100.0, z, y, gt_class)
+    checks.record("L4b.matcher_softmax_invariance",
+                  bool(torch.allclose(base, shifted, atol=1e-5)),
+                  f"costs unchanged under a +100 logit shift (maxΔ "
+                  f"{float((base - shifted).abs().max()):.2e})")
+    checks.record("L4b.matcher_picks_better_query",
+                  int(base[:, 0].argmin()) == 0,
+                  f"argmin query {int(base[:, 0].argmin())} (query0 has the larger GT logit)")
+
+    # ---- CE semantics: real thing_loss vs an independent NumPy reference -- #
+    ref_sem = torch.zeros(1, 2, 2, 2, dtype=torch.long)
+    ref_ins = torch.zeros(1, 2, 2, 2, dtype=torch.long)
+    ref_sem[0, :, 0, :] = 12
+    ref_ins[0, :, 0, :] = 7
+    ref_sem[0, :, 1, :] = 1
+    ref_region = torch.full((1, 2, 103, 2, 2), 1e-3)
+    ref_region[0, :, :NUM_THING] = 1e-3
+    ref_region[0, :, 0, 0, :] = 0.9
+    ref_region[0, :, 100] = 0.05
+    ref_region[0, :, 101] = 0.05
+    ref_region = ref_region / ref_region.sum(2, keepdim=True) * 0.8
+    ref_logits = torch.full((1, NUM_THING, 21), -1.0)
+    ref_logits[..., 2:] = torch.arange(NUM_THING * 19, dtype=torch.float).reshape(
+        NUM_THING, 19) % 7 - 3.0
+    ref_pred = {"gaussians": torch.zeros(1, 4, 14), "region_mass": ref_region,
+                "semantic_scores": torch.full((1, 2, 20, 2, 2), 0.05),
+                "identity_render": torch.ones(1, 2, 16, 2, 2),
+                "alpha": torch.full((1, 2, 1, 2, 2), 0.8),
+                "thing_class_logits": ref_logits}
+    got_thing, got_metrics = thing_loss(ref_pred,
+                                        {"semantic_label_all": ref_sem,
+                                         "instance_label_all": ref_ins})
+    # -- NumPy reference (independent of the implementation) --
+    P = torch.softmax(ref_logits[0, :, 2:].double(), dim=-1).numpy()
+    m = ref_region[0, :, :NUM_THING].double().numpy()
+    m = np.transpose(m, (1, 0, 2, 3)).reshape(NUM_THING, -1)
+    z_np = np.log(np.clip(m, 1e-6, 1 - 1e-6) / (1 - np.clip(m, 1e-6, 1 - 1e-6)))
+    y_np = np.concatenate([np.ones((1, 4)), np.zeros((1, 4))], axis=1)
+    pts = z_np.shape[1]
+    pair = np.logaddexp(0, z_np).mean(1, keepdims=True) - (z_np @ y_np.T) / pts
+    sig = 1 / (1 + np.exp(-z_np))
+    dice = 1 - (2 * (sig @ y_np.T) + 1) / (sig.sum(1, keepdims=True) + y_np.sum(1)[None] + 1)
+    cost = -P[:, 12 - 2][:, None] * 1.0 + 5.0 * pair + 5.0 * dice
+    rows, cols = linear_sum_assignment(cost)
+    # BCE_with_logits(z, y) == softplus(z) - z*y, averaged over all points
+    bce_ref = np.mean([
+        (np.logaddexp(0, z_np[r]) - z_np[r] * y_np[c]).mean()
+        for r, c in zip(rows, cols)])
+    dice_ref = np.mean([
+        1 - (2 * (sig[r] * y_np[c]).sum() + 1) / (sig[r].sum() + y_np[c].sum() + 1)
+        for r, c in zip(rows, cols)])
+    logp = np.log(np.exp(ref_logits[0, :, 2:].double().numpy() - ref_logits[0, :, 2:].double().numpy().max(1, keepdims=True))
+                  / np.exp(ref_logits[0, :, 2:].double().numpy() - ref_logits[0, :, 2:].double().numpy().max(1, keepdims=True)).sum(1, keepdims=True))
+    target = np.full(NUM_THING, 18)
+    target[rows] = 12 - 2
+    class_w = np.ones(19)
+    class_w[18] = 0.1
+    ce_ref = float(((-logp[np.arange(NUM_THING), target] * class_w[target]).sum())
+                   / class_w[target].sum())
+    ref_total = 2.0 * ce_ref + 5.0 * bce_ref + 5.0 * dice_ref
+    checks.record("L4c.thing_loss_matches_numpy_reference",
+                  abs(float(got_thing) - ref_total) < 1e-4,
+                  f"implementation {float(got_thing):.6f} vs reference {ref_total:.6f}")
 
     # ---- c. degenerate label paths -------------------------------------- #
     zero_sem = torch.zeros(B, V, H, W, dtype=torch.long)
@@ -152,13 +217,38 @@ def main() -> int:
         ok2, detail2 = True, str(error)[:80]
     checks.record("c.rejects_cross_class_instance", ok2, detail2)
 
-    # ---- d. novel labels do not enter the understanding loss ------------ #
-    sem4 = torch.cat([sem, torch.randint(0, 20, (B, 2, H, W))], dim=1)
-    ins4 = torch.cat([ins, torch.randint(0, 30, (B, 2, H, W))], dim=1)
-    a, _ = thing_loss(pred, {"semantic_label_all": sem4, "instance_label_all": ins4})
-    b, _ = thing_loss(pred, {"semantic_label_all": sem4.clone(), "instance_label_all": ins4})
-    checks.record("d.novel_labels_ignored", abs(float(a) - float(b)) < 1e-7,
-                  "understanding loss identical with 2 or 4 GT views")
+    # ---- d. GENUINELY different novel labels must not change loss or grad -- #
+    grad_pred = {k: (v.clone().requires_grad_(True) if torch.is_tensor(v) and v.is_floating_point()
+                     else v) for k, v in pred.items()}
+    novel_a = torch.full((B, 2, H, W), 3, dtype=torch.long)
+    novel_b = torch.full((B, 2, H, W), 11, dtype=torch.long)     # rotated by +8
+    ins_a = torch.full((B, 2, H, W), 200, dtype=torch.long)
+    ins_b = torch.full((B, 2, H, W), 300, dtype=torch.long)      # +100
+    outs = []
+    for extra_sem, extra_ins in ((None, None), (novel_a, ins_a), (novel_b, ins_b)):
+        for key in list(grad_pred):
+            if grad_pred[key].grad is not None:
+                grad_pred[key].grad = None
+        sem_use = sem if extra_sem is None else torch.cat([sem, extra_sem], dim=1)
+        ins_use = ins if extra_ins is None else torch.cat([ins, extra_ins], dim=1)
+        total, parts = instance_state_losses(
+            grad_pred, {"semantic_label_all": sem_use, "instance_label_all": ins_use}, None)
+        total.backward()
+        grads = {k: (v.grad.detach().clone() if v.grad is not None else None)
+                 for k, v in grad_pred.items() if torch.is_tensor(v)}
+        outs.append((total.detach().clone(), parts, grads))
+    same_loss = all(abs(float(outs[0][0]) - float(o[0])) < 1e-6 for o in outs)
+    same_parts = all(
+        all(abs(outs[0][1][k] - o[1][k]) < 1e-6 for k in outs[0][1]) for o in outs)
+    same_grad = all(
+        all((outs[0][2][k] is None and o[2][k] is None)
+            or (outs[0][2][k] is not None and o[2][k] is not None
+                and torch.allclose(outs[0][2][k], o[2][k], atol=1e-7))
+            for k in outs[0][2]) for o in outs)
+    checks.record("d.novel_labels_ignored",
+                  same_loss and same_parts and same_grad,
+                  f"3 label settings (context only / +novelA / +novelB): loss equal "
+                  f"{same_loss}, parts equal {same_parts}, grads equal {same_grad}")
 
     # ---- L6 identity normalisation is per-pixel over the 16 channels ---- #
     ident = pred["identity_render"]

@@ -105,17 +105,39 @@ def thing_targets(sem2: torch.Tensor, ins2: torch.Tensor):
 
 def validate_thing_targets(sem2, ins2, cls_b, tgt_b) -> None:
     """One positive instance id must map to exactly one semantic class (spec 7)."""
-    for view in range(sem2.shape[0]):
-        thing_pixels = (sem2[view] >= STUFF_CLASS_COUNT) & (ins2[view] > 0)
-        ids = torch.unique(ins2[view][thing_pixels])
-        for value in ids.tolist():
-            classes = torch.unique(sem2[view][thing_pixels & (ins2[view] == int(value))])
-            if len(classes) != 1:
-                raise RuntimeError(
-                    f"instance {value} carries several semantic classes {classes.tolist()}")
+    # the two context views are MERGED before the check: the same positive
+    # instance id must carry one class across the pair, not just per view
+    thing_pixels = (sem2 >= STUFF_CLASS_COUNT) & (sem2 <= 19) & (ins2 > 0)
+    ids = torch.unique(ins2[thing_pixels])
+    for value in ids.tolist():
+        classes = torch.unique(sem2[thing_pixels & (ins2 == int(value))])
+        if len(classes) != 1:
+            raise RuntimeError(
+                f"instance {value} carries several semantic classes {classes.tolist()} "
+                f"across the context views")
     if cls_b.shape[0] > NUM_THING or tgt_b.shape[0] > NUM_THING:
         raise RuntimeError(
             f"{tgt_b.shape[0]} thing segments exceed the {NUM_THING}-state bank")
+
+
+def _matching_cost(logits19: torch.Tensor, z: torch.Tensor, y: torch.Tensor,
+                   gt_class: torch.Tensor) -> torch.Tensor:
+    """Registered Hungarian cost: -P[GT class] + 5*BCEpair + 5*Dicepair.
+
+    ``z`` is the mask logit of the sampled points and already encodes the same
+    probabilities used by the full-pixel loss.  The class term uses the softmax
+    probability of the underlying 19-d logits - using the raw logits would be a
+    different (unregistered) cost.
+    """
+    prob = torch.softmax(logits19.float(), dim=-1)
+    cost_class = -prob[:, gt_class - STUFF_CLASS_COUNT]
+    points = z.shape[1]
+    pair = F.softplus(z).mean(1, keepdim=True) - (z @ y.t()) / points
+    sig = torch.sigmoid(z)
+    dice_pair = 1.0 - (2.0 * (sig @ y.t()) + 1.0) / (
+        sig.sum(1, keepdim=True) + y.sum(1).unsqueeze(0) + 1.0)
+    return cost_class * MATCH_COST_CLASS + MATCH_COST_BCE * pair \
+        + MATCH_COST_DICE * dice_pair
 
 
 def thing_loss(prediction, batch, *, match_points: int = DEFAULT_MATCH_POINTS):
@@ -163,16 +185,8 @@ def thing_loss(prediction, batch, *, match_points: int = DEFAULT_MATCH_POINTS):
             continue
         sel = _linspace_indices(int(keep.sum()), match_points).to(device)
         flat = torch.nonzero(keep, as_tuple=False).flatten()[sel]
-        prob = torch.sigmoid(z_all[:, flat])
         y = y_all[:, flat]
-        p = len(flat)
-        # BCE_with_logits(z, y) == softplus(z) - z*y, averaged over the sampled points
-        bce_pair = F.softplus(z_all[:, flat]).mean(1, keepdim=True) \
-            - (z_all[:, flat] @ y.t()) / p
-        dice_pair = 1.0 - (2.0 * (prob @ y.t()) + 1.0) / (
-            prob.sum(1, keepdim=True) + y.sum(1).unsqueeze(0) + 1.0)
-        cost = (-logits19[b][:, cls_b - STUFF_CLASS_COUNT].float() * MATCH_COST_CLASS
-                + MATCH_COST_BCE * bce_pair + MATCH_COST_DICE * dice_pair)
+        cost = _matching_cost(logits19[b], z_all[:, flat], y, cls_b)
         rows, cols = linear_sum_assignment(cost.detach().float().cpu().numpy())
         matched_row = torch.as_tensor(rows, device=device, dtype=torch.long)
         matched_col = torch.as_tensor(cols, device=device, dtype=torch.long)
@@ -255,6 +269,10 @@ def identity_loss(prediction, batch, *, max_points: int = DEFAULT_ID_POINTS):
     ins = batch["instance_label_all"][:, :2].long()
     ident = prediction["identity_render"]
     alpha = prediction["alpha"]
+    if ident.shape[0] != 1:
+        raise RuntimeError(
+            f"identity loss runs with B=1 only, got B={ident.shape[0]}; scene-global "
+            f"instance ids must never be compared across scenes")
     if ident.shape[1] != 2:
         raise RuntimeError(f"identity render must have V=2, got {ident.shape[1]}")
     norm = F.normalize(ident / (alpha + 1e-6), dim=2, eps=1e-6)
