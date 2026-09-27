@@ -29,3 +29,29 @@
 [paired] C EVAL 2000 ctx mIoU 0.973 recall 0.750 rawR 0.750 pqTP 14 | novel PSNR 25.43
 [paired] C VAL8 2000 mIoU 0.055 recall 0.000
 [paired] E EVAL 0 ctx mIoU 0.028 recall 0.000 pqTP 0 PSNR 25.51
+[paired] E step 100 loss 0.4107 recon 0.0355 und 0.6252 lr_state 1.00e-04
+[paired] E step 200 loss 0.4585 recon 0.0381 und 0.4204 lr_state 9.93e-05
+[paired] E EVAL 200 ctx mIoU 0.601 recall 0.500 rawR 0.625 pqTP 12 | novel PSNR 21.95
+[paired] E step 300 loss 0.2459 recon 0.0380 und 0.2079 lr_state 9.73e-05
+[paired] E step 400 loss 0.2476 recon 0.0377 und 0.2099 lr_state 9.41e-05
+[paired] E step 500 loss 0.1428 recon 0.0365 und 0.1063 lr_state 8.97e-05
+[paired] E EVAL 500 ctx mIoU 0.910 recall 0.625 rawR 0.625 pqTP 13 | novel PSNR 23.15
+[paired] E step 600 loss 0.0975 recon 0.0360 und 0.0614 lr_state 8.42e-05
+[paired] E step 700 loss 0.1968 recon 0.0379 und 0.1589 lr_state 7.78e-05
+[paired] E step 800 loss 0.1048 recon 0.0353 und 0.0696 lr_state 7.07e-05
+[paired] E step 900 loss 0.0781 recon 0.0351 und 0.0431 lr_state 6.30e-05
+[paired] E step 1000 loss 0.0794 recon 0.0338 und 0.0457 lr_state 5.50e-05
+[paired] E EVAL 1000 ctx mIoU 0.938 recall 0.750 rawR 0.750 pqTP 13 | novel PSNR 24.27
+[paired] E VAL8 1000 mIoU 0.044 recall 0.018
+[paired] E step 1100 loss 0.2188 recon 0.0342 und 0.1846 lr_state 4.70e-05
+[paired] E step 1200 loss 0.0715 recon 0.0341 und 0.0374 lr_state 3.90e-05
+[paired] E step 1300 loss 0.0672 recon 0.0325 und 0.0347 lr_state 3.13e-05
+[paired] E step 1400 loss 0.0650 recon 0.0321 und 0.0329 lr_state 2.42e-05
+[paired] E step 1500 loss 0.0619 recon 0.0311 und 0.0308 lr_state 1.78e-05
+[paired] E step 1600 loss 0.0612 recon 0.0318 und 0.0294 lr_state 1.23e-05
+[paired] E step 1700 loss 0.0570 recon 0.0307 und 0.0262 lr_state 7.91e-06
+[paired] E step 1800 loss 0.0564 recon 0.0304 und 0.0261 lr_state 4.65e-06
+[paired] E step 1900 loss 0.0554 recon 0.0302 und 0.0252 lr_state 2.67e-06
+[paired] E step 2000 loss 0.0549 recon 0.0300 und 0.0249 lr_state 2.00e-06
+[paired] E EVAL 2000 ctx mIoU 0.973 recall 0.625 rawR 0.625 pqTP 14 | novel PSNR 25.39
+[paired] E VAL8 2000 mIoU 0.030 recall 0.000
