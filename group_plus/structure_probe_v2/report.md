@@ -195,3 +195,50 @@ Status of the round's own questions, tagged:
 `scripts/structure_probe_v2_corrected.py`, `scripts/probe_token_assignment_oracle.py`,
 `scripts/probe_per_gaussian_oracle.py`, `scripts/probe_semantic_weighted_nll.py`,
 `scripts/probe_ff_fullpixel_mask.py` (prepared, not run).
+
+## 8. Follow-up cleanup across `/space/mawb` (user-authorised)
+
+After the 15 GiB target was missed with only "temporary export / `.inprogress`"
+candidates, the user authorised deleting unused experiment files generally, so a
+second wave was run under `cleanup_manifest.json` (append-only, one entry per
+path with its own justification, measured `du` and measured filesystem delta).
+
+**Total across both waves: 99 items removed, 75.65 GiB of `du`, 75.43 GiB
+actually released; free space went 0.96 GiB → 76.39 GiB.**
+
+Wave 2 (superseded experiment checkpoints; every small metadata file — configs,
+JSON curves, logs, reports, `split.json`, `init_report.json`, `history.json` —
+was left in place so the committed evidence is untouched):
+
+| path | GiB | what it was |
+|---|---|---|
+| `_hf_official_val_stage/scannet/val` | 33.14 | HF staging cache: 312 `.tar.gz` already extracted into the protected `SIU3R/data/scannet/val` (spot-checked) + 77 aborted `*.part` downloads |
+| `_hf_official_val_stage/.cache` | 0.29 | HF download cache |
+| `_hf_official_val_stage/siu3r_epoch100.ckpt` | 5.46 | duplicate of the protected `SIU3R/pretrained_weights/siu3r_epoch100.ckpt` (verified still present, readable, SHA `0c6b3e6e…`, 5 464 307 091 bytes) |
+| `workspace_group_locusgs/arm_g1/*` | 6.05 | G1 (feedback) arm of the superseded G0/G1 round |
+| `workspace_group_locusgs/smoke/ckpt_store` | 2.59 | smoke-only checkpoints |
+| `workspace/siu3r_ssst_{joint_final_v1,joint_temperature_fix_v2,spatial_recon_pretrain_v1}/checkpoints` | 12.25 | superseded tokengs-era runs |
+| `workspace_object_locusgs/{arm_a,arm_b,smoke}` | 9.19 | object-aware A/B checkpoints, superseded by the group branch |
+| `workspace_recon_diag/{instance_query,lgs_frozen_r,unified_refs}` checkpoints | 1.62 | superseded diagnostics of the earlier instance-query / frozen-recon rounds |
+
+**Deliberately kept**: every protected checkpoint (G0 step0, G0+, recipe_v1,
+recipe_v2, pure4, B2, the full-reconstruction `best_monitor`, the two
+`structure_probe_v1` deltas and `sample.json`), the two `cross_scene`
+reconstruction-baseline checkpoints (`tokengs`, `lgs_lr1e4`) because
+`scripts/train_object_locusgs.py` still defaults to
+`lgs_lr1e4/ckpt_step2000` as its `--source-ckpt`, `workspace_group_plus` (29.1
+GiB, protected + this round's artifacts), all Git-tracked files, `SIU3R` data
+and code (241 GiB), the conda environment, and every other project directory
+under `/space/mawb` (`MOTR`, `DiffusionDet`, `GaussianFormer`, `CutLER`,
+`FairMOT`, `sambamotr`, `globalsplat`, `gaussian-grouping`, `querysplat`, …),
+which are not this project's artifacts.
+
+All six protected checkpoint SHAs were re-hashed after both waves and still
+match `provenance.json` exactly (`matches_provenance = true` for every entry).
+
+**What remains heavy, if more space is ever needed** (nothing deleted — listed
+for a future decision): `SIU3R` 241 GiB (data + code, protected),
+`anaconda3` ~66 GiB (the runtime environment), `workspace_group_plus` 29.1 GiB
+(protected checkpoints), `workspace_group_locusgs` 6.1 GiB (G0 arm incl. the
+protected step0), `workspace_recon_diag` 4.2 GiB (kept baselines + protected
+`full_train`), plus the user's `home` (19.5 GiB) and other project repos.
