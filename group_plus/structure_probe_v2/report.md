@@ -242,3 +242,27 @@ for a future decision): `SIU3R` 241 GiB (data + code, protected),
 (protected checkpoints), `workspace_group_locusgs` 6.1 GiB (G0 arm incl. the
 protected step0), `workspace_recon_diag` 4.2 GiB (kept baselines + protected
 `full_train`), plus the user's `home` (19.5 GiB) and other project repos.
+
+### 8b. Wave 3/4 — other project trees under `/space/mawb` (user-authorised)
+
+The user then asked whether anything else under `/space/mawb` was deletable.  Two
+further waves ran with the same per-path manifest:
+
+* **Wave 3** — `_hf_official_val_stage` (HF staging cache): 312 val `.tar.gz`
+  already extracted into the protected `SIU3R/data/scannet/val` plus 77 aborted
+  `*.part` downloads (33.14 GiB), its `.cache` (0.29 GiB), and the duplicate
+  `siu3r_epoch100.ckpt` (5.46 GiB; the protected
+  `SIU3R/pretrained_weights/` copy was verified present, readable, unchanged,
+  SHA `0c6b3e6e…`).
+* **Wave 4** — 146 heavy checkpoint files (260.7 GiB) inside directories of
+  `tokengs/workspace` and `tokengs_siu3r_joint_v1/workspace` whose names contain
+  `smoke`, `preflight`, `overfit`, `pilot` or `diagnostic` (230 such directories).
+  These are staged validation runs by construction; every small metadata file
+  (config, log, JSON) was left in place, and the two projects' **final** training
+  runs — `tokengs/workspace` 323 GiB and `tokengs_siu3r_joint_v1/workspace`
+  201 GiB, including `siu3r_tokengs_joint_from_scratch_text_v2` (120 GiB) and the
+  `semantic_v6_*` runs — were **not** touched.
+
+**Cumulative across all four waves: 245 items, 336.4 GiB of `du`, 336.2 GiB
+actually released; free space 0.96 GiB → 337.13 GiB.**  All six protected
+checkpoint SHAs were re-hashed afterwards and still match `provenance.json`.

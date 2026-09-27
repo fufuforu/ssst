@@ -28,6 +28,8 @@ ALLOWED_PARENTS = (
     Path("/space/mawb/ssst/workspace_object_locusgs"),
     Path("/space/mawb/ssst/workspace"),
     Path("/space/mawb/_hf_official_val_stage"),
+    Path("/space/mawb/tokengs/workspace"),
+    Path("/space/mawb/tokengs_siu3r_joint_v1/workspace"),
     Path("/space/mawb/ssst/workspace_group_plus/implementation_audit_v1"),
 )
 PROTECTED = (
