@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/datapool/mawb/ssst/scripts/probe_token_assignment_oracle.py", line 299, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/datapool/mawb/ssst/scripts/probe_token_assignment_oracle.py", line 191, in main
+    scored = evaluate(A, gaussians, batch, keys, gt_masks, sentinel_keys,
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/datapool/mawb/ssst/scripts/probe_token_assignment_oracle.py", line 88, in evaluate
+    conservation = float((mass[0].sum(0) + rest_mass - alpha[0, :, 0]).abs().max())
+                          ~~~~~~~~~~~~~~~^~~~~~~~~~~
+RuntimeError: The size of tensor a (5) must match the size of tensor b (4) at non-singleton dimension 0

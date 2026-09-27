@@ -1,0 +1,23 @@
+{
+ "corrected": {
+  "file": "corrected_metrics.json",
+  "job": 55753,
+  "passed": true
+ },
+ "token_oracle_smoke": {
+  "file": "oracle_smoke.json",
+  "job": 55758,
+  "passed": true
+ },
+ "per_gaussian_oracle_smoke": {
+  "file": "per_gaussian_oracle_smoke.json",
+  "job": 55778,
+  "passed": true
+ },
+ "semantic_weighted_smoke": {
+  "file": "probe_semantic_weighted_smoke.json",
+  "job": 55777,
+  "passed": true
+ },
+ "note": "each file carries its own checks; smoke runs use 10 steps and are not results"
+}

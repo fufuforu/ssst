@@ -1,0 +1,10 @@
+Traceback (most recent call last):
+  File "/datapool/mawb/ssst/scripts/structure_probe_v2_corrected.py", line 343, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/datapool/mawb/ssst/scripts/structure_probe_v2_corrected.py", line 282, in main
+    s_delta_info = apply_delta(model, Path(args.s_delta), "probe_S")
+                   ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/datapool/mawb/ssst/scripts/structure_probe_v2_corrected.py", line 91, in apply_delta
+    named[name].add_(value.to(named[name].dtype))
+RuntimeError: Expected all tensors to be on the same device, but found at least two devices, cuda:0 and cpu!

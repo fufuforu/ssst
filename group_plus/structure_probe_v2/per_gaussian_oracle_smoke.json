@@ -1,0 +1,40 @@
+{
+ "scope": "GT-assisted per-Gaussian assignment oracle; diagnostic only, NOT feed-forward and NOT an official metric",
+ "sample_sha256": "98a4d35d97eea33169d2fb4f7346ed7c128c0385a385e223ab36732690bc83df",
+ "config": {
+  "lr": 0.01,
+  "weight_decay": 0,
+  "steps": 10,
+  "seed": 42,
+  "variable": "Z [N=65536, K+1]",
+  "init": "token oracle final A from group_plus/structure_probe_v2/oracle_final_A.pt"
+ },
+ "keys": [
+  8025,
+  18032,
+  18035,
+  20030
+ ],
+ "n_instances": 4,
+ "curve": [
+  {
+   "step": 0,
+   "conservation_max_abs_error": 1.430511474609375e-06,
+   "sentinels_context_best_iou": {
+    "18032": 0.30878404296125816,
+    "20030": 0.4554878048780488
+   },
+   "sentinels_novel_best_iou": {
+    "18032": 0.3410633484162896,
+    "20030": 0.48176027793862186
+   },
+   "all_instances_context_best_iou_mean": 0.31558338635938726
+  }
+ ],
+ "per_gaussian_pass": false,
+ "checkpoint": {
+  "sha256_before": "a63dd485cc2d1b3fefb8b68786f9845ff8253cfebedd90405e73484c87243be4"
+ },
+ "smoke": true,
+ "elapsed_seconds": 16.5309739112854
+}

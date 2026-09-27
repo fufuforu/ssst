@@ -1,0 +1,703 @@
+{
+ "scope": "GT-assisted per-scene token-assignment oracle; NOT feed-forward and NOT an official AP/PQ result",
+ "sample": {
+  "scene": "scene0009_02",
+  "frames": [
+   209,
+   253,
+   215,
+   247
+  ],
+  "context": [
+   209,
+   253
+  ],
+  "novel": [
+   215,
+   247
+  ],
+  "sha256": "98a4d35d97eea33169d2fb4f7346ed7c128c0385a385e223ab36732690bc83df"
+ },
+ "sample_checks": {
+  "sample_sha_matches_required": true,
+  "sample_frames": true,
+  "sentinel_keys": true,
+  "sentinel_classes": true
+ },
+ "config": {
+  "lr": 0.05,
+  "weight_decay": 0,
+  "steps": 500,
+  "seed": 42,
+  "optimizer_variable": "Z [1024, K+1] only",
+  "loss": "scene_loss: 5*mean BCE (GT-positive pixels only) + 5*mean Dice (whole image) + 1.0*class-balanced rest BCE - the previous oracle's existing implementation, not a full-pixel BCE"
+ },
+ "keys": [
+  8025,
+  18032,
+  18035,
+  20030
+ ],
+ "sentinel_keys": [
+  18032,
+  20030
+ ],
+ "sentinels": [
+  {
+   "packed_key": 18032,
+   "internal_class": 17,
+   "class_name_index": 18,
+   "stats": {
+    "context": {
+     "pixels": 4261,
+     "covered": 4261,
+     "coverage": 1.0
+    },
+    "novel": {
+     "2": {
+      "pixels": 1752,
+      "covered": 1752,
+      "coverage": 1.0
+     },
+     "3": {
+      "pixels": 2797,
+      "covered": 2797,
+      "coverage": 1.0
+     }
+    }
+   }
+  },
+  {
+   "packed_key": 20030,
+   "internal_class": 19,
+   "class_name_index": 20,
+   "stats": {
+    "context": {
+     "pixels": 2181,
+     "covered": 2181,
+     "coverage": 1.0
+    },
+    "novel": {
+     "2": {
+      "pixels": 972,
+      "covered": 972,
+      "coverage": 1.0
+     },
+     "3": {
+      "pixels": 1229,
+      "covered": 1229,
+      "coverage": 1.0
+     }
+    }
+   }
+  }
+ ],
+ "n_instances": 4,
+ "grad_norm_first_step": 0.533015787601471,
+ "curve": [
+  {
+   "step": 0,
+   "loss": 9.373647689819336,
+   "loss_instance": 8.394763946533203,
+   "loss_rest": 0.9788839221000671,
+   "assignment_entropy": 0.3437492847442627,
+   "rest_fraction": 0.47886812686920166,
+   "n_instances": 4,
+   "conservation_max_abs_error": 1.3709068298339844e-06,
+   "sentinels": {
+    "18032": {
+     "0": {
+      "area": 13113,
+      "iou": 0.10124858115777526,
+      "passes_area": true,
+      "gt_pixels": 1440
+     },
+     "1": {
+      "area": 13626,
+      "iou": 0.18221679125934445,
+      "passes_area": true,
+      "gt_pixels": 2821
+     },
+     "2": {
+      "area": 14340,
+      "iou": 0.11355615528337139,
+      "passes_area": true,
+      "gt_pixels": 1752
+     },
+     "3": {
+      "area": 13276,
+      "iou": 0.18488757832657574,
+      "passes_area": true,
+      "gt_pixels": 2797
+     }
+    },
+    "20030": {
+     "0": {
+      "area": 6011,
+      "iou": 0.12307437468941528,
+      "passes_area": true,
+      "gt_pixels": 769
+     },
+     "1": {
+      "area": 6526,
+      "iou": 0.17217956290608388,
+      "passes_area": true,
+      "gt_pixels": 1412
+     },
+     "2": {
+      "area": 6002,
+      "iou": 0.1343526350032531,
+      "passes_area": true,
+      "gt_pixels": 972
+     },
+     "3": {
+      "area": 6536,
+      "iou": 0.15774563888474727,
+      "passes_area": true,
+      "gt_pixels": 1229
+     }
+    }
+   },
+   "sentinels_context_best_iou": {
+    "18032": 0.18221679125934445,
+    "20030": 0.17217956290608388
+   },
+   "sentinels_novel_best_iou": {
+    "18032": 0.18488757832657574,
+    "20030": 0.15774563888474727
+   },
+   "all_instances_context_best_iou": {
+    "8025": 0.0026398122800156435,
+    "18032": 0.18221679125934445,
+    "18035": 0.14343616302634543,
+    "20030": 0.17217956290608388
+   },
+   "all_instances_novel_best_iou": {
+    "8025": 0.040381991814461116,
+    "18032": 0.18488757832657574,
+    "18035": 0.1192368839427663,
+    "20030": 0.15774563888474727
+   }
+  },
+  {
+   "step": 50,
+   "loss": 6.144896030426025,
+   "loss_instance": 5.776608467102051,
+   "loss_rest": 0.36828771233558655,
+   "assignment_entropy": 0.2498454600572586,
+   "rest_fraction": 0.6136028170585632,
+   "n_instances": 4,
+   "conservation_max_abs_error": 1.430511474609375e-06,
+   "sentinels": {
+    "18032": {
+     "0": {
+      "area": 6873,
+      "iou": 0.17597962936766162,
+      "passes_area": true,
+      "gt_pixels": 1440
+     },
+     "1": {
+      "area": 8262,
+      "iou": 0.2686584249084249,
+      "passes_area": true,
+      "gt_pixels": 2821
+     },
+     "2": {
+      "area": 7421,
+      "iou": 0.1975195822454308,
+      "passes_area": true,
+      "gt_pixels": 1752
+     },
+     "3": {
+      "area": 7094,
+      "iou": 0.3131970260223048,
+      "passes_area": true,
+      "gt_pixels": 2797
+     }
+    },
+    "20030": {
+     "0": {
+      "area": 2106,
+      "iou": 0.3561320754716981,
+      "passes_area": true,
+      "gt_pixels": 769
+     },
+     "1": {
+      "area": 2181,
+      "iou": 0.2777382645803698,
+      "passes_area": true,
+      "gt_pixels": 1412
+     },
+     "2": {
+      "area": 2077,
+      "iou": 0.37776773610483505,
+      "passes_area": true,
+      "gt_pixels": 972
+     },
+     "3": {
+      "area": 2181,
+      "iou": 0.2965779467680608,
+      "passes_area": true,
+      "gt_pixels": 1229
+     }
+    }
+   },
+   "sentinels_context_best_iou": {
+    "18032": 0.2686584249084249,
+    "20030": 0.3561320754716981
+   },
+   "sentinels_novel_best_iou": {
+    "18032": 0.3131970260223048,
+    "20030": 0.37776773610483505
+   },
+   "all_instances_context_best_iou": {
+    "8025": 0.004684247050659264,
+    "18032": 0.2686584249084249,
+    "18035": 0.34877828054298643,
+    "20030": 0.3561320754716981
+   },
+   "all_instances_novel_best_iou": {
+    "8025": 0.05805471124620061,
+    "18032": 0.3131970260223048,
+    "18035": 0.2245762711864407,
+    "20030": 0.37776773610483505
+   }
+  },
+  {
+   "step": 100,
+   "loss": 5.755229473114014,
+   "loss_instance": 5.481657028198242,
+   "loss_rest": 0.2735726535320282,
+   "assignment_entropy": 0.09790638089179993,
+   "rest_fraction": 0.670769214630127,
+   "n_instances": 4,
+   "conservation_max_abs_error": 1.6689300537109375e-06,
+   "sentinels": {
+    "18032": {
+     "0": {
+      "area": 6500,
+      "iou": 0.18773373223635004,
+      "passes_area": true,
+      "gt_pixels": 1440
+     },
+     "1": {
+      "area": 7514,
+      "iou": 0.3004907512268781,
+      "passes_area": true,
+      "gt_pixels": 2821
+     },
+     "2": {
+      "area": 6921,
+      "iou": 0.2128373654034401,
+      "passes_area": true,
+      "gt_pixels": 1752
+     },
+     "3": {
+      "area": 6657,
+      "iou": 0.3383352208380521,
+      "passes_area": true,
+      "gt_pixels": 2797
+     }
+    },
+    "20030": {
+     "0": {
+      "area": 1827,
+      "iou": 0.40400216333153055,
+      "passes_area": true,
+      "gt_pixels": 769
+     },
+     "1": {
+      "area": 1858,
+      "iou": 0.3158953722334004,
+      "passes_area": true,
+      "gt_pixels": 1412
+     },
+     "2": {
+      "area": 1792,
+      "iou": 0.43286677034733023,
+      "passes_area": true,
+      "gt_pixels": 972
+     },
+     "3": {
+      "area": 1864,
+      "iou": 0.3360691144708423,
+      "passes_area": true,
+      "gt_pixels": 1229
+     }
+    }
+   },
+   "sentinels_context_best_iou": {
+    "18032": 0.3004907512268781,
+    "20030": 0.40400216333153055
+   },
+   "sentinels_novel_best_iou": {
+    "18032": 0.3383352208380521,
+    "20030": 0.43286677034733023
+   },
+   "all_instances_context_best_iou": {
+    "8025": 0.006512301013024602,
+    "18032": 0.3004907512268781,
+    "18035": 0.37892020643112345,
+    "20030": 0.40400216333153055
+   },
+   "all_instances_novel_best_iou": {
+    "8025": 0.07360563964337549,
+    "18032": 0.3383352208380521,
+    "18035": 0.22440944881889763,
+    "20030": 0.43286677034733023
+   }
+  },
+  {
+   "step": 200,
+   "loss": 5.69918155670166,
+   "loss_instance": 5.439312934875488,
+   "loss_rest": 0.2598685622215271,
+   "assignment_entropy": 0.057225633412599564,
+   "rest_fraction": 0.6816315650939941,
+   "n_instances": 4,
+   "conservation_max_abs_error": 1.7285346984863281e-06,
+   "sentinels": {
+    "18032": {
+     "0": {
+      "area": 6508,
+      "iou": 0.18999850276987573,
+      "passes_area": true,
+      "gt_pixels": 1440
+     },
+     "1": {
+      "area": 7429,
+      "iou": 0.30789843052188337,
+      "passes_area": true,
+      "gt_pixels": 2821
+     },
+     "2": {
+      "area": 6884,
+      "iou": 0.2161667370792846,
+      "passes_area": true,
+      "gt_pixels": 1752
+     },
+     "3": {
+      "area": 6658,
+      "iou": 0.34056429887990924,
+      "passes_area": true,
+      "gt_pixels": 2797
+     }
+    },
+    "20030": {
+     "0": {
+      "area": 1692,
+      "iou": 0.43582263710618435,
+      "passes_area": true,
+      "gt_pixels": 769
+     },
+     "1": {
+      "area": 1713,
+      "iou": 0.33319112627986347,
+      "passes_area": true,
+      "gt_pixels": 1412
+     },
+     "2": {
+      "area": 1660,
+      "iou": 0.4622222222222222,
+      "passes_area": true,
+      "gt_pixels": 972
+     },
+     "3": {
+      "area": 1732,
+      "iou": 0.3551487414187643,
+      "passes_area": true,
+      "gt_pixels": 1229
+     }
+    }
+   },
+   "sentinels_context_best_iou": {
+    "18032": 0.30789843052188337,
+    "20030": 0.43582263710618435
+   },
+   "sentinels_novel_best_iou": {
+    "18032": 0.34056429887990924,
+    "20030": 0.4622222222222222
+   },
+   "all_instances_context_best_iou": {
+    "8025": 0.006778809942254582,
+    "18032": 0.30789843052188337,
+    "18035": 0.45283468318246783,
+    "20030": 0.43582263710618435
+   },
+   "all_instances_novel_best_iou": {
+    "8025": 0.07602842989446479,
+    "18032": 0.34056429887990924,
+    "18035": 0.23931423203381869,
+    "20030": 0.4622222222222222
+   }
+  },
+  {
+   "step": 300,
+   "loss": 5.687121391296387,
+   "loss_instance": 5.430568695068359,
+   "loss_rest": 0.25655290484428406,
+   "assignment_entropy": 0.04389164224267006,
+   "rest_fraction": 0.685222864151001,
+   "n_instances": 4,
+   "conservation_max_abs_error": 1.6093254089355469e-06,
+   "sentinels": {
+    "18032": {
+     "0": {
+      "area": 6514,
+      "iou": 0.19000598444045483,
+      "passes_area": true,
+      "gt_pixels": 1440
+     },
+     "1": {
+      "area": 7415,
+      "iou": 0.30895140664961634,
+      "passes_area": true,
+      "gt_pixels": 2821
+     },
+     "2": {
+      "area": 6887,
+      "iou": 0.21641791044776118,
+      "passes_area": true,
+      "gt_pixels": 1752
+     },
+     "3": {
+      "area": 6665,
+      "iou": 0.34098639455782315,
+      "passes_area": true,
+      "gt_pixels": 2797
+     }
+    },
+    "20030": {
+     "0": {
+      "area": 1621,
+      "iou": 0.45465611685940355,
+      "passes_area": true,
+      "gt_pixels": 769
+     },
+     "1": {
+      "area": 1633,
+      "iou": 0.34377758164165934,
+      "passes_area": true,
+      "gt_pixels": 1412
+     },
+     "2": {
+      "area": 1594,
+      "iou": 0.4798154555940023,
+      "passes_area": true,
+      "gt_pixels": 972
+     },
+     "3": {
+      "area": 1649,
+      "iou": 0.3678707224334601,
+      "passes_area": true,
+      "gt_pixels": 1229
+     }
+    }
+   },
+   "sentinels_context_best_iou": {
+    "18032": 0.30895140664961634,
+    "20030": 0.45465611685940355
+   },
+   "sentinels_novel_best_iou": {
+    "18032": 0.34098639455782315,
+    "20030": 0.4798154555940023
+   },
+   "all_instances_context_best_iou": {
+    "8025": 0.006811301715438951,
+    "18032": 0.30895140664961634,
+    "18035": 0.47854785478547857,
+    "20030": 0.45465611685940355
+   },
+   "all_instances_novel_best_iou": {
+    "8025": 0.07609165585819282,
+    "18032": 0.34098639455782315,
+    "18035": 0.24696159455517744,
+    "20030": 0.4798154555940023
+   }
+  },
+  {
+   "step": 400,
+   "loss": 5.68314790725708,
+   "loss_instance": 5.427638053894043,
+   "loss_rest": 0.2555099427700043,
+   "assignment_entropy": 0.037370435893535614,
+   "rest_fraction": 0.6869049072265625,
+   "n_instances": 4,
+   "conservation_max_abs_error": 1.6689300537109375e-06,
+   "sentinels": {
+    "18032": {
+     "0": {
+      "area": 6512,
+      "iou": 0.1902409818889388,
+      "passes_area": true,
+      "gt_pixels": 1440
+     },
+     "1": {
+      "area": 7411,
+      "iou": 0.3089420493795574,
+      "passes_area": true,
+      "gt_pixels": 2821
+     },
+     "2": {
+      "area": 6888,
+      "iou": 0.21638744192594678,
+      "passes_area": true,
+      "gt_pixels": 1752
+     },
+     "3": {
+      "area": 6675,
+      "iou": 0.34126309827244405,
+      "passes_area": true,
+      "gt_pixels": 2797
+     }
+    },
+    "20030": {
+     "0": {
+      "area": 1621,
+      "iou": 0.45465611685940355,
+      "passes_area": true,
+      "gt_pixels": 769
+     },
+     "1": {
+      "area": 1631,
+      "iou": 0.3434878587196468,
+      "passes_area": true,
+      "gt_pixels": 1412
+     },
+     "2": {
+      "area": 1593,
+      "iou": 0.4800923254472014,
+      "passes_area": true,
+      "gt_pixels": 972
+     },
+     "3": {
+      "area": 1650,
+      "iou": 0.3676959619952494,
+      "passes_area": true,
+      "gt_pixels": 1229
+     }
+    }
+   },
+   "sentinels_context_best_iou": {
+    "18032": 0.3089420493795574,
+    "20030": 0.45465611685940355
+   },
+   "sentinels_novel_best_iou": {
+    "18032": 0.34126309827244405,
+    "20030": 0.4800923254472014
+   },
+   "all_instances_context_best_iou": {
+    "8025": 0.006806150743634989,
+    "18032": 0.3089420493795574,
+    "18035": 0.49061522419186654,
+    "20030": 0.45465611685940355
+   },
+   "all_instances_novel_best_iou": {
+    "8025": 0.0761904761904762,
+    "18032": 0.34126309827244405,
+    "18035": 0.25298804780876494,
+    "20030": 0.4800923254472014
+   }
+  },
+  {
+   "step": 500,
+   "loss": 5.681138038635254,
+   "loss_instance": 5.425787925720215,
+   "loss_rest": 0.25535035133361816,
+   "assignment_entropy": 0.03368934243917465,
+   "rest_fraction": 0.6882131695747375,
+   "n_instances": 4,
+   "conservation_max_abs_error": 1.430511474609375e-06,
+   "sentinels": {
+    "18032": {
+     "0": {
+      "area": 6513,
+      "iou": 0.19021251122418437,
+      "passes_area": true,
+      "gt_pixels": 1440
+     },
+     "1": {
+      "area": 7415,
+      "iou": 0.30878404296125816,
+      "passes_area": true,
+      "gt_pixels": 2821
+     },
+     "2": {
+      "area": 6887,
+      "iou": 0.21641791044776118,
+      "passes_area": true,
+      "gt_pixels": 1752
+     },
+     "3": {
+      "area": 6687,
+      "iou": 0.3410633484162896,
+      "passes_area": true,
+      "gt_pixels": 2797
+     }
+    },
+    "20030": {
+     "0": {
+      "area": 1618,
+      "iou": 0.4554878048780488,
+      "passes_area": true,
+      "gt_pixels": 769
+     },
+     "1": {
+      "area": 1625,
+      "iou": 0.34440017706949977,
+      "passes_area": true,
+      "gt_pixels": 1412
+     },
+     "2": {
+      "area": 1587,
+      "iou": 0.48176027793862186,
+      "passes_area": true,
+      "gt_pixels": 972
+     },
+     "3": {
+      "area": 1645,
+      "iou": 0.36792003807710616,
+      "passes_area": true,
+      "gt_pixels": 1229
+     }
+    }
+   },
+   "sentinels_context_best_iou": {
+    "18032": 0.30878404296125816,
+    "20030": 0.4554878048780488
+   },
+   "sentinels_novel_best_iou": {
+    "18032": 0.3410633484162896,
+    "20030": 0.48176027793862186
+   },
+   "all_instances_context_best_iou": {
+    "8025": 0.006806150743634989,
+    "18032": 0.30878404296125816,
+    "18035": 0.49125554685460715,
+    "20030": 0.4554878048780488
+   },
+   "all_instances_novel_best_iou": {
+    "8025": 0.07620697120588872,
+    "18032": 0.3410633484162896,
+    "18035": 0.25330341560708053,
+    "20030": 0.48176027793862186
+   }
+  }
+ ],
+ "invariance": {
+  "rgb_max_abs_diff": 0.0,
+  "depth_max_abs_diff": 0.0,
+  "gaussians_max_abs_diff": 0.0
+ },
+ "checkpoint": {
+  "path": "workspace_group_plus/arm_g0plus/ckpt_step6000",
+  "sha256_before": "a63dd485cc2d1b3fefb8b68786f9845ff8253cfebedd90405e73484c87243be4",
+  "sha256_after": "a63dd485cc2d1b3fefb8b68786f9845ff8253cfebedd90405e73484c87243be4",
+  "mtime_before": 1790353194.0,
+  "mtime_after": 1790353194.0,
+  "unchanged": true
+ },
+ "oracle_pair_pass": false,
+ "pass_rule": "both sentinels raw IoU >= 0.5 in at least one context view AND in at least one novel view",
+ "smoke": false
+}

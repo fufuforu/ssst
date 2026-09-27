@@ -1,0 +1,19 @@
+[runtime] fused-ssim extension unavailable; using import stand-in /space/mawb/ssst/third_party/shims
+[runtime] preloaded precompiled gsplat extension from /space/mawb/tokengs_siu3r_joint_v1/.torch_extensions_v4/gsplat_cuda/gsplat_cuda.so
+[oracle] step 0 loss 9.3736 ctx {'18032': 0.18221679125934445, '20030': 0.17217956290608388} novel {'18032': 0.18488757832657574, '20030': 0.15774563888474727} conserve 1.4e-06
+[oracle] step 50 loss 6.1449 ctx {'18032': 0.2686584249084249, '20030': 0.3561320754716981} novel {'18032': 0.3131970260223048, '20030': 0.37776773610483505} conserve 1.4e-06
+[oracle] step 100 loss 5.7552 ctx {'18032': 0.3004907512268781, '20030': 0.40400216333153055} novel {'18032': 0.3383352208380521, '20030': 0.43286677034733023} conserve 1.7e-06
+[oracle] step 200 loss 5.6992 ctx {'18032': 0.30789843052188337, '20030': 0.43582263710618435} novel {'18032': 0.34056429887990924, '20030': 0.4622222222222222} conserve 1.7e-06
+[oracle] step 300 loss 5.6871 ctx {'18032': 0.30895140664961634, '20030': 0.45465611685940355} novel {'18032': 0.34098639455782315, '20030': 0.4798154555940023} conserve 1.6e-06
+[oracle] step 400 loss 5.6831 ctx {'18032': 0.3089420493795574, '20030': 0.45465611685940355} novel {'18032': 0.34126309827244405, '20030': 0.4800923254472014} conserve 1.7e-06
+[oracle] step 500 loss 5.6811 ctx {'18032': 0.30878404296125816, '20030': 0.4554878048780488} novel {'18032': 0.3410633484162896, '20030': 0.48176027793862186} conserve 1.4e-06
+{
+ "oracle_pair_pass": false,
+ "invariance": {
+  "rgb_max_abs_diff": 0.0,
+  "depth_max_abs_diff": 0.0,
+  "gaussians_max_abs_diff": 0.0
+ },
+ "checkpoint_unchanged": true,
+ "n_instances": 4
+}

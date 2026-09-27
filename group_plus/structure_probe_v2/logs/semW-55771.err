@@ -1,0 +1,14 @@
+Traceback (most recent call last):
+  File "/datapool/mawb/ssst/scripts/probe_semantic_weighted_nll.py", line 224, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/datapool/mawb/ssst/scripts/probe_semantic_weighted_nll.py", line 172, in main
+    scores = corrected_scores(forward["semantic_prob"], semantic,
+             ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/datapool/mawb/ssst/scripts/probe_semantic_weighted_nll.py", line 95, in corrected_scores
+    part, _ = valid_confusion(pred[view], sem[view], a[view])
+              ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/space/mawb/ssst/scripts/structure_probe_v2_corrected.py", line 117, in valid_confusion
+    conf += np.bincount(sem[valid] * SEMANTIC_CLASSES + pred[valid],
+                                                        ~~~~^^^^^^^
+IndexError: too many indices for array: array is 2-dimensional, but 3 were indexed

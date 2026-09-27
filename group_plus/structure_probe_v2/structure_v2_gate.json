@@ -1,0 +1,97 @@
+{
+ "round": "structure_probe_v2",
+ "local_structure_verified": false,
+ "components": {
+  "semantic_local_pass": {
+   "value": false,
+   "evidence": {
+    "corrected_probe_S_context": {
+     "18032": 0.2909,
+     "20030": 0.3659
+    },
+    "corrected_probe_S_novel": {
+     "18032": 0.3741,
+     "20030": 0.5201
+    },
+    "weighted_nll_context": {
+     "17": 0.3967,
+     "19": 0.4717
+    },
+    "weighted_nll_novel": {
+     "17": 0.5226,
+     "19": 0.5459
+    }
+   },
+   "rule": "both sentinel classes: context IoU >= 0.50 and novel IoU >= 0.25 (corrected valid-confusion convention)"
+  },
+  "feed_forward_sentinel_success": {
+   "value": false,
+   "executed": false,
+   "reason": "branch \u00a74.A requires oracle_pair_pass=true; it is false, so no feed-forward full-pixel probe was run",
+   "probe_I_step1200_context_sentinels": {
+    "18032": {
+     "category_agnostic": false,
+     "category_aware": false,
+     "best_iou": 0.4210097719869707,
+     "best_query": 65,
+     "best_query_class": 17
+    },
+    "20030": {
+     "category_agnostic": false,
+     "category_aware": false,
+     "best_iou": 0.17918088737201365,
+     "best_query": 62,
+     "best_query_class": 19
+    }
+   }
+  },
+  "disk_free_ge_15GiB": {
+   "value": false,
+   "free_bytes": 8166060032,
+   "free_gib": 7.61,
+   "target_gib": 15,
+   "shortfall_gib": 7.39
+  },
+  "oracle_pair_pass": {
+   "value": false,
+   "context_best_iou": {
+    "18032": 0.30878404296125816,
+    "20030": 0.4554878048780488
+   },
+   "novel_best_iou": {
+    "18032": 0.3410633484162896,
+    "20030": 0.48176027793862186
+   }
+  },
+  "per_gaussian_oracle_pass": {
+   "value": false,
+   "context_best_iou": {
+    "18032": 0.3489441172245367,
+    "20030": 0.44715447154471544
+   },
+   "novel_best_iou": {
+    "18032": 0.3574914953409259,
+    "20030": 0.41358024691358025
+   },
+   "interpretation": "both oracles fail -> 'fixed geometry/rendering reachability not demonstrated'; this pair alone cannot declare the whole data structure invalid"
+  }
+ },
+ "decision": "full 50000-step run NOT started (all three preconditions unmet)",
+ "missing": [
+  "semantic_local_pass",
+  "feed-forward sentinel success (\u00a74.A not applicable)",
+  "disk free >= 15 GiB"
+ ],
+ "policy_note": "implementation_audit_v1/gate.json stays BLOCKED; the five original gates are untouched and are not claimed as passed",
+ "determinism_check": {
+  "oracle_first_run_step500_ctx": {
+   "18032": 0.30878404296125816,
+   "20030": 0.4554878048780488
+  },
+  "oracle_rerun_step500_ctx": {
+   "18032": 0.30878404296125816,
+   "20030": 0.4554878048780488
+  },
+  "identical": true
+ }
+}

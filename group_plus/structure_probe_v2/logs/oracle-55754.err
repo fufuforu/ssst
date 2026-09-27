@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/datapool/mawb/ssst/scripts/probe_token_assignment_oracle.py", line 298, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/datapool/mawb/ssst/scripts/probe_token_assignment_oracle.py", line 134, in main
+    batch = sample_batch(opt, Path(args.split), sample, device)
+            ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/space/mawb/ssst/scripts/probe_group_capacity.py", line 731, in sample_batch
+    provider = SIU3RProcessedProvider(opt, root=split["train_root"],
+                                                ~~~~~^^^^^^^^^^^^^^
+TypeError: 'PosixPath' object is not subscriptable

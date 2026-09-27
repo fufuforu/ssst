@@ -1,0 +1,11 @@
+Traceback (most recent call last):
+  File "/datapool/mawb/ssst/scripts/structure_probe_v2_corrected.py", line 343, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/datapool/mawb/ssst/scripts/structure_probe_v2_corrected.py", line 332, in main
+    "I": {"step0": {k: i_step0[k] for k in
+                   ^^^^^^^^^^^^^^^^^^^^^^^
+  File "/datapool/mawb/ssst/scripts/structure_probe_v2_corrected.py", line 332, in <dictcomp>
+    "I": {"step0": {k: i_step0[k] for k in
+                       ~~~~~~~^^^
+KeyError: 'category_agnostic_tp'

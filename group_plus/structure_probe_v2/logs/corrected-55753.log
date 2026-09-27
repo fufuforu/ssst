@@ -1,0 +1,65 @@
+[runtime] fused-ssim extension unavailable; using import stand-in /space/mawb/ssst/third_party/shims
+[runtime] preloaded precompiled gsplat extension from /space/mawb/tokengs_siu3r_joint_v1/.torch_extensions_v4/gsplat_cuda/gsplat_cuda.so
+{
+ "S": {
+  "step0_ctx": {
+   "18032": 0.0,
+   "20030": 0.0
+  },
+  "step800_ctx": {
+   "18032": 0.2909,
+   "20030": 0.3659
+  },
+  "step0_novel": {
+   "18032": 0.0,
+   "20030": 0.0
+  },
+  "step800_novel": {
+   "18032": 0.3741,
+   "20030": 0.5201
+  }
+ },
+ "I": {
+  "step0_context": {
+   "category_agnostic_tp": 0,
+   "category_aware_tp": 0,
+   "fp": 4,
+   "fn": 7
+  },
+  "step0_novel": {
+   "category_agnostic_tp": 0,
+   "category_aware_tp": 0,
+   "fp": 4,
+   "fn": 7
+  },
+  "step1200_context": {
+   "category_agnostic_tp": 0,
+   "category_aware_tp": 0,
+   "fp": 6,
+   "fn": 7
+  },
+  "step1200_novel": {
+   "category_agnostic_tp": 0,
+   "category_aware_tp": 0,
+   "fp": 6,
+   "fn": 7
+  },
+  "step1200_sentinels": {
+   "18032": {
+    "category_agnostic": false,
+    "category_aware": false,
+    "best_iou": 0.4210097719869707,
+    "best_query": 65,
+    "best_query_class": 17
+   },
+   "20030": {
+    "category_agnostic": false,
+    "category_aware": false,
+    "best_iou": 0.17918088737201365,
+    "best_query": 62,
+    "best_query_class": 19
+   }
+  }
+ },
+ "checkpoint_unchanged": true
+}

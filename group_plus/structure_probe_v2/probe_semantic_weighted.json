@@ -1,0 +1,157 @@
+{
+ "scope": "single-variable semantic diagnostic; new experiment, does not rewrite the previous round's conclusion",
+ "sample_sha256": "98a4d35d97eea33169d2fb4f7346ed7c128c0385a385e223ab36732690bc83df",
+ "config": {
+  "lr": 0.001,
+  "weight_decay": 0,
+  "steps": 800,
+  "trainable": "attributes.semantic.*",
+  "change_vs_probe_S": "NLL weighted by 1/sqrt(class frequency)",
+  "weights": [
+   0.25,
+   0.25,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   3.027754068374634,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   0.5899667143821716,
+   1.0,
+   1.0010416507720947
+  ],
+  "class_frequencies": [
+   119543.0,
+   122178.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   479.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   12616.0,
+   0.0,
+   4382.0
+  ],
+  "present_classes": [
+   0,
+   1,
+   7,
+   17,
+   19
+  ],
+  "weight_clip": [
+   0.25,
+   4.0
+  ],
+  "weight_mean_over_present": 1.0237524509429932
+ },
+ "curve": [
+  {
+   "step": 0,
+   "weighted_nll": 0.30439817905426025,
+   "supervised_pixels": 259198,
+   "context_sentinel_iou": {
+    "17": 0.0,
+    "19": 0.0
+   },
+   "novel_sentinel_iou": {
+    "17": 0.0,
+    "19": 0.0
+   },
+   "context_miou_present": 0.29446412494421603
+  },
+  {
+   "step": 100,
+   "weighted_nll": 0.1040697991847992,
+   "supervised_pixels": 259198,
+   "context_sentinel_iou": {
+    "17": 0.3222374742621826,
+    "19": 0.44034944034944035
+   },
+   "novel_sentinel_iou": {
+    "17": 0.44983320502950985,
+    "19": 0.5342028985507247
+   },
+   "context_miou_present": 0.4833117473462714
+  },
+  {
+   "step": 200,
+   "weighted_nll": 0.09472936391830444,
+   "supervised_pixels": 259198,
+   "context_sentinel_iou": {
+    "17": 0.3465781179648807,
+    "19": 0.4569012547735952
+   },
+   "novel_sentinel_iou": {
+    "17": 0.47674858223062383,
+    "19": 0.5422171165996553
+   },
+   "context_miou_present": 0.49318076139609335
+  },
+  {
+   "step": 400,
+   "weighted_nll": 0.08871541172266006,
+   "supervised_pixels": 259198,
+   "context_sentinel_iou": {
+    "17": 0.378429203539823,
+    "19": 0.4672667757774141
+   },
+   "novel_sentinel_iou": {
+    "17": 0.5070145212896874,
+    "19": 0.5466781214203894
+   },
+   "context_miou_present": 0.5043925996039712
+  },
+  {
+   "step": 800,
+   "weighted_nll": 0.08432799577713013,
+   "supervised_pixels": 259198,
+   "context_sentinel_iou": {
+    "17": 0.3966727881603111,
+    "19": 0.4716621253405995
+   },
+   "novel_sentinel_iou": {
+    "17": 0.5226430875851357,
+    "19": 0.5459474885844748
+   },
+   "context_miou_present": 0.508957227180068
+  }
+ ],
+ "final": {
+  "step": 800,
+  "weighted_nll": 0.08432799577713013,
+  "supervised_pixels": 259198,
+  "context_sentinel_iou": {
+   "17": 0.3966727881603111,
+   "19": 0.4716621253405995
+  },
+  "novel_sentinel_iou": {
+   "17": 0.5226430875851357,
+   "19": 0.5459474885844748
+  },
+  "context_miou_present": 0.508957227180068
+ },
+ "semantic_local_pass_weighted": false,
+ "frozen_params_unchanged": true,
+ "smoke": false,
+ "elapsed_seconds": 105.08493256568909
+}

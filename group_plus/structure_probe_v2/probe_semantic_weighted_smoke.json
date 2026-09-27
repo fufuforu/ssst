@@ -1,0 +1,101 @@
+{
+ "scope": "single-variable semantic diagnostic; new experiment, does not rewrite the previous round's conclusion",
+ "sample_sha256": "98a4d35d97eea33169d2fb4f7346ed7c128c0385a385e223ab36732690bc83df",
+ "config": {
+  "lr": 0.001,
+  "weight_decay": 0,
+  "steps": 800,
+  "trainable": "attributes.semantic.*",
+  "change_vs_probe_S": "NLL weighted by 1/sqrt(class frequency)",
+  "weights": [
+   0.25,
+   0.25,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   3.027754068374634,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   1.0,
+   0.5899667143821716,
+   1.0,
+   1.0010416507720947
+  ],
+  "class_frequencies": [
+   119543.0,
+   122178.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   479.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   0.0,
+   12616.0,
+   0.0,
+   4382.0
+  ],
+  "present_classes": [
+   0,
+   1,
+   7,
+   17,
+   19
+  ],
+  "weight_clip": [
+   0.25,
+   4.0
+  ],
+  "weight_mean_over_present": 1.0237524509429932
+ },
+ "curve": [
+  {
+   "step": 0,
+   "weighted_nll": 0.30439817905426025,
+   "supervised_pixels": 259198,
+   "context_sentinel_iou": {
+    "17": 0.0,
+    "19": 0.0
+   },
+   "novel_sentinel_iou": {
+    "17": 0.0,
+    "19": 0.0
+   },
+   "context_miou_present": 0.29446412494421603
+  }
+ ],
+ "final": {
+  "step": 0,
+  "weighted_nll": 0.30439817905426025,
+  "supervised_pixels": 259198,
+  "context_sentinel_iou": {
+   "17": 0.0,
+   "19": 0.0
+  },
+  "novel_sentinel_iou": {
+   "17": 0.0,
+   "19": 0.0
+  },
+  "context_miou_present": 0.29446412494421603
+ },
+ "semantic_local_pass_weighted": false,
+ "frozen_params_unchanged": true,
+ "smoke": true,
+ "elapsed_seconds": 16.49450373649597
+}

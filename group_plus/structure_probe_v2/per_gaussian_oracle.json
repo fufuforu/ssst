@@ -1,0 +1,79 @@
+{
+ "scope": "GT-assisted per-Gaussian assignment oracle; diagnostic only, NOT feed-forward and NOT an official metric",
+ "sample_sha256": "98a4d35d97eea33169d2fb4f7346ed7c128c0385a385e223ab36732690bc83df",
+ "config": {
+  "lr": 0.01,
+  "weight_decay": 0,
+  "steps": 300,
+  "seed": 42,
+  "variable": "Z [N=65536, K+1]",
+  "init": "token oracle final A from group_plus/structure_probe_v2/oracle_final_A.pt"
+ },
+ "keys": [
+  8025,
+  18032,
+  18035,
+  20030
+ ],
+ "n_instances": 4,
+ "curve": [
+  {
+   "step": 0,
+   "conservation_max_abs_error": 1.430511474609375e-06,
+   "sentinels_context_best_iou": {
+    "18032": 0.30878404296125816,
+    "20030": 0.4554878048780488
+   },
+   "sentinels_novel_best_iou": {
+    "18032": 0.3410633484162896,
+    "20030": 0.48176027793862186
+   },
+   "all_instances_context_best_iou_mean": 0.31558338635938726
+  },
+  {
+   "step": 50,
+   "conservation_max_abs_error": 1.5497207641601562e-06,
+   "sentinels_context_best_iou": {
+    "18032": 0.3110655212206693,
+    "20030": 0.4473053892215569
+   },
+   "sentinels_novel_best_iou": {
+    "18032": 0.34181150204889077,
+    "20030": 0.4752136752136752
+   },
+   "all_instances_context_best_iou_mean": 0.31490644688985364
+  },
+  {
+   "step": 150,
+   "conservation_max_abs_error": 1.7881393432617188e-06,
+   "sentinels_context_best_iou": {
+    "18032": 0.30356019625110076,
+    "20030": 0.43088047639302424
+   },
+   "sentinels_novel_best_iou": {
+    "18032": 0.3337950138504155,
+    "20030": 0.4262788365095286
+   },
+   "all_instances_context_best_iou_mean": 0.31022399549076846
+  },
+  {
+   "step": 300,
+   "conservation_max_abs_error": 1.6689300537109375e-06,
+   "sentinels_context_best_iou": {
+    "18032": 0.3489441172245367,
+    "20030": 0.44715447154471544
+   },
+   "sentinels_novel_best_iou": {
+    "18032": 0.3574914953409259,
+    "20030": 0.41358024691358025
+   },
+   "all_instances_context_best_iou_mean": 0.3251475745148896
+  }
+ ],
+ "per_gaussian_pass": false,
+ "checkpoint": {
+  "sha256_before": "a63dd485cc2d1b3fefb8b68786f9845ff8253cfebedd90405e73484c87243be4"
+ },
+ "smoke": false,
+ "elapsed_seconds": 23.649768114089966
+}

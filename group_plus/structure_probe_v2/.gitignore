@@ -1,0 +1,2 @@
+# large binary head deltas / oracle tensors are experiment artifacts, not source
+*_delta.pt

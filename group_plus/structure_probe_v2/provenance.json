@@ -1,0 +1,99 @@
+{
+ "static_baseline": "f6ecc9df6ba1c8b5bd7f4ee91b074697501f1e9b",
+ "head_at_round_start": "f6ecc9df6ba1c8b5bd7f4ee91b074697501f1e9b",
+ "worktree_clean_at_start": true,
+ "agends_md_found": false,
+ "disk": {
+  "free_bytes_start": 1029926912,
+  "free_bytes_end": 8165617664,
+  "freed_bytes": 7135690752,
+  "target_bytes": 16106127360,
+  "shortfall_bytes": 7940509696
+ },
+ "sample": {
+  "path": "group_plus/structure_probe_v1/sample.json",
+  "sha256": "439e536eb5f8f16443646cdd0814329f608d9efe3ea02ce66293e71f8a8a6e60",
+  "recorded_sample_sha256": "98a4d35d97eea33169d2fb4f7346ed7c128c0385a385e223ab36732690bc83df",
+  "matches_required": true
+ },
+ "head_deltas": {
+  "probe_S_delta": {
+   "path": "group_plus/structure_probe_v1/probe_S_delta.pt",
+   "sha256": "55bc31d2ad31c2c8510a465f1f13b84c6a7acd118e1fe4e328ae4ecd5d4119f8"
+  },
+  "probe_I_delta": {
+   "path": "group_plus/structure_probe_v1/probe_I_delta.pt",
+   "sha256": "70fd3fd7bcd47935329e6992a08c9fe8ae166081bf3b39c987231253c9e045a0"
+  }
+ },
+ "protected_after": {
+  "g0_step0": {
+   "path": "workspace_group_locusgs/arm_g0/ckpt_step0/model.pt",
+   "exists": true,
+   "sha256": "6e596e80e29661b6af1cb10a32ebd9ddc266b2cd68833e21bc72a1bd70134761"
+  },
+  "g0plus_step6000": {
+   "path": "workspace_group_plus/arm_g0plus/ckpt_step6000/model.pt",
+   "sha256": "a63dd485cc2d1b3fefb8b68786f9845ff8253cfebedd90405e73484c87243be4",
+   "mtime": 1790353194.0,
+   "matches_provenance": true
+  },
+  "recipe_v1_step6000": {
+   "path": "workspace_group_plus/recipe_v1/run/ckpt_step6000/model.pt",
+   "sha256": "39c53ce825b68a24292e84c838d836d02808526e4369bdb4483bbe934b7543ba",
+   "mtime": 1790412379.0,
+   "matches_provenance": true
+  },
+  "recipe_v2_step6000": {
+   "path": "workspace_group_plus/recipe_v2/run/ckpt_step6000/model.pt",
+   "sha256": "373cac99ab1aa95ab7118b85ea4d7ebc56befb618928cc8c74d8804054caddcb",
+   "mtime": 1790425961.0,
+   "matches_provenance": true
+  },
+  "recipe_v2_pure4_step6000": {
+   "path": "workspace_group_plus/implementation_audit_v1/recipe_v2_pure4/run/ckpt_step6000/model.pt",
+   "sha256": "02f2b35836509d64538bffde7df3c5d17476518be5e33c28a030b102f96ea441",
+   "mtime": 1790436749.0,
+   "matches_provenance": true
+  },
+  "recipe_v2_pure4_stopgrad_step6000": {
+   "path": "workspace_group_plus/implementation_audit_v1/recipe_v2_pure4_stopgrad/run/ckpt_step6000/model.pt",
+   "sha256": "b4c1d52809fd8c46d727efc31a757b57b98d61ca709e779daf1dda55dfff8360",
+   "mtime": 1790442542.0,
+   "matches_provenance": true
+  },
+  "structure_probe_sample": {
+   "path": "group_plus/structure_probe_v1/sample.json",
+   "exists": true,
+   "sha256": "439e536eb5f8f16443646cdd0814329f608d9efe3ea02ce66293e71f8a8a6e60"
+  },
+  "probe_S_delta": {
+   "path": "group_plus/structure_probe_v1/probe_S_delta.pt",
+   "exists": true,
+   "sha256": "55bc31d2ad31c2c8510a465f1f13b84c6a7acd118e1fe4e328ae4ecd5d4119f8"
+  },
+  "probe_I_delta": {
+   "path": "group_plus/structure_probe_v1/probe_I_delta.pt",
+   "exists": true,
+   "sha256": "70fd3fd7bcd47935329e6992a08c9fe8ae166081bf3b39c987231253c9e045a0"
+  }
+ },
+ "jobs": {
+  "cleanup_audit": "inline",
+  "corrected": 55753,
+  "oracle_full": 55767,
+  "oracle_rerun": 55770,
+  "per_gaussian": 55786,
+  "semantic_weighted": 55785,
+  "smokes": {
+   "corrected": 55752,
+   "oracle": 55758,
+   "per_gaussian": 55778,
+   "semantic_weighted": 55777
+  }
+ },
+ "not_started": [
+  "feed-forward \u00a74.A full-pixel probe (precondition oracle_pair_pass=false)",
+  "50000-step full run (semantic_local_pass=false, no feed-forward pass, disk<15 GiB)"
+ ]
+}

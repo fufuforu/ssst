@@ -1,0 +1,283 @@
+{
+ "scope": "GT-assisted per-scene token-assignment oracle; NOT feed-forward and NOT an official AP/PQ result",
+ "sample": {
+  "scene": "scene0009_02",
+  "frames": [
+   209,
+   253,
+   215,
+   247
+  ],
+  "context": [
+   209,
+   253
+  ],
+  "novel": [
+   215,
+   247
+  ],
+  "sha256": "98a4d35d97eea33169d2fb4f7346ed7c128c0385a385e223ab36732690bc83df"
+ },
+ "sample_checks": {
+  "sample_sha_matches_required": true,
+  "sample_frames": true,
+  "sentinel_keys": true,
+  "sentinel_classes": true
+ },
+ "config": {
+  "lr": 0.05,
+  "weight_decay": 0,
+  "steps": 10,
+  "seed": 42,
+  "optimizer_variable": "Z [1024, K+1] only",
+  "loss": "scene_loss: 5*mean BCE (GT-positive pixels only) + 5*mean Dice (whole image) + 1.0*class-balanced rest BCE - the previous oracle's existing implementation, not a full-pixel BCE"
+ },
+ "keys": [
+  8025,
+  18032,
+  18035,
+  20030
+ ],
+ "sentinel_keys": [
+  18032,
+  20030
+ ],
+ "sentinels": [
+  {
+   "packed_key": 18032,
+   "internal_class": 17,
+   "class_name_index": 18,
+   "stats": {
+    "context": {
+     "pixels": 4261,
+     "covered": 4261,
+     "coverage": 1.0
+    },
+    "novel": {
+     "2": {
+      "pixels": 1752,
+      "covered": 1752,
+      "coverage": 1.0
+     },
+     "3": {
+      "pixels": 2797,
+      "covered": 2797,
+      "coverage": 1.0
+     }
+    }
+   }
+  },
+  {
+   "packed_key": 20030,
+   "internal_class": 19,
+   "class_name_index": 20,
+   "stats": {
+    "context": {
+     "pixels": 2181,
+     "covered": 2181,
+     "coverage": 1.0
+    },
+    "novel": {
+     "2": {
+      "pixels": 972,
+      "covered": 972,
+      "coverage": 1.0
+     },
+     "3": {
+      "pixels": 1229,
+      "covered": 1229,
+      "coverage": 1.0
+     }
+    }
+   }
+  }
+ ],
+ "n_instances": 4,
+ "grad_norm_first_step": 0.533015787601471,
+ "curve": [
+  {
+   "step": 0,
+   "loss": 9.373647689819336,
+   "loss_instance": 8.394763946533203,
+   "loss_rest": 0.9788839221000671,
+   "assignment_entropy": 0.3437492847442627,
+   "rest_fraction": 0.47886812686920166,
+   "n_instances": 4,
+   "conservation_max_abs_error": 1.3709068298339844e-06,
+   "sentinels": {
+    "18032": {
+     "0": {
+      "area": 13113,
+      "iou": 0.10124858115777526,
+      "passes_area": true,
+      "gt_pixels": 1440
+     },
+     "1": {
+      "area": 13626,
+      "iou": 0.18221679125934445,
+      "passes_area": true,
+      "gt_pixels": 2821
+     },
+     "2": {
+      "area": 14340,
+      "iou": 0.11355615528337139,
+      "passes_area": true,
+      "gt_pixels": 1752
+     },
+     "3": {
+      "area": 13276,
+      "iou": 0.18488757832657574,
+      "passes_area": true,
+      "gt_pixels": 2797
+     }
+    },
+    "20030": {
+     "0": {
+      "area": 6011,
+      "iou": 0.12307437468941528,
+      "passes_area": true,
+      "gt_pixels": 769
+     },
+     "1": {
+      "area": 6526,
+      "iou": 0.17217956290608388,
+      "passes_area": true,
+      "gt_pixels": 1412
+     },
+     "2": {
+      "area": 6002,
+      "iou": 0.1343526350032531,
+      "passes_area": true,
+      "gt_pixels": 972
+     },
+     "3": {
+      "area": 6536,
+      "iou": 0.15774563888474727,
+      "passes_area": true,
+      "gt_pixels": 1229
+     }
+    }
+   },
+   "sentinels_context_best_iou": {
+    "18032": 0.18221679125934445,
+    "20030": 0.17217956290608388
+   },
+   "sentinels_novel_best_iou": {
+    "18032": 0.18488757832657574,
+    "20030": 0.15774563888474727
+   },
+   "all_instances_context_best_iou": {
+    "8025": 0.0026398122800156435,
+    "18032": 0.18221679125934445,
+    "18035": 0.14343616302634543,
+    "20030": 0.17217956290608388
+   },
+   "all_instances_novel_best_iou": {
+    "8025": 0.040381991814461116,
+    "18032": 0.18488757832657574,
+    "18035": 0.1192368839427663,
+    "20030": 0.15774563888474727
+   }
+  },
+  {
+   "step": 10,
+   "loss": 8.414353370666504,
+   "loss_instance": 7.569048881530762,
+   "loss_rest": 0.8453042507171631,
+   "assignment_entropy": 0.2783275842666626,
+   "rest_fraction": 0.49799081683158875,
+   "n_instances": 4,
+   "conservation_max_abs_error": 1.430511474609375e-06,
+   "sentinels": {
+    "18032": {
+     "0": {
+      "area": 12769,
+      "iou": 0.10241291023353247,
+      "passes_area": true,
+      "gt_pixels": 1440
+     },
+     "1": {
+      "area": 13416,
+      "iou": 0.18267900065554665,
+      "passes_area": true,
+      "gt_pixels": 2821
+     },
+     "2": {
+      "area": 13976,
+      "iou": 0.11569837554089522,
+      "passes_area": true,
+      "gt_pixels": 1752
+     },
+     "3": {
+      "area": 12944,
+      "iou": 0.18817934782608695,
+      "passes_area": true,
+      "gt_pixels": 2797
+     }
+    },
+    "20030": {
+     "0": {
+      "area": 5711,
+      "iou": 0.1320754716981132,
+      "passes_area": true,
+      "gt_pixels": 769
+     },
+     "1": {
+      "area": 6193,
+      "iou": 0.18126747437092264,
+      "passes_area": true,
+      "gt_pixels": 1412
+     },
+     "2": {
+      "area": 5699,
+      "iou": 0.14366535230584604,
+      "passes_area": true,
+      "gt_pixels": 972
+     },
+     "3": {
+      "area": 6213,
+      "iou": 0.1659094469685101,
+      "passes_area": true,
+      "gt_pixels": 1229
+     }
+    }
+   },
+   "sentinels_context_best_iou": {
+    "18032": 0.18267900065554665,
+    "20030": 0.18126747437092264
+   },
+   "sentinels_novel_best_iou": {
+    "18032": 0.18817934782608695,
+    "20030": 0.1659094469685101
+   },
+   "all_instances_context_best_iou": {
+    "8025": 0.0026351747023228575,
+    "18032": 0.18267900065554665,
+    "18035": 0.14828251640293322,
+    "20030": 0.18126747437092264
+   },
+   "all_instances_novel_best_iou": {
+    "8025": 0.040432491368344536,
+    "18032": 0.18817934782608695,
+    "18035": 0.12546904315197,
+    "20030": 0.1659094469685101
+   }
+  }
+ ],
+ "invariance": {
+  "rgb_max_abs_diff": 0.0,
+  "depth_max_abs_diff": 0.0,
+  "gaussians_max_abs_diff": 0.0
+ },
+ "checkpoint": {
+  "path": "workspace_group_plus/arm_g0plus/ckpt_step6000",
+  "sha256_before": "a63dd485cc2d1b3fefb8b68786f9845ff8253cfebedd90405e73484c87243be4",
+  "sha256_after": "a63dd485cc2d1b3fefb8b68786f9845ff8253cfebedd90405e73484c87243be4",
+  "mtime_before": 1790353194.0,
+  "mtime_after": 1790353194.0,
+  "unchanged": true
+ },
+ "oracle_pair_pass": false,
+ "pass_rule": "both sentinels raw IoU >= 0.5 in at least one context view AND in at least one novel view",
+ "smoke": true
+}

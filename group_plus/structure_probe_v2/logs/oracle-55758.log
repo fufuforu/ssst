@@ -1,0 +1,14 @@
+[runtime] fused-ssim extension unavailable; using import stand-in /space/mawb/ssst/third_party/shims
+[runtime] preloaded precompiled gsplat extension from /space/mawb/tokengs_siu3r_joint_v1/.torch_extensions_v4/gsplat_cuda/gsplat_cuda.so
+[oracle] step 0 loss 9.3736 ctx {'18032': 0.18221679125934445, '20030': 0.17217956290608388} novel {'18032': 0.18488757832657574, '20030': 0.15774563888474727} conserve 1.4e-06
+[oracle] step 10 loss 8.4144 ctx {'18032': 0.18267900065554665, '20030': 0.18126747437092264} novel {'18032': 0.18817934782608695, '20030': 0.1659094469685101} conserve 1.4e-06
+{
+ "oracle_pair_pass": false,
+ "invariance": {
+  "rgb_max_abs_diff": 0.0,
+  "depth_max_abs_diff": 0.0,
+  "gaussians_max_abs_diff": 0.0
+ },
+ "checkpoint_unchanged": true,
+ "n_instances": 4
+}
