@@ -1,0 +1,123 @@
+{
+  "checkpoint": "/space/mawb/ssst/workspace_recon_diag/full_train/run_lrcap2e5/best_monitor/model.pt",
+  "sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f",
+  "sha256_expected": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f",
+  "sha256_ok": true,
+  "step_in_file": 47500,
+  "step_expected": 47500,
+  "config_yaml_present": true,
+  "training_record_present": true,
+  "source_docs": [
+    "docs/locusgs_full_valpair_recon_eval.md",
+    "docs/full_train_cleanup_manifest.json"
+  ],
+  "training_record": {
+    "name": "SIU3R full processed-ScanNet pure LocusGS reconstruction (lr-capped continuation branch)",
+    "role": "main evaluation model (kept); official val_pair evaluation was run on this checkpoint",
+    "source_run": "workspace_recon_diag/full_train/run_lrcap2e5",
+    "branch_point": "workspace_recon_diag/full_train/run/ckpt_step2500 (deleted in cleanup; the branch was resumed from it with lr = min(schedule_lr, 2e-5))",
+    "monitor_metrics": {
+      "step": 47500,
+      "monitor_novel_psnr": 20.878544569015503,
+      "monitor_ctx_psnr": 24.54502010345459,
+      "monitor_novel_grey": 11.241829872131348,
+      "monitor_scenes": [
+        "scene0011_00",
+        "scene0246_00",
+        "scene0458_01",
+        "scene0621_00"
+      ],
+      "note": "training-monitor PSNR only, NOT SIU3R official val_pair"
+    },
+    "training_config": {
+      "entry_point": "scripts/train_cross_scene.py",
+      "preset": "train_siu3r_locusgs_recon_bounded_delta_frozen_radius",
+      "model_type": "siu3r_locusgs_recon",
+      "lr": 0.0001,
+      "lr_cap": 2e-05,
+      "steps": 50000,
+      "warmup": "pct_start_steps = 2000 (preset)",
+      "amp": "fp32",
+      "seed": 42,
+      "batch_size": 1,
+      "num_input_views": 2,
+      "num_views": 4,
+      "grad_clip": 1.0,
+      "betas": [
+        0.9,
+        0.95
+      ],
+      "train_scenes": "all processed ScanNet train dirs (--train-scenes all, --require-disjoint-val-root)",
+      "monitor_scenes": [
+        "scene0011_00",
+        "scene0246_00",
+        "scene0458_01",
+        "scene0621_00"
+      ],
+      "key_architecture_options": {
+        "locusgs_bound_delta": true,
+        "locusgs_freeze_decode_radius": true,
+        "locusgs_radius_init": 0.15,
+        "gaussian_z_offset": 0.0,
+        "locusgs_supervised_layers": [
+          6,
+          12
+        ],
+        "num_gs_tokens": 1024,
+        "dec_patch_size": 8,
+        "enc_embed_dim": 1024
+      }
+    },
+    "reconstruct": {
+      "preset": "train_siu3r_locusgs_recon_bounded_delta_frozen_radius",
+      "code": "model_registry['siu3r_locusgs_recon'](config_defaults[preset])",
+      "load": "torch.load('model.pt')['model'] with strict=True"
+    },
+    "checkpoints_removed_in_cleanup": {
+      "note": "sibling step checkpoints of this run were deleted after this directory was made self-contained (independent inode, SHA256 verified, config snapshot written); weights in this directory are unaffected"
+    }
+  },
+  "transfer": {
+    "source_keys": 450,
+    "matched": 450,
+    "new_keys": 59,
+    "mismatched": [],
+    "missing_in_source": [],
+    "shape_mismatch": [],
+    "alias_conflicts": [],
+    "strict_after_transfer": true
+  },
+  "state_dict_keys_total": 509,
+  "instance_state_keys": 59,
+  "param_count": 222788172,
+  "new_param_count": 2785552,
+  "decode_radius_mode": {
+    "locusgs_freeze_decode_radius": true,
+    "locusgs_radius_init": 0.15,
+    "locusgs_bound_delta": true,
+    "last_decode_radius": null
+  },
+  "config": {
+    "model_type": "siu3r_instance_state_locusgs",
+    "enc_embed_dim": 1024,
+    "num_gs_tokens": 1024,
+    "dec_depth": 12,
+    "dec_patch_size": 8,
+    "img_size": [
+      256,
+      256
+    ],
+    "supervised_layers": [
+      6,
+      12
+    ],
+    "instance_state_layers": [
+      6,
+      8,
+      10,
+      12
+    ],
+    "instance_state_coupled": false
+  },
+  "C_E_identical_new_init": true
+}

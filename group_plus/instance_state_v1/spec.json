@@ -1,0 +1,129 @@
+{
+  "name": "instance_state_v1",
+  "version": 1,
+  "baseline_commit": "b3acb34946a60f760a7daabbb1959c8d6be2c696",
+  "model_type": "siu3r_instance_state_locusgs",
+  "architecture_name": "LOCUSGS_INSTANCE_STATE_V1",
+  "dims": {
+    "B": 1,
+    "T": 1024,
+    "P": 64,
+    "C": 1024,
+    "D": 256,
+    "d_id": 16,
+    "num_thing": 100,
+    "num_stuff": 2,
+    "void_channels": 1,
+    "num_states": 103
+  },
+  "state_layers": [
+    6,
+    8,
+    10,
+    12
+  ],
+  "self_attn_bias_consumers": {
+    "7": 6,
+    "8": 6,
+    "9": 8,
+    "10": 8,
+    "11": 10,
+    "12": 10
+  },
+  "assign": {
+    "temperature": 0.1,
+    "thing_scale": 10.0,
+    "tightness": 0.1,
+    "tightness_clamp": 25.0,
+    "norm": "F.normalize(dim=-1,eps=1e-6)",
+    "layernorm_eps": 1e-05
+  },
+  "beta_ramp_steps": 200,
+  "rseg_ramp_steps": 200,
+  "beta_scales": {
+    "h": 0.1,
+    "mu": 0.1,
+    "r": 0.05,
+    "gs_residual": 0.1
+  },
+  "gs_decode_radius": 0.15,
+  "fps": "deterministic, first = closest to mean(mu), then max min-distance, ties -> lowest index",
+  "ell": "stopgrad(clamp(rms radius, min=0.05)) from mu6 only",
+  "loss": {
+    "w_thing": 0.1,
+    "w_stuff": 0.1,
+    "w_sem": 0.1,
+    "w_id": 0.01,
+    "match_cost": {
+      "class": 1.0,
+      "mask_bce": 5.0,
+      "dice": 5.0
+    },
+    "mask_bce": 5.0,
+    "mask_dice": 5.0,
+    "class_ce": 2.0,
+    "no_object_ce": 0.1,
+    "match_points": 4096,
+    "id_points": 64,
+    "id_margin": 0.2,
+    "id_alpha_min": 0.05
+  },
+  "optimizer": {
+    "betas": [
+      0.9,
+      0.95
+    ],
+    "backbone_peak_lr": 1e-05,
+    "instance_state_peak_lr": 0.0001,
+    "matrix_weight_decay": 0.05,
+    "no_decay_on": "bias, norm, query_init, _no_weight_decay",
+    "grad_clip": 1.0,
+    "warmup": 100,
+    "lr_schedule": "peak*step/100 for step 1..100 then peak*(0.02+0.98*0.5*(1+cos(pi*(step-100)/(total-100))))"
+  },
+  "paired": {
+    "arms": [
+      "C",
+      "E"
+    ],
+    "steps": 2000,
+    "cycles": "w0,w1,w2,w3 x 500"
+  },
+  "full": {
+    "train_scenes": 1201,
+    "val_scenes": 312,
+    "steps": 50000,
+    "warmup": 2000,
+    "segment": 5000,
+    "stop_rule": "step5000: 8val class-relevant TP all zero and semantic mIoU<0.05"
+  },
+  "init": {
+    "checkpoint": "/space/mawb/ssst/workspace_recon_diag/full_train/run_lrcap2e5/best_monitor/model.pt",
+    "sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f",
+    "step": 47500,
+    "seed": 42,
+    "new_module_seed": 31415
+  },
+  "eval": {
+    "gt_free_thing": "p_thing=sum(Pq[:18])>=0.5, class=argmax+2, mask=Mthing>0.5 & alpha>0.05, area>=50",
+    "semantic": "argmax over 20 classes where alpha>0.05",
+    "panoptic": "argmax score*Mthing per pixel; stuff for uncovered wall/floor; else void"
+  },
+  "local_structure_pass": {
+    "context_semantic_miou": 0.35,
+    "context_semantic_miou_gain": 0.1,
+    "context_raw_recall50": 0.5,
+    "context_class_recall50": 0.3,
+    "context_class_recall50_gain": 0.2,
+    "windows_with_tp": "3/4",
+    "novel_class_recall50": 0.1,
+    "novel_psnr_drop_db": 1.0,
+    "local_panoptic_pq": ">0 and >=1 correct-class thing TP in 3/4 windows"
+  },
+  "instance_state_supported": {
+    "e_minus_c_novel_class_recall50": 0.05,
+    "semantic_miou_not_lower_by": 0.02,
+    "psnr_not_lower_by_db": 0.5,
+    "requires": "state intervention changes geometry"
+  }
+}

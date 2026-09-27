@@ -27,6 +27,7 @@ from .siu3r_joint_ssst import SIU3RJointSSST
 from .canonical_recon_models import LocusGSRecon, PlainTokenGSCanonicalRecon
 from .object_locusgs import LocusGSObjectRecon
 from .group_locusgs import LocusGSGroupRecon
+from .instance_state_locusgs import LocusGSInstanceStateRecon
 
 # Model registry
 model_registry = {
@@ -35,6 +36,7 @@ model_registry = {
     'siu3r_locusgs_recon': LocusGSRecon,
     'siu3r_object_locusgs_recon': LocusGSObjectRecon,
     'siu3r_group_locusgs_recon': LocusGSGroupRecon,
+    'siu3r_instance_state_locusgs': LocusGSInstanceStateRecon,
     'siu3r_plain_tokengs_canonical_recon': PlainTokenGSCanonicalRecon,
 }
 
@@ -52,6 +54,7 @@ __all__ = [
     'LocusGSRecon',
     'LocusGSObjectRecon',
     'LocusGSGroupRecon',
+    'LocusGSInstanceStateRecon',
     'PlainTokenGSCanonicalRecon',
     'model_registry',
 ]

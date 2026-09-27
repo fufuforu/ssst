@@ -1,0 +1,17 @@
+{
+  "actual_free_bytes": 82017800192,
+  "actual_free_gib": 76.38502883911133,
+  "one_checkpoint_bytes_estimate": 2640496257,
+  "paired_peak": {
+    "arms": 2,
+    "model_only_endpoints": 1760330838
+  },
+  "full_peak": {
+    "latest_resumable": 2640496257,
+    "next_in_progress": 2640496257,
+    "paired_endpoints": 1760330838
+  },
+  "safety_margin_bytes": 1073741824,
+  "full_allowed": true,
+  "full_required_bytes": 8115065176
+}

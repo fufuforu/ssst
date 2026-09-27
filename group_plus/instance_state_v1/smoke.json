@@ -1,0 +1,118 @@
+{
+  "partial": true,
+  "ok": false,
+  "reason": "smoke aborted by a CUDA device-side assert inside check D (understanding-loss backward); checks E-J, paired and full were not executed",
+  "checks": [
+    {
+      "check": "A.strict_transfer",
+      "ok": true,
+      "detail": "matched 450 keys, new 59"
+    },
+    {
+      "check": "A.C_E_identical_init",
+      "ok": true,
+      "detail": "new modules share one initialisation"
+    },
+    {
+      "check": "A.beta0_h_mu_rho_bitwise",
+      "ok": true,
+      "detail": "max|dh|=0.000e+00 max|dmu|=0.000e+00 max|drho|=0.000e+00"
+    },
+    {
+      "check": "A.beta0_render_and_gs",
+      "ok": true,
+      "detail": "max|drgb|=0.000e+00 max|dalpha|=0.000e+00 max|dgs|=0.000e+00"
+    },
+    {
+      "check": "B.sum103_eq_alpha",
+      "ok": true,
+      "detail": "max err 1.371e-06"
+    },
+    {
+      "check": "B.S_plus_void_eq_1",
+      "ok": true,
+      "detail": "max err 1.371e-06"
+    },
+    {
+      "check": "B.assignment_rows_sum1",
+      "ok": true,
+      "detail": "max err 2.980e-07"
+    },
+    {
+      "check": "B.all_finite",
+      "ok": true,
+      "detail": "assignment and region mass finite"
+    },
+    {
+      "check": "B.radius_positive",
+      "ok": true,
+      "detail": "radii min 1.366e-02"
+    },
+    {
+      "check": "B.fps_100_distinct",
+      "ok": true,
+      "detail": "100 distinct indices"
+    },
+    {
+      "check": "B.decode_radius_frozen",
+      "ok": true,
+      "detail": "activation head decode radius == 0.15"
+    },
+    {
+      "check": "C.slot_identity_varies",
+      "ok": true,
+      "detail": "within-token assignment spread 1.385e-04"
+    },
+    {
+      "check": "C.perturbation_propagates",
+      "ok": true,
+      "detail": "de-bias perturbation changes slot assignment by 3.600e-05"
+    }
+  ],
+  "failed": [],
+  "checks_recorded": 13,
+  "checks_planned": [
+    "A.strict_transfer",
+    "A.C_E_identical_init",
+    "A.beta0_h_mu_rho_bitwise",
+    "A.beta0_render_and_gs",
+    "B.sum103_eq_alpha",
+    "B.S_plus_void_eq_1",
+    "B.assignment_rows_sum1",
+    "B.all_finite",
+    "B.radius_positive",
+    "B.fps_100_distinct",
+    "B.decode_radius_frozen",
+    "C.slot_identity_varies",
+    "C.perturbation_propagates",
+    "D.understanding_gradients_reach",
+    "D.recon_gradients_reach",
+    "D.losses_finite",
+    "E.coupling_changes_geometry",
+    "E.armC_zero_init_inert",
+    "F.prediction_independent_of_labels",
+    "G.degenerate_labels_finite",
+    "H.serialise_reload_identical",
+    "H.resume_loss_continuity",
+    "H.resume_param_drift",
+    "J.timing_measured"
+  ],
+  "checks_not_executed": [
+    "D.understanding_gradients_reach",
+    "D.recon_gradients_reach",
+    "D.losses_finite",
+    "E.coupling_changes_geometry",
+    "E.armC_zero_init_inert",
+    "F.prediction_independent_of_labels",
+    "G.degenerate_labels_finite",
+    "H.serialise_reload_identical",
+    "H.resume_loss_continuity",
+    "H.resume_param_drift",
+    "I.official-reader synthetic checks",
+    "J.timing_measured"
+  ],
+  "crash_tail": [
+    "RuntimeError: CUDA error: device-side assert triggered"
+  ],
+  "next_step": "re-run scripts/smoke_instance_state_v1.py with CUDA_LAUNCH_BLOCKING=1 to get the precise kernel; the failure is inside the first backward of the understanding loss"
+}

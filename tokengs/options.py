@@ -239,6 +239,13 @@ class Options:
     object_min_alpha: float = 0.05
     object_instance_pixels: int = 64
     object_instance_budget: int = 16
+    # --- instance-state-driven LocusGS (LOCUSGS_INSTANCE_STATE_V1) ---
+    # 100 thing states + 2 fixed stuff states + 1 pixel-void channel; the state
+    # bank is a forward-time tensor, never a scene-specific parameter.
+    instance_state_layers: tuple[int, ...] = (6, 8, 10, 12)
+    instance_state_init_seed: int = 31415
+    # C arm = readout only (coupled=False); E arm = coupled token interaction.
+    instance_state_coupled: bool = False
     # --- from-scratch group G0/G1 experiment: 100 instance groups + background
     # slot, 101-way token->slot softmax, optional gated write-back into the
     # reconstruction tokens between decoder layers 10 and 11 ---
@@ -838,6 +845,42 @@ config_defaults["train_siu3r_plain_tokengs_canonical_recon"] = config_defaults[
     experiment_name="siu3r_plain_tokengs_canonical_recon_v1",
     project_name="TokenGS-LocusGS",
     **_CANONICAL_RECON,
+)
+
+config_doc["train_siu3r_instance_state_locusgs"] = (
+    "Instance-state-driven LocusGS v1 (LOCUSGS_INSTANCE_STATE_V1), C arm: 100 thing "
+    "states + 2 fixed stuff states + 1 pixel-void channel are updated after decoder "
+    "layers 6/8/10/12 and read out as semantic/instance/panoptic evidence, but "
+    "coupled=False keeps them out of the token interaction, anchor update and "
+    "Gaussian residual path (beta=0).  Derived from "
+    "train_siu3r_locusgs_recon_bounded_delta_frozen_radius; the reconstruction path "
+    "stays exactly the pretrained LocusGS one when zero-initialised projections are "
+    "used.  Initialised from the completed full-data reconstruction checkpoint "
+    "(step 47500)."
+)
+config_defaults["train_siu3r_instance_state_locusgs"] = config_defaults[
+    "train_siu3r_locusgs_recon_bounded_delta_frozen_radius"
+].evolve(
+    model_type="siu3r_instance_state_locusgs",
+    workspace="/space/mawb/ssst/workspace_group_plus/instance_state_v1/arm_C",
+    experiment_name="siu3r_instance_state_locusgs_C",
+    project_name="TokenGS-LocusGS",
+    instance_state_coupled=False,
+)
+
+config_doc["train_siu3r_instance_state_locusgs_coupled"] = (
+    "Instance-state-driven LocusGS v1, E arm: identical to "
+    "train_siu3r_instance_state_locusgs except instance_state_coupled=True, so "
+    "beta = min(step/200, 1) enables the state-driven token message, anchor update, "
+    "learned-radius update, self-attention compactness bias and Gaussian residual.  "
+    "C/E is the single-variable contrast of this round."
+)
+config_defaults["train_siu3r_instance_state_locusgs_coupled"] = config_defaults[
+    "train_siu3r_instance_state_locusgs"
+].evolve(
+    workspace="/space/mawb/ssst/workspace_group_plus/instance_state_v1/arm_E",
+    experiment_name="siu3r_instance_state_locusgs_E",
+    instance_state_coupled=True,
 )
 
 AllConfigs = tyro.extras.subcommand_type_from_defaults(config_defaults, config_doc)
