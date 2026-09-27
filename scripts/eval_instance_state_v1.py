@@ -139,7 +139,7 @@ def _panoptic_pq(pred_sem, out, sem, ins):
     for v in range(m_thing.shape[0]):
         valid = (sem[v] >= 0) & (sem[v] <= 19)
         thing_pix = (sem[v] >= 2) & (sem[v] <= 19) & (ins[v] > 0)
-        best = torch.zeros_like(scores)
+        best = torch.zeros_like(m_thing[v, 0])
         best_q = torch.full_like(pred_sem[v], -1)
         for q in range(100):
             score_map = scores[q] * m_thing[v, q]
@@ -162,7 +162,6 @@ def _panoptic_pq(pred_sem, out, sem, ins):
                 per_class[gcls]["tp"] += 1
             else:
                 per_class[gcls]["fn"] += 1
-        del tpq, fpq, fnq, thing_pix
     pq = {}
     for c, row in per_class.items():
         denom = row["tp"] + 0.5 * row["fp"] + 0.5 * row["fn"]
