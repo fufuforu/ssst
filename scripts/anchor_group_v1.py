@@ -18,7 +18,7 @@ from tokengs.options import config_defaults
 from tokengs.models import model_registry
 from tokengs.models.input_types import ModelInput,ModelInputDecoder,split_data
 from tokengs.models.anchor_group_locusgs import anchor_group_lr_multiplier,anchor_group_understanding_weight
-from scripts.instance_state_generalization import _batch_for,_seen_classes,evaluate_all
+from scripts.instance_state_generalization import _batch_for,_seen_classes,layered
 from scripts.run_instance_state_v1 import PRETRAINED,PRETRAINED_SHA,PRETRAINED_STEP,BASE_PRESET,SEED
 
 OUT=REPO/"group_plus/anchor_group_v1"
@@ -42,6 +42,7 @@ def write_json(path,payload):
 def locked_assets():
     manifest=json.loads(MANIFEST.read_text());plan=json.loads(PLAN.read_text())
     if sha256(MANIFEST)!=MANIFEST_SHA:raise RuntimeError("locked training manifest SHA256 mismatch")
+    if len(manifest.get("windows",[]))!=1024 or len({w["scene"] for w in manifest["windows"]})!=128:raise RuntimeError("locked manifest must contain 128 scenes and 1024 windows")
     if len(plan.get("entries",[]))!=TOTAL_STEPS:raise RuntimeError("locked 5000-step plan length mismatch")
     for n,entry in enumerate(plan["entries"],1):
         if entry.get("step")!=n:raise RuntimeError(f"locked plan step mismatch at {n}")
@@ -241,6 +242,95 @@ def eval_interface_smoke(model,opt,device):
     if not finite:raise RuntimeError("one-window evaluator smoke produced nonfinite metrics")
     return payload
 
+@torch.no_grad()
+def anchor_group_window_diagnostics(prediction,batch):
+    """Evaluation-only ownership/matching diagnostics; never contributes to loss."""
+    from tokengs.models.anchor_group_loss import FLOOR, IGNORE, THING, WALL, unified_hungarian
+    final=prediction["states"][-1]; A_all=final["A_post"].float(); A=A_all[0]; q=final["q"][0].float()
+    mass=A[:,:100].sum(0); qn=torch.nn.functional.normalize(q,dim=-1,eps=1e-6)
+    cos=qn@qn.T; off=cos[~torch.eye(cos.shape[0],dtype=torch.bool,device=cos.device)]
+    ent=-(A.clamp_min(1e-9)*A.clamp_min(1e-9).log()).sum(-1).mean()
+    targets,pairs=unified_hungarian(prediction,batch)
+    ownership_correct=thing_correct=valid_count=thing_count=supported=success=0
+    wall_count=floor_count=ignore_count=without_support=0; ce_rows=[]; dice_rows=[]
+    per_gt=[]
+    for b,(qi,ki) in enumerate(pairs):
+        kinds=targets["anchor_kind"][b]; aid=targets["anchor_instance_id"][b]
+        valid=targets["anchor_valid"][b]
+        tgt=torch.full_like(kinds,-1);tgt[kinds==WALL]=100;tgt[kinds==FLOOR]=101
+        matched={int(k):int(j) for j,k in zip(qi.tolist(),ki.tolist())}
+        ids=targets["gt_instance_ids"][b].tolist()
+        id_to_gt={int(iid):k for k,iid in enumerate(ids)}
+        for iid,k in id_to_gt.items():
+            own=(kinds==THING)&(aid==iid)
+            if own.any():
+                if k not in matched: raise RuntimeError("diagnostic found supported GT without unified Hungarian match")
+                tgt[own]=matched[k]
+        use=valid&(tgt>=0); pred_chan=A_all[b].argmax(-1)
+        valid_count+=int(use.sum()); ownership_correct+=int((pred_chan[use]==tgt[use]).sum())
+        wall_count+=int((kinds==WALL).sum());floor_count+=int((kinds==FLOOR).sum());ignore_count+=int((kinds==IGNORE).sum())
+        thing=(kinds==THING);thing_count+=int(thing.sum());thing_correct+=int((pred_chan[thing]==tgt[thing]).sum())
+        ce_rows.extend((-torch.log(A_all[b,use,tgt[use]].clamp_min(1e-6))).tolist())
+        Y=targets["Y_anchor"][b]
+        support=Y.sum(-1)>0;supported+=int(support.sum());without_support+=int((~support).sum())
+        for j,k in zip(qi.tolist(),ki.tolist()):
+            y=Y[k];
+            if float(y.sum())>0:
+                pp=A_all[b,valid,j]; yy=y[valid]
+                dice=1-(2*(pp*yy).sum()+1)/(pp.sum()+yy.sum()+1)
+                dice_rows.append(float(dice))
+                frac=float((pred_chan[(kinds==THING)&(aid==ids[k])]==j).float().mean())
+                ok=frac>0.5;success+=int(ok)
+                per_gt.append({"instance_id":int(ids[k]),"query":int(j),"anchor_count":int(y.sum()),"matched_query_fraction":frac,"success_gt_recall50":ok})
+    ce=float(torch.tensor(ce_rows).mean()) if ce_rows else 0.0
+    dice=float(np.mean(dice_rows)) if dice_rows else 0.0
+    p=prediction["p_class"][0].float();pthing=p[:,:18].sum(-1)
+    med=float(mass.median())
+    return {
+        "assignment_entropy":float(ent),
+        "thing_ownership_mass":{"mean":float(mass.mean()),"median":med,"p10":float(mass.quantile(.10)),"p90":float(mass.quantile(.90)),"max":float(mass.max()),"max_over_median":float(mass.max()/max(med,1e-12))},
+        "query_cosine":{"offdiag_mean":float(off.mean()),"p90":float(off.quantile(.90)),"max":float(off.max())},
+        "no_object_probability":{"mean":float(p[:,18].mean()),"max":float(p[:,18].max())},
+        "active_thing_queries":int((pthing>=.5).sum()),
+        "anchor_valid_count":valid_count,"anchor_thing_count":thing_count,"anchor_wall_count":wall_count,"anchor_floor_count":floor_count,"anchor_ignore_count":ignore_count,
+        "gt_with_anchor_support":supported,"gt_without_anchor_support":without_support,
+        "anchor_ownership_correct":ownership_correct,"anchor_ownership_accuracy":ownership_correct/max(1,valid_count),
+        "thing_anchor_correct":thing_correct,"thing_anchor_correct_fraction":thing_correct/max(1,thing_count),
+        "anchor_group_gt_success50":success,"anchor_group_gt_recall50":success/max(1,supported),
+        "anchor_ce":ce,"anchor_dice":dice,"loss_anchor_group":ce+dice,
+        "supported_gt_details":per_gt,
+    }
+
+def _aggregate_anchor_group_diagnostics(rows):
+    ds=[r["anchor_group_diagnostics"] for r in rows]
+    if not ds:return {}
+    sums={k:sum(d[k] for d in ds) for k in ("anchor_valid_count","anchor_thing_count","anchor_wall_count","anchor_floor_count","anchor_ignore_count","gt_with_anchor_support","gt_without_anchor_support","anchor_ownership_correct","thing_anchor_correct","anchor_group_gt_success50")}
+    return {
+        **sums,
+        "anchor_ownership_accuracy":sums["anchor_ownership_correct"]/max(1,sums["anchor_valid_count"]),
+        "thing_anchor_correct_fraction":sums["thing_anchor_correct"]/max(1,sums["anchor_thing_count"]),
+        "anchor_group_gt_recall50":sums["anchor_group_gt_success50"]/max(1,sums["gt_with_anchor_support"]),
+        "anchor_ce":float(np.mean([d["anchor_ce"] for d in ds])),"anchor_dice":float(np.mean([d["anchor_dice"] for d in ds])),"loss_anchor_group":float(np.mean([d["loss_anchor_group"] for d in ds])),
+        "mechanism_means":{k:{stat:float(np.mean([d[k][stat] for d in ds])) for stat in stats} for k,stats in (("thing_ownership_mass",("mean","median","p10","p90","max","max_over_median")),("query_cosine",("offdiag_mean","p90","max")),("no_object_probability",("mean","max")))},
+        "assignment_entropy_mean":float(np.mean([d["assignment_entropy"] for d in ds])),"active_thing_queries_mean":float(np.mean([d["active_thing_queries"] for d in ds])),
+        "windows":ds,
+    }
+
+def evaluate_anchor_group_all(model,opt,reports,step,device,seen):
+    from scripts.eval_instance_state_v1 import evaluate_windows
+    train16=json.loads((reports/"monitor_train16.json").read_text())["windows"]
+    val8=json.loads((reports/"monitor_8pairs.json").read_text())["pairs"]
+    val32=json.loads((reports/"monitor_32pairs.json").read_text())["pairs"]
+    aggregate_metrics={};direct={}
+    for name,windows in (("train16",train16),("val8",val8),("val32",val32)):
+        for scope in ("context","target"):
+            res=evaluate_windows(model,opt,windows,step,scope,reports/f"eval_{name}",arm="C",device=str(device),batch_builder=_batch_for,row_diagnostic_fn=anchor_group_window_diagnostics)
+            aggregate_metrics[f"{name}_{scope}"]=layered(res["windows"],seen)
+            direct[f"{name}_{scope}"]=_aggregate_anchor_group_diagnostics(res["windows"])
+    write_json(reports/f"curves_{step}.json",aggregate_metrics)
+    write_json(reports/f"anchor_group_diagnostics_step{step}.json",direct)
+    return aggregate_metrics
+
 def setup_audit(device):
     manifest,plan,monitor_hashes=locked_assets();
     if sha256(PRETRAINED)!=PRETRAINED_SHA:raise RuntimeError("pretrained checkpoint SHA256 mismatch")
@@ -287,12 +377,15 @@ def smoke_one_step(device):
     write_json(OUT/"phase_b1_gpu_one_step_smoke.json",payload);return int(payload["status"]!="pass")
 
 def train_formal(device):
-    # Future formal entry point; this function is deliberately not invoked in Phase-B1.
+    if device.type!="cuda" or not torch.cuda.is_available():raise RuntimeError("formal Anchor-Group run requires CUDA")
+    if torch.cuda.get_device_name(device)!="NVIDIA GeForce RTX 3090":raise RuntimeError("formal Anchor-Group run requires NVIDIA GeForce RTX 3090")
+    if torch.cuda.get_device_properties(device).total_memory<23*1024**3:raise RuntimeError("formal Anchor-Group run requires a 24GB-class RTX 3090")
     manifest,plan,_=locked_assets();opt=build_options();model,transfer=make_model(opt,device);optimizer,opt_audit=build_optimizer(model)
+    if model.architecture_name!="LOCUSGS_ANCHOR_GROUP_V1":raise RuntimeError(f"unexpected architecture: {model.architecture_name}")
     if any(not p.requires_grad for p in model.parameters()):raise RuntimeError("formal joint run requires all parameters trainable")
     runtime={"event":"train_start","gpu":torch.cuda.get_device_name(device) if device.type=="cuda" else str(device),"cuda_visible_devices":os.environ.get("CUDA_VISIBLE_DEVICES"),"torch_version":torch.__version__,"torch_cuda_version":torch.version.cuda,"seed":SEED,"anchor_group_init_seed":int(getattr(opt,"anchor_group_init_seed",31415)),"pretrained_sha256":sha256(PRETRAINED),"manifest_sha256":sha256(MANIFEST),"plan_sha256":sha256(PLAN),"trainable_reconstruction_numel":sum(p.numel() for n,p in model.named_parameters() if p.requires_grad and not n.startswith("anchor_group.")),"trainable_anchor_group_numel":sum(p.numel() for n,p in model.named_parameters() if p.requires_grad and n.startswith("anchor_group.")),"frozen_numel":sum(p.numel() for p in model.parameters() if not p.requires_grad)}
     print(json.dumps(runtime,sort_keys=True),flush=True)
-    model.train();seen=_seen_classes(OUT);evaluate_all(model,opt,OUT,0,device,seen,panels=False)
+    model.train();seen=_seen_classes(OUT);evaluate_anchor_group_all(model,opt,OUT,0,device,seen)
     provider_cache=None
     for entry in plan["entries"]:
         step=int(entry["step"]);set_optimizer_lr(optimizer,step);optimizer.zero_grad(set_to_none=True)
@@ -306,9 +399,9 @@ def train_formal(device):
             row={k:(float(metrics[k].detach()) if torch.is_tensor(metrics[k]) else float(metrics[k])) for k in log_keys}
             row.update(event="train_step",step=step,group_lr=next(g["lr"] for g in optimizer.param_groups if g["name"].startswith("anchor_group_")),reconstruction_lr=next(g["lr"] for g in optimizer.param_groups if g["name"].startswith("reconstruction_")))
             print(json.dumps(row,sort_keys=True),flush=True)
-        if step in EVAL_STEPS[1:]:evaluate_all(model,opt,OUT,step,device,seen,panels=False)
+        if step in EVAL_STEPS[1:]:evaluate_anchor_group_all(model,opt,OUT,step,device,seen)
     payload={"model":model.state_dict(),"optimizer":optimizer.state_dict(),"step":TOTAL_STEPS,"architecture":"LOCUSGS_ANCHOR_GROUP_V1","joint":True,"beta":0,"manifest_sha256":MANIFEST_SHA,"plan_sha256":sha256(PLAN),"pretrained_sha256":sha256(PRETRAINED),"rng":{"python":random.getstate(),"numpy":np.random.get_state(),"torch":torch.get_rng_state(),"cuda":torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None}}
-    target=Path(opt.workspace)/"phase_b1_endpoint.pt";target.parent.mkdir(parents=True,exist_ok=True);torch.save(payload,target)
+    target=Path(opt.workspace)/"formal_endpoint_step5000.pt";target.parent.mkdir(parents=True,exist_ok=True);torch.save(payload,target)
 
 def main():
     ap=argparse.ArgumentParser();ap.add_argument("--phase",choices=("audit","smoke","train"),required=True);ap.add_argument("--device",default="cuda");args=ap.parse_args()

@@ -209,7 +209,8 @@ def _panoptic_pq(pred_sem, out, sem, ins):
 
 
 def evaluate_windows(model, opt, windows, step: int, scope: str, output_dir,
-                     *, arm: str = "C", device="cuda", batch_builder=None) -> dict:
+                     *, arm: str = "C", device="cuda", batch_builder=None,
+                     row_diagnostic_fn=None) -> dict:
     """Evaluate ``windows`` (each with scene/context/novel) at ``step``.
 
     ``scope`` is "context" (2 views) or "target" (all requested views).
@@ -252,7 +253,7 @@ def evaluate_windows(model, opt, windows, step: int, scope: str, output_dir,
             gt_rgb = batch["images_all"][0, :views]
             psnr = float(-10.0 * torch.log10(
                 (pred_rgb - gt_rgb).pow(2).mean().clamp_min(1e-12)))
-            rows.append({
+            row = {
                 "scene": window["scene"], "context": window["context"],
                 "novel": window.get("novel"), "scope": scope, "views": views,
                 "semantic_miou": float(np.mean(ious)) if ious else 0.0,
@@ -267,7 +268,10 @@ def evaluate_windows(model, opt, windows, step: int, scope: str, output_dir,
                 "local_panoptic": _panoptic_pq(pred_sem, out, sem, ins),
                 "psnr": psnr,
                 "alpha_gt_05": float((out["alpha"][0, :, 0] > 0.5).float().mean()),
-            })
+            }
+            if row_diagnostic_fn is not None:
+                row["anchor_group_diagnostics"] = row_diagnostic_fn(out, batch)
+            rows.append(row)
     finally:
         restore_rng(rng)
         if was_training:
