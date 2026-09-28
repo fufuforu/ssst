@@ -290,6 +290,8 @@ def train_formal(device):
     # Future formal entry point; this function is deliberately not invoked in Phase-B1.
     manifest,plan,_=locked_assets();opt=build_options();model,transfer=make_model(opt,device);optimizer,opt_audit=build_optimizer(model)
     if any(not p.requires_grad for p in model.parameters()):raise RuntimeError("formal joint run requires all parameters trainable")
+    runtime={"event":"train_start","gpu":torch.cuda.get_device_name(device) if device.type=="cuda" else str(device),"cuda_visible_devices":os.environ.get("CUDA_VISIBLE_DEVICES"),"torch_version":torch.__version__,"torch_cuda_version":torch.version.cuda,"seed":SEED,"anchor_group_init_seed":int(getattr(opt,"anchor_group_init_seed",31415)),"pretrained_sha256":sha256(PRETRAINED),"manifest_sha256":sha256(MANIFEST),"plan_sha256":sha256(PLAN),"trainable_reconstruction_numel":sum(p.numel() for n,p in model.named_parameters() if p.requires_grad and not n.startswith("anchor_group.")),"trainable_anchor_group_numel":sum(p.numel() for n,p in model.named_parameters() if p.requires_grad and n.startswith("anchor_group.")),"frozen_numel":sum(p.numel() for p in model.parameters() if not p.requires_grad)}
+    print(json.dumps(runtime,sort_keys=True),flush=True)
     model.train();seen=_seen_classes(OUT);evaluate_all(model,opt,OUT,0,device,seen,panels=False)
     provider_cache=None
     for entry in plan["entries"]:
@@ -299,6 +301,11 @@ def train_formal(device):
         for key in ("loss","loss_recon","loss_understanding"):
             if not torch.isfinite(metrics[key]).all():raise RuntimeError(f"nonfinite {key} at step {step}")
         metrics["loss"].backward();clip_grad_norm_(model.parameters(),GRAD_CLIP,error_if_nonfinite=True);optimizer.step()
+        if step % 100 == 0:
+            log_keys=("loss","loss_recon","loss_understanding","understanding_weight","loss_thing_2d","loss_stuff_2d","loss_semantic","loss_identity","loss_anchor_group","anchor_ce","anchor_dice")
+            row={k:(float(metrics[k].detach()) if torch.is_tensor(metrics[k]) else float(metrics[k])) for k in log_keys}
+            row.update(event="train_step",step=step,group_lr=next(g["lr"] for g in optimizer.param_groups if g["name"].startswith("anchor_group_")),reconstruction_lr=next(g["lr"] for g in optimizer.param_groups if g["name"].startswith("reconstruction_")))
+            print(json.dumps(row,sort_keys=True),flush=True)
         if step in EVAL_STEPS[1:]:evaluate_all(model,opt,OUT,step,device,seen,panels=False)
     payload={"model":model.state_dict(),"optimizer":optimizer.state_dict(),"step":TOTAL_STEPS,"architecture":"LOCUSGS_ANCHOR_GROUP_V1","joint":True,"beta":0,"manifest_sha256":MANIFEST_SHA,"plan_sha256":sha256(PLAN),"pretrained_sha256":sha256(PRETRAINED),"rng":{"python":random.getstate(),"numpy":np.random.get_state(),"torch":torch.get_rng_state(),"cuda":torch.cuda.get_rng_state_all() if torch.cuda.is_available() else None}}
     target=Path(opt.workspace)/"phase_b1_endpoint.pt";target.parent.mkdir(parents=True,exist_ok=True);torch.save(payload,target)
