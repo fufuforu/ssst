@@ -444,10 +444,9 @@ def panel(model, opt, window, step, out_path: Path, device, *, arm=ARM_C):
 
 def _seen_classes(reports: Path) -> set[int]:
     cov = json.loads((reports / "train128_class_coverage.json").read_text(encoding="utf-8"))
-    seen = {int(c) for c, row in cov["per_class"].items() if row["windows"] > 0}
-    seen |= {0, 1}  # wall/floor: present in every window; manifest field only counts thing classes
-    _ = cov
-    return seen
+    if "classes" in cov:                      # corrected format (commit 62bdb37)
+        return {int(c) for c, row in cov["classes"].items() if row["seen"]}
+    return {int(c) for c, row in cov["per_class"].items() if row["windows"] > 0}
 
 
 def evaluate_all(model, opt, reports: Path, step: int, device, seen: set[int],
@@ -606,9 +605,177 @@ def phase_reval(reports: Path, run_root: Path, device: str = "cuda") -> int:
     return 0
 
 
+EXT_STEPS = 15000
+EXT_EVAL_STEPS = (7500, 10000, 12500, 15000)
+RESTART_WARMUP = 200
+RESTART_PEAK = 1e-4
+RESTART_FLOOR = 2e-6
+
+
+def build_plan(flat: list[dict], steps: int) -> list[int]:
+    """The single deterministic plan generator (seed 424242 + adjacent swap rule)."""
+    rng = np.random.default_rng(PLAN_SEED)
+    order: list[int] = []
+    while len(order) < steps:
+        order.extend(rng.permutation(N_WINDOWS).tolist())
+    order = order[:steps]
+    for i in range(len(order) - 1):
+        if flat[order[i]]["scene"] == flat[order[i + 1]]["scene"]:
+            for j in range(i + 2, len(order)):
+                if flat[order[j]]["scene"] != flat[order[i]]["scene"]:
+                    order[i + 1], order[j] = order[j], order[i + 1]
+                    break
+    return order
+
+
+def phase_plan15000(reports: Path) -> int:
+    """Regenerate the SAME plan generator at length 15000 and verify the 5k prefix."""
+    flat = json.loads((reports / "train128_windows1024.json").read_text(
+        encoding="utf-8"))["windows"]
+    old = json.loads((reports / "plan_C_frozen_5000.json").read_text(encoding="utf-8"))
+    order = build_plan(flat, EXT_STEPS)
+    entries = [{"step": i + 1, "window_index": int(w), "scene": flat[w]["scene"],
+                "context": flat[w]["context"], "novel": flat[w]["novel"]}
+               for i, w in enumerate(order)]
+    mismatch = [i for i in range(STEPS)
+                if entries[i]["window_index"] != old["entries"][i]["window_index"]]
+    payload = {"steps": EXT_STEPS, "plan_seed": PLAN_SEED,
+               "generator": "same as plan_C_frozen_5000 (seed 424242 permutation stream "
+                            "concatenated to 15000 + identical adjacent-same-scene swap rule)",
+               "prefix_5000_identical": not mismatch,
+               "first_mismatch_index": mismatch[0] if mismatch else None,
+               "n_mismatch": len(mismatch),
+               "schedule": {"kind": "controlled LR restart continuation from step 5000",
+                            "k": "global_step - 5000",
+                            "k_1_200": "linear lr_5000 -> 1e-4",
+                            "k_201_10000": "cosine peak 1e-4 floor 2e-6 over (k-200)/(10000-200)",
+                            "note": "5k->15k extension uses a controlled LR restart; therefore this "
+                                    "tests optimization sufficiency/capacity, not a single "
+                                    "uninterrupted 15k cosine trajectory"},
+               "entries": entries}
+    write_json(reports / "plan_C_frozen_15000.json", payload)
+    print(f"[gen] plan15000 prefix_5000_identical={not mismatch} "
+          f"first_mismatch={payload['first_mismatch_index']} n={len(mismatch)}", flush=True)
+    if mismatch:
+        raise SystemExit("PLAN PREFIX MISMATCH - refusing to train")
+    print(f"[gen] plan15000 sha256 {sha256_file(reports / 'plan_C_frozen_15000.json')}",
+          flush=True)
+    return 0
+
+
+def ext_lr(global_step: int, lr_5000: float) -> float:
+    k = global_step - STEPS
+    if k <= RESTART_WARMUP:
+        return lr_5000 + (RESTART_PEAK - lr_5000) * k / RESTART_WARMUP
+    progress = (k - RESTART_WARMUP) / (10000 - RESTART_WARMUP)
+    return RESTART_FLOOR + (RESTART_PEAK - RESTART_FLOOR) * 0.5 * (
+        1 + math.cos(math.pi * progress))
+
+
+def phase_continue(reports: Path, run_root: Path, device: str = "cuda") -> int:
+    """Continue the frozen-C arm from the step-5000 endpoint to global 15000."""
+    import torch
+    if not torch.cuda.is_available():
+        raise SystemExit("GPU phase requires CUDA")
+    device = torch.device(device)
+    torch.backends.cudnn.allow_tf32 = False
+    torch.backends.cuda.matmul.allow_tf32 = False
+    plan = json.loads((reports / "plan_C_frozen_15000.json").read_text(encoding="utf-8"))
+    if not plan["prefix_5000_identical"] or len(plan["entries"]) != EXT_STEPS:
+        raise SystemExit("plan_15000 failed its prefix verification; refusing to train")
+    old = json.loads((reports / "plan_C_frozen_5000.json").read_text(encoding="utf-8"))
+    for i in range(STEPS):
+        if plan["entries"][i]["window_index"] != old["entries"][i]["window_index"]:
+            raise SystemExit(f"plan prefix differs at entry {i}")
+    endpoint = run_root / "arm_C_frozen" / "endpoint" / "train_state.pt"
+    payload = torch.load(endpoint, map_location="cpu", weights_only=False)
+    opt = build_options(PRESET_C)
+    model = model_registry[opt.model_type](opt)
+    model.load_state_dict(payload["model"], strict=True)
+    model = model.to(device)
+    roles = freeze_backbone(model)
+    off = [n for n in roles["trainable_names"] if not n.startswith("instance_state.")]
+    if off:
+        raise SystemExit(f"non-instance_state trainable params: {off[:5]}")
+    optimizer, groups = frozen_optimizer(model)
+    optimizer.load_state_dict(payload["optimizer"])
+    for group in optimizer.param_groups:
+        if group["name"].startswith("backbone"):
+            raise SystemExit("backbone optimizer group present after resume")
+    restore_rng(payload["rng"])
+    lr_5000 = float(optimizer.param_groups[0]["lr"])
+    start = int(payload["step"]) + 1
+    if start != STEPS + 1:
+        raise SystemExit(f"resume start step {start} != {STEPS + 1}")
+    snap = snapshot_frozen(model)
+    seen = _seen_classes(reports)
+    report = {"resumed_from": str(endpoint), "resumed_global_step": int(payload["step"]),
+              "start_step": start, "lr_5000": lr_5000,
+              "optimizer_groups": [g["name"] for g in optimizer.param_groups],
+              "optimizer_state_entries": len(optimizer.state_dict()["state"]),
+              "rng_restored": sorted(payload["rng"].keys()),
+              "trainable": len(roles["trainable_names"]),
+              "frozen": len(roles["frozen_names"]),
+              "plan_sha256": sha256_file(reports / "plan_C_frozen_15000.json"),
+              "prefix_5000_identical": True,
+              "lr_formula": {"k_1_200": "lr_5000 + (1e-4 - lr_5000)*k/200",
+                             "k_201_10000": "2e-6 + (1e-4-2e-6)*0.5*(1+cos(pi*(k-200)/9800))",
+                             "note": "controlled LR restart; not a single 15k cosine"}}
+    write_json(reports / "continuation_config.json", report)
+    print(f"[gen] resumed step {payload['step']} lr_5000={lr_5000:.3e} "
+          f"groups={report['optimizer_groups']}", flush=True)
+    started = time.time()
+    model.train()
+    for entry in plan["entries"]:
+        step = int(entry["step"])
+        if step < start:
+            continue
+        batch = _batch_for(opt, entry, device)
+        model.understanding_step = step
+        lr = ext_lr(step, lr_5000)
+        for group in optimizer.param_groups:
+            group["lr"] = lr
+        optimizer.zero_grad(set_to_none=True)
+        _, metrics = model.step_loss(batch, step=step, coupled=False)
+        for key in ("loss", "loss_recon", "loss_understanding"):
+            if not bool(torch.isfinite(metrics[key])):
+                raise SystemExit(f"non-finite {key} at step {step}")
+        metrics["loss"].backward()
+        torch.nn.utils.clip_grad_norm_(model.parameters(), CLIP, error_if_nonfinite=True)
+        optimizer.step()
+        if step % 500 == 0:
+            print(f"[gen] step {step} loss {float(metrics['loss']):.4f} "
+                  f"recon {float(metrics['loss_recon']):.4f} "
+                  f"und {float(metrics['loss_understanding']):.4f} lr {lr:.2e}", flush=True)
+        if step in EXT_EVAL_STEPS:
+            curves = evaluate_all(model, opt, reports, step, device, seen,
+                                  panels=step in (10000, 15000))
+            check_frozen(model, snap, step,
+                         reports / f"frozen_integrity_step{step}.json")
+            print(f"[gen] EVAL {step} train16 ctx mIoU "
+                  f"{curves['train16_context']['mIoU_all_nonempty']:.3f} val8 "
+                  f"{curves['val8_context']['mIoU_all_nonempty']:.3f} val32 "
+                  f"{curves['val32_context']['mIoU_all_nonempty']:.3f} "
+                  f"val32t {curves['val32_target']['mIoU_all_nonempty']:.3f} "
+                  f"recall32 {curves['val32_target']['class_agnostic_recall50']:.3f} "
+                  f"psnr32 {curves['val32_target']['psnr']:.2f}", flush=True)
+            model.train()
+    payload_out = {"model": {k: v.detach().cpu() for k, v in model.state_dict().items()},
+                   "optimizer": optimizer.state_dict(), "step": EXT_STEPS, "arm": ARM_C,
+                   "coupled": False,
+                   "plan_sha256": sha256_file(reports / "plan_C_frozen_15000.json"),
+                   "rng": capture_rng(), "config": report}
+    from scripts.instance_state_runtime import save_checkpoint_atomic
+    save_checkpoint_atomic(payload_out, run_root / "arm_C_frozen" / "endpoint_step15000")
+    torch.save(payload_out["model"], run_root / "arm_C_frozen" / "endpoint_step15000_model.pt")
+    print(f"[gen] continuation finished in {time.time()-started:.0f}s", flush=True)
+    return 0
+
+
 def main() -> int:
     ap = argparse.ArgumentParser()
-    ap.add_argument("--phase", choices=("prepare", "train", "reval"), required=True)
+    ap.add_argument("--phase", choices=("prepare", "train", "reval", "plan15000",
+                                        "continue"), required=True)
     ap.add_argument("--reports", default="group_plus/instance_state_v1_generalization")
     ap.add_argument("--run-root", default="workspace_group_plus/instance_state_v1_generalization")
     ap.add_argument("--device", default="cuda")
@@ -619,6 +786,10 @@ def main() -> int:
         return phase_prepare(reports)
     if args.phase == "reval":
         return phase_reval(reports, run_root, args.device)
+    if args.phase == "plan15000":
+        return phase_plan15000(reports)
+    if args.phase == "continue":
+        return phase_continue(reports, run_root, args.device)
     return phase_train(reports, run_root, args.device)
 
 

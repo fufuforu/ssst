@@ -1,0 +1,26 @@
+{
+  "resumed_from": "/space/mawb/ssst/workspace_group_plus/instance_state_v1_generalization/arm_C_frozen/endpoint/train_state.pt",
+  "resumed_global_step": 5000,
+  "start_step": 5001,
+  "lr_5000": 2.0000000000000003e-06,
+  "optimizer_groups": [
+    "instance_state_decay",
+    "instance_state_nodecay"
+  ],
+  "optimizer_state_entries": 53,
+  "rng_restored": [
+    "cuda",
+    "numpy",
+    "python",
+    "torch"
+  ],
+  "trainable": 59,
+  "frozen": 450,
+  "plan_sha256": "665858b4cc9b6d64ce9164e77c1d14ebeb05989f752fc4124cfcfb203d615569",
+  "prefix_5000_identical": true,
+  "lr_formula": {
+    "k_1_200": "lr_5000 + (1e-4 - lr_5000)*k/200",
+    "k_201_10000": "2e-6 + (1e-4-2e-6)*0.5*(1+cos(pi*(k-200)/9800))",
+    "note": "controlled LR restart; not a single 15k cosine"
+  }
+}
