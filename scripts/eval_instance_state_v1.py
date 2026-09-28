@@ -31,20 +31,23 @@ IOU_TP = 0.5
 
 
 def _masks(out, alpha_min=ALPHA_MIN, area_min=MIN_AREA):
-    """GT-free query masks (list per view) + class/score per query."""
+    """GT-free query masks [V,100,H,W] + class / score / registered thing gate.
+
+    The per-view area rule is NOT applied here any more: a query that covers fewer
+    than ``area_min`` pixels in one view must not be discarded as a whole.  Area
+    is only used where the registered definition uses it (per GT-visible view, and
+    for the query's own union mask when counting false positives).
+    """
     p = out["p_class"][0]                                    # [100,19]
     cls = p[:, :18].argmax(-1) + 2
     score = p[:, :18].sum(-1)
     m_thing = out["region_mass"][0][:, :100]                 # [V,100,H,W]
     alpha = out["alpha"][0, :, 0]                            # [V,H,W]
-    views = []
-    for v in range(m_thing.shape[0]):
-        per_query = []
-        for q in range(100):
-            mask = (m_thing[v, q] > 0.5) & (alpha[v] > alpha_min)
-            per_query.append(mask if int(mask.sum()) >= area_min else None)
-        views.append(per_query)
-    return views, cls, score
+    raw = (m_thing > 0.5) & (alpha.unsqueeze(1) > alpha_min)   # [V,100,H,W]
+    # registered objectness gate: a query is a thing query iff p_thing >= 0.5
+    is_thing = score >= 0.5
+    del area_min
+    return raw, cls, score, is_thing
 
 
 def _gt_masks(sem, ins):
@@ -65,54 +68,88 @@ def _iou(a, b):
     return inter / union if union else 0.0
 
 
-def _instance_metrics(views, cls, score, gts, *, class_aware: bool):
-    """Score-ordered one-to-one matching over the concatenated views."""
-    gt_flat = {k: torch.cat([m[v].reshape(-1) for v in range(m.shape[0])])
-               for k, m in gts.items()}
-    keys = list(gt_flat)
+def _query_union(raw, query: int, views=None):
+    """The query's union-visible mask: per-view masks with area >= MIN_AREA."""
+    parts = []
+    for v in (range(raw.shape[0]) if views is None else views):
+        mask = raw[v, query]
+        if int(mask.sum()) >= MIN_AREA:
+            parts.append(mask.reshape(-1))
+    return torch.cat(parts) if parts else None
+
+
+def _multiview_iou_for_gt(raw, query: int, gt_mask):
+    """IoU of one query against one GT, restricted to the GT-visible views.
+
+    A view is GT-visible iff the GT mask covers >= MIN_AREA pixels there.  In
+    those views a query mask below MIN_AREA counts as an all-zero prediction
+    (never as "drop the query").  GT-invisible views are excluded from the IoU;
+    a GT with no visible view returns None and is skipped by the caller.
+    """
+    visible = [v for v in range(gt_mask.shape[0])
+               if int(gt_mask[v].sum()) >= MIN_AREA]
+    if not visible:
+        return None
+    gt = torch.cat([gt_mask[v].reshape(-1) for v in visible])
+    # same view set on both sides: a sub-MIN_AREA prediction in a visible view is
+    # an all-zero block, not a dropped view
+    parts = []
+    for v in visible:
+        mask = raw[v, query]
+        parts.append((mask if int(mask.sum()) >= MIN_AREA
+                      else torch.zeros_like(mask)).reshape(-1))
+    return _iou(torch.cat(parts), gt)
+
+
+def _instance_metrics(raw, cls, score, is_thing, gts, *, class_aware: bool):
+    """Score-ordered one-to-one matching over the GT-visible views of each GT."""
+    keys = [k for k, m in gts.items()
+            if any(int(m[v].sum()) >= MIN_AREA for v in range(m.shape[0]))]
     order = np.argsort(-score.detach().cpu().numpy(), kind="stable")
     used, tp, fp = set(), 0, []
     for q in order:
+        if not bool(is_thing[q]):                     # registered objectness gate
+            continue
         cand = []
         for j, key in enumerate(keys):
             if j in used:
                 continue
             if class_aware and int(cls[q]) != key[0]:
                 continue
-            parts = [views[v][q] for v in range(len(views))]
-            if any(p is None for p in parts):
+            iou = _multiview_iou_for_gt(raw, int(q), gts[key])
+            if iou is None:
                 continue
-            pred = torch.cat([p.reshape(-1) for p in parts])
-            iou = _iou(pred, gt_flat[key])
             if iou >= IOU_TP:
                 cand.append((iou, j))
         if cand:
             used.add(max(cand)[1])
             tp += 1
-        else:
-            if any(views[v][q] is not None for v in range(len(views))):
-                fp.append(q)
+        elif _query_union(raw, int(q)) is not None:
+            fp.append(q)                              # hallucination on its own support
     fn = len(keys) - len(used)
     return {"n_gt": len(keys), "tp": tp, "fp": len(fp), "fn": fn,
             "precision": tp / max(1, tp + len(fp)),
             "recall": tp / max(1, len(keys))}
 
 
-def _raw_recall50(views, gts):
+def _raw_recall50(raw, gts):
+    """GT-aided diagnostic: best IoU over ALL queries (no score/class filter)."""
     if not gts:
         return {"n_gt": 0, "recall": 0.0}
     hits = 0
     for key, mask in gts.items():
-        flat_gt = torch.cat([mask[v].reshape(-1) for v in range(mask.shape[0])])
+        if not any(int(mask[v].sum()) >= MIN_AREA for v in range(mask.shape[0])):
+            continue
         best = 0.0
         for q in range(100):
-            parts = [views[v][q] for v in range(len(views))]
-            if any(p is None for p in parts):
+            iou = _multiview_iou_for_gt(raw, q, mask)
+            if iou is None:
                 continue
-            pred = torch.cat([p.reshape(-1) for p in parts])
-            best = max(best, _iou(pred, flat_gt))
+            best = max(best, iou)
         hits += int(best >= IOU_TP)
-    return {"n_gt": len(gts), "recall": hits / len(gts), "tp": hits}
+    n = sum(1 for m in gts.values()
+            if any(int(m[v].sum()) >= MIN_AREA for v in range(m.shape[0])))
+    return {"n_gt": n, "recall": hits / n if n else 0.0, "tp": hits}
 
 
 def _semantic_confusion(out, sem):
@@ -201,7 +238,7 @@ def evaluate_windows(model, opt, windows, step: int, scope: str, output_dir,
                     context_decoder=decoder, coupled=(arm == "E"), step=int(step))
             sem = batch["semantic_label_all"][0, :views].long()
             ins = batch["instance_label_all"][0, :views].long()
-            masks, cls, score = _masks(out)
+            masks, cls, score, is_thing = _masks(out)
             gts = _gt_masks(sem, ins)
             conf, pred_sem = _semantic_confusion(out, sem)
             ious = []
@@ -221,11 +258,12 @@ def evaluate_windows(model, opt, windows, step: int, scope: str, output_dir,
                 "semantic_miou": float(np.mean(ious)) if ious else 0.0,
                 "semantic_classes_present": len(ious),
                 "confusion": conf.tolist(),
-                "instance_class_aware": _instance_metrics(masks, cls, score, gts,
-                                                          class_aware=True),
-                "instance_class_agnostic": _instance_metrics(masks, cls, score, gts,
-                                                             class_aware=False),
+                "instance_class_aware": _instance_metrics(masks, cls, score, is_thing,
+                                                          gts, class_aware=True),
+                "instance_class_agnostic": _instance_metrics(masks, cls, score, is_thing,
+                                                             gts, class_aware=False),
                 "raw_recall50": _raw_recall50(masks, gts),
+                "active_thing_queries": int(is_thing.sum()),
                 "local_panoptic": _panoptic_pq(pred_sem, out, sem, ins),
                 "psnr": psnr,
                 "alpha_gt_05": float((out["alpha"][0, :, 0] > 0.5).float().mean()),
@@ -265,6 +303,7 @@ def aggregate(rows: list[dict]) -> dict:
         "raw_recall50": (sum(r["raw_recall50"]["tp"] for r in rows)
                          / max(1, sum(r["raw_recall50"]["n_gt"] for r in rows))),
         "n_thing_tp_panoptic": sum(r["local_panoptic"]["n_thing_tp"] for r in rows),
+        "active_thing_queries": int(np.mean([r.get("active_thing_queries", 0) for r in rows])),
         "mean_pq": float(np.mean([r["local_panoptic"]["mean_pq"] for r in rows])),
         "psnr": float(np.mean([r["psnr"] for r in rows])),
         "alpha_gt_05": float(np.mean([r["alpha_gt_05"] for r in rows])),

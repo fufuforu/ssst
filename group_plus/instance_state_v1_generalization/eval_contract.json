@@ -1,0 +1,47 @@
+{
+  "checks": [
+    {
+      "check": "A.gt_visible_views_only",
+      "ok": true,
+      "detail": "IoU over the 2 visible views = 1.0000 (4 invisible views excluded)"
+    },
+    {
+      "check": "A.raw_recall_is_one",
+      "ok": true,
+      "detail": "raw recall {'n_gt': 1, 'recall': 1.0, 'tp': 1}"
+    },
+    {
+      "check": "A.class_aware_tp",
+      "ok": true,
+      "detail": "class-aware {'n_gt': 1, 'tp': 1, 'fp': 0, 'fn': 0, 'precision': 1.0, 'recall': 1.0}"
+    },
+    {
+      "check": "B.partial_view_miss_fails",
+      "ok": true,
+      "detail": "IoU 0.333 -> {'n_gt': 1, 'tp': 0, 'fp': 1, 'fn': 1, 'precision': 0.0, 'recall': 0.0}"
+    },
+    {
+      "check": "C.objectness_gate_blocks",
+      "ok": true,
+      "detail": "p_thing 0.1 -> {'n_gt': 1, 'tp': 0, 'fp': 0, 'fn': 1, 'precision': 0.0, 'recall': 0.0}"
+    },
+    {
+      "check": "D.objectness_gate_allows",
+      "ok": true,
+      "detail": "p_thing 0.9 -> {'n_gt': 1, 'tp': 1, 'fp': 0, 'fn': 0, 'precision': 1.0, 'recall': 1.0}"
+    },
+    {
+      "check": "E.class_aware_vs_agnostic",
+      "ok": true,
+      "detail": "aware 0 vs agnostic 1"
+    },
+    {
+      "check": "F.hallucination_counts_fp",
+      "ok": true,
+      "detail": "query 1 fires only in a GT-invisible view -> {'n_gt': 1, 'tp': 0, 'fp': 1, 'fn': 1, 'precision': 0.0, 'recall': 0.0}"
+    }
+  ],
+  "failed": [],
+  "ok": true,
+  "note": "synthetic CPU regression for the multi-view visibility rule and the p_thing gate; raw recall50 stays GT-aided and un-gated by definition (spec section 11.3)"
+}
