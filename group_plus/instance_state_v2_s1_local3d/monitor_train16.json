@@ -1,0 +1,445 @@
+{
+  "windows": [
+    {
+      "scene": "scene0000_00",
+      "context": [
+        3551,
+        3596
+      ],
+      "novel": [
+        3581,
+        3592
+      ],
+      "pair_iou": 0.3218737840652466,
+      "semantic_classes_context": [
+        2,
+        3,
+        7,
+        17
+      ],
+      "thing_instance_count": 4,
+      "thing_gt_area": {
+        "11": 1076,
+        "38": 17484,
+        "39": 9993,
+        "64": 2569
+      },
+      "sampling_seed": 42000,
+      "attempt": 1
+    },
+    {
+      "scene": "scene0003_02",
+      "context": [
+        594,
+        674
+      ],
+      "novel": [
+        623,
+        670
+      ],
+      "pair_iou": 0.317546546459198,
+      "semantic_classes_context": [
+        2,
+        14,
+        17
+      ],
+      "thing_instance_count": 4,
+      "thing_gt_area": {
+        "1": 1391,
+        "2": 3477,
+        "3": 28041,
+        "13": 41718
+      },
+      "sampling_seed": 42009,
+      "attempt": 1
+    },
+    {
+      "scene": "scene0009_00",
+      "context": [
+        917,
+        955
+      ],
+      "novel": [
+        920,
+        951
+      ],
+      "pair_iou": 0.5939738750457764,
+      "semantic_classes_context": [
+        17,
+        19
+      ],
+      "thing_instance_count": 2,
+      "thing_gt_area": {
+        "9": 8851,
+        "17": 25701
+      },
+      "sampling_seed": 42018,
+      "attempt": 1
+    },
+    {
+      "scene": "scene0013_01",
+      "context": [
+        276,
+        288
+      ],
+      "novel": [
+        278,
+        286
+      ],
+      "pair_iou": 0.766704797744751,
+      "semantic_classes_context": [
+        4,
+        6
+      ],
+      "thing_instance_count": 3,
+      "thing_gt_area": {
+        "3": 15572,
+        "4": 43777,
+        "6": 4271
+      },
+      "sampling_seed": 42027,
+      "attempt": 1
+    },
+    {
+      "scene": "scene0018_00",
+      "context": [
+        659,
+        720
+      ],
+      "novel": [
+        691,
+        701
+      ],
+      "pair_iou": 0.4999772310256958,
+      "semantic_classes_context": [
+        6,
+        7
+      ],
+      "thing_instance_count": 2,
+      "thing_gt_area": {
+        "7": 35129,
+        "19": 2616
+      },
+      "sampling_seed": 42036,
+      "attempt": 1
+    },
+    {
+      "scene": "scene0024_02",
+      "context": [
+        2737,
+        2764
+      ],
+      "novel": [
+        2738,
+        2744
+      ],
+      "pair_iou": 0.3730394244194031,
+      "semantic_classes_context": [
+        5,
+        6,
+        10
+      ],
+      "thing_instance_count": 3,
+      "thing_gt_area": {
+        "5": 4307,
+        "51": 40796,
+        "61": 25465
+      },
+      "sampling_seed": 42045,
+      "attempt": 1
+    },
+    {
+      "scene": "scene0031_00",
+      "context": [
+        2116,
+        2134
+      ],
+      "novel": [
+        2120,
+        2127
+      ],
+      "pair_iou": 0.43500640988349915,
+      "semantic_classes_context": [
+        4,
+        5,
+        6,
+        10,
+        19
+      ],
+      "thing_instance_count": 10,
+      "thing_gt_area": {
+        "1": 7259,
+        "2": 362,
+        "3": 4326,
+        "4": 1881,
+        "8": 11092,
+        "9": 9319,
+        "12": 1001,
+        "13": 18008,
+        "17": 37755,
+        "18": 1174
+      },
+      "sampling_seed": 42054,
+      "attempt": 1
+    },
+    {
+      "scene": "scene0035_00",
+      "context": [
+        450,
+        479
+      ],
+      "novel": [
+        452,
+        462
+      ],
+      "pair_iou": 0.6158794164657593,
+      "semantic_classes_context": [
+        3,
+        8,
+        19
+      ],
+      "thing_instance_count": 4,
+      "thing_gt_area": {
+        "2": 25150,
+        "7": 14966,
+        "9": 2790,
+        "11": 10598
+      },
+      "sampling_seed": 42063,
+      "attempt": 1
+    },
+    {
+      "scene": "scene0039_01",
+      "context": [
+        511,
+        532
+      ],
+      "novel": [
+        513,
+        519
+      ],
+      "pair_iou": 0.31912487745285034,
+      "semantic_classes_context": [
+        3,
+        12
+      ],
+      "thing_instance_count": 2,
+      "thing_gt_area": {
+        "9": 2128,
+        "11": 79137
+      },
+      "sampling_seed": 42072,
+      "attempt": 1
+    },
+    {
+      "scene": "scene0043_01",
+      "context": [
+        798,
+        848
+      ],
+      "novel": [
+        811,
+        824
+      ],
+      "pair_iou": 0.4134021997451782,
+      "semantic_classes_context": [
+        4,
+        6,
+        8,
+        19
+      ],
+      "thing_instance_count": 4,
+      "thing_gt_area": {
+        "5": 15937,
+        "6": 14614,
+        "9": 2800,
+        "16": 2257
+      },
+      "sampling_seed": 42081,
+      "attempt": 1
+    },
+    {
+      "scene": "scene0051_01",
+      "context": [
+        1391,
+        1401
+      ],
+      "novel": [
+        1397,
+        1399
+      ],
+      "pair_iou": 0.45440641045570374,
+      "semantic_classes_context": [
+        2,
+        3,
+        4,
+        8,
+        9,
+        12
+      ],
+      "thing_instance_count": 8,
+      "thing_gt_area": {
+        "5": 8735,
+        "6": 1148,
+        "12": 8295,
+        "14": 7353,
+        "15": 17918,
+        "18": 2152,
+        "23": 4407,
+        "43": 4008
+      },
+      "sampling_seed": 42092,
+      "attempt": 1
+    },
+    {
+      "scene": "scene0055_01",
+      "context": [
+        1055,
+        1112
+      ],
+      "novel": [
+        1087,
+        1110
+      ],
+      "pair_iou": 0.41326361894607544,
+      "semantic_classes_context": [
+        4,
+        8,
+        12,
+        19
+      ],
+      "thing_instance_count": 4,
+      "thing_gt_area": {
+        "4": 2586,
+        "6": 6005,
+        "7": 19105,
+        "9": 5845
+      },
+      "sampling_seed": 42101,
+      "attempt": 1
+    },
+    {
+      "scene": "scene0059_01",
+      "context": [
+        47,
+        83
+      ],
+      "novel": [
+        48,
+        79
+      ],
+      "pair_iou": 0.42173540592193604,
+      "semantic_classes_context": [
+        2,
+        4,
+        5,
+        6,
+        14
+      ],
+      "thing_instance_count": 6,
+      "thing_gt_area": {
+        "5": 46541,
+        "6": 429,
+        "7": 110,
+        "14": 3952,
+        "30": 194,
+        "32": 716
+      },
+      "sampling_seed": 42110,
+      "attempt": 1
+    },
+    {
+      "scene": "scene0065_00",
+      "context": [
+        53,
+        87
+      ],
+      "novel": [
+        83,
+        86
+      ],
+      "pair_iou": 0.5226103067398071,
+      "semantic_classes_context": [
+        15,
+        18
+      ],
+      "thing_instance_count": 2,
+      "thing_gt_area": {
+        "1": 12520,
+        "7": 41194
+      },
+      "sampling_seed": 42119,
+      "attempt": 2
+    },
+    {
+      "scene": "scene0070_00",
+      "context": [
+        894,
+        905
+      ],
+      "novel": [
+        895,
+        900
+      ],
+      "pair_iou": 0.6353064775466919,
+      "semantic_classes_context": [
+        2,
+        3,
+        4,
+        8,
+        13
+      ],
+      "thing_instance_count": 6,
+      "thing_gt_area": {
+        "2": 26270,
+        "6": 7033,
+        "12": 348,
+        "14": 1790,
+        "15": 5483,
+        "16": 29787
+      },
+      "sampling_seed": 42129,
+      "attempt": 1
+    },
+    {
+      "scene": "scene0071_00",
+      "context": [
+        295,
+        358
+      ],
+      "novel": [
+        335,
+        341
+      ],
+      "pair_iou": 0.3885655701160431,
+      "semantic_classes_context": [
+        7
+      ],
+      "thing_instance_count": 2,
+      "thing_gt_area": {
+        "5": 39002,
+        "7": 14303
+      },
+      "sampling_seed": 42130,
+      "attempt": 4
+    }
+  ],
+  "scene_indices": [
+    0,
+    9,
+    18,
+    27,
+    36,
+    45,
+    54,
+    63,
+    72,
+    81,
+    90,
+    99,
+    108,
+    117,
+    126,
+    127
+  ]
+}

@@ -1,0 +1,12 @@
+{
+  "job_id": 56187,
+  "sacct": [
+    "56187           RUNNING   00:51:55      0:0",
+    "56187.0       COMPLETED   00:44:03      0:0"
+  ],
+  "log_last": "[s1] finished 5000 steps in 2603s",
+  "log_eval": "[s1] EVAL 5000 train16 ctx mIoU 0.143 val32 ctx 0.089 val32t 0.092 recall32 0.043 psnr32 24.40",
+  "active_python": 0,
+  "gpu_apps": 0,
+  "verdict": "job step 56187.0 COMPLETED exit 0:0; log reached step 5000 + EVAL 5000 + finished; outer bash is a stale wrapper"
+}

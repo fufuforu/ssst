@@ -1,22 +1,60 @@
 [runtime] fused-ssim extension unavailable; using import stand-in /space/mawb/ssst/third_party/shims
 [runtime] preloaded precompiled gsplat extension from /space/mawb/tokengs_siu3r_joint_v1/.torch_extensions_v4/gsplat_cuda/gsplat_cuda.so
-Traceback (most recent call last):
-  File "/datapool/mawb/ssst/scripts/instance_state_s1_local3d.py", line 473, in <module>
-    raise SystemExit(main())
-                     ^^^^^^
-  File "/datapool/mawb/ssst/scripts/instance_state_s1_local3d.py", line 69, in main
-    return phase_train(reports, run_root, args.device)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/datapool/mawb/ssst/scripts/instance_state_s1_local3d.py", line 424, in phase_train
-    curves[0] = evaluate_all(model, opt, reports, 0, device, seen, panels=True)
-                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/space/mawb/ssst/scripts/instance_state_generalization.py", line 455, in evaluate_all
-    train16 = json.loads((reports / "monitor_train16.json").read_text(encoding="utf-8"))["windows"]
-                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/space/mawb/anaconda3/envs/tokengs/lib/python3.11/pathlib.py", line 1058, in read_text
-    with self.open(mode='r', encoding=encoding, errors=errors) as f:
-         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-  File "/space/mawb/anaconda3/envs/tokengs/lib/python3.11/pathlib.py", line 1044, in open
-    return io.open(self, mode, buffering, encoding, errors, newline)
-           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
-FileNotFoundError: [Errno 2] No such file or directory: '/space/mawb/ssst/group_plus/instance_state_v2_s1_local3d/monitor_train16.json'
+[s1] model ready: trainable 2,785,296 (== S0), frozen 220,002,620
+[s1] step 100 loss 1.2397 recon 0.0219 und 2.0297
+[s1] step 200 loss 1.8088 recon 0.0352 und 1.7736
+[s1] EVAL 200 train16 ctx mIoU 0.046 val32 ctx 0.034 val32t 0.034 recall32 0.000 psnr32 24.40
+[s1] step 300 loss 2.5763 recon 0.0170 und 2.5593
+[s1] step 400 loss 1.7556 recon 0.0589 und 1.6967
+[s1] step 500 loss 1.7484 recon 0.0082 und 1.7402
+[s1] EVAL 500 train16 ctx mIoU 0.056 val32 ctx 0.041 val32t 0.041 recall32 0.000 psnr32 24.40
+[s1] step 600 loss 2.0532 recon 0.0476 und 2.0056
+[s1] step 700 loss 1.7777 recon 0.0150 und 1.7627
+[s1] step 800 loss 1.7414 recon 0.0391 und 1.7023
+[s1] step 900 loss 2.4178 recon 0.0253 und 2.3924
+[s1] step 1000 loss 1.2250 recon 0.0208 und 1.2043
+[s1] EVAL 1000 train16 ctx mIoU 0.063 val32 ctx 0.079 val32t 0.086 recall32 0.000 psnr32 24.40
+[s1] step 1100 loss 1.4491 recon 0.0313 und 1.4178
+[s1] step 1200 loss 1.4050 recon 0.0263 und 1.3787
+[s1] step 1300 loss 1.9239 recon 0.0265 und 1.8973
+[s1] step 1400 loss 1.5607 recon 0.0227 und 1.5380
+[s1] step 1500 loss 0.9084 recon 0.0089 und 0.8995
+[s1] step 1600 loss 1.2022 recon 0.0151 und 1.1871
+[s1] step 1700 loss 1.5070 recon 0.0055 und 1.5014
+[s1] step 1800 loss 1.4744 recon 0.0232 und 1.4512
+[s1] step 1900 loss 1.4300 recon 0.0270 und 1.4030
+[s1] step 2000 loss 1.5913 recon 0.0287 und 1.5626
+[s1] EVAL 2000 train16 ctx mIoU 0.086 val32 ctx 0.072 val32t 0.073 recall32 0.012 psnr32 24.40
+[s1] step 2100 loss 1.0000 recon 0.0387 und 0.9613
+[s1] step 2200 loss 1.3615 recon 0.0232 und 1.3383
+[s1] step 2300 loss 1.3655 recon 0.0294 und 1.3360
+[s1] step 2400 loss 2.1411 recon 0.0476 und 2.0935
+[s1] step 2500 loss 1.2602 recon 0.0125 und 1.2478
+[s1] step 2600 loss 1.4689 recon 0.0259 und 1.4431
+[s1] step 2700 loss 1.2396 recon 0.0458 und 1.1939
+[s1] step 2800 loss 1.4459 recon 0.0310 und 1.4149
+[s1] step 2900 loss 1.9581 recon 0.0211 und 1.9370
+[s1] step 3000 loss 1.3196 recon 0.0079 und 1.3117
+[s1] step 3100 loss 0.9458 recon 0.0148 und 0.9310
+[s1] step 3200 loss 1.4349 recon 0.0369 und 1.3979
+[s1] step 3300 loss 1.2560 recon 0.0189 und 1.2371
+[s1] step 3400 loss 1.4842 recon 0.0209 und 1.4633
+[s1] step 3500 loss 0.8959 recon 0.0303 und 0.8656
+[s1] EVAL 3500 train16 ctx mIoU 0.129 val32 ctx 0.077 val32t 0.078 recall32 0.043 psnr32 24.40
+[s1] step 3600 loss 1.2903 recon 0.0160 und 1.2742
+[s1] step 3700 loss 1.0585 recon 0.0336 und 1.0249
+[s1] step 3800 loss 1.3103 recon 0.0419 und 1.2684
+[s1] step 3900 loss 1.3219 recon 0.0149 und 1.3070
+[s1] step 4000 loss 1.7355 recon 0.0288 und 1.7067
+[s1] step 4100 loss 0.9553 recon 0.0100 und 0.9453
+[s1] step 4200 loss 0.9860 recon 0.0246 und 0.9614
+[s1] step 4300 loss 1.1341 recon 0.0283 und 1.1058
+[s1] step 4400 loss 1.5254 recon 0.0362 und 1.4892
+[s1] step 4500 loss 1.6607 recon 0.0122 und 1.6486
+[s1] step 4600 loss 0.7477 recon 0.0365 und 0.7112
+[s1] step 4700 loss 1.2433 recon 0.0217 und 1.2216
+[s1] step 4800 loss 2.8491 recon 0.0163 und 2.8328
+[s1] step 4900 loss 1.4159 recon 0.0552 und 1.3607
+[s1] step 5000 loss 1.2136 recon 0.0305 und 1.1831
+[s1] EVAL 5000 train16 ctx mIoU 0.143 val32 ctx 0.089 val32t 0.092 recall32 0.043 psnr32 24.40
+[s1] finished 5000 steps in 2603s

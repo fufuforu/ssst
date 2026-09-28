@@ -1,0 +1,26 @@
+{
+  "endpoint": "workspace_group_plus/instance_state_v2_s1_local3d/arm_C/endpoint",
+  "files": [
+    "COMPLETE",
+    "train_state.pt"
+  ],
+  "COMPLETE": "C step 5000",
+  "step": 5000,
+  "arm": "C",
+  "local3d": true,
+  "k": 8,
+  "optimizer_groups": [
+    "instance_state_decay",
+    "instance_state_nodecay"
+  ],
+  "optimizer_entries": 53,
+  "rng_present": false,
+  "model_tensors": 509,
+  "all_model_finite": true,
+  "all_opt_finite": true,
+  "plan_sha_matches_S0_5k": true,
+  "manifest_sha_ok": true,
+  "frozen_bitwise_equal_pretrained": true,
+  "param_count": 222787916,
+  "endpoint_model_matches": true
+}

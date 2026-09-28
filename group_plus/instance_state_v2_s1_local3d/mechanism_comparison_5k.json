@@ -1,0 +1,65 @@
+{
+  "final_state_S0": {
+    "assignment_entropy": 0.9496264457702637,
+    "active_thing_states": 100,
+    "low_mass_states": 0,
+    "thing_mass": {
+      "mean": 8.306487083435059,
+      "median": 0.019448505714535713,
+      "p10": 0.014796549454331398,
+      "p90": 0.3637482225894928,
+      "max": 517.6171875
+    },
+    "query_cosine": {
+      "offdiag_mean": 0.7411634922027588,
+      "p90": 0.9742799997329712,
+      "max": 0.9992923140525818
+    },
+    "no_object_prob": {
+      "mean": 0.8775352835655212,
+      "max": 0.9890570044517517
+    }
+  },
+  "final_state_S1": {
+    "assignment_entropy": 1.4358985424041748,
+    "active_thing_states": 100,
+    "low_mass_states": 0,
+    "thing_mass": {
+      "mean": 7.479556560516357,
+      "median": 0.33204805850982666,
+      "p10": 0.269111692905426,
+      "p90": 1.482079029083252,
+      "max": 265.9176025390625
+    },
+    "query_cosine": {
+      "offdiag_mean": 0.7507180571556091,
+      "p90": 0.9727877378463745,
+      "max": 0.9997576475143433
+    },
+    "no_object_prob": {
+      "mean": 0.8871261477470398,
+      "max": 0.9911901950836182
+    }
+  },
+  "coverage": {
+    "number_visible_instance_occurrences": 3965,
+    "fps_seed_coverage_rate": 0.8595208070617907,
+    "local8_coverage_rate": 0.9180327868852459,
+    "fps_seed_coverage_by_size": {
+      "small": 0.17630057803468208,
+      "medium": 0.8119718309859155,
+      "large": 0.9977262391996362
+    },
+    "local8_coverage_by_size": {
+      "medium": 0.9232394366197183,
+      "large": 0.9995452478399273,
+      "small": 0.3786127167630058
+    },
+    "unique_scene_instance_macro": {
+      "unique_scene_instances": 1398,
+      "mean_fps_coverage_over_occurrences": 0.8385687035901629,
+      "mean_local8_coverage_over_occurrences": 0.90933817017508,
+      "note": "auxiliary macro diagnostic; the occurrence-weighted rates above stay primary"
+    }
+  }
+}
