@@ -1,0 +1,22 @@
+[runtime] fused-ssim extension unavailable; using import stand-in /space/mawb/ssst/third_party/shims
+[runtime] preloaded precompiled gsplat extension from /space/mawb/tokengs_siu3r_joint_v1/.torch_extensions_v4/gsplat_cuda/gsplat_cuda.so
+Traceback (most recent call last):
+  File "/datapool/mawb/ssst/scripts/instance_state_s1_local3d.py", line 473, in <module>
+    raise SystemExit(main())
+                     ^^^^^^
+  File "/datapool/mawb/ssst/scripts/instance_state_s1_local3d.py", line 69, in main
+    return phase_train(reports, run_root, args.device)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/datapool/mawb/ssst/scripts/instance_state_s1_local3d.py", line 424, in phase_train
+    curves[0] = evaluate_all(model, opt, reports, 0, device, seen, panels=True)
+                ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/space/mawb/ssst/scripts/instance_state_generalization.py", line 455, in evaluate_all
+    train16 = json.loads((reports / "monitor_train16.json").read_text(encoding="utf-8"))["windows"]
+                         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/space/mawb/anaconda3/envs/tokengs/lib/python3.11/pathlib.py", line 1058, in read_text
+    with self.open(mode='r', encoding=encoding, errors=errors) as f:
+         ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "/space/mawb/anaconda3/envs/tokengs/lib/python3.11/pathlib.py", line 1044, in open
+    return io.open(self, mode, buffering, encoding, errors, newline)
+           ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+FileNotFoundError: [Errno 2] No such file or directory: '/space/mawb/ssst/group_plus/instance_state_v2_s1_local3d/monitor_train16.json'

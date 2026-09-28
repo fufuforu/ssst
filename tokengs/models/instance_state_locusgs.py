@@ -421,6 +421,22 @@ class InstanceStateDecoder(LocusGSAnchorDecoder):
                     + x6.mean(dim=1, keepdim=True)], dim=1)
                 c = gather_tokens(mu, sel)
                 s = ell.reshape(-1, 1, 1).expand(-1, NUM_THING, 3).clone()
+                # pure diagnostic snapshot of the TRUE pre-update initialisation;
+                # detached, no graph, never part of loss or any training decision
+                self.last_state_init = {
+                    "fps_index": sel.detach().clone(),
+                    "q_thing_init": q[:, :NUM_THING].detach().clone(),
+                    "q_stuff_init": q[:, NUM_THING:].detach().clone(),
+                    "c_init": c.detach().clone(),
+                    "s_init": s.detach().clone(),
+                    "anchor_mu_init": mu.detach().clone(),
+                }
+                if bool(getattr(self.opt, "instance_state_local3d", False)):
+                    self.last_state_init.update({
+                        "neighbour_index": n_idx.detach().clone(),
+                        "neighbour_distance": n_dist.detach().clone(),
+                        "weight": n_w.detach().clone(),
+                        "pool_diagnostics": dict(diag)})
             if layer in self.state_layers:
                 x = controller.encode_token(tokens, mu, radii, ell)
                 void_logit = controller.token_void(x)

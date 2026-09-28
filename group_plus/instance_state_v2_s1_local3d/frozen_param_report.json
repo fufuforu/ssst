@@ -1,0 +1,26 @@
+{
+  "counts": {
+    "total": 222787916,
+    "frozen": 220002620,
+    "trainable": 2785296
+  },
+  "S0_trainable": 2785296,
+  "trainable_equal_S0": true,
+  "non_instance_state_trainable": [],
+  "optimizer_groups": [
+    {
+      "name": "instance_state_decay",
+      "params": 18,
+      "numel": 2743496,
+      "weight_decay": 0.05
+    },
+    {
+      "name": "instance_state_nodecay",
+      "params": 41,
+      "numel": 41800,
+      "weight_decay": 0.0
+    }
+  ],
+  "local3d": true,
+  "k": 8
+}

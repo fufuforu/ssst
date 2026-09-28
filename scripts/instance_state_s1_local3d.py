@@ -185,40 +185,73 @@ def phase_contract(reports: Path, device: str) -> int:
     with torch.no_grad():
         out0, _, _ = _forward(m0, opt0, batch, device)
         out1, _, _ = _forward(m1, opt1, batch, device)
-    st0, st1 = out0["states"][5], out1["states"][5]
+    init0 = m0.anchor_decoder.last_state_init      # TRUE pre-update snapshot
+    init1 = m1.anchor_decoder.last_state_init
     eq = {
-        "fps_index_equal": bool(torch.equal(st0["fps_index"], st1["fps_index"])),
-        "c_equal": bool(torch.equal(st0["c"], st1["c"])),
-        "s_equal": bool(torch.equal(st0["s"], st1["s"])),
-        "stuff_q_equal": bool(torch.equal(st0["q"][:, NUM_THING:], st1["q"][:, NUM_THING:])),
-        "thing_q_differs": not torch.equal(st0["q"][:, :NUM_THING], st1["q"][:, :NUM_THING]),
-        "q_thing_max_abs_delta": float((st0["q"][:, :NUM_THING]
-                                        - st1["q"][:, :NUM_THING]).abs().max()),
+        "fps_index_equal": bool(torch.equal(init0["fps_index"], init1["fps_index"])),
+        "c_init_equal": bool(torch.equal(init0["c_init"], init1["c_init"])),
+        "s_init_equal": bool(torch.equal(init0["s_init"], init1["s_init"])),
+        "q_stuff_init_equal": bool(torch.equal(init0["q_stuff_init"], init1["q_stuff_init"])),
+        "anchor_mu_init_equal": bool(torch.equal(init0["anchor_mu_init"],
+                                                 init1["anchor_mu_init"])),
+        "q_thing_init_differs": not torch.equal(init0["q_thing_init"], init1["q_thing_init"]),
+        "q_thing_init_max_abs_delta": float((init0["q_thing_init"]
+                                             - init1["q_thing_init"]).abs().max()),
         "param_count_S0": int(sum(p.numel() for p in m0.parameters())),
         "param_count_S1": int(sum(p.numel() for p in m1.parameters())),
     }
     eq["param_count_equal"] = eq["param_count_S0"] == eq["param_count_S1"]
-    write_json(reports / "s0_s1_initialization_contract.json", eq)
-    rec("8.S0_S1_fps_c_s_equal", eq["fps_index_equal"] and eq["c_equal"] and eq["s_equal"]
-        and eq["stuff_q_equal"], str({k: eq[k] for k in ("fps_index_equal","c_equal","s_equal","stuff_q_equal")}))
-    rec("9.only_q_thing_differs", eq["thing_q_differs"] and eq["q_thing_max_abs_delta"] > 0,
-        f"max|dq_thing| {eq['q_thing_max_abs_delta']:.4e}")
-    rec("10.param_count_equal", eq["param_count_equal"],
-        f"S0 {eq['param_count_S0']:,} == S1 {eq['param_count_S1']:,}")
 
-    # ---- init-level q diversity (section 6) ------------------------------- #
-    def q_stats(q):
-        qn = torch.nn.functional.normalize(q[0, :NUM_THING], dim=-1, eps=1e-6)
+    # ---- projection parity vs the verified formula used elsewhere --------- #
+    g2 = torch.Generator().manual_seed(3)
+    pts = torch.randn(64, 3, generator=g2).to(device)
+    cam = batch["cam_view_all"][0, 0]
+    intr = batch["intrinsics_all"][0, 0]
+    u, v, z = project_points(pts, cam, intr)
+    c2w = torch.inverse(cam.transpose(0, 1).float())          # token_instance_compositing.py
+    xc = (pts - c2w[:3, 3]) @ c2w[:3, :3]
+    fx, fy, cx, cy = [float(t) for t in intr[:4]]
+    u2 = fx * xc[:, 0] / xc[:, 2].clamp_min(1e-6) + cx
+    v2 = fy * xc[:, 1] / xc[:, 2].clamp_min(1e-6) + cy
+    parity = {"u_max_abs_diff": float((u - u2).abs().max()),
+              "v_max_abs_diff": float((v - v2).abs().max()),
+              "z_max_abs_diff": float((z - xc[:, 2]).abs().max())}
+    parity["ok"] = max(parity["u_max_abs_diff"], parity["v_max_abs_diff"],
+                       parity["z_max_abs_diff"]) <= 1e-5
+    write_json(reports / "coverage_projection_contract.json", parity)
+
+    def qstats(q):
+        qn = torch.nn.functional.normalize(q[0], dim=-1, eps=1e-6)
         cos = qn @ qn.t()
         off = cos[~torch.eye(cos.shape[0], dtype=torch.bool, device=cos.device)]
         return {"mean": float(off.mean()), "median": float(off.median()),
-                "p90": float(off.quantile(0.90)), "max": float(off.max())}
-    init = {"S0_q_thing_cosine": q_stats(st0["q"]), "S1_q_thing_cosine": q_stats(st1["q"]),
-            "S1_local_diagnostics": getattr(m1.anchor_decoder, "last_local3d", None)}
-    write_json(reports / "init_q_diversity.json", init)
-    rec("11.init_q_diversity_recorded", True, json.dumps(init["S0_q_thing_cosine"]) +
-        " vs " + json.dumps(init["S1_q_thing_cosine"]))
-    write_json(reports / "s1_initialization_contract.json",
+                "p10": float(off.quantile(0.10)), "p90": float(off.quantile(0.90)),
+                "max": float(off.max()), "std": float(off.std())}
+    post0 = out0["states"][5]["q"][:, :NUM_THING]
+    post1 = out1["states"][5]["q"][:, :NUM_THING]
+    div = {"pre_update": {"S0": qstats(init0["q_thing_init"]),
+                          "S1": qstats(init1["q_thing_init"])},
+           "post_first_update": {"S0": qstats(post0), "S1": qstats(post1)},
+           "note": "pre_update reads last_state_init (before update_states); post_first_update "
+                   "reads states[5][q] (after the layer-6 assignment/GRU/centre update)"}
+    write_json(reports / "init_q_diversity_corrected.json", div)
+
+    write_json(reports / "s0_s1_initialization_contract_corrected.json", eq)
+    rec("8.pre_update_equal", eq["fps_index_equal"] and eq["c_init_equal"]
+        and eq["s_init_equal"] and eq["q_stuff_init_equal"] and eq["anchor_mu_init_equal"],
+        json.dumps({k: eq[k] for k in ("fps_index_equal", "c_init_equal", "s_init_equal",
+                                       "q_stuff_init_equal", "anchor_mu_init_equal")}))
+    rec("9.only_q_thing_differs", eq["q_thing_init_differs"]
+        and eq["q_thing_init_max_abs_delta"] > 0,
+        f"max|dq_thing_init| {eq['q_thing_init_max_abs_delta']:.4e}")
+    rec("10.param_count_equal", eq["param_count_equal"],
+        f"S0 {eq['param_count_S0']:,} == S1 {eq['param_count_S1']:,}")
+    rec("11.projection_parity", parity["ok"],
+        f"max|du| {parity['u_max_abs_diff']:.2e} max|dv| {parity['v_max_abs_diff']:.2e}")
+    rec("12.init_diversity_recorded", True,
+        f"pre-update S0 {div['pre_update']['S0']['mean']:.3f} vs S1 "
+        f"{div['pre_update']['S1']['mean']:.3f}")
+    write_json(reports / "s1_initialization_contract_corrected.json",
                {"checks": checks, "failed": [c["check"] for c in checks if not c["ok"]],
                 "ok": all(c["ok"] for c in checks), "equivalence": eq})
     return 0 if all(c["ok"] for c in checks) else 1
@@ -244,24 +277,19 @@ def phase_coverage(reports: Path, device: str, n_scenes: int = 128) -> int:
     man = json.loads((REPO / "group_plus/instance_state_v1_generalization/"
                              "train128_windows1024.json").read_text(encoding="utf-8"))
     windows = man["windows"]
-    m1, opt1, _, _ = _models(device)
+    _, _, m1, opt1 = _models(device)          # S1 = the local3d model
+    assert bool(opt1.instance_state_local3d) and int(opt1.instance_state_local_k) == 8, \
+        "coverage must run on the S1 (local3d, k=8) model"
     m1.anchor_decoder.opt = opt1
     per_window, buckets = [], {"small": [0, 0], "medium": [0, 0], "large": [0, 0]}
     for window in windows:
         batch = _batch_for(opt1, window, device)
         with torch.no_grad():
             out, _, _ = _forward(m1, opt1, batch, device)
-        st = out["states"][5]
-        mu6 = st["mu"][0]
-        sel = st["fps_index"][0]
-        local = getattr(m1.anchor_decoder, "last_local3d", None)
-        if local is None:
-            pool_sel = sel
-            pooled, n_idx, *_ = local_3d_evidence_pool(
-                torch.zeros_like(mu6), mu6, sel.unsqueeze(0), k=K_LOCAL)
-            n_idx = n_idx[0]
-        else:
-            n_idx = local["neighbour_index"][0]
+        init = m1.anchor_decoder.last_state_init      # pre-update snapshot
+        mu6 = init["anchor_mu_init"][0]
+        sel = init["fps_index"][0]
+        n_idx = init["neighbour_index"][0]
         sem = batch["semantic_label_all"][0, :2].long()
         ins = batch["instance_label_all"][0, :2].long()
         cam = batch["cam_view_all"][0, :2]
@@ -269,21 +297,21 @@ def phase_coverage(reports: Path, device: str, n_scenes: int = 128) -> int:
         H = W = int(sem.shape[-1])
         seed_pts = mu6[sel]
         local_pts = mu6[n_idx.reshape(-1)]
-        seed_hit = torch.zeros(sem.shape[0], dtype=torch.bool)
-        local_hit = torch.zeros(sem.shape[0], dtype=torch.bool)
+        seed_hit = torch.zeros_like(sem, dtype=torch.bool)      # [V,H,W]
+        local_hit = torch.zeros_like(sem, dtype=torch.bool)
         for v in range(2):
             u, vv, z = project_points(seed_pts, cam[v], intr[v])
             ok = (z > 0) & (u >= 0) & (u < W) & (vv >= 0) & (vv < H)
             ui = u[ok].long().clamp(0, W - 1); vi = vv[ok].long().clamp(0, H - 1)
             hit = torch.zeros(H, W, dtype=torch.bool, device=device)
             hit[vi, ui] = True
-            seed_hit |= hit
+            seed_hit[v] |= hit
             u2, v2, z2 = project_points(local_pts, cam[v], intr[v])
             ok2 = (z2 > 0) & (u2 >= 0) & (u2 < W) & (v2 >= 0) & (v2 < H)
             ui2 = u2[ok2].long().clamp(0, W - 1); vi2 = v2[ok2].long().clamp(0, H - 1)
             hit2 = torch.zeros(H, W, dtype=torch.bool, device=device)
             hit2[vi2, ui2] = True
-            local_hit |= hit2
+            local_hit[v] |= hit2
         things = (sem >= 2) & (sem <= 19) & (ins > 0)
         ids = torch.unique(ins[things])
         rows = 0
@@ -304,9 +332,10 @@ def phase_coverage(reports: Path, device: str, n_scenes: int = 128) -> int:
             lb[0] += int(l_cov); lb[1] += 1
     denom = len(per_window)
     payload = {
-        "note": "2D projection coverage PROXY (context views only); GT is used for "
-                "measurement only and never for FPS, seeds or training",
-        "windows": len(windows), "gt_instances": denom,
+        "note": "2D projection coverage PROXY over GT-visible instance OCCURRENCES (scene,instance) x window, "
+                "context views only; GT is used for measurement only and never for FPS, seeds, "
+                "neighbourhoods or training",
+        "windows": len(windows), "number_visible_instance_occurrences": denom,
         "fps_seed_coverage_rate": float(np.mean([r["fps_seed_covered"] for r in per_window])) if denom else 0.0,
         "local8_coverage_rate": float(np.mean([r["local8_covered"] for r in per_window])) if denom else 0.0,
         "fps_seed_coverage_by_size": {k: (v[0] / v[1] if v[1] else None)
@@ -315,6 +344,16 @@ def phase_coverage(reports: Path, device: str, n_scenes: int = 128) -> int:
                                     for k, v in buckets.items() if k.endswith("_local")},
         "size_counts": {k: v[1] for k, v in buckets.items() if not k.endswith("_local")},
     }
+    uniq = {}
+    for r in per_window:
+        uniq.setdefault((r["scene"], r["instance"]), []).append(r)
+    macro = {"unique_scene_instances": len(uniq),
+             "mean_fps_coverage_over_occurrences": float(np.mean(
+                 [np.mean([x["fps_seed_covered"] for x in v]) for v in uniq.values()])),
+             "mean_local8_coverage_over_occurrences": float(np.mean(
+                 [np.mean([x["local8_covered"] for x in v]) for v in uniq.values()])),
+             "note": "auxiliary macro diagnostic; the occurrence-weighted rates above stay primary"}
+    payload["unique_scene_instance_macro"] = macro
     write_json(reports / "fps_coverage_proxy.json", payload)
     write_json(reports / "fps_coverage_per_instance.json", {"instances": per_window})
     print(f"[s1] coverage: {denom} GT instances | fps {payload['fps_seed_coverage_rate']:.3f} "

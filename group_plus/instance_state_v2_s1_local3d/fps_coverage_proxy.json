@@ -1,0 +1,28 @@
+{
+  "note": "2D projection coverage PROXY over GT-visible instance OCCURRENCES (scene,instance) x window, context views only; GT is used for measurement only and never for FPS, seeds, neighbourhoods or training",
+  "windows": 1024,
+  "number_visible_instance_occurrences": 3965,
+  "fps_seed_coverage_rate": 0.8595208070617907,
+  "local8_coverage_rate": 0.9180327868852459,
+  "fps_seed_coverage_by_size": {
+    "small": 0.17630057803468208,
+    "medium": 0.8119718309859155,
+    "large": 0.9977262391996362
+  },
+  "local8_coverage_by_size": {
+    "medium": 0.9232394366197183,
+    "large": 0.9995452478399273,
+    "small": 0.3786127167630058
+  },
+  "size_counts": {
+    "small": 346,
+    "medium": 1420,
+    "large": 2199
+  },
+  "unique_scene_instance_macro": {
+    "unique_scene_instances": 1398,
+    "mean_fps_coverage_over_occurrences": 0.8385687035901629,
+    "mean_local8_coverage_over_occurrences": 0.90933817017508,
+    "note": "auxiliary macro diagnostic; the occurrence-weighted rates above stay primary"
+  }
+}
