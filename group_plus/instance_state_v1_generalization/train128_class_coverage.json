@@ -1,0 +1,176 @@
+{
+  "source_manifest": "/space/mawb/ssst/group_plus/instance_state_v1_generalization/train128_windows1024.json",
+  "source_manifest_sha256": "1f37d08c2941920d94a172d62f95dd494b1126374215833999dc9d75ad9fc483",
+  "scope": "two context views only",
+  "note": "Coverage is measured directly from semantic_label_all of the two context views for all 20 classes.",
+  "classes": {
+    "0": {
+      "window_count": 850,
+      "scene_count": 123,
+      "pixel_count": 856618,
+      "thing_instance_count": 0,
+      "seen": true
+    },
+    "1": {
+      "window_count": 32,
+      "scene_count": 19,
+      "pixel_count": 16374,
+      "thing_instance_count": 0,
+      "seen": true
+    },
+    "2": {
+      "window_count": 107,
+      "scene_count": 31,
+      "pixel_count": 60555,
+      "thing_instance_count": 120,
+      "seen": true
+    },
+    "3": {
+      "window_count": 15,
+      "scene_count": 10,
+      "pixel_count": 5725,
+      "thing_instance_count": 15,
+      "seen": true
+    },
+    "4": {
+      "window_count": 126,
+      "scene_count": 44,
+      "pixel_count": 42598,
+      "thing_instance_count": 192,
+      "seen": true
+    },
+    "5": {
+      "window_count": 43,
+      "scene_count": 16,
+      "pixel_count": 23929,
+      "thing_instance_count": 47,
+      "seen": true
+    },
+    "6": {
+      "window_count": 47,
+      "scene_count": 29,
+      "pixel_count": 22110,
+      "thing_instance_count": 48,
+      "seen": true
+    },
+    "7": {
+      "window_count": 252,
+      "scene_count": 82,
+      "pixel_count": 129301,
+      "thing_instance_count": 395,
+      "seen": true
+    },
+    "8": {
+      "window_count": 168,
+      "scene_count": 53,
+      "pixel_count": 84491,
+      "thing_instance_count": 194,
+      "seen": true
+    },
+    "9": {
+      "window_count": 39,
+      "scene_count": 13,
+      "pixel_count": 15427,
+      "thing_instance_count": 43,
+      "seen": true
+    },
+    "10": {
+      "window_count": 52,
+      "scene_count": 19,
+      "pixel_count": 26030,
+      "thing_instance_count": 61,
+      "seen": true
+    },
+    "11": {
+      "window_count": 10,
+      "scene_count": 6,
+      "pixel_count": 2806,
+      "thing_instance_count": 12,
+      "seen": true
+    },
+    "12": {
+      "window_count": 31,
+      "scene_count": 15,
+      "pixel_count": 15122,
+      "thing_instance_count": 35,
+      "seen": true
+    },
+    "13": {
+      "window_count": 54,
+      "scene_count": 14,
+      "pixel_count": 35792,
+      "thing_instance_count": 72,
+      "seen": true
+    },
+    "14": {
+      "window_count": 16,
+      "scene_count": 10,
+      "pixel_count": 6322,
+      "thing_instance_count": 16,
+      "seen": true
+    },
+    "15": {
+      "window_count": 15,
+      "scene_count": 6,
+      "pixel_count": 7669,
+      "thing_instance_count": 15,
+      "seen": true
+    },
+    "16": {
+      "window_count": 27,
+      "scene_count": 11,
+      "pixel_count": 9252,
+      "thing_instance_count": 28,
+      "seen": true
+    },
+    "17": {
+      "window_count": 17,
+      "scene_count": 9,
+      "pixel_count": 1467,
+      "thing_instance_count": 19,
+      "seen": true
+    },
+    "18": {
+      "window_count": 7,
+      "scene_count": 3,
+      "pixel_count": 2349,
+      "thing_instance_count": 7,
+      "seen": true
+    },
+    "19": {
+      "window_count": 84,
+      "scene_count": 39,
+      "pixel_count": 30855,
+      "thing_instance_count": 86,
+      "seen": true
+    }
+  },
+  "seen_classes": [
+    0,
+    1,
+    2,
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19
+  ],
+  "unseen_classes": [],
+  "all_20_classes_accounted_for": true,
+  "contract": {
+    "ok": true,
+    "problems": []
+  }
+}
