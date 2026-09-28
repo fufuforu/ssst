@@ -39,7 +39,10 @@ def _endpoint_and_drift(path):
     frozen=sum(p.numel() for p in model.parameters() if not p.requires_grad)
     checks.update({"reconstruction_trainable":rec==220002620,"anchor_group_trainable":grp==2785296,"frozen_numel_zero":frozen==0})
     if not all(checks.values()):raise RuntimeError(f"final trainability audit failed: {checks}")
-    write_json(OUT/"formal_endpoint_step5000_audit.json",{"endpoint":str(path.relative_to(REPO)),"checkpoint_bytes":path.stat().st_size,"step":obj["step"],"architecture":obj["architecture"],"joint":obj["joint"],"beta":obj["beta"],"manifest_sha256":obj["manifest_sha256"],"plan_sha256":obj["plan_sha256"],"pretrained_sha256":obj["pretrained_sha256"],"rng_present":sorted(obj["rng"]),"all_model_tensors_finite":checks["model_finite"],"all_optimizer_tensors_finite":checks["optimizer_finite"],"trainable_reconstruction_numel":rec,"trainable_anchor_group_numel":grp,"frozen_numel":frozen,"checks":checks,"status":"pass"})
+    endpoint_path=path.resolve()
+    try:endpoint_label=str(endpoint_path.relative_to(REPO))
+    except ValueError:endpoint_label=str(endpoint_path)
+    write_json(OUT/"formal_endpoint_step5000_audit.json",{"endpoint":endpoint_label,"checkpoint_bytes":path.stat().st_size,"step":obj["step"],"architecture":obj["architecture"],"joint":obj["joint"],"beta":obj["beta"],"manifest_sha256":obj["manifest_sha256"],"plan_sha256":obj["plan_sha256"],"pretrained_sha256":obj["pretrained_sha256"],"rng_present":sorted(obj["rng"]),"all_model_tensors_finite":checks["model_finite"],"all_optimizer_tensors_finite":checks["optimizer_finite"],"trainable_reconstruction_numel":rec,"trainable_anchor_group_numel":grp,"frozen_numel":frozen,"checks":checks,"status":"pass"})
     base_obj=torch.load(PRETRAINED,map_location="cpu",weights_only=False);base=base_obj.get("model",base_obj)
     final=obj["model"];names=dict(model.named_parameters());stats={}
     for name,param in names.items():
