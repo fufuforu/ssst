@@ -49,7 +49,10 @@
     {
       "contract": "C3_no_fps_local8",
       "passed": true,
-      "detail": null
+      "detail": {
+        "selection_ops_absent": true,
+        "fps_index_is_null_compatibility_alias": true
+      }
     },
     {
       "contract": "C4_all_anchor_gradient",

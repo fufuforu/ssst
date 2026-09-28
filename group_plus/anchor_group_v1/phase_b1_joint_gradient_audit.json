@@ -1,0 +1,78 @@
+{
+  "items": {
+    "understanding_weight": 1.0,
+    "loss_understanding": 3.5140864849090576,
+    "query_init": {
+      "parameter_name": "anchor_group.query_init",
+      "grad_norm": 12.125757217407227,
+      "max_abs_grad": 1.4676541090011597,
+      "finite": true,
+      "nonzero": true,
+      "is_none": false
+    },
+    "late_decoder": {
+      "parameter_name": "enc_dec_backbone.decoder_blocks.11.gs_self_attn.norm.weight",
+      "grad_norm": 0.0027251928113400936,
+      "max_abs_grad": 0.0005300204502418637,
+      "finite": true,
+      "nonzero": true,
+      "is_none": false
+    },
+    "anchor_mu": {
+      "parameter_name": "anchor_decoder.mu",
+      "grad_norm": 2.74102520942688,
+      "max_abs_grad": 0.6046339273452759,
+      "finite": true,
+      "nonzero": true,
+      "is_none": false
+    },
+    "anchor_rho": {
+      "parameter_name": "anchor_decoder.rho",
+      "grad_norm": 0.03979910910129547,
+      "max_abs_grad": 0.011726775206625462,
+      "finite": true,
+      "nonzero": true,
+      "is_none": false
+    },
+    "anchor_refine_mu": {
+      "parameter_name": "anchor_decoder.refine_mu.0.weight",
+      "grad_norm": 1.1454622745513916,
+      "max_abs_grad": 0.10611394047737122,
+      "finite": true,
+      "nonzero": true,
+      "is_none": false
+    },
+    "anchor_refine_rho": {
+      "parameter_name": "anchor_decoder.refine_rho.0.weight",
+      "grad_norm": 0.03865088149905205,
+      "max_abs_grad": 0.0076080430299043655,
+      "finite": true,
+      "nonzero": true,
+      "is_none": false
+    },
+    "reconstruction_feature": {
+      "parameter_name": "enc_dec_backbone.decoder_blocks.11.gs_self_attn.norm.weight",
+      "grad_norm": 0.0027251928113400936,
+      "max_abs_grad": 0.0005300204502418637,
+      "finite": true,
+      "nonzero": true,
+      "is_none": false
+    },
+    "activation_head": {
+      "parameter_name": "activation_head.deconv.weight",
+      "grad_norm": 0.31336861848831177,
+      "max_abs_grad": 0.015132136642932892,
+      "finite": true,
+      "nonzero": true,
+      "is_none": false
+    }
+  },
+  "gates": {
+    "query_init": true,
+    "late_decoder": true,
+    "anchor_mu": true,
+    "reconstruction_feature": true,
+    "activation_head": true
+  },
+  "pass": true
+}

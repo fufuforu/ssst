@@ -1,0 +1,45 @@
+{
+  "status": "pass",
+  "scope": "context",
+  "window": {
+    "scene": "scene0011_00",
+    "context": [
+      68,
+      87
+    ],
+    "target": [
+      68,
+      69,
+      70,
+      71,
+      72,
+      87
+    ],
+    "novel": [
+      69,
+      70,
+      71,
+      72
+    ],
+    "pair_iou": 0.5128235816955566
+  },
+  "semantic_miou": 0.011344604202875651,
+  "instance_class_aware": {
+    "n_gt": 8,
+    "tp": 0,
+    "fp": 0,
+    "fn": 8,
+    "precision": 0.0,
+    "recall": 0.0
+  },
+  "instance_class_agnostic": {
+    "n_gt": 8,
+    "tp": 0,
+    "fp": 0,
+    "fn": 8,
+    "precision": 0.0,
+    "recall": 0.0
+  },
+  "psnr": 23.979816436767578,
+  "finite": true
+}

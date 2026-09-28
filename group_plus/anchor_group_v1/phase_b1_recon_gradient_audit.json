@@ -1,0 +1,42 @@
+{
+  "loss_recon": 0.03464125469326973,
+  "late_decoder": {
+    "parameter_name": "enc_dec_backbone.decoder_blocks.11.gs_self_attn.norm.weight",
+    "grad_norm": 0.00022594511392526329,
+    "max_abs_grad": 5.504239379661158e-05,
+    "finite": true,
+    "nonzero": true,
+    "is_none": false
+  },
+  "anchor_mu": {
+    "parameter_name": "anchor_decoder.mu",
+    "grad_norm": 0.1347099244594574,
+    "max_abs_grad": 0.033646948635578156,
+    "finite": true,
+    "nonzero": true,
+    "is_none": false
+  },
+  "activation_head": {
+    "parameter_name": "activation_head.deconv.weight",
+    "grad_norm": 0.08181583136320114,
+    "max_abs_grad": 0.004817209206521511,
+    "finite": true,
+    "nonzero": true,
+    "is_none": false
+  },
+  "anchor_group_query_init": {
+    "parameter_name": "anchor_group.query_init",
+    "grad_norm": 0.0,
+    "max_abs_grad": 0.0,
+    "finite": true,
+    "nonzero": false,
+    "is_none": true
+  },
+  "gates": {
+    "late_decoder": true,
+    "anchor_mu": true,
+    "activation_head": true,
+    "query_init_none_or_zero": true
+  },
+  "pass": true
+}

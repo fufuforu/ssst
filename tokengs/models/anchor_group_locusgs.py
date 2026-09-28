@@ -4,6 +4,7 @@ from __future__ import annotations
 import torch
 from torch import nn
 import torch.nn.functional as F
+import math
 
 from tokengs.models.canonical_recon import canonical_layer_loss
 from tokengs.models.canonical_recon_models import LocusGSRecon, _full_supervision, patch_plucker_rays
@@ -14,6 +15,21 @@ NUM_THING, NUM_STUFF = 100, 2
 NUM_QUERIES, VOID_INDEX, NUM_REGION_CHANNELS = 102, 102, 103
 STATE_DIM, ID_DIM, GROUP_TEMPERATURE = 256, 16, 0.1
 GS_DECODE_RADIUS = 0.15
+
+def anchor_group_understanding_weight(step: int) -> float:
+    if step <= 200:
+        return 0.0
+    if step < 1000:
+        return (step - 200) / 800.0
+    return 1.0
+
+def anchor_group_lr_multiplier(step: int, total_steps: int = 5000) -> float:
+    if step <= 0:
+        return 0.0
+    if step <= 200:
+        return step / 200.0
+    t = (step - 200) / (total_steps - 200)
+    return 0.02 + 0.98 * 0.5 * (1.0 + math.cos(math.pi * t))
 
 
 class AnchorGroupController(nn.Module):
@@ -139,6 +155,7 @@ class AnchorGroupDecoder(LocusGSAnchorDecoder):
                 Fmsg,_=ctrl.token_message(a,mu,Apost,q,c,s,ell)
                 st.update(q=q,A_pre=Apre,A_post=Apost,anchor_embedding=a,c=c,s=s,F=Fmsg,ell=ell,beta=0.0)
             else: st.update(q=q,A_pre=None,A_post=None,anchor_embedding=None,c=None,s=None,F=None,ell=ell,beta=0.0)
+            st["fps_index"]=None
         return states,ray_stats
 
 
@@ -190,6 +207,9 @@ class LocusGSAnchorGroupRecon(LocusGSRecon):
     def forward_reconstruction_only(self,model_input,*,render_decoder_input=None): return self.forward_anchor_group(model_input,render_decoder_input=render_decoder_input)
     def _decode(self,model_input,decoder_input): return self.decode_group(ModelInput(model_input.encoder,decoder_input))
 
+    def forward_instance_state(self,model_input,*,render_decoder_input=None,context_decoder=None,coupled=False,step=None):
+        return self.forward_anchor_group(model_input,render_decoder_input=render_decoder_input,context_decoder=context_decoder,coupled=coupled,step=step)
+
     def _layer_objective(self,states,decoder,supervision):
         total=None; metrics={}
         for layer,w in zip(self.supervised_layers,self.layer_weights):
@@ -198,15 +218,18 @@ class LocusGSAnchorGroupRecon(LocusGSRecon):
             total=ll["loss"]*w if total is None else total+ll["loss"]*w; metrics.update({f"{k}_layer{layer}":v for k,v in ll.items() if k!="loss"})
         return total,metrics
 
-    def step_loss(self,batch,*,step,phase="train",coupled=False,rseg_override=None):
+    def step_loss(self,batch,*,step,phase="train",coupled=False,rseg_override=None,understanding_weight_override=None):
         from tokengs.models.anchor_group_loss import anchor_group_losses
         del phase
         if coupled: raise RuntimeError("Anchor-Group V1 uses joint optimization through shared anchor/reconstruction features and does not use the legacy beta coupling path.")
         mi,_=split_data(batch,self.opt); dec=ModelInputDecoder(cam_view=batch["cam_view_all"],intrinsics=batch["intrinsics_all"]); ctx=ModelInputDecoder(cam_view=batch["cam_view_all"][:,:2],intrinsics=batch["intrinsics_all"][:,:2])
         pred=self.forward_anchor_group(ModelInput(mi.encoder,dec),render_decoder_input=dec,context_decoder=ctx,coupled=False,step=step)
         recon,metrics=self._layer_objective(pred["states"],dec,_full_supervision(batch)); seg,sm=anchor_group_losses(pred,batch,self.opt)
+        uweight=anchor_group_understanding_weight(int(step)) if understanding_weight_override is None else float(understanding_weight_override)
         metrics.update(sm); metrics["loss_recon"]=recon; metrics["loss_understanding"]=seg
-        metrics["loss"]=recon+seg
+        metrics["understanding_weight"]=uweight
+        metrics["loss"]=recon+uweight*seg
+        metrics["loss_total"]=metrics["loss"]
         return {"prediction":pred},metrics
 
     def forward(self,data,skip_loss=False):

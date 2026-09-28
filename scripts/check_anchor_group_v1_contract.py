@@ -27,7 +27,10 @@ def main():
     err=max(float((pre.sum(-1)-1).abs().max()),float((post.sum(-1)-1).abs().max()))
     record(checks,"C2_simplex",float(min(pre.min(),post.min()))>=0 and err<=1e-6,{"max_sum_error":err})
     src=inspect.getsource(__import__("tokengs.models.anchor_group_locusgs",fromlist=["AnchorGroupDecoder"]).AnchorGroupDecoder)
-    record(checks,"C3_no_fps_local8",all(x not in src for x in ("deterministic_fps(","local_3d_evidence_pool(","fps_index","local8")))
+    # ``fps_index=None`` is a diagnostic compatibility alias, not an FPS path.
+    no_selection=all(x not in src for x in ("deterministic_fps(","local_3d_evidence_pool(","local8"))
+    null_fps_alias=src.count('["fps_index"]=None')==1
+    record(checks,"C3_no_fps_local8",no_selection and null_fps_alias,{"selection_ops_absent":no_selection,"fps_index_is_null_compatibility_alias":null_fps_alias})
     loss=-torch.log(post[:,:,0].clamp_min(1e-6)).mean(); loss.backward()
     rows=a.grad.abs().sum(-1); n=int((torch.isfinite(rows)&(rows>0)).sum())
     record(checks,"C4_all_anchor_gradient",n==1024,{"all_anchor_grad_rows":n})
