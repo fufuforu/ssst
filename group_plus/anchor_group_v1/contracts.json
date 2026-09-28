@@ -1,6 +1,6 @@
 {
   "architecture": "LOCUSGS_ANCHOR_GROUP_V1",
-  "passed": 15,
+  "passed": 18,
   "failed": 0,
   "checks": [
     {
@@ -43,7 +43,7 @@
       "contract": "C2_simplex",
       "passed": true,
       "detail": {
-        "max_sum_error": 3.5762786865234375e-07
+        "max_sum_error": 2.384185791015625e-07
       }
     },
     {
@@ -130,6 +130,49 @@
         "single_solve": true,
         "shared_pairs_for_pixel_anchor": true
       }
+    },
+    {
+      "contract": "C16_shared_init_parity",
+      "passed": true,
+      "detail": {
+        "shared_init_parameter_count": 59,
+        "shared_init_equal_count": 59,
+        "shared_init_mismatch_names": [],
+        "step0_void_logit_max_abs": 0.0
+      }
+    },
+    {
+      "contract": "C17_anchor_bce_bruteforce",
+      "passed": true,
+      "detail": {
+        "Q": 5,
+        "K": 3,
+        "N": 17,
+        "max_abs_diff": 3.5762786865234375e-07
+      }
+    },
+    {
+      "contract": "C18_extreme_anchor_bce_finite",
+      "passed": true,
+      "detail": {
+        "all_finite": true,
+        "values_tested": [
+          -20,
+          -10,
+          0,
+          10,
+          20
+        ]
+      }
     }
-  ]
+  ],
+  "phase_a1_audit": {
+    "shared_init_parameter_count": 59,
+    "shared_init_equal_count": 59,
+    "shared_init_mismatch_names": [],
+    "step0_void_logit_max_abs": 0.0,
+    "anchor_bce_bruteforce_max_abs_diff": 3.5762786865234375e-07,
+    "anchor_bce_bruteforce_pass": true,
+    "extreme_anchor_bce_all_finite": true
+  }
 }

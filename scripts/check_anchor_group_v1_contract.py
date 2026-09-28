@@ -5,6 +5,7 @@ import ast, json, inspect
 from pathlib import Path
 import sys
 import torch
+import torch.nn.functional as F
 REPO=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(REPO))
 from tokengs.models.anchor_group_locusgs import AnchorGroupController, NUM_THING, NUM_STUFF
@@ -71,7 +72,48 @@ def main():
     qi,ki=pairs[0]; pair_list=list(zip(qi.tolist(),ki.tolist()))
     one_solve=inspect.getsource(unified_hungarian).count("linear_sum_assignment(")==1
     record(checks,"C15_unified_hungarian_unique",len(set(qi.tolist()))==2 and len(set(ki.tolist()))==2 and pair_list==[(0,0),(1,1)] and one_solve,{"pairs":pair_list,"single_solve":one_solve,"shared_pairs_for_pixel_anchor":True})
-    payload={"architecture":"LOCUSGS_ANCHOR_GROUP_V1","passed":sum(x["passed"] for x in checks),"failed":sum(not x["passed"] for x in checks),"checks":checks}
+
+    # C16: same deterministic seed and options, checking every inherited tensor.
+    from tokengs.options import config_defaults
+    from tokengs.models.instance_state_locusgs import InstanceStateController
+    from tokengs.models.anchor_group_loss import pairwise_anchor_bce_cost
+    opt=config_defaults["train_siu3r_anchor_group_v1"]
+    with torch.random.fork_rng(devices=[]):
+        torch.manual_seed(31415); old=InstanceStateController(opt)
+    with torch.random.fork_rng(devices=[]):
+        torch.manual_seed(31415); new=AnchorGroupController(opt)
+    shared=("ln_h","proj_h","proj_m","ln_x","ln_e","proj_e","ln_u","proj_u","query_init","gru","ln_gru","ffn_fc1","ffn_fc2","ln_ffn","token_void","thing_classifier","ln_vq","proj_vq","ln_fx","ln_fm","proj_wh","proj_wmu","proj_wr","proj_wgs","ln_de","proj_de","proj_off","ln_void","proj_gvoid")
+    mismatches=[]; compared=0; equal=0
+    old_params=dict(old.named_parameters()); new_params=dict(new.named_parameters())
+    for prefix in shared:
+        for name,value in old_params.items():
+            if name==prefix or name.startswith(prefix+"."):
+                compared+=1
+                if name not in new_params or value.shape!=new_params[name].shape or not torch.equal(value,new_params[name]): mismatches.append(name)
+                else: equal+=1
+    void_max=float(new.token_void(a).abs().max())
+    init_ok=bool(compared>0 and equal==compared and not mismatches and void_max==0.0)
+    record(checks,"C16_shared_init_parity",init_ok,{"shared_init_parameter_count":compared,"shared_init_equal_count":equal,"shared_init_mismatch_names":mismatches,"step0_void_logit_max_abs":void_max})
+
+    # C17: production pairwise cost agrees elementwise with exhaustive BCEWithLogits.
+    z=torch.linspace(-4.5,4.5,5*17).reshape(5,17); p=torch.sigmoid(z)
+    gen=torch.Generator().manual_seed(31415); y=(torch.rand(3,17,generator=gen)>.5).float()
+    production=pairwise_anchor_bce_cost(p,y)
+    brute=torch.stack([torch.stack([F.binary_cross_entropy_with_logits(z[q],y[k],reduction="mean") for k in range(3)]) for q in range(5)])
+    bce_diff=float((production-brute).abs().max())
+    record(checks,"C17_anchor_bce_bruteforce",bce_diff<=1e-6,{"Q":5,"K":3,"N":17,"max_abs_diff":bce_diff})
+
+    # C18: extreme finite logits are routed through the exact production clamp path.
+    extreme=torch.tensor([-20.,-10.,0.,10.,20.]).expand(5,-1)
+    pe=torch.sigmoid(extreme); ye=torch.tensor([[0.,0.,1.,1.,1.],[1.,0.,1.,0.,1.],[0.,1.,0.,1.,0.]])
+    extreme_cost=pairwise_anchor_bce_cost(pe,ye)
+    extreme_ok=bool(torch.isfinite(extreme_cost).all())
+    record(checks,"C18_extreme_anchor_bce_finite",extreme_ok,{"all_finite":extreme_ok,"values_tested":[-20,-10,0,10,20]})
+
+    audit={"shared_init_parameter_count":compared,"shared_init_equal_count":equal,"shared_init_mismatch_names":mismatches,"step0_void_logit_max_abs":void_max,"anchor_bce_bruteforce_max_abs_diff":bce_diff,"anchor_bce_bruteforce_pass":bce_diff<=1e-6,"extreme_anchor_bce_all_finite":extreme_ok}
+    OUT.parent.mkdir(parents=True,exist_ok=True)
+    (OUT.parent/"phase_a1_initialization_and_bce_audit.json").write_text(json.dumps(audit,indent=2)+"\n")
+    payload={"architecture":"LOCUSGS_ANCHOR_GROUP_V1","passed":sum(x["passed"] for x in checks),"failed":sum(not x["passed"] for x in checks),"checks":checks,"phase_a1_audit":audit}
     OUT.parent.mkdir(parents=True,exist_ok=True); OUT.write_text(json.dumps(payload,indent=2)+"\n")
     print(json.dumps(payload,indent=2)); return int(payload["failed"]>0)
 if __name__=="__main__": raise SystemExit(main())

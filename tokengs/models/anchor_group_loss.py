@@ -22,6 +22,13 @@ def resolve_anchor_observations(observations):
     if all(x[0]==FLOOR for x in observations): return FLOOR,0,0
     return IGNORE,0,0
 
+def pairwise_anchor_bce_cost(pa, ya):
+    """Stable query/GT BCE matching matrix from ownership probabilities."""
+    if pa.ndim!=2 or ya.ndim!=2 or pa.shape[1]!=ya.shape[1]:
+        raise ValueError(f"expected pa[Q,N], ya[K,N], got {tuple(pa.shape)} and {tuple(ya.shape)}")
+    z_anchor=torch.logit(pa.clamp(1e-6,1.0-1e-6))
+    return F.softplus(z_anchor).mean(dim=1,keepdim=True)-(z_anchor@ya.T)/float(pa.shape[1])
+
 def project_points(xyz, cam_view, intrinsics):
     """Verified scripts/instance_state_s1_local3d.py convention (same compositing helper)."""
     c2w = torch.inverse(cam_view.transpose(0,1).float())
@@ -85,7 +92,7 @@ def unified_hungarian(prediction,batch,targets=None,match_points=4096):
         pixel=_matching_cost(logits[b],z,y,cls)
         av=t["anchor_valid"][b]; pa=P[b,:,av].float(); ya=t["Y_anchor"][b,:,av].float()
         if av.any() and K:
-            bce=F.softplus(torch.logit(pa.clamp(1e-6,1-1e-6))).mean(-1,keepdim=True)-(pa.logit()@ya.T)/int(av.sum())
+            bce=pairwise_anchor_bce_cost(pa,ya)
             dice=1-(2*(pa@ya.T)+1)/(pa.sum(-1,keepdim=True)+ya.sum(-1)[None,:]+1)
             support=t["Y_anchor"][b].sum(-1)>0
             bce=bce*support[None,:]; dice=dice*support[None,:]
@@ -139,4 +146,4 @@ def anchor_group_losses(prediction,batch,opt=None):
     metrics.update(sm); metrics.update(smm); metrics.update(idm)
     return total,metrics
 
-__all__=["build_anchor_targets","unified_hungarian","anchor_group_losses","project_points","resolve_anchor_observations"]
+__all__=["build_anchor_targets","unified_hungarian","anchor_group_losses","project_points","resolve_anchor_observations","pairwise_anchor_bce_cost"]

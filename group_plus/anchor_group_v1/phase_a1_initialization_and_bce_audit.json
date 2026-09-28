@@ -1,0 +1,9 @@
+{
+  "shared_init_parameter_count": 59,
+  "shared_init_equal_count": 59,
+  "shared_init_mismatch_names": [],
+  "step0_void_logit_max_abs": 0.0,
+  "anchor_bce_bruteforce_max_abs_diff": 3.5762786865234375e-07,
+  "anchor_bce_bruteforce_pass": true,
+  "extreme_anchor_bce_all_finite": true
+}

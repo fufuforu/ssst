@@ -38,7 +38,45 @@ class AnchorGroupController(nn.Module):
         self.proj_wgs = nn.Linear(2*D+6,P*3)
         self.ln_de, self.proj_de = nn.LayerNorm(C), nn.Linear(C,P*ID_DIM)
         self.proj_off = nn.Linear(3,ID_DIM); self.ln_void = nn.LayerNorm(C); self.proj_gvoid = nn.Linear(C,P)
-        nn.init.normal_(self.query_init, std=0.02)
+        self._init_weights()
+
+    @staticmethod
+    def _xavier(module: nn.Linear) -> None:
+        nn.init.xavier_uniform_(module.weight)
+        if module.bias is not None:
+            nn.init.zeros_(module.bias)
+
+    @staticmethod
+    def _zero(module: nn.Linear) -> None:
+        nn.init.zeros_(module.weight)
+        if module.bias is not None:
+            nn.init.zeros_(module.bias)
+
+    def _init_weights(self) -> None:
+        # Keep every shared controller primitive exactly aligned with
+        # InstanceStateController._init_weights; this is initialization parity,
+        # not parameter sharing between the architectures.
+        for module in (self.proj_h,self.proj_m,self.proj_e,self.proj_u,
+                       self.ffn_fc1,self.ffn_fc2,self.proj_vq,self.proj_off,
+                       self.thing_classifier):
+            self._xavier(module)
+        for module in (self.token_void,self.proj_wgs,self.proj_de,self.proj_gvoid,
+                       self.proj_wh,self.proj_wmu,self.proj_wr):
+            self._zero(module)
+        hidden=self.gru.hidden_size
+        with torch.no_grad():
+            for name,param in self.gru.named_parameters():
+                if name.startswith("weight_ih") or name.startswith("weight_hh"):
+                    for gate in range(3):
+                        nn.init.xavier_uniform_(param[gate*hidden:(gate+1)*hidden])
+                else:
+                    nn.init.zeros_(param)
+            nn.init.normal_(self.query_init,std=0.02)
+        for ln in (self.ln_h,self.ln_x,self.ln_e,self.ln_u,self.ln_gru,
+                   self.ln_ffn,self.ln_vq,self.ln_fx,self.ln_fm,self.ln_de,
+                   self.ln_void):
+            nn.init.ones_(ln.weight)
+            nn.init.zeros_(ln.bias)
 
     def encode_token(self, tokens, mu, radii, ell):
         feat = torch.cat([mu / ell.reshape(-1,1,1), torch.log((radii / ell[:,None]).clamp(1e-4,1e4)).unsqueeze(-1)],-1)

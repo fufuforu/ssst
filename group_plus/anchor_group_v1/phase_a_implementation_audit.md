@@ -15,7 +15,7 @@ Scope: §0–§30, §38–§40 and §41 reconstruction parity only. Phase-B sect
 11. **Anchor losses:** ownership CE is mean negative log probability on confident anchors. Anchor Dice uses matched thing GT with positive support and `(2 sum(p*y)+1)/(sum(p)+sum(y)+1)`. `L_anchor_group = CE + Dice`; understanding weights follow the specification.
 12. **Reconstruction parity:** same pretrained checkpoint and locked window 0 on an NVIDIA RTX 4090 produced Gaussian max diff **0.0**, RGB max/mean diff **0.0/0.0**, baseline and Anchor-Group PSNR **22.1214867/22.1214867 dB**, and PSNR absolute diff **0.0**. Baseline and Anchor-Group repeat RGB max diffs were both **0.0**; gsplat forward passed.
 13. **Legacy S0/S1:** evaluator contracts passed 8/8; legacy loss contracts passed 16/16; S1 local3d helper checks passed 8/8. On the same real window and RTX 4090, S0 and S1 forwards and losses were finite and passed. S0 used the single-anchor initialization; S1 retained local8 with k=8.
-14. **CPU contracts:** Anchor-Group contracts passed **15/15**, including C1–C15. No training or optimizer was run.
+14. **CPU contracts:** Anchor-Group contracts passed **18/18**, including C1–C18. The shared-init comparison covered 59 parameter tensors with zero mismatches; initial void logit max abs was 0.0. Pairwise anchor BCE matched brute-force BCEWithLogits to max abs `3.58e-7`; extreme logits remained finite.
 
 ## Real batch target audit
 
@@ -23,4 +23,4 @@ Locked manifest window 0 (`scene0000_00`, context frames 3551 and 3596): 1024 an
 
 ## Gate status
 
-All Phase-A contracts and GPU verification gates pass. **Phase-A complete.** Phase-B was not started; formal training was not started.
+All Phase-A contracts and GPU verification gates pass. The Phase-A.1 fixes only align shared controller initialization and stabilize the anchor matching BCE implementation; architecture and loss weights are unchanged. **Phase-A complete.** Phase-B was not started; formal training was not started.
