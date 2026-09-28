@@ -1,0 +1,79 @@
+{
+  "checks": [
+    {
+      "check": "1.shapes",
+      "ok": true,
+      "detail": "(1, 3, 6) (1, 3, 8) (1, 3, 8)"
+    },
+    {
+      "check": "2.seed_included",
+      "ok": true,
+      "detail": "indices [[0, 32, 15, 24, 33, 1, 18, 31], [5, 14, 12, 29, 20, 25, 37, 6], [11, 31, 18, 28, 32, 0, 2, 13]]"
+    },
+    {
+      "check": "3.weight_normalised",
+      "ok": true,
+      "detail": "max|sum-1| 1.19e-07"
+    },
+    {
+      "check": "4.nonnegative",
+      "ok": true,
+      "detail": "min w 6.577e-02"
+    },
+    {
+      "check": "5.identical_features",
+      "ok": true,
+      "detail": "max|pooled-x| 2.38e-07"
+    },
+    {
+      "check": "6.k1_regression",
+      "ok": true,
+      "detail": "max|k1 - gather| 0.00e+00"
+    },
+    {
+      "check": "7a.feature_gradient",
+      "ok": true,
+      "detail": "20 x rows received gradient"
+    },
+    {
+      "check": "7b.no_geometry_gradient",
+      "ok": true,
+      "detail": "weights/selection use mu.detach(); mu has no grad_fn"
+    },
+    {
+      "check": "8.S0_S1_fps_c_s_equal",
+      "ok": false,
+      "detail": "{'fps_index_equal': True, 'c_equal': False, 's_equal': False, 'stuff_q_equal': False}"
+    },
+    {
+      "check": "9.only_q_thing_differs",
+      "ok": true,
+      "detail": "max|dq_thing| 3.0695e+00"
+    },
+    {
+      "check": "10.param_count_equal",
+      "ok": true,
+      "detail": "S0 222,787,916 == S1 222,787,916"
+    },
+    {
+      "check": "11.init_q_diversity_recorded",
+      "ok": true,
+      "detail": "{\"mean\": 0.5572606921195984, \"median\": 0.5688279867172241, \"p90\": 0.822374165058136, \"max\": 0.978771448135376} vs {\"mean\": 0.7193285226821899, \"median\": 0.7399882674217224, \"p90\": 0.8949232697486877, \"max\": 0.9902468919754028}"
+    }
+  ],
+  "failed": [
+    "8.S0_S1_fps_c_s_equal"
+  ],
+  "ok": false,
+  "equivalence": {
+    "fps_index_equal": true,
+    "c_equal": false,
+    "s_equal": false,
+    "stuff_q_equal": false,
+    "thing_q_differs": true,
+    "q_thing_max_abs_delta": 3.0695056915283203,
+    "param_count_S0": 222787916,
+    "param_count_S1": 222787916,
+    "param_count_equal": true
+  }
+}

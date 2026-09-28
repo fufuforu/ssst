@@ -1,0 +1,11 @@
+{
+  "fps_index_equal": true,
+  "c_equal": false,
+  "s_equal": false,
+  "stuff_q_equal": false,
+  "thing_q_differs": true,
+  "q_thing_max_abs_delta": 3.0695056915283203,
+  "param_count_S0": 222787916,
+  "param_count_S1": 222787916,
+  "param_count_equal": true
+}

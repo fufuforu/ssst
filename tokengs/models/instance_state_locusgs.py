@@ -273,6 +273,49 @@ def gather_tokens(mu: torch.Tensor, index: torch.Tensor) -> torch.Tensor:
     return torch.gather(mu, 1, index.unsqueeze(-1).expand(-1, -1, mu.shape[-1]))
 
 
+def local_3d_evidence_pool(x: torch.Tensor, mu: torch.Tensor, seed_index: torch.Tensor,
+                           k: int = 8):
+    """Fixed-distance-weighted pooling of the k nearest anchors around each FPS seed.
+
+    S1's only structural change: the thing-state evidence becomes the pooled feature
+    of the ``k=8`` nearest layer-6 anchors instead of the single seed's feature.
+    Distance, neighbour selection and the weights all use ``mu.detach()`` so the
+    pooling adds no geometry gradient path, and there is no new learnable parameter.
+
+    Returns ``(pooled [B,J,D], neighbour_index [B,J,k], neighbour_distance, weight)``.
+    """
+    if x.shape[:2] != mu.shape[:2]:
+        raise ValueError(f"x and mu must share [B,T], got {tuple(x.shape)} / {tuple(mu.shape)}")
+    detached = mu.detach()
+    seed_mu = gather_tokens(detached, seed_index)                     # [B,J,3]
+    dist = torch.cdist(seed_mu, detached)                             # [B,J,T]
+    order = torch.argsort(dist, dim=-1, stable=True)[..., :k]         # deterministic ties
+    neighbour_index = order
+    neighbour_distance = torch.gather(dist, -1, neighbour_index)      # [B,J,k]
+    sigma = neighbour_distance.mean(dim=-1, keepdim=True).clamp_min(1e-6)
+    logit = -(neighbour_distance ** 2) / (2.0 * sigma ** 2)
+    weight = torch.softmax(logit, dim=-1)                             # [B,J,k]
+    # gather along the token axis: x [B,T,D], index [B,J*k,D] (non-gathered dims must match)
+    flat_index = neighbour_index.reshape(x.shape[0], -1).unsqueeze(-1).expand(
+        -1, -1, x.shape[-1])
+    gathered = torch.gather(x, 1, flat_index).reshape(
+        x.shape[0], neighbour_index.shape[1], neighbour_index.shape[2], x.shape[-1])
+    pooled = (gathered * weight.unsqueeze(-1)).sum(dim=2)              # [B,J,D]
+    self_diag = {}
+    with torch.no_grad():
+        self_diag = {
+            "distance_mean": float(neighbour_distance.mean()),
+            "distance_median": float(neighbour_distance.median()),
+            "distance_p90": float(neighbour_distance.quantile(0.90)),
+            "distance_max": float(neighbour_distance.max()),
+            "weight_entropy_mean": float(-(weight.clamp_min(1e-9)
+                                           * weight.clamp_min(1e-9).log()).sum(-1).mean()),
+            "effective_neighbours_mean": float(
+                (1.0 / weight.pow(2).sum(-1).clamp_min(1e-9)).mean()),
+        }
+    return pooled, neighbour_index, neighbour_distance, weight, self_diag
+
+
 class InstanceStateDecoder(LocusGSAnchorDecoder):
     """Anchor decoder that interleaves the instance-state registration update."""
 
@@ -364,8 +407,16 @@ class InstanceStateDecoder(LocusGSAnchorDecoder):
                 sel = deterministic_fps(mu.detach(), NUM_THING)
                 self.last_fps_index = sel
                 x6 = controller.encode_token(tokens, mu, radii, ell)
+                if bool(getattr(self.opt, "instance_state_local3d", False)):
+                    pooled, n_idx, n_dist, n_w, diag = local_3d_evidence_pool(
+                        x6, mu, sel, k=int(getattr(self.opt, "instance_state_local_k", 8)))
+                    self.last_local3d = {"neighbour_index": n_idx, "neighbour_distance": n_dist,
+                                         "weight": n_w, **diag}
+                    thing_evidence = pooled
+                else:
+                    thing_evidence = gather_tokens(x6, sel)
                 q = torch.cat([
-                    controller.query_init[:NUM_THING].unsqueeze(0) + gather_tokens(x6, sel),
+                    controller.query_init[:NUM_THING].unsqueeze(0) + thing_evidence,
                     controller.query_init[NUM_THING:NUM_THING + NUM_STUFF].unsqueeze(0)
                     + x6.mean(dim=1, keepdim=True)], dim=1)
                 c = gather_tokens(mu, sel)

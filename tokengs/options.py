@@ -246,6 +246,11 @@ class Options:
     instance_state_init_seed: int = 31415
     # C arm = readout only (coupled=False); E arm = coupled token interaction.
     instance_state_coupled: bool = False
+    # S1 single structural variable: layer-6 thing-state evidence = fixed
+    # distance-weighted pooling over the k nearest layer-6 anchors around each FPS
+    # seed (S0 = False keeps the single-anchor feature).  No new learnable parameter.
+    instance_state_local3d: bool = False
+    instance_state_local_k: int = 8
     # --- from-scratch group G0/G1 experiment: 100 instance groups + background
     # slot, 101-way token->slot softmax, optional gated write-back into the
     # reconstruction tokens between decoder layers 10 and 11 ---
@@ -881,6 +886,22 @@ config_defaults["train_siu3r_instance_state_locusgs_coupled"] = config_defaults[
     workspace="/space/mawb/ssst/workspace_group_plus/instance_state_v1/arm_E",
     experiment_name="siu3r_instance_state_locusgs_E",
     instance_state_coupled=True,
+)
+
+config_doc["train_siu3r_instance_state_locusgs_local3d"] = (
+    "instance_state_v2-S1: identical to train_siu3r_instance_state_locusgs (frozen-C, "
+    "coupled=False) except the layer-6 thing-state evidence, which becomes a fixed "
+    "distance-weighted pooling over the k=8 nearest layer-6 anchors around each FPS seed "
+    "(instance_state_local3d=True).  FPS, centres c, support s, assignment, GRU, "
+    "classifier, losses and schedule are unchanged and no parameter is added."
+)
+config_defaults["train_siu3r_instance_state_locusgs_local3d"] = config_defaults[
+    "train_siu3r_instance_state_locusgs"
+].evolve(
+    workspace="/space/mawb/ssst/workspace_group_plus/instance_state_v2_s1_local3d/arm_C",
+    experiment_name="siu3r_instance_state_locusgs_local3d",
+    instance_state_local3d=True,
+    instance_state_local_k=8,
 )
 
 AllConfigs = tyro.extras.subcommand_type_from_defaults(config_defaults, config_doc)
