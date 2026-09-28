@@ -61,9 +61,8 @@ def panoptic_and_semantic(out, sem_gt, ins_gt):
     """GT-free reader: semantic-only argmax and the assembled panoptic map."""
     scores = out["semantic_scores"][0]                        # [V,20,H,W]
     alpha = out["alpha"][0, :, 0]
-    semantic = torch.where(alpha > ALPHA_MIN, scores.argmax(1),
-                           torch.full(scores.shape[:2] + scores.shape[-2:], 20,
-                                      device=scores.device, dtype=torch.long))
+    _arg = scores.argmax(1)
+    semantic = torch.where(alpha > ALPHA_MIN, _arg, torch.full_like(_arg, 20))
     m_thing = out["region_mass"][0][:, :100]
     p = out["p_class"][0]
     score_q = p[:, :18].sum(-1)
