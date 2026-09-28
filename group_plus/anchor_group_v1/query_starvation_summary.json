@@ -1,0 +1,2351 @@
+{
+  "endpoint": "workspace_group_plus/anchor_group_v1/formal_endpoint_step5000.pt",
+  "step": 5000,
+  "architecture": "LOCUSGS_ANCHOR_GROUP_V1",
+  "train1024": {
+    "scope": "train1024",
+    "n_windows": 1024,
+    "total_gt_matches": 4062,
+    "unique_queries_ever_matched": 56,
+    "queries_never_matched": 44,
+    "queries_matched_1_to_4_times": 35,
+    "queries_matched_5_to_19_times": 8,
+    "queries_matched_20plus_times": 13,
+    "queries_matched_in_lt_1_percent_windows": 83,
+    "queries_matched_in_lt_5_percent_windows": 89,
+    "queries_matched_in_ge_10_percent_windows": 8,
+    "match_concentration": {
+      "top1_share": 0.1760216642048252,
+      "top5_share": 0.7612013786312163,
+      "top10_share": 0.9406696208764155,
+      "top20_share": 0.983259478089611,
+      "gini": 0.9180502215657311,
+      "entropy": 2.350261679126314,
+      "normalized_entropy": 0.5103528391366146,
+      "effective_query_count": 10.488313938488115,
+      "total": 4062.0
+    },
+    "ownership_concentration": {
+      "top1_share": 0.4271164686304376,
+      "top5_share": 0.9866222563972366,
+      "top10_share": 0.9952946734124816,
+      "top20_share": 0.9959362606058659,
+      "gini": 0.9650243433961698,
+      "entropy": 1.40199469779514,
+      "normalized_entropy": 0.3044392804550232,
+      "effective_query_count": 4.063296938098047,
+      "total": 586020.3940143681
+    },
+    "match_count_vs_mean_no_object_probability": {
+      "rho": -0.6509925867320872,
+      "p_value": 2.261161753873948e-13,
+      "finite": true
+    },
+    "match_count_vs_mean_ownership_mass": {
+      "rho": 0.17336427731331502,
+      "p_value": 0.08453940882942898,
+      "finite": true
+    },
+    "mean_active_output_queries": 7.4384765625,
+    "query_match_histogram": [
+      {
+        "query_id": 0,
+        "n_matches": 0
+      },
+      {
+        "query_id": 1,
+        "n_matches": 0
+      },
+      {
+        "query_id": 2,
+        "n_matches": 2
+      },
+      {
+        "query_id": 3,
+        "n_matches": 0
+      },
+      {
+        "query_id": 4,
+        "n_matches": 80
+      },
+      {
+        "query_id": 5,
+        "n_matches": 1
+      },
+      {
+        "query_id": 6,
+        "n_matches": 1
+      },
+      {
+        "query_id": 7,
+        "n_matches": 0
+      },
+      {
+        "query_id": 8,
+        "n_matches": 0
+      },
+      {
+        "query_id": 9,
+        "n_matches": 1
+      },
+      {
+        "query_id": 10,
+        "n_matches": 0
+      },
+      {
+        "query_id": 11,
+        "n_matches": 0
+      },
+      {
+        "query_id": 12,
+        "n_matches": 609
+      },
+      {
+        "query_id": 13,
+        "n_matches": 715
+      },
+      {
+        "query_id": 14,
+        "n_matches": 0
+      },
+      {
+        "query_id": 15,
+        "n_matches": 3
+      },
+      {
+        "query_id": 16,
+        "n_matches": 0
+      },
+      {
+        "query_id": 17,
+        "n_matches": 0
+      },
+      {
+        "query_id": 18,
+        "n_matches": 0
+      },
+      {
+        "query_id": 19,
+        "n_matches": 0
+      },
+      {
+        "query_id": 20,
+        "n_matches": 0
+      },
+      {
+        "query_id": 21,
+        "n_matches": 0
+      },
+      {
+        "query_id": 22,
+        "n_matches": 53
+      },
+      {
+        "query_id": 23,
+        "n_matches": 2
+      },
+      {
+        "query_id": 24,
+        "n_matches": 3
+      },
+      {
+        "query_id": 25,
+        "n_matches": 1
+      },
+      {
+        "query_id": 26,
+        "n_matches": 3
+      },
+      {
+        "query_id": 27,
+        "n_matches": 21
+      },
+      {
+        "query_id": 28,
+        "n_matches": 0
+      },
+      {
+        "query_id": 29,
+        "n_matches": 1
+      },
+      {
+        "query_id": 30,
+        "n_matches": 1
+      },
+      {
+        "query_id": 31,
+        "n_matches": 1
+      },
+      {
+        "query_id": 32,
+        "n_matches": 1
+      },
+      {
+        "query_id": 33,
+        "n_matches": 11
+      },
+      {
+        "query_id": 34,
+        "n_matches": 228
+      },
+      {
+        "query_id": 35,
+        "n_matches": 458
+      },
+      {
+        "query_id": 36,
+        "n_matches": 5
+      },
+      {
+        "query_id": 37,
+        "n_matches": 0
+      },
+      {
+        "query_id": 38,
+        "n_matches": 2
+      },
+      {
+        "query_id": 39,
+        "n_matches": 1
+      },
+      {
+        "query_id": 40,
+        "n_matches": 13
+      },
+      {
+        "query_id": 41,
+        "n_matches": 0
+      },
+      {
+        "query_id": 42,
+        "n_matches": 0
+      },
+      {
+        "query_id": 43,
+        "n_matches": 2
+      },
+      {
+        "query_id": 44,
+        "n_matches": 3
+      },
+      {
+        "query_id": 45,
+        "n_matches": 2
+      },
+      {
+        "query_id": 46,
+        "n_matches": 17
+      },
+      {
+        "query_id": 47,
+        "n_matches": 1
+      },
+      {
+        "query_id": 48,
+        "n_matches": 11
+      },
+      {
+        "query_id": 49,
+        "n_matches": 29
+      },
+      {
+        "query_id": 50,
+        "n_matches": 2
+      },
+      {
+        "query_id": 51,
+        "n_matches": 3
+      },
+      {
+        "query_id": 52,
+        "n_matches": 625
+      },
+      {
+        "query_id": 53,
+        "n_matches": 0
+      },
+      {
+        "query_id": 54,
+        "n_matches": 0
+      },
+      {
+        "query_id": 55,
+        "n_matches": 4
+      },
+      {
+        "query_id": 56,
+        "n_matches": 5
+      },
+      {
+        "query_id": 57,
+        "n_matches": 0
+      },
+      {
+        "query_id": 58,
+        "n_matches": 0
+      },
+      {
+        "query_id": 59,
+        "n_matches": 1
+      },
+      {
+        "query_id": 60,
+        "n_matches": 212
+      },
+      {
+        "query_id": 61,
+        "n_matches": 0
+      },
+      {
+        "query_id": 62,
+        "n_matches": 1
+      },
+      {
+        "query_id": 63,
+        "n_matches": 0
+      },
+      {
+        "query_id": 64,
+        "n_matches": 2
+      },
+      {
+        "query_id": 65,
+        "n_matches": 1
+      },
+      {
+        "query_id": 66,
+        "n_matches": 685
+      },
+      {
+        "query_id": 67,
+        "n_matches": 0
+      },
+      {
+        "query_id": 68,
+        "n_matches": 69
+      },
+      {
+        "query_id": 69,
+        "n_matches": 0
+      },
+      {
+        "query_id": 70,
+        "n_matches": 2
+      },
+      {
+        "query_id": 71,
+        "n_matches": 0
+      },
+      {
+        "query_id": 72,
+        "n_matches": 0
+      },
+      {
+        "query_id": 73,
+        "n_matches": 0
+      },
+      {
+        "query_id": 74,
+        "n_matches": 0
+      },
+      {
+        "query_id": 75,
+        "n_matches": 1
+      },
+      {
+        "query_id": 76,
+        "n_matches": 0
+      },
+      {
+        "query_id": 77,
+        "n_matches": 1
+      },
+      {
+        "query_id": 78,
+        "n_matches": 0
+      },
+      {
+        "query_id": 79,
+        "n_matches": 4
+      },
+      {
+        "query_id": 80,
+        "n_matches": 3
+      },
+      {
+        "query_id": 81,
+        "n_matches": 0
+      },
+      {
+        "query_id": 82,
+        "n_matches": 0
+      },
+      {
+        "query_id": 83,
+        "n_matches": 2
+      },
+      {
+        "query_id": 84,
+        "n_matches": 140
+      },
+      {
+        "query_id": 85,
+        "n_matches": 0
+      },
+      {
+        "query_id": 86,
+        "n_matches": 1
+      },
+      {
+        "query_id": 87,
+        "n_matches": 0
+      },
+      {
+        "query_id": 88,
+        "n_matches": 8
+      },
+      {
+        "query_id": 89,
+        "n_matches": 5
+      },
+      {
+        "query_id": 90,
+        "n_matches": 2
+      },
+      {
+        "query_id": 91,
+        "n_matches": 0
+      },
+      {
+        "query_id": 92,
+        "n_matches": 1
+      },
+      {
+        "query_id": 93,
+        "n_matches": 0
+      },
+      {
+        "query_id": 94,
+        "n_matches": 0
+      },
+      {
+        "query_id": 95,
+        "n_matches": 0
+      },
+      {
+        "query_id": 96,
+        "n_matches": 0
+      },
+      {
+        "query_id": 97,
+        "n_matches": 0
+      },
+      {
+        "query_id": 98,
+        "n_matches": 0
+      },
+      {
+        "query_id": 99,
+        "n_matches": 0
+      }
+    ],
+    "top20_queries": [
+      {
+        "query_id": 13,
+        "matches": 715,
+        "unique_scenes": 126,
+        "scene_match_fraction": 0.984375
+      },
+      {
+        "query_id": 66,
+        "matches": 685,
+        "unique_scenes": 124,
+        "scene_match_fraction": 0.96875
+      },
+      {
+        "query_id": 52,
+        "matches": 625,
+        "unique_scenes": 121,
+        "scene_match_fraction": 0.9453125
+      },
+      {
+        "query_id": 12,
+        "matches": 609,
+        "unique_scenes": 124,
+        "scene_match_fraction": 0.96875
+      },
+      {
+        "query_id": 35,
+        "matches": 458,
+        "unique_scenes": 117,
+        "scene_match_fraction": 0.9140625
+      },
+      {
+        "query_id": 34,
+        "matches": 228,
+        "unique_scenes": 84,
+        "scene_match_fraction": 0.65625
+      },
+      {
+        "query_id": 60,
+        "matches": 212,
+        "unique_scenes": 77,
+        "scene_match_fraction": 0.6015625
+      },
+      {
+        "query_id": 84,
+        "matches": 140,
+        "unique_scenes": 65,
+        "scene_match_fraction": 0.5078125
+      },
+      {
+        "query_id": 4,
+        "matches": 80,
+        "unique_scenes": 42,
+        "scene_match_fraction": 0.328125
+      },
+      {
+        "query_id": 68,
+        "matches": 69,
+        "unique_scenes": 45,
+        "scene_match_fraction": 0.3515625
+      },
+      {
+        "query_id": 22,
+        "matches": 53,
+        "unique_scenes": 31,
+        "scene_match_fraction": 0.2421875
+      },
+      {
+        "query_id": 49,
+        "matches": 29,
+        "unique_scenes": 21,
+        "scene_match_fraction": 0.1640625
+      },
+      {
+        "query_id": 27,
+        "matches": 21,
+        "unique_scenes": 15,
+        "scene_match_fraction": 0.1171875
+      },
+      {
+        "query_id": 46,
+        "matches": 17,
+        "unique_scenes": 15,
+        "scene_match_fraction": 0.1171875
+      },
+      {
+        "query_id": 40,
+        "matches": 13,
+        "unique_scenes": 12,
+        "scene_match_fraction": 0.09375
+      },
+      {
+        "query_id": 33,
+        "matches": 11,
+        "unique_scenes": 10,
+        "scene_match_fraction": 0.078125
+      },
+      {
+        "query_id": 48,
+        "matches": 11,
+        "unique_scenes": 11,
+        "scene_match_fraction": 0.0859375
+      },
+      {
+        "query_id": 88,
+        "matches": 8,
+        "unique_scenes": 8,
+        "scene_match_fraction": 0.0625
+      },
+      {
+        "query_id": 36,
+        "matches": 5,
+        "unique_scenes": 3,
+        "scene_match_fraction": 0.0234375
+      },
+      {
+        "query_id": 56,
+        "matches": 5,
+        "unique_scenes": 5,
+        "scene_match_fraction": 0.0390625
+      }
+    ],
+    "cross_scene_query_reuse": [
+      {
+        "query_id": 0,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 1,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 2,
+        "matches": 2,
+        "unique_scenes": 2,
+        "scene_match_fraction": 0.015625
+      },
+      {
+        "query_id": 3,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 4,
+        "matches": 80,
+        "unique_scenes": 42,
+        "scene_match_fraction": 0.328125
+      },
+      {
+        "query_id": 5,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 6,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 7,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 8,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 9,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 10,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 11,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 12,
+        "matches": 609,
+        "unique_scenes": 124,
+        "scene_match_fraction": 0.96875
+      },
+      {
+        "query_id": 13,
+        "matches": 715,
+        "unique_scenes": 126,
+        "scene_match_fraction": 0.984375
+      },
+      {
+        "query_id": 14,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 15,
+        "matches": 3,
+        "unique_scenes": 3,
+        "scene_match_fraction": 0.0234375
+      },
+      {
+        "query_id": 16,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 17,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 18,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 19,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 20,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 21,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 22,
+        "matches": 53,
+        "unique_scenes": 31,
+        "scene_match_fraction": 0.2421875
+      },
+      {
+        "query_id": 23,
+        "matches": 2,
+        "unique_scenes": 2,
+        "scene_match_fraction": 0.015625
+      },
+      {
+        "query_id": 24,
+        "matches": 3,
+        "unique_scenes": 3,
+        "scene_match_fraction": 0.0234375
+      },
+      {
+        "query_id": 25,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 26,
+        "matches": 3,
+        "unique_scenes": 3,
+        "scene_match_fraction": 0.0234375
+      },
+      {
+        "query_id": 27,
+        "matches": 21,
+        "unique_scenes": 15,
+        "scene_match_fraction": 0.1171875
+      },
+      {
+        "query_id": 28,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 29,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 30,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 31,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 32,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 33,
+        "matches": 11,
+        "unique_scenes": 10,
+        "scene_match_fraction": 0.078125
+      },
+      {
+        "query_id": 34,
+        "matches": 228,
+        "unique_scenes": 84,
+        "scene_match_fraction": 0.65625
+      },
+      {
+        "query_id": 35,
+        "matches": 458,
+        "unique_scenes": 117,
+        "scene_match_fraction": 0.9140625
+      },
+      {
+        "query_id": 36,
+        "matches": 5,
+        "unique_scenes": 3,
+        "scene_match_fraction": 0.0234375
+      },
+      {
+        "query_id": 37,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 38,
+        "matches": 2,
+        "unique_scenes": 2,
+        "scene_match_fraction": 0.015625
+      },
+      {
+        "query_id": 39,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 40,
+        "matches": 13,
+        "unique_scenes": 12,
+        "scene_match_fraction": 0.09375
+      },
+      {
+        "query_id": 41,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 42,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 43,
+        "matches": 2,
+        "unique_scenes": 2,
+        "scene_match_fraction": 0.015625
+      },
+      {
+        "query_id": 44,
+        "matches": 3,
+        "unique_scenes": 3,
+        "scene_match_fraction": 0.0234375
+      },
+      {
+        "query_id": 45,
+        "matches": 2,
+        "unique_scenes": 2,
+        "scene_match_fraction": 0.015625
+      },
+      {
+        "query_id": 46,
+        "matches": 17,
+        "unique_scenes": 15,
+        "scene_match_fraction": 0.1171875
+      },
+      {
+        "query_id": 47,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 48,
+        "matches": 11,
+        "unique_scenes": 11,
+        "scene_match_fraction": 0.0859375
+      },
+      {
+        "query_id": 49,
+        "matches": 29,
+        "unique_scenes": 21,
+        "scene_match_fraction": 0.1640625
+      },
+      {
+        "query_id": 50,
+        "matches": 2,
+        "unique_scenes": 2,
+        "scene_match_fraction": 0.015625
+      },
+      {
+        "query_id": 51,
+        "matches": 3,
+        "unique_scenes": 3,
+        "scene_match_fraction": 0.0234375
+      },
+      {
+        "query_id": 52,
+        "matches": 625,
+        "unique_scenes": 121,
+        "scene_match_fraction": 0.9453125
+      },
+      {
+        "query_id": 53,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 54,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 55,
+        "matches": 4,
+        "unique_scenes": 4,
+        "scene_match_fraction": 0.03125
+      },
+      {
+        "query_id": 56,
+        "matches": 5,
+        "unique_scenes": 5,
+        "scene_match_fraction": 0.0390625
+      },
+      {
+        "query_id": 57,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 58,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 59,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 60,
+        "matches": 212,
+        "unique_scenes": 77,
+        "scene_match_fraction": 0.6015625
+      },
+      {
+        "query_id": 61,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 62,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 63,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 64,
+        "matches": 2,
+        "unique_scenes": 2,
+        "scene_match_fraction": 0.015625
+      },
+      {
+        "query_id": 65,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 66,
+        "matches": 685,
+        "unique_scenes": 124,
+        "scene_match_fraction": 0.96875
+      },
+      {
+        "query_id": 67,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 68,
+        "matches": 69,
+        "unique_scenes": 45,
+        "scene_match_fraction": 0.3515625
+      },
+      {
+        "query_id": 69,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 70,
+        "matches": 2,
+        "unique_scenes": 2,
+        "scene_match_fraction": 0.015625
+      },
+      {
+        "query_id": 71,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 72,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 73,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 74,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 75,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 76,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 77,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 78,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 79,
+        "matches": 4,
+        "unique_scenes": 4,
+        "scene_match_fraction": 0.03125
+      },
+      {
+        "query_id": 80,
+        "matches": 3,
+        "unique_scenes": 3,
+        "scene_match_fraction": 0.0234375
+      },
+      {
+        "query_id": 81,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 82,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 83,
+        "matches": 2,
+        "unique_scenes": 2,
+        "scene_match_fraction": 0.015625
+      },
+      {
+        "query_id": 84,
+        "matches": 140,
+        "unique_scenes": 65,
+        "scene_match_fraction": 0.5078125
+      },
+      {
+        "query_id": 85,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 86,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 87,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 88,
+        "matches": 8,
+        "unique_scenes": 8,
+        "scene_match_fraction": 0.0625
+      },
+      {
+        "query_id": 89,
+        "matches": 5,
+        "unique_scenes": 5,
+        "scene_match_fraction": 0.0390625
+      },
+      {
+        "query_id": 90,
+        "matches": 2,
+        "unique_scenes": 2,
+        "scene_match_fraction": 0.015625
+      },
+      {
+        "query_id": 91,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 92,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 93,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 94,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 95,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 96,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 97,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 98,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 99,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      }
+    ],
+    "active_output_query_definition": "sum of 18 thing-class probabilities >= 0.5"
+  },
+  "val32": {
+    "scope": "val32_context",
+    "n_windows": 32,
+    "total_gt_matches": 168,
+    "unique_queries_ever_matched": 22,
+    "queries_never_matched": 78,
+    "queries_matched_1_to_4_times": 13,
+    "queries_matched_5_to_19_times": 5,
+    "queries_matched_20plus_times": 4,
+    "queries_matched_in_lt_1_percent_windows": 78,
+    "queries_matched_in_lt_5_percent_windows": 84,
+    "queries_matched_in_ge_10_percent_windows": 11,
+    "match_concentration": {
+      "top1_share": 0.14285714285714285,
+      "top5_share": 0.6547619047619047,
+      "top10_share": 0.8690476190476188,
+      "top20_share": 0.9880952380952379,
+      "gini": 0.9013095238095239,
+      "entropy": 2.56434593517596,
+      "normalized_entropy": 0.5568406446689766,
+      "effective_query_count": 12.992157876581478,
+      "total": 168.0
+    },
+    "ownership_concentration": {
+      "top1_share": 0.3603615724412662,
+      "top5_share": 0.9820425701381799,
+      "top10_share": 0.9949716772279579,
+      "top20_share": 0.9958457145748484,
+      "gini": 0.9614798259113606,
+      "entropy": 1.4727849808612374,
+      "normalized_entropy": 0.31981119510901085,
+      "effective_query_count": 4.361364559951587,
+      "total": 19481.735174562782
+    },
+    "match_count_vs_mean_no_object_probability": {
+      "rho": -0.5573184608488335,
+      "p_value": 1.7176083609140447e-09,
+      "finite": true
+    },
+    "match_count_vs_mean_ownership_mass": {
+      "rho": 0.45052461880414096,
+      "p_value": 2.558779614019075e-06,
+      "finite": true
+    },
+    "mean_active_output_queries": 8.4375,
+    "query_match_histogram": [
+      {
+        "query_id": 0,
+        "n_matches": 0
+      },
+      {
+        "query_id": 1,
+        "n_matches": 0
+      },
+      {
+        "query_id": 2,
+        "n_matches": 0
+      },
+      {
+        "query_id": 3,
+        "n_matches": 0
+      },
+      {
+        "query_id": 4,
+        "n_matches": 6
+      },
+      {
+        "query_id": 5,
+        "n_matches": 0
+      },
+      {
+        "query_id": 6,
+        "n_matches": 0
+      },
+      {
+        "query_id": 7,
+        "n_matches": 0
+      },
+      {
+        "query_id": 8,
+        "n_matches": 0
+      },
+      {
+        "query_id": 9,
+        "n_matches": 0
+      },
+      {
+        "query_id": 10,
+        "n_matches": 0
+      },
+      {
+        "query_id": 11,
+        "n_matches": 0
+      },
+      {
+        "query_id": 12,
+        "n_matches": 20
+      },
+      {
+        "query_id": 13,
+        "n_matches": 23
+      },
+      {
+        "query_id": 14,
+        "n_matches": 0
+      },
+      {
+        "query_id": 15,
+        "n_matches": 0
+      },
+      {
+        "query_id": 16,
+        "n_matches": 0
+      },
+      {
+        "query_id": 17,
+        "n_matches": 0
+      },
+      {
+        "query_id": 18,
+        "n_matches": 0
+      },
+      {
+        "query_id": 19,
+        "n_matches": 0
+      },
+      {
+        "query_id": 20,
+        "n_matches": 0
+      },
+      {
+        "query_id": 21,
+        "n_matches": 0
+      },
+      {
+        "query_id": 22,
+        "n_matches": 3
+      },
+      {
+        "query_id": 23,
+        "n_matches": 0
+      },
+      {
+        "query_id": 24,
+        "n_matches": 0
+      },
+      {
+        "query_id": 25,
+        "n_matches": 0
+      },
+      {
+        "query_id": 26,
+        "n_matches": 0
+      },
+      {
+        "query_id": 27,
+        "n_matches": 2
+      },
+      {
+        "query_id": 28,
+        "n_matches": 0
+      },
+      {
+        "query_id": 29,
+        "n_matches": 0
+      },
+      {
+        "query_id": 30,
+        "n_matches": 0
+      },
+      {
+        "query_id": 31,
+        "n_matches": 0
+      },
+      {
+        "query_id": 32,
+        "n_matches": 1
+      },
+      {
+        "query_id": 33,
+        "n_matches": 2
+      },
+      {
+        "query_id": 34,
+        "n_matches": 9
+      },
+      {
+        "query_id": 35,
+        "n_matches": 19
+      },
+      {
+        "query_id": 36,
+        "n_matches": 0
+      },
+      {
+        "query_id": 37,
+        "n_matches": 0
+      },
+      {
+        "query_id": 38,
+        "n_matches": 1
+      },
+      {
+        "query_id": 39,
+        "n_matches": 0
+      },
+      {
+        "query_id": 40,
+        "n_matches": 0
+      },
+      {
+        "query_id": 41,
+        "n_matches": 1
+      },
+      {
+        "query_id": 42,
+        "n_matches": 0
+      },
+      {
+        "query_id": 43,
+        "n_matches": 0
+      },
+      {
+        "query_id": 44,
+        "n_matches": 0
+      },
+      {
+        "query_id": 45,
+        "n_matches": 1
+      },
+      {
+        "query_id": 46,
+        "n_matches": 2
+      },
+      {
+        "query_id": 47,
+        "n_matches": 0
+      },
+      {
+        "query_id": 48,
+        "n_matches": 3
+      },
+      {
+        "query_id": 49,
+        "n_matches": 4
+      },
+      {
+        "query_id": 50,
+        "n_matches": 0
+      },
+      {
+        "query_id": 51,
+        "n_matches": 0
+      },
+      {
+        "query_id": 52,
+        "n_matches": 24
+      },
+      {
+        "query_id": 53,
+        "n_matches": 0
+      },
+      {
+        "query_id": 54,
+        "n_matches": 0
+      },
+      {
+        "query_id": 55,
+        "n_matches": 0
+      },
+      {
+        "query_id": 56,
+        "n_matches": 0
+      },
+      {
+        "query_id": 57,
+        "n_matches": 0
+      },
+      {
+        "query_id": 58,
+        "n_matches": 0
+      },
+      {
+        "query_id": 59,
+        "n_matches": 0
+      },
+      {
+        "query_id": 60,
+        "n_matches": 11
+      },
+      {
+        "query_id": 61,
+        "n_matches": 0
+      },
+      {
+        "query_id": 62,
+        "n_matches": 0
+      },
+      {
+        "query_id": 63,
+        "n_matches": 0
+      },
+      {
+        "query_id": 64,
+        "n_matches": 0
+      },
+      {
+        "query_id": 65,
+        "n_matches": 0
+      },
+      {
+        "query_id": 66,
+        "n_matches": 24
+      },
+      {
+        "query_id": 67,
+        "n_matches": 0
+      },
+      {
+        "query_id": 68,
+        "n_matches": 4
+      },
+      {
+        "query_id": 69,
+        "n_matches": 0
+      },
+      {
+        "query_id": 70,
+        "n_matches": 0
+      },
+      {
+        "query_id": 71,
+        "n_matches": 0
+      },
+      {
+        "query_id": 72,
+        "n_matches": 0
+      },
+      {
+        "query_id": 73,
+        "n_matches": 0
+      },
+      {
+        "query_id": 74,
+        "n_matches": 0
+      },
+      {
+        "query_id": 75,
+        "n_matches": 0
+      },
+      {
+        "query_id": 76,
+        "n_matches": 1
+      },
+      {
+        "query_id": 77,
+        "n_matches": 0
+      },
+      {
+        "query_id": 78,
+        "n_matches": 0
+      },
+      {
+        "query_id": 79,
+        "n_matches": 0
+      },
+      {
+        "query_id": 80,
+        "n_matches": 0
+      },
+      {
+        "query_id": 81,
+        "n_matches": 0
+      },
+      {
+        "query_id": 82,
+        "n_matches": 0
+      },
+      {
+        "query_id": 83,
+        "n_matches": 0
+      },
+      {
+        "query_id": 84,
+        "n_matches": 6
+      },
+      {
+        "query_id": 85,
+        "n_matches": 0
+      },
+      {
+        "query_id": 86,
+        "n_matches": 0
+      },
+      {
+        "query_id": 87,
+        "n_matches": 0
+      },
+      {
+        "query_id": 88,
+        "n_matches": 1
+      },
+      {
+        "query_id": 89,
+        "n_matches": 0
+      },
+      {
+        "query_id": 90,
+        "n_matches": 0
+      },
+      {
+        "query_id": 91,
+        "n_matches": 0
+      },
+      {
+        "query_id": 92,
+        "n_matches": 0
+      },
+      {
+        "query_id": 93,
+        "n_matches": 0
+      },
+      {
+        "query_id": 94,
+        "n_matches": 0
+      },
+      {
+        "query_id": 95,
+        "n_matches": 0
+      },
+      {
+        "query_id": 96,
+        "n_matches": 0
+      },
+      {
+        "query_id": 97,
+        "n_matches": 0
+      },
+      {
+        "query_id": 98,
+        "n_matches": 0
+      },
+      {
+        "query_id": 99,
+        "n_matches": 0
+      }
+    ],
+    "top20_queries": [
+      {
+        "query_id": 52,
+        "matches": 24,
+        "unique_scenes": 24,
+        "scene_match_fraction": 0.75
+      },
+      {
+        "query_id": 66,
+        "matches": 24,
+        "unique_scenes": 24,
+        "scene_match_fraction": 0.75
+      },
+      {
+        "query_id": 13,
+        "matches": 23,
+        "unique_scenes": 23,
+        "scene_match_fraction": 0.71875
+      },
+      {
+        "query_id": 12,
+        "matches": 20,
+        "unique_scenes": 20,
+        "scene_match_fraction": 0.625
+      },
+      {
+        "query_id": 35,
+        "matches": 19,
+        "unique_scenes": 19,
+        "scene_match_fraction": 0.59375
+      },
+      {
+        "query_id": 60,
+        "matches": 11,
+        "unique_scenes": 11,
+        "scene_match_fraction": 0.34375
+      },
+      {
+        "query_id": 34,
+        "matches": 9,
+        "unique_scenes": 9,
+        "scene_match_fraction": 0.28125
+      },
+      {
+        "query_id": 4,
+        "matches": 6,
+        "unique_scenes": 6,
+        "scene_match_fraction": 0.1875
+      },
+      {
+        "query_id": 84,
+        "matches": 6,
+        "unique_scenes": 6,
+        "scene_match_fraction": 0.1875
+      },
+      {
+        "query_id": 49,
+        "matches": 4,
+        "unique_scenes": 4,
+        "scene_match_fraction": 0.125
+      },
+      {
+        "query_id": 68,
+        "matches": 4,
+        "unique_scenes": 4,
+        "scene_match_fraction": 0.125
+      },
+      {
+        "query_id": 22,
+        "matches": 3,
+        "unique_scenes": 3,
+        "scene_match_fraction": 0.09375
+      },
+      {
+        "query_id": 48,
+        "matches": 3,
+        "unique_scenes": 3,
+        "scene_match_fraction": 0.09375
+      },
+      {
+        "query_id": 27,
+        "matches": 2,
+        "unique_scenes": 2,
+        "scene_match_fraction": 0.0625
+      },
+      {
+        "query_id": 33,
+        "matches": 2,
+        "unique_scenes": 2,
+        "scene_match_fraction": 0.0625
+      },
+      {
+        "query_id": 46,
+        "matches": 2,
+        "unique_scenes": 2,
+        "scene_match_fraction": 0.0625
+      },
+      {
+        "query_id": 32,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.03125
+      },
+      {
+        "query_id": 38,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.03125
+      },
+      {
+        "query_id": 41,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.03125
+      },
+      {
+        "query_id": 45,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.03125
+      }
+    ],
+    "cross_scene_query_reuse": [
+      {
+        "query_id": 0,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 1,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 2,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 3,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 4,
+        "matches": 6,
+        "unique_scenes": 6,
+        "scene_match_fraction": 0.1875
+      },
+      {
+        "query_id": 5,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 6,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 7,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 8,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 9,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 10,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 11,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 12,
+        "matches": 20,
+        "unique_scenes": 20,
+        "scene_match_fraction": 0.625
+      },
+      {
+        "query_id": 13,
+        "matches": 23,
+        "unique_scenes": 23,
+        "scene_match_fraction": 0.71875
+      },
+      {
+        "query_id": 14,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 15,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 16,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 17,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 18,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 19,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 20,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 21,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 22,
+        "matches": 3,
+        "unique_scenes": 3,
+        "scene_match_fraction": 0.09375
+      },
+      {
+        "query_id": 23,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 24,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 25,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 26,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 27,
+        "matches": 2,
+        "unique_scenes": 2,
+        "scene_match_fraction": 0.0625
+      },
+      {
+        "query_id": 28,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 29,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 30,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 31,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 32,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.03125
+      },
+      {
+        "query_id": 33,
+        "matches": 2,
+        "unique_scenes": 2,
+        "scene_match_fraction": 0.0625
+      },
+      {
+        "query_id": 34,
+        "matches": 9,
+        "unique_scenes": 9,
+        "scene_match_fraction": 0.28125
+      },
+      {
+        "query_id": 35,
+        "matches": 19,
+        "unique_scenes": 19,
+        "scene_match_fraction": 0.59375
+      },
+      {
+        "query_id": 36,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 37,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 38,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.03125
+      },
+      {
+        "query_id": 39,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 40,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 41,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.03125
+      },
+      {
+        "query_id": 42,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 43,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 44,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 45,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.03125
+      },
+      {
+        "query_id": 46,
+        "matches": 2,
+        "unique_scenes": 2,
+        "scene_match_fraction": 0.0625
+      },
+      {
+        "query_id": 47,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 48,
+        "matches": 3,
+        "unique_scenes": 3,
+        "scene_match_fraction": 0.09375
+      },
+      {
+        "query_id": 49,
+        "matches": 4,
+        "unique_scenes": 4,
+        "scene_match_fraction": 0.125
+      },
+      {
+        "query_id": 50,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 51,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 52,
+        "matches": 24,
+        "unique_scenes": 24,
+        "scene_match_fraction": 0.75
+      },
+      {
+        "query_id": 53,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 54,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 55,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 56,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 57,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 58,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 59,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 60,
+        "matches": 11,
+        "unique_scenes": 11,
+        "scene_match_fraction": 0.34375
+      },
+      {
+        "query_id": 61,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 62,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 63,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 64,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 65,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 66,
+        "matches": 24,
+        "unique_scenes": 24,
+        "scene_match_fraction": 0.75
+      },
+      {
+        "query_id": 67,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 68,
+        "matches": 4,
+        "unique_scenes": 4,
+        "scene_match_fraction": 0.125
+      },
+      {
+        "query_id": 69,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 70,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 71,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 72,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 73,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 74,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 75,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 76,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.03125
+      },
+      {
+        "query_id": 77,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 78,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 79,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 80,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 81,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 82,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 83,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 84,
+        "matches": 6,
+        "unique_scenes": 6,
+        "scene_match_fraction": 0.1875
+      },
+      {
+        "query_id": 85,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 86,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 87,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 88,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.03125
+      },
+      {
+        "query_id": 89,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 90,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 91,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 92,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 93,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 94,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 95,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 96,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 97,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 98,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 99,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      }
+    ],
+    "active_output_query_definition": "sum of 18 thing-class probabilities >= 0.5"
+  }
+}

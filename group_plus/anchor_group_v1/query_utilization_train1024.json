@@ -1,0 +1,3177 @@
+{
+  "summary": {
+    "scope": "train1024",
+    "n_windows": 1024,
+    "total_gt_matches": 4062,
+    "unique_queries_ever_matched": 56,
+    "queries_never_matched": 44,
+    "queries_matched_1_to_4_times": 35,
+    "queries_matched_5_to_19_times": 8,
+    "queries_matched_20plus_times": 13,
+    "queries_matched_in_lt_1_percent_windows": 83,
+    "queries_matched_in_lt_5_percent_windows": 89,
+    "queries_matched_in_ge_10_percent_windows": 8,
+    "match_concentration": {
+      "top1_share": 0.1760216642048252,
+      "top5_share": 0.7612013786312163,
+      "top10_share": 0.9406696208764155,
+      "top20_share": 0.983259478089611,
+      "gini": 0.9180502215657311,
+      "entropy": 2.350261679126314,
+      "normalized_entropy": 0.5103528391366146,
+      "effective_query_count": 10.488313938488115,
+      "total": 4062.0
+    },
+    "ownership_concentration": {
+      "top1_share": 0.4271164686304376,
+      "top5_share": 0.9866222563972366,
+      "top10_share": 0.9952946734124816,
+      "top20_share": 0.9959362606058659,
+      "gini": 0.9650243433961698,
+      "entropy": 1.40199469779514,
+      "normalized_entropy": 0.3044392804550232,
+      "effective_query_count": 4.063296938098047,
+      "total": 586020.3940143681
+    },
+    "match_count_vs_mean_no_object_probability": {
+      "rho": -0.6509925867320872,
+      "p_value": 2.261161753873948e-13,
+      "finite": true
+    },
+    "match_count_vs_mean_ownership_mass": {
+      "rho": 0.17336427731331502,
+      "p_value": 0.08453940882942898,
+      "finite": true
+    },
+    "mean_active_output_queries": 7.4384765625,
+    "query_match_histogram": [
+      {
+        "query_id": 0,
+        "n_matches": 0
+      },
+      {
+        "query_id": 1,
+        "n_matches": 0
+      },
+      {
+        "query_id": 2,
+        "n_matches": 2
+      },
+      {
+        "query_id": 3,
+        "n_matches": 0
+      },
+      {
+        "query_id": 4,
+        "n_matches": 80
+      },
+      {
+        "query_id": 5,
+        "n_matches": 1
+      },
+      {
+        "query_id": 6,
+        "n_matches": 1
+      },
+      {
+        "query_id": 7,
+        "n_matches": 0
+      },
+      {
+        "query_id": 8,
+        "n_matches": 0
+      },
+      {
+        "query_id": 9,
+        "n_matches": 1
+      },
+      {
+        "query_id": 10,
+        "n_matches": 0
+      },
+      {
+        "query_id": 11,
+        "n_matches": 0
+      },
+      {
+        "query_id": 12,
+        "n_matches": 609
+      },
+      {
+        "query_id": 13,
+        "n_matches": 715
+      },
+      {
+        "query_id": 14,
+        "n_matches": 0
+      },
+      {
+        "query_id": 15,
+        "n_matches": 3
+      },
+      {
+        "query_id": 16,
+        "n_matches": 0
+      },
+      {
+        "query_id": 17,
+        "n_matches": 0
+      },
+      {
+        "query_id": 18,
+        "n_matches": 0
+      },
+      {
+        "query_id": 19,
+        "n_matches": 0
+      },
+      {
+        "query_id": 20,
+        "n_matches": 0
+      },
+      {
+        "query_id": 21,
+        "n_matches": 0
+      },
+      {
+        "query_id": 22,
+        "n_matches": 53
+      },
+      {
+        "query_id": 23,
+        "n_matches": 2
+      },
+      {
+        "query_id": 24,
+        "n_matches": 3
+      },
+      {
+        "query_id": 25,
+        "n_matches": 1
+      },
+      {
+        "query_id": 26,
+        "n_matches": 3
+      },
+      {
+        "query_id": 27,
+        "n_matches": 21
+      },
+      {
+        "query_id": 28,
+        "n_matches": 0
+      },
+      {
+        "query_id": 29,
+        "n_matches": 1
+      },
+      {
+        "query_id": 30,
+        "n_matches": 1
+      },
+      {
+        "query_id": 31,
+        "n_matches": 1
+      },
+      {
+        "query_id": 32,
+        "n_matches": 1
+      },
+      {
+        "query_id": 33,
+        "n_matches": 11
+      },
+      {
+        "query_id": 34,
+        "n_matches": 228
+      },
+      {
+        "query_id": 35,
+        "n_matches": 458
+      },
+      {
+        "query_id": 36,
+        "n_matches": 5
+      },
+      {
+        "query_id": 37,
+        "n_matches": 0
+      },
+      {
+        "query_id": 38,
+        "n_matches": 2
+      },
+      {
+        "query_id": 39,
+        "n_matches": 1
+      },
+      {
+        "query_id": 40,
+        "n_matches": 13
+      },
+      {
+        "query_id": 41,
+        "n_matches": 0
+      },
+      {
+        "query_id": 42,
+        "n_matches": 0
+      },
+      {
+        "query_id": 43,
+        "n_matches": 2
+      },
+      {
+        "query_id": 44,
+        "n_matches": 3
+      },
+      {
+        "query_id": 45,
+        "n_matches": 2
+      },
+      {
+        "query_id": 46,
+        "n_matches": 17
+      },
+      {
+        "query_id": 47,
+        "n_matches": 1
+      },
+      {
+        "query_id": 48,
+        "n_matches": 11
+      },
+      {
+        "query_id": 49,
+        "n_matches": 29
+      },
+      {
+        "query_id": 50,
+        "n_matches": 2
+      },
+      {
+        "query_id": 51,
+        "n_matches": 3
+      },
+      {
+        "query_id": 52,
+        "n_matches": 625
+      },
+      {
+        "query_id": 53,
+        "n_matches": 0
+      },
+      {
+        "query_id": 54,
+        "n_matches": 0
+      },
+      {
+        "query_id": 55,
+        "n_matches": 4
+      },
+      {
+        "query_id": 56,
+        "n_matches": 5
+      },
+      {
+        "query_id": 57,
+        "n_matches": 0
+      },
+      {
+        "query_id": 58,
+        "n_matches": 0
+      },
+      {
+        "query_id": 59,
+        "n_matches": 1
+      },
+      {
+        "query_id": 60,
+        "n_matches": 212
+      },
+      {
+        "query_id": 61,
+        "n_matches": 0
+      },
+      {
+        "query_id": 62,
+        "n_matches": 1
+      },
+      {
+        "query_id": 63,
+        "n_matches": 0
+      },
+      {
+        "query_id": 64,
+        "n_matches": 2
+      },
+      {
+        "query_id": 65,
+        "n_matches": 1
+      },
+      {
+        "query_id": 66,
+        "n_matches": 685
+      },
+      {
+        "query_id": 67,
+        "n_matches": 0
+      },
+      {
+        "query_id": 68,
+        "n_matches": 69
+      },
+      {
+        "query_id": 69,
+        "n_matches": 0
+      },
+      {
+        "query_id": 70,
+        "n_matches": 2
+      },
+      {
+        "query_id": 71,
+        "n_matches": 0
+      },
+      {
+        "query_id": 72,
+        "n_matches": 0
+      },
+      {
+        "query_id": 73,
+        "n_matches": 0
+      },
+      {
+        "query_id": 74,
+        "n_matches": 0
+      },
+      {
+        "query_id": 75,
+        "n_matches": 1
+      },
+      {
+        "query_id": 76,
+        "n_matches": 0
+      },
+      {
+        "query_id": 77,
+        "n_matches": 1
+      },
+      {
+        "query_id": 78,
+        "n_matches": 0
+      },
+      {
+        "query_id": 79,
+        "n_matches": 4
+      },
+      {
+        "query_id": 80,
+        "n_matches": 3
+      },
+      {
+        "query_id": 81,
+        "n_matches": 0
+      },
+      {
+        "query_id": 82,
+        "n_matches": 0
+      },
+      {
+        "query_id": 83,
+        "n_matches": 2
+      },
+      {
+        "query_id": 84,
+        "n_matches": 140
+      },
+      {
+        "query_id": 85,
+        "n_matches": 0
+      },
+      {
+        "query_id": 86,
+        "n_matches": 1
+      },
+      {
+        "query_id": 87,
+        "n_matches": 0
+      },
+      {
+        "query_id": 88,
+        "n_matches": 8
+      },
+      {
+        "query_id": 89,
+        "n_matches": 5
+      },
+      {
+        "query_id": 90,
+        "n_matches": 2
+      },
+      {
+        "query_id": 91,
+        "n_matches": 0
+      },
+      {
+        "query_id": 92,
+        "n_matches": 1
+      },
+      {
+        "query_id": 93,
+        "n_matches": 0
+      },
+      {
+        "query_id": 94,
+        "n_matches": 0
+      },
+      {
+        "query_id": 95,
+        "n_matches": 0
+      },
+      {
+        "query_id": 96,
+        "n_matches": 0
+      },
+      {
+        "query_id": 97,
+        "n_matches": 0
+      },
+      {
+        "query_id": 98,
+        "n_matches": 0
+      },
+      {
+        "query_id": 99,
+        "n_matches": 0
+      }
+    ],
+    "top20_queries": [
+      {
+        "query_id": 13,
+        "matches": 715,
+        "unique_scenes": 126,
+        "scene_match_fraction": 0.984375
+      },
+      {
+        "query_id": 66,
+        "matches": 685,
+        "unique_scenes": 124,
+        "scene_match_fraction": 0.96875
+      },
+      {
+        "query_id": 52,
+        "matches": 625,
+        "unique_scenes": 121,
+        "scene_match_fraction": 0.9453125
+      },
+      {
+        "query_id": 12,
+        "matches": 609,
+        "unique_scenes": 124,
+        "scene_match_fraction": 0.96875
+      },
+      {
+        "query_id": 35,
+        "matches": 458,
+        "unique_scenes": 117,
+        "scene_match_fraction": 0.9140625
+      },
+      {
+        "query_id": 34,
+        "matches": 228,
+        "unique_scenes": 84,
+        "scene_match_fraction": 0.65625
+      },
+      {
+        "query_id": 60,
+        "matches": 212,
+        "unique_scenes": 77,
+        "scene_match_fraction": 0.6015625
+      },
+      {
+        "query_id": 84,
+        "matches": 140,
+        "unique_scenes": 65,
+        "scene_match_fraction": 0.5078125
+      },
+      {
+        "query_id": 4,
+        "matches": 80,
+        "unique_scenes": 42,
+        "scene_match_fraction": 0.328125
+      },
+      {
+        "query_id": 68,
+        "matches": 69,
+        "unique_scenes": 45,
+        "scene_match_fraction": 0.3515625
+      },
+      {
+        "query_id": 22,
+        "matches": 53,
+        "unique_scenes": 31,
+        "scene_match_fraction": 0.2421875
+      },
+      {
+        "query_id": 49,
+        "matches": 29,
+        "unique_scenes": 21,
+        "scene_match_fraction": 0.1640625
+      },
+      {
+        "query_id": 27,
+        "matches": 21,
+        "unique_scenes": 15,
+        "scene_match_fraction": 0.1171875
+      },
+      {
+        "query_id": 46,
+        "matches": 17,
+        "unique_scenes": 15,
+        "scene_match_fraction": 0.1171875
+      },
+      {
+        "query_id": 40,
+        "matches": 13,
+        "unique_scenes": 12,
+        "scene_match_fraction": 0.09375
+      },
+      {
+        "query_id": 33,
+        "matches": 11,
+        "unique_scenes": 10,
+        "scene_match_fraction": 0.078125
+      },
+      {
+        "query_id": 48,
+        "matches": 11,
+        "unique_scenes": 11,
+        "scene_match_fraction": 0.0859375
+      },
+      {
+        "query_id": 88,
+        "matches": 8,
+        "unique_scenes": 8,
+        "scene_match_fraction": 0.0625
+      },
+      {
+        "query_id": 36,
+        "matches": 5,
+        "unique_scenes": 3,
+        "scene_match_fraction": 0.0234375
+      },
+      {
+        "query_id": 56,
+        "matches": 5,
+        "unique_scenes": 5,
+        "scene_match_fraction": 0.0390625
+      }
+    ],
+    "cross_scene_query_reuse": [
+      {
+        "query_id": 0,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 1,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 2,
+        "matches": 2,
+        "unique_scenes": 2,
+        "scene_match_fraction": 0.015625
+      },
+      {
+        "query_id": 3,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 4,
+        "matches": 80,
+        "unique_scenes": 42,
+        "scene_match_fraction": 0.328125
+      },
+      {
+        "query_id": 5,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 6,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 7,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 8,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 9,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 10,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 11,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 12,
+        "matches": 609,
+        "unique_scenes": 124,
+        "scene_match_fraction": 0.96875
+      },
+      {
+        "query_id": 13,
+        "matches": 715,
+        "unique_scenes": 126,
+        "scene_match_fraction": 0.984375
+      },
+      {
+        "query_id": 14,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 15,
+        "matches": 3,
+        "unique_scenes": 3,
+        "scene_match_fraction": 0.0234375
+      },
+      {
+        "query_id": 16,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 17,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 18,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 19,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 20,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 21,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 22,
+        "matches": 53,
+        "unique_scenes": 31,
+        "scene_match_fraction": 0.2421875
+      },
+      {
+        "query_id": 23,
+        "matches": 2,
+        "unique_scenes": 2,
+        "scene_match_fraction": 0.015625
+      },
+      {
+        "query_id": 24,
+        "matches": 3,
+        "unique_scenes": 3,
+        "scene_match_fraction": 0.0234375
+      },
+      {
+        "query_id": 25,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 26,
+        "matches": 3,
+        "unique_scenes": 3,
+        "scene_match_fraction": 0.0234375
+      },
+      {
+        "query_id": 27,
+        "matches": 21,
+        "unique_scenes": 15,
+        "scene_match_fraction": 0.1171875
+      },
+      {
+        "query_id": 28,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 29,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 30,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 31,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 32,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 33,
+        "matches": 11,
+        "unique_scenes": 10,
+        "scene_match_fraction": 0.078125
+      },
+      {
+        "query_id": 34,
+        "matches": 228,
+        "unique_scenes": 84,
+        "scene_match_fraction": 0.65625
+      },
+      {
+        "query_id": 35,
+        "matches": 458,
+        "unique_scenes": 117,
+        "scene_match_fraction": 0.9140625
+      },
+      {
+        "query_id": 36,
+        "matches": 5,
+        "unique_scenes": 3,
+        "scene_match_fraction": 0.0234375
+      },
+      {
+        "query_id": 37,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 38,
+        "matches": 2,
+        "unique_scenes": 2,
+        "scene_match_fraction": 0.015625
+      },
+      {
+        "query_id": 39,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 40,
+        "matches": 13,
+        "unique_scenes": 12,
+        "scene_match_fraction": 0.09375
+      },
+      {
+        "query_id": 41,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 42,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 43,
+        "matches": 2,
+        "unique_scenes": 2,
+        "scene_match_fraction": 0.015625
+      },
+      {
+        "query_id": 44,
+        "matches": 3,
+        "unique_scenes": 3,
+        "scene_match_fraction": 0.0234375
+      },
+      {
+        "query_id": 45,
+        "matches": 2,
+        "unique_scenes": 2,
+        "scene_match_fraction": 0.015625
+      },
+      {
+        "query_id": 46,
+        "matches": 17,
+        "unique_scenes": 15,
+        "scene_match_fraction": 0.1171875
+      },
+      {
+        "query_id": 47,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 48,
+        "matches": 11,
+        "unique_scenes": 11,
+        "scene_match_fraction": 0.0859375
+      },
+      {
+        "query_id": 49,
+        "matches": 29,
+        "unique_scenes": 21,
+        "scene_match_fraction": 0.1640625
+      },
+      {
+        "query_id": 50,
+        "matches": 2,
+        "unique_scenes": 2,
+        "scene_match_fraction": 0.015625
+      },
+      {
+        "query_id": 51,
+        "matches": 3,
+        "unique_scenes": 3,
+        "scene_match_fraction": 0.0234375
+      },
+      {
+        "query_id": 52,
+        "matches": 625,
+        "unique_scenes": 121,
+        "scene_match_fraction": 0.9453125
+      },
+      {
+        "query_id": 53,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 54,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 55,
+        "matches": 4,
+        "unique_scenes": 4,
+        "scene_match_fraction": 0.03125
+      },
+      {
+        "query_id": 56,
+        "matches": 5,
+        "unique_scenes": 5,
+        "scene_match_fraction": 0.0390625
+      },
+      {
+        "query_id": 57,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 58,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 59,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 60,
+        "matches": 212,
+        "unique_scenes": 77,
+        "scene_match_fraction": 0.6015625
+      },
+      {
+        "query_id": 61,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 62,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 63,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 64,
+        "matches": 2,
+        "unique_scenes": 2,
+        "scene_match_fraction": 0.015625
+      },
+      {
+        "query_id": 65,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 66,
+        "matches": 685,
+        "unique_scenes": 124,
+        "scene_match_fraction": 0.96875
+      },
+      {
+        "query_id": 67,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 68,
+        "matches": 69,
+        "unique_scenes": 45,
+        "scene_match_fraction": 0.3515625
+      },
+      {
+        "query_id": 69,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 70,
+        "matches": 2,
+        "unique_scenes": 2,
+        "scene_match_fraction": 0.015625
+      },
+      {
+        "query_id": 71,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 72,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 73,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 74,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 75,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 76,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 77,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 78,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 79,
+        "matches": 4,
+        "unique_scenes": 4,
+        "scene_match_fraction": 0.03125
+      },
+      {
+        "query_id": 80,
+        "matches": 3,
+        "unique_scenes": 3,
+        "scene_match_fraction": 0.0234375
+      },
+      {
+        "query_id": 81,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 82,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 83,
+        "matches": 2,
+        "unique_scenes": 2,
+        "scene_match_fraction": 0.015625
+      },
+      {
+        "query_id": 84,
+        "matches": 140,
+        "unique_scenes": 65,
+        "scene_match_fraction": 0.5078125
+      },
+      {
+        "query_id": 85,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 86,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 87,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 88,
+        "matches": 8,
+        "unique_scenes": 8,
+        "scene_match_fraction": 0.0625
+      },
+      {
+        "query_id": 89,
+        "matches": 5,
+        "unique_scenes": 5,
+        "scene_match_fraction": 0.0390625
+      },
+      {
+        "query_id": 90,
+        "matches": 2,
+        "unique_scenes": 2,
+        "scene_match_fraction": 0.015625
+      },
+      {
+        "query_id": 91,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 92,
+        "matches": 1,
+        "unique_scenes": 1,
+        "scene_match_fraction": 0.0078125
+      },
+      {
+        "query_id": 93,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 94,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 95,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 96,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 97,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 98,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      },
+      {
+        "query_id": 99,
+        "matches": 0,
+        "unique_scenes": 0,
+        "scene_match_fraction": 0.0
+      }
+    ],
+    "active_output_query_definition": "sum of 18 thing-class probabilities >= 0.5"
+  },
+  "queries": [
+    {
+      "query_id": 0,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.194212270900607,
+      "mean_ownership_mass": 0.029486535420801374,
+      "median_ownership_mass": 0.016627134755253792,
+      "mean_no_object_probability": 0.9844965150696225,
+      "mean_max_thing_class_probability": 0.0038826793504540547,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 1,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.825377717264928,
+      "mean_ownership_mass": 0.02912634542701653,
+      "median_ownership_mass": 0.01658991351723671,
+      "mean_no_object_probability": 0.9837584521737881,
+      "mean_max_thing_class_probability": 0.004079611853001097,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 2,
+      "n_windows": 1024,
+      "n_hungarian_matches": 2,
+      "n_windows_matched": 2,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.90323771140538,
+      "mean_ownership_mass": 0.029202380577544318,
+      "median_ownership_mass": 0.016565212979912758,
+      "mean_no_object_probability": 0.9833163522998802,
+      "mean_max_thing_class_probability": 0.004238056891040287,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.001953125,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1022,
+      "unique_scene_count_matched": 2
+    },
+    {
+      "query_id": 3,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.29204435343854,
+      "mean_ownership_mass": 0.029582074563904825,
+      "median_ownership_mass": 0.016658887267112732,
+      "mean_no_object_probability": 0.9841322373831645,
+      "mean_max_thing_class_probability": 0.003993075656751444,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 4,
+      "n_windows": 1024,
+      "n_hungarian_matches": 80,
+      "n_windows_matched": 80,
+      "total_matched_gt_anchor_count": 142,
+      "total_ownership_mass": 137.80354449769948,
+      "mean_ownership_mass": 0.13457377392353465,
+      "median_ownership_mass": 0.05520138889551163,
+      "mean_no_object_probability": 0.7435861493577249,
+      "mean_max_thing_class_probability": 0.12553701872116108,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": 0.0,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.078125,
+      "positive_anchor_exposure": 142,
+      "negative_only_windows": 944,
+      "unique_scene_count_matched": 42
+    },
+    {
+      "query_id": 5,
+      "n_windows": 1024,
+      "n_hungarian_matches": 1,
+      "n_windows_matched": 1,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.731028490001336,
+      "mean_ownership_mass": 0.02903420750976693,
+      "median_ownership_mass": 0.01639431342482567,
+      "mean_no_object_probability": 0.9838667185395025,
+      "mean_max_thing_class_probability": 0.004084589388298809,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0009765625,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1023,
+      "unique_scene_count_matched": 1
+    },
+    {
+      "query_id": 6,
+      "n_windows": 1024,
+      "n_hungarian_matches": 1,
+      "n_windows_matched": 1,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.994192710262723,
+      "mean_ownership_mass": 0.02929120381861594,
+      "median_ownership_mass": 0.01650079246610403,
+      "mean_no_object_probability": 0.9835801174049266,
+      "mean_max_thing_class_probability": 0.004148365422281586,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0009765625,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1023,
+      "unique_scene_count_matched": 1
+    },
+    {
+      "query_id": 7,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.436160037410446,
+      "mean_ownership_mass": 0.029722812536533638,
+      "median_ownership_mass": 0.016972064971923828,
+      "mean_no_object_probability": 0.9844897734001279,
+      "mean_max_thing_class_probability": 0.0038732376210077746,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 8,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.181237195734866,
+      "mean_ownership_mass": 0.02947386444895983,
+      "median_ownership_mass": 0.016836359165608883,
+      "mean_no_object_probability": 0.9834714261814952,
+      "mean_max_thing_class_probability": 0.004176994237298004,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 9,
+      "n_windows": 1024,
+      "n_hungarian_matches": 1,
+      "n_windows_matched": 1,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.12801803671755,
+      "mean_ownership_mass": 0.02844533011398198,
+      "median_ownership_mass": 0.016328084282577038,
+      "mean_no_object_probability": 0.9820937986951321,
+      "mean_max_thing_class_probability": 0.0045514833935840215,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0009765625,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1023,
+      "unique_scene_count_matched": 1
+    },
+    {
+      "query_id": 10,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.88758382049855,
+      "mean_ownership_mass": 0.029187093574705614,
+      "median_ownership_mass": 0.01667062286287546,
+      "mean_no_object_probability": 0.9838593975291587,
+      "mean_max_thing_class_probability": 0.004077169147990389,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 11,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.230357404681854,
+      "mean_ownership_mass": 0.029521833403009623,
+      "median_ownership_mass": 0.016892658546566963,
+      "mean_no_object_probability": 0.984068454883527,
+      "mean_max_thing_class_probability": 0.004027760841665895,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 12,
+      "n_windows": 1024,
+      "n_hungarian_matches": 609,
+      "n_windows_matched": 609,
+      "total_matched_gt_anchor_count": 18588,
+      "total_ownership_mass": 35139.131071835756,
+      "mean_ownership_mass": 34.315557687339606,
+      "median_ownership_mass": 24.36808967590332,
+      "mean_no_object_probability": 0.08018942603007417,
+      "mean_max_thing_class_probability": 0.4330767576539074,
+      "mean_matched_gt_iou_2d": 0.2092632713453993,
+      "mean_matched_anchor_fraction": 0.5084216008435126,
+      "n_class_aware_success_iou50": 54,
+      "n_class_agnostic_success_iou50": 83,
+      "positive_match_rate": 0.5947265625,
+      "positive_anchor_exposure": 18588,
+      "negative_only_windows": 415,
+      "unique_scene_count_matched": 124
+    },
+    {
+      "query_id": 13,
+      "n_windows": 1024,
+      "n_hungarian_matches": 715,
+      "n_windows_matched": 715,
+      "total_matched_gt_anchor_count": 118892,
+      "total_ownership_mass": 168694.81281161308,
+      "mean_ownership_mass": 164.7410281363409,
+      "median_ownership_mass": 109.51509094238281,
+      "mean_no_object_probability": 0.02831294056943534,
+      "mean_max_thing_class_probability": 0.40344552569877123,
+      "mean_matched_gt_iou_2d": 0.3420693080278639,
+      "mean_matched_anchor_fraction": 0.6039030724090966,
+      "n_class_aware_success_iou50": 117,
+      "n_class_agnostic_success_iou50": 219,
+      "positive_match_rate": 0.6982421875,
+      "positive_anchor_exposure": 118892,
+      "negative_only_windows": 309,
+      "unique_scene_count_matched": 126
+    },
+    {
+      "query_id": 14,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.05735308059957,
+      "mean_ownership_mass": 0.029352883867773016,
+      "median_ownership_mass": 0.0165453115478158,
+      "mean_no_object_probability": 0.9834880887647159,
+      "mean_max_thing_class_probability": 0.004179871265478141,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 15,
+      "n_windows": 1024,
+      "n_hungarian_matches": 3,
+      "n_windows_matched": 3,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.421984182088636,
+      "mean_ownership_mass": 0.029708968927820933,
+      "median_ownership_mass": 0.01673841942101717,
+      "mean_no_object_probability": 0.9845183661673218,
+      "mean_max_thing_class_probability": 0.0038450452365736965,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0029296875,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1021,
+      "unique_scene_count_matched": 3
+    },
+    {
+      "query_id": 16,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.20953337813262,
+      "mean_ownership_mass": 0.029501497439582636,
+      "median_ownership_mass": 0.016780242323875427,
+      "mean_no_object_probability": 0.9840278805349953,
+      "mean_max_thing_class_probability": 0.003998773736157091,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 17,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.18919055047445,
+      "mean_ownership_mass": 0.029481631396947705,
+      "median_ownership_mass": 0.016704625450074673,
+      "mean_no_object_probability": 0.9835990372230299,
+      "mean_max_thing_class_probability": 0.004155304543189686,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 18,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.32369193865452,
+      "mean_ownership_mass": 0.029612980408842304,
+      "median_ownership_mass": 0.017139744013547897,
+      "mean_no_object_probability": 0.9840986072667874,
+      "mean_max_thing_class_probability": 0.003985165352389686,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 19,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.076775667024776,
+      "mean_ownership_mass": 0.029371851237328883,
+      "median_ownership_mass": 0.016857335343956947,
+      "mean_no_object_probability": 0.9839092020993121,
+      "mean_max_thing_class_probability": 0.0040314863343837715,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 20,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.600473445490934,
+      "mean_ownership_mass": 0.02890671234911224,
+      "median_ownership_mass": 0.016374578699469566,
+      "mean_no_object_probability": 0.9833362262579612,
+      "mean_max_thing_class_probability": 0.004213610271960988,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 21,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.641440639155917,
+      "mean_ownership_mass": 0.0289467193741757,
+      "median_ownership_mass": 0.016436057165265083,
+      "mean_no_object_probability": 0.9835862380568869,
+      "mean_max_thing_class_probability": 0.004146511162502975,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 22,
+      "n_windows": 1024,
+      "n_hungarian_matches": 53,
+      "n_windows_matched": 53,
+      "total_matched_gt_anchor_count": 87,
+      "total_ownership_mass": 80.8620478885714,
+      "mean_ownership_mass": 0.078966843641183,
+      "median_ownership_mass": 0.04534202441573143,
+      "mean_no_object_probability": 0.7780084340338362,
+      "mean_max_thing_class_probability": 0.08580214702897138,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": 0.0,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0517578125,
+      "positive_anchor_exposure": 87,
+      "negative_only_windows": 971,
+      "unique_scene_count_matched": 31
+    },
+    {
+      "query_id": 23,
+      "n_windows": 1024,
+      "n_hungarian_matches": 2,
+      "n_windows_matched": 2,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.350767291267402,
+      "mean_ownership_mass": 0.029639421182878323,
+      "median_ownership_mass": 0.016889735125005245,
+      "mean_no_object_probability": 0.9832404827466235,
+      "mean_max_thing_class_probability": 0.0041528366005536554,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.001953125,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1022,
+      "unique_scene_count_matched": 2
+    },
+    {
+      "query_id": 24,
+      "n_windows": 1024,
+      "n_hungarian_matches": 3,
+      "n_windows_matched": 3,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.13726379047148,
+      "mean_ownership_mass": 0.029430921670382304,
+      "median_ownership_mass": 0.016714509576559067,
+      "mean_no_object_probability": 0.9842162531567737,
+      "mean_max_thing_class_probability": 0.003991326925302019,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0029296875,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1021,
+      "unique_scene_count_matched": 3
+    },
+    {
+      "query_id": 25,
+      "n_windows": 1024,
+      "n_hungarian_matches": 1,
+      "n_windows_matched": 1,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.03442503407132,
+      "mean_ownership_mass": 0.029330493197335272,
+      "median_ownership_mass": 0.01662372425198555,
+      "mean_no_object_probability": 0.9837833721539937,
+      "mean_max_thing_class_probability": 0.0041181568237220745,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0009765625,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1023,
+      "unique_scene_count_matched": 1
+    },
+    {
+      "query_id": 26,
+      "n_windows": 1024,
+      "n_hungarian_matches": 3,
+      "n_windows_matched": 3,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.11235889827367,
+      "mean_ownership_mass": 0.02940660048659538,
+      "median_ownership_mass": 0.01662616617977619,
+      "mean_no_object_probability": 0.9841909711831249,
+      "mean_max_thing_class_probability": 0.003919909212186212,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0029296875,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1021,
+      "unique_scene_count_matched": 3
+    },
+    {
+      "query_id": 27,
+      "n_windows": 1024,
+      "n_hungarian_matches": 21,
+      "n_windows_matched": 21,
+      "total_matched_gt_anchor_count": 9,
+      "total_ownership_mass": 32.06301463791169,
+      "mean_ownership_mass": 0.03131153773233564,
+      "median_ownership_mass": 0.02008089516311884,
+      "mean_no_object_probability": 0.936500310752308,
+      "mean_max_thing_class_probability": 0.01958304460549698,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": 0.0,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0205078125,
+      "positive_anchor_exposure": 9,
+      "negative_only_windows": 1003,
+      "unique_scene_count_matched": 15
+    },
+    {
+      "query_id": 28,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.8954175299732,
+      "mean_ownership_mass": 0.029194743681614455,
+      "median_ownership_mass": 0.016580804251134396,
+      "mean_no_object_probability": 0.9842262241872959,
+      "mean_max_thing_class_probability": 0.003966120579775634,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 29,
+      "n_windows": 1024,
+      "n_hungarian_matches": 1,
+      "n_windows_matched": 1,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.479368593078107,
+      "mean_ownership_mass": 0.02878844589167784,
+      "median_ownership_mass": 0.01644604466855526,
+      "mean_no_object_probability": 0.9833922248799354,
+      "mean_max_thing_class_probability": 0.0041998777141429855,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0009765625,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1023,
+      "unique_scene_count_matched": 1
+    },
+    {
+      "query_id": 30,
+      "n_windows": 1024,
+      "n_hungarian_matches": 1,
+      "n_windows_matched": 1,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.889025166863576,
+      "mean_ownership_mass": 0.02918850113951521,
+      "median_ownership_mass": 0.016454734839498997,
+      "mean_no_object_probability": 0.983464811812155,
+      "mean_max_thing_class_probability": 0.004173752501515082,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0009765625,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1023,
+      "unique_scene_count_matched": 1
+    },
+    {
+      "query_id": 31,
+      "n_windows": 1024,
+      "n_hungarian_matches": 1,
+      "n_windows_matched": 1,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.45857949962374,
+      "mean_ownership_mass": 0.029744706542601307,
+      "median_ownership_mass": 0.016742083244025707,
+      "mean_no_object_probability": 0.9843704050872475,
+      "mean_max_thing_class_probability": 0.0038952672167056335,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0009765625,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1023,
+      "unique_scene_count_matched": 1
+    },
+    {
+      "query_id": 32,
+      "n_windows": 1024,
+      "n_hungarian_matches": 1,
+      "n_windows_matched": 1,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.54254579253029,
+      "mean_ownership_mass": 0.029826704875517862,
+      "median_ownership_mass": 0.01689157634973526,
+      "mean_no_object_probability": 0.9848312539979815,
+      "mean_max_thing_class_probability": 0.0037505203675891607,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0009765625,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1023,
+      "unique_scene_count_matched": 1
+    },
+    {
+      "query_id": 33,
+      "n_windows": 1024,
+      "n_hungarian_matches": 11,
+      "n_windows_matched": 11,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 28.253433516714722,
+      "mean_ownership_mass": 0.02759124366866672,
+      "median_ownership_mass": 0.01646849885582924,
+      "mean_no_object_probability": 0.9772879480733536,
+      "mean_max_thing_class_probability": 0.005846278632134272,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0107421875,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1013,
+      "unique_scene_count_matched": 10
+    },
+    {
+      "query_id": 34,
+      "n_windows": 1024,
+      "n_hungarian_matches": 228,
+      "n_windows_matched": 228,
+      "total_matched_gt_anchor_count": 1857,
+      "total_ownership_mass": 2748.837287636474,
+      "mean_ownership_mass": 2.684411413707494,
+      "median_ownership_mass": 1.2410523891448975,
+      "mean_no_object_probability": 0.33438976112302043,
+      "mean_max_thing_class_probability": 0.3122582154755946,
+      "mean_matched_gt_iou_2d": 0.001547379597151032,
+      "mean_matched_anchor_fraction": 0.028027424757343697,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.22265625,
+      "positive_anchor_exposure": 1857,
+      "negative_only_windows": 796,
+      "unique_scene_count_matched": 84
+    },
+    {
+      "query_id": 35,
+      "n_windows": 1024,
+      "n_hungarian_matches": 458,
+      "n_windows_matched": 458,
+      "total_matched_gt_anchor_count": 7050,
+      "total_ownership_mass": 17143.884806764312,
+      "mean_ownership_mass": 16.742075006605774,
+      "median_ownership_mass": 8.67179250717163,
+      "mean_no_object_probability": 0.18186369494378596,
+      "mean_max_thing_class_probability": 0.33297359465996124,
+      "mean_matched_gt_iou_2d": 0.09908797572656444,
+      "mean_matched_anchor_fraction": 0.29862681259206264,
+      "n_class_aware_success_iou50": 14,
+      "n_class_agnostic_success_iou50": 28,
+      "positive_match_rate": 0.447265625,
+      "positive_anchor_exposure": 7050,
+      "negative_only_windows": 566,
+      "unique_scene_count_matched": 117
+    },
+    {
+      "query_id": 36,
+      "n_windows": 1024,
+      "n_hungarian_matches": 5,
+      "n_windows_matched": 5,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 28.32374024868477,
+      "mean_ownership_mass": 0.027659902586606222,
+      "median_ownership_mass": 0.016248381696641445,
+      "mean_no_object_probability": 0.9802290306543,
+      "mean_max_thing_class_probability": 0.00492479895717679,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0048828125,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1019,
+      "unique_scene_count_matched": 3
+    },
+    {
+      "query_id": 37,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.417536691296846,
+      "mean_ownership_mass": 0.029704625675094576,
+      "median_ownership_mass": 0.01698550023138523,
+      "mean_no_object_probability": 0.9839611813076772,
+      "mean_max_thing_class_probability": 0.00403897008709464,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 38,
+      "n_windows": 1024,
+      "n_hungarian_matches": 2,
+      "n_windows_matched": 2,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 28.496964168502018,
+      "mean_ownership_mass": 0.027829066570802752,
+      "median_ownership_mass": 0.016401633620262146,
+      "mean_no_object_probability": 0.9806002721888945,
+      "mean_max_thing_class_probability": 0.005007126304121812,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.001953125,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1022,
+      "unique_scene_count_matched": 2
+    },
+    {
+      "query_id": 39,
+      "n_windows": 1024,
+      "n_hungarian_matches": 1,
+      "n_windows_matched": 1,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.606154831591994,
+      "mean_ownership_mass": 0.028912260577726556,
+      "median_ownership_mass": 0.01653507724404335,
+      "mean_no_object_probability": 0.9840990934171714,
+      "mean_max_thing_class_probability": 0.004005945795938715,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0009765625,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1023,
+      "unique_scene_count_matched": 1
+    },
+    {
+      "query_id": 40,
+      "n_windows": 1024,
+      "n_hungarian_matches": 13,
+      "n_windows_matched": 13,
+      "total_matched_gt_anchor_count": 1,
+      "total_ownership_mass": 26.92597214842681,
+      "mean_ownership_mass": 0.026294894676198055,
+      "median_ownership_mass": 0.01572320517152548,
+      "mean_no_object_probability": 0.9772421857924201,
+      "mean_max_thing_class_probability": 0.006104387015852808,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": 0.0,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0126953125,
+      "positive_anchor_exposure": 1,
+      "negative_only_windows": 1011,
+      "unique_scene_count_matched": 12
+    },
+    {
+      "query_id": 41,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.409800311201252,
+      "mean_ownership_mass": 0.029697070616407473,
+      "median_ownership_mass": 0.017086995765566826,
+      "mean_no_object_probability": 0.9843492010841146,
+      "mean_max_thing_class_probability": 0.003912525333305439,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 42,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.08098413737025,
+      "mean_ownership_mass": 0.029375961071650636,
+      "median_ownership_mass": 0.016939611174166203,
+      "mean_no_object_probability": 0.9841076963348314,
+      "mean_max_thing_class_probability": 0.003985665002403493,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 43,
+      "n_windows": 1024,
+      "n_hungarian_matches": 2,
+      "n_windows_matched": 2,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.136653738445602,
+      "mean_ownership_mass": 0.029430325916450784,
+      "median_ownership_mass": 0.016768423840403557,
+      "mean_no_object_probability": 0.9836086097056977,
+      "mean_max_thing_class_probability": 0.0041340979637425335,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.001953125,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1022,
+      "unique_scene_count_matched": 2
+    },
+    {
+      "query_id": 44,
+      "n_windows": 1024,
+      "n_hungarian_matches": 3,
+      "n_windows_matched": 3,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.90804700355511,
+      "mean_ownership_mass": 0.02920707715190929,
+      "median_ownership_mass": 0.01657853275537491,
+      "mean_no_object_probability": 0.9833531815675087,
+      "mean_max_thing_class_probability": 0.004220721116951154,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0029296875,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1021,
+      "unique_scene_count_matched": 3
+    },
+    {
+      "query_id": 45,
+      "n_windows": 1024,
+      "n_hungarian_matches": 2,
+      "n_windows_matched": 2,
+      "total_matched_gt_anchor_count": 1,
+      "total_ownership_mass": 28.65888454380911,
+      "mean_ownership_mass": 0.027987191937313582,
+      "median_ownership_mass": 0.016369685530662537,
+      "mean_no_object_probability": 0.9814046114333905,
+      "mean_max_thing_class_probability": 0.004632559983917872,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": 0.0,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.001953125,
+      "positive_anchor_exposure": 1,
+      "negative_only_windows": 1022,
+      "unique_scene_count_matched": 2
+    },
+    {
+      "query_id": 46,
+      "n_windows": 1024,
+      "n_hungarian_matches": 17,
+      "n_windows_matched": 17,
+      "total_matched_gt_anchor_count": 9,
+      "total_ownership_mass": 30.375036553130485,
+      "mean_ownership_mass": 0.02966312163391649,
+      "median_ownership_mass": 0.018244413658976555,
+      "mean_no_object_probability": 0.9543439150438644,
+      "mean_max_thing_class_probability": 0.01250626331955118,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": 0.0,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0166015625,
+      "positive_anchor_exposure": 9,
+      "negative_only_windows": 1007,
+      "unique_scene_count_matched": 15
+    },
+    {
+      "query_id": 47,
+      "n_windows": 1024,
+      "n_hungarian_matches": 1,
+      "n_windows_matched": 1,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 28.96187880798243,
+      "mean_ownership_mass": 0.02828308477342034,
+      "median_ownership_mass": 0.016596798785030842,
+      "mean_no_object_probability": 0.9800752311130054,
+      "mean_max_thing_class_probability": 0.005146985319754549,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0009765625,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1023,
+      "unique_scene_count_matched": 1
+    },
+    {
+      "query_id": 48,
+      "n_windows": 1024,
+      "n_hungarian_matches": 11,
+      "n_windows_matched": 11,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 27.429206130793318,
+      "mean_ownership_mass": 0.02678633411210285,
+      "median_ownership_mass": 0.016368666663765907,
+      "mean_no_object_probability": 0.9703632638556883,
+      "mean_max_thing_class_probability": 0.00804103398826328,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0107421875,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1013,
+      "unique_scene_count_matched": 11
+    },
+    {
+      "query_id": 49,
+      "n_windows": 1024,
+      "n_hungarian_matches": 29,
+      "n_windows_matched": 29,
+      "total_matched_gt_anchor_count": 26,
+      "total_ownership_mass": 48.835337897064164,
+      "mean_ownership_mass": 0.04769075966510172,
+      "median_ownership_mass": 0.03096887469291687,
+      "mean_no_object_probability": 0.8340150570875267,
+      "mean_max_thing_class_probability": 0.05814736828824607,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": 0.0,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0283203125,
+      "positive_anchor_exposure": 26,
+      "negative_only_windows": 995,
+      "unique_scene_count_matched": 21
+    },
+    {
+      "query_id": 50,
+      "n_windows": 1024,
+      "n_hungarian_matches": 2,
+      "n_windows_matched": 2,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 28.65798270329833,
+      "mean_ownership_mass": 0.027986311233689776,
+      "median_ownership_mass": 0.016649394296109676,
+      "mean_no_object_probability": 0.9790285533526912,
+      "mean_max_thing_class_probability": 0.005435137541894619,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.001953125,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1022,
+      "unique_scene_count_matched": 2
+    },
+    {
+      "query_id": 51,
+      "n_windows": 1024,
+      "n_hungarian_matches": 3,
+      "n_windows_matched": 3,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.317452269024216,
+      "mean_ownership_mass": 0.02863032448146896,
+      "median_ownership_mass": 0.016424954868853092,
+      "mean_no_object_probability": 0.9831539933220483,
+      "mean_max_thing_class_probability": 0.004279930131588117,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0029296875,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1021,
+      "unique_scene_count_matched": 3
+    },
+    {
+      "query_id": 52,
+      "n_windows": 1024,
+      "n_hungarian_matches": 625,
+      "n_windows_matched": 625,
+      "total_matched_gt_anchor_count": 79455,
+      "total_ownership_mass": 106903.97351020575,
+      "mean_ownership_mass": 104.3984116310603,
+      "median_ownership_mass": 59.98372459411621,
+      "mean_no_object_probability": 0.04202622669254197,
+      "mean_max_thing_class_probability": 0.39101062672853004,
+      "mean_matched_gt_iou_2d": 0.2759030581257225,
+      "mean_matched_anchor_fraction": 0.4411955499493855,
+      "n_class_aware_success_iou50": 94,
+      "n_class_agnostic_success_iou50": 161,
+      "positive_match_rate": 0.6103515625,
+      "positive_anchor_exposure": 79455,
+      "negative_only_windows": 399,
+      "unique_scene_count_matched": 121
+    },
+    {
+      "query_id": 53,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.67473907652311,
+      "mean_ownership_mass": 0.0289792373794171,
+      "median_ownership_mass": 0.01619536802172661,
+      "mean_no_object_probability": 0.9836708901566453,
+      "mean_max_thing_class_probability": 0.004116182231143739,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 54,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.22049869399052,
+      "mean_ownership_mass": 0.02951220575585012,
+      "median_ownership_mass": 0.017056988552212715,
+      "mean_no_object_probability": 0.9842537042568438,
+      "mean_max_thing_class_probability": 0.00391323765109064,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 55,
+      "n_windows": 1024,
+      "n_hungarian_matches": 4,
+      "n_windows_matched": 4,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.07036375149619,
+      "mean_ownership_mass": 0.029365589601070496,
+      "median_ownership_mass": 0.01654610875993967,
+      "mean_no_object_probability": 0.9843230090918951,
+      "mean_max_thing_class_probability": 0.0039411298008644735,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.00390625,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1020,
+      "unique_scene_count_matched": 4
+    },
+    {
+      "query_id": 56,
+      "n_windows": 1024,
+      "n_hungarian_matches": 5,
+      "n_windows_matched": 5,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.102716973866336,
+      "mean_ownership_mass": 0.029397184544791344,
+      "median_ownership_mass": 0.016654937528073788,
+      "mean_no_object_probability": 0.9840780613594688,
+      "mean_max_thing_class_probability": 0.0039984473128242826,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0048828125,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1019,
+      "unique_scene_count_matched": 5
+    },
+    {
+      "query_id": 57,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.04339344764594,
+      "mean_ownership_mass": 0.029339251413716738,
+      "median_ownership_mass": 0.01686418056488037,
+      "mean_no_object_probability": 0.9827428850112483,
+      "mean_max_thing_class_probability": 0.004408953735207888,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 58,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.373397607938386,
+      "mean_ownership_mass": 0.02966152110150233,
+      "median_ownership_mass": 0.016888586804270744,
+      "mean_no_object_probability": 0.9845641949214041,
+      "mean_max_thing_class_probability": 0.003823669274538588,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 59,
+      "n_windows": 1024,
+      "n_hungarian_matches": 1,
+      "n_windows_matched": 1,
+      "total_matched_gt_anchor_count": 1,
+      "total_ownership_mass": 29.94870071078185,
+      "mean_ownership_mass": 0.0292467780378729,
+      "median_ownership_mass": 0.016688043251633644,
+      "mean_no_object_probability": 0.9831662384676747,
+      "mean_max_thing_class_probability": 0.0042651745109765216,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": 0.0,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0009765625,
+      "positive_anchor_exposure": 1,
+      "negative_only_windows": 1023,
+      "unique_scene_count_matched": 1
+    },
+    {
+      "query_id": 60,
+      "n_windows": 1024,
+      "n_hungarian_matches": 212,
+      "n_windows_matched": 212,
+      "total_matched_gt_anchor_count": 907,
+      "total_ownership_mass": 966.1067667870084,
+      "mean_ownership_mass": 0.9434636394404379,
+      "median_ownership_mass": 0.4224677234888077,
+      "mean_no_object_probability": 0.4231672486712341,
+      "mean_max_thing_class_probability": 0.2857007911399023,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": 0.0,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.20703125,
+      "positive_anchor_exposure": 907,
+      "negative_only_windows": 812,
+      "unique_scene_count_matched": 77
+    },
+    {
+      "query_id": 61,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.727326051564887,
+      "mean_ownership_mass": 0.029030591847231335,
+      "median_ownership_mass": 0.016653694212436676,
+      "mean_no_object_probability": 0.9833539924584329,
+      "mean_max_thing_class_probability": 0.0042385608578001666,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 62,
+      "n_windows": 1024,
+      "n_hungarian_matches": 1,
+      "n_windows_matched": 1,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.81480389670469,
+      "mean_ownership_mass": 0.029116019430375673,
+      "median_ownership_mass": 0.016622875817120075,
+      "mean_no_object_probability": 0.9839335734723136,
+      "mean_max_thing_class_probability": 0.004011385044691451,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0009765625,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1023,
+      "unique_scene_count_matched": 1
+    },
+    {
+      "query_id": 63,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.475860836333595,
+      "mean_ownership_mass": 0.029761582847982027,
+      "median_ownership_mass": 0.016960632987320423,
+      "mean_no_object_probability": 0.9844131814315915,
+      "mean_max_thing_class_probability": 0.0038867170413254826,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 64,
+      "n_windows": 1024,
+      "n_hungarian_matches": 2,
+      "n_windows_matched": 2,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.589510399033315,
+      "mean_ownership_mass": 0.028896006249055972,
+      "median_ownership_mass": 0.017202861607074738,
+      "mean_no_object_probability": 0.9810462797177024,
+      "mean_max_thing_class_probability": 0.004841611691347225,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.001953125,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1022,
+      "unique_scene_count_matched": 2
+    },
+    {
+      "query_id": 65,
+      "n_windows": 1024,
+      "n_hungarian_matches": 1,
+      "n_windows_matched": 1,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.8175528771244,
+      "mean_ownership_mass": 0.029118703981566796,
+      "median_ownership_mass": 0.016459239646792412,
+      "mean_no_object_probability": 0.9835812092060223,
+      "mean_max_thing_class_probability": 0.004193635769809134,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0009765625,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1023,
+      "unique_scene_count_matched": 1
+    },
+    {
+      "query_id": 66,
+      "n_windows": 1024,
+      "n_hungarian_matches": 685,
+      "n_windows_matched": 685,
+      "total_matched_gt_anchor_count": 209398,
+      "total_ownership_mass": 250298.96123683453,
+      "mean_ownership_mass": 244.43257933284622,
+      "median_ownership_mass": 191.33572387695312,
+      "mean_no_object_probability": 0.021815011947410312,
+      "mean_max_thing_class_probability": 0.3985608634102391,
+      "mean_matched_gt_iou_2d": 0.2963122594410382,
+      "mean_matched_anchor_fraction": 0.4634652723550513,
+      "n_class_aware_success_iou50": 121,
+      "n_class_agnostic_success_iou50": 182,
+      "positive_match_rate": 0.6689453125,
+      "positive_anchor_exposure": 209398,
+      "negative_only_windows": 339,
+      "unique_scene_count_matched": 124
+    },
+    {
+      "query_id": 67,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.199227154022083,
+      "mean_ownership_mass": 0.02949143276759969,
+      "median_ownership_mass": 0.016668686643242836,
+      "mean_no_object_probability": 0.9845082036335953,
+      "mean_max_thing_class_probability": 0.0038589623840152854,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 68,
+      "n_windows": 1024,
+      "n_hungarian_matches": 69,
+      "n_windows_matched": 69,
+      "total_matched_gt_anchor_count": 147,
+      "total_ownership_mass": 154.96484513720497,
+      "mean_ownership_mass": 0.15133285657930173,
+      "median_ownership_mass": 0.05488318204879761,
+      "mean_no_object_probability": 0.6863305670121918,
+      "mean_max_thing_class_probability": 0.11479871404549158,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": 0.0,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0673828125,
+      "positive_anchor_exposure": 147,
+      "negative_only_windows": 955,
+      "unique_scene_count_matched": 45
+    },
+    {
+      "query_id": 69,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 31.208672630833462,
+      "mean_ownership_mass": 0.030477219366048303,
+      "median_ownership_mass": 0.01639394834637642,
+      "mean_no_object_probability": 0.9827559239929542,
+      "mean_max_thing_class_probability": 0.004455567587342557,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 70,
+      "n_windows": 1024,
+      "n_hungarian_matches": 2,
+      "n_windows_matched": 2,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.222920230589807,
+      "mean_ownership_mass": 0.02951457053768536,
+      "median_ownership_mass": 0.01674350816756487,
+      "mean_no_object_probability": 0.9828949745860882,
+      "mean_max_thing_class_probability": 0.004289333907479431,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.001953125,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1022,
+      "unique_scene_count_matched": 2
+    },
+    {
+      "query_id": 71,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.667516483692452,
+      "mean_ownership_mass": 0.02897218406610591,
+      "median_ownership_mass": 0.016593484207987785,
+      "mean_no_object_probability": 0.9838445672648959,
+      "mean_max_thing_class_probability": 0.0040946676473367916,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 72,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.054231622722,
+      "mean_ownership_mass": 0.029349835569064453,
+      "median_ownership_mass": 0.016571365296840668,
+      "mean_no_object_probability": 0.9838182842941023,
+      "mean_max_thing_class_probability": 0.004043282483735311,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 73,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.824444003868848,
+      "mean_ownership_mass": 0.029125433597528172,
+      "median_ownership_mass": 0.016685256734490395,
+      "mean_no_object_probability": 0.9833792293793522,
+      "mean_max_thing_class_probability": 0.0041704423449004935,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 74,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.03625957132317,
+      "mean_ownership_mass": 0.029332284737620284,
+      "median_ownership_mass": 0.01669159810990095,
+      "mean_no_object_probability": 0.9839719022857025,
+      "mean_max_thing_class_probability": 0.003995304137390576,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 75,
+      "n_windows": 1024,
+      "n_hungarian_matches": 1,
+      "n_windows_matched": 1,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.46953206777107,
+      "mean_ownership_mass": 0.028778839909932685,
+      "median_ownership_mass": 0.016665184870362282,
+      "mean_no_object_probability": 0.9832285642041825,
+      "mean_max_thing_class_probability": 0.004278850892603714,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0009765625,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1023,
+      "unique_scene_count_matched": 1
+    },
+    {
+      "query_id": 76,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.926592691102996,
+      "mean_ownership_mass": 0.02922518817490527,
+      "median_ownership_mass": 0.01673257164657116,
+      "mean_no_object_probability": 0.9846503525041044,
+      "mean_max_thing_class_probability": 0.003775204587270764,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 77,
+      "n_windows": 1024,
+      "n_hungarian_matches": 1,
+      "n_windows_matched": 1,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.08523085899651,
+      "mean_ownership_mass": 0.02938010826073878,
+      "median_ownership_mass": 0.016934001818299294,
+      "mean_no_object_probability": 0.9834993294207379,
+      "mean_max_thing_class_probability": 0.004134868424443994,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0009765625,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1023,
+      "unique_scene_count_matched": 1
+    },
+    {
+      "query_id": 78,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.835265112342313,
+      "mean_ownership_mass": 0.02913600108627179,
+      "median_ownership_mass": 0.01665456686168909,
+      "mean_no_object_probability": 0.9836891171871684,
+      "mean_max_thing_class_probability": 0.004118595684701631,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 79,
+      "n_windows": 1024,
+      "n_hungarian_matches": 4,
+      "n_windows_matched": 4,
+      "total_matched_gt_anchor_count": 1,
+      "total_ownership_mass": 29.518598725670017,
+      "mean_ownership_mass": 0.028826756568037126,
+      "median_ownership_mass": 0.01695006899535656,
+      "mean_no_object_probability": 0.9808546899002977,
+      "mean_max_thing_class_probability": 0.00493863927493976,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": 0.0,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.00390625,
+      "positive_anchor_exposure": 1,
+      "negative_only_windows": 1020,
+      "unique_scene_count_matched": 4
+    },
+    {
+      "query_id": 80,
+      "n_windows": 1024,
+      "n_hungarian_matches": 3,
+      "n_windows_matched": 3,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.83934455853887,
+      "mean_ownership_mass": 0.029139984920448114,
+      "median_ownership_mass": 0.016711434349417686,
+      "mean_no_object_probability": 0.9825329244486056,
+      "mean_max_thing_class_probability": 0.004417806262608792,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0029296875,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1021,
+      "unique_scene_count_matched": 3
+    },
+    {
+      "query_id": 81,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.360861494438723,
+      "mean_ownership_mass": 0.028672716303162815,
+      "median_ownership_mass": 0.016531827859580517,
+      "mean_no_object_probability": 0.9819887934718281,
+      "mean_max_thing_class_probability": 0.004572510773925842,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 82,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.172600788646378,
+      "mean_ownership_mass": 0.029465430457662478,
+      "median_ownership_mass": 0.016594222746789455,
+      "mean_no_object_probability": 0.9842409298289567,
+      "mean_max_thing_class_probability": 0.003951242388893661,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 83,
+      "n_windows": 1024,
+      "n_hungarian_matches": 2,
+      "n_windows_matched": 2,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.76376110338606,
+      "mean_ownership_mass": 0.02906617295252545,
+      "median_ownership_mass": 0.016738157719373703,
+      "mean_no_object_probability": 0.9824707030784339,
+      "mean_max_thing_class_probability": 0.004494341840086236,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.001953125,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1022,
+      "unique_scene_count_matched": 2
+    },
+    {
+      "query_id": 84,
+      "n_windows": 1024,
+      "n_hungarian_matches": 140,
+      "n_windows_matched": 140,
+      "total_matched_gt_anchor_count": 590,
+      "total_ownership_mass": 1074.500792272389,
+      "mean_ownership_mass": 1.0493171799535048,
+      "median_ownership_mass": 0.2812008261680603,
+      "mean_no_object_probability": 0.4391335940326826,
+      "mean_max_thing_class_probability": 0.2048471141151822,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": 0.001358695652173913,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.13671875,
+      "positive_anchor_exposure": 590,
+      "negative_only_windows": 884,
+      "unique_scene_count_matched": 65
+    },
+    {
+      "query_id": 85,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.820313169970177,
+      "mean_ownership_mass": 0.029121399580049,
+      "median_ownership_mass": 0.016469508409500122,
+      "mean_no_object_probability": 0.9844048470840789,
+      "mean_max_thing_class_probability": 0.0039342547229921365,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 86,
+      "n_windows": 1024,
+      "n_hungarian_matches": 1,
+      "n_windows_matched": 1,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.257728896220215,
+      "mean_ownership_mass": 0.029548563375215053,
+      "median_ownership_mass": 0.016815004870295525,
+      "mean_no_object_probability": 0.9842650907230563,
+      "mean_max_thing_class_probability": 0.003899981214772197,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0009765625,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1023,
+      "unique_scene_count_matched": 1
+    },
+    {
+      "query_id": 87,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.827112026745453,
+      "mean_ownership_mass": 0.029128039088618607,
+      "median_ownership_mass": 0.016914650797843933,
+      "mean_no_object_probability": 0.9825796207296662,
+      "mean_max_thing_class_probability": 0.0043889238094720895,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 88,
+      "n_windows": 1024,
+      "n_hungarian_matches": 8,
+      "n_windows_matched": 8,
+      "total_matched_gt_anchor_count": 2,
+      "total_ownership_mass": 28.376695111510344,
+      "mean_ownership_mass": 0.02771161631983432,
+      "median_ownership_mass": 0.0170839074999094,
+      "mean_no_object_probability": 0.9667985587147996,
+      "mean_max_thing_class_probability": 0.009131807705216488,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": 0.0,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0078125,
+      "positive_anchor_exposure": 2,
+      "negative_only_windows": 1016,
+      "unique_scene_count_matched": 8
+    },
+    {
+      "query_id": 89,
+      "n_windows": 1024,
+      "n_hungarian_matches": 5,
+      "n_windows_matched": 5,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.2533593934495,
+      "mean_ownership_mass": 0.029544296282665528,
+      "median_ownership_mass": 0.016779779456555843,
+      "mean_no_object_probability": 0.9839342805789784,
+      "mean_max_thing_class_probability": 0.003976511112512071,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0048828125,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1019,
+      "unique_scene_count_matched": 5
+    },
+    {
+      "query_id": 90,
+      "n_windows": 1024,
+      "n_hungarian_matches": 2,
+      "n_windows_matched": 2,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.185806237510405,
+      "mean_ownership_mass": 0.029478326403818755,
+      "median_ownership_mass": 0.01677501853555441,
+      "mean_no_object_probability": 0.9839908732683398,
+      "mean_max_thing_class_probability": 0.0040027512551432665,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.001953125,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1022,
+      "unique_scene_count_matched": 2
+    },
+    {
+      "query_id": 91,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.65222399844788,
+      "mean_ownership_mass": 0.029933812498484258,
+      "median_ownership_mass": 0.017290275543928146,
+      "mean_no_object_probability": 0.9841948653920554,
+      "mean_max_thing_class_probability": 0.003946331410588755,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 92,
+      "n_windows": 1024,
+      "n_hungarian_matches": 1,
+      "n_windows_matched": 1,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.05257734504994,
+      "mean_ownership_mass": 0.029348220063525332,
+      "median_ownership_mass": 0.01711942721158266,
+      "mean_no_object_probability": 0.9824300070758909,
+      "mean_max_thing_class_probability": 0.004438622217321608,
+      "mean_matched_gt_iou_2d": 0.0,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0009765625,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1023,
+      "unique_scene_count_matched": 1
+    },
+    {
+      "query_id": 93,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.706033208058216,
+      "mean_ownership_mass": 0.02900979805474435,
+      "median_ownership_mass": 0.01680799387395382,
+      "mean_no_object_probability": 0.9836996499216184,
+      "mean_max_thing_class_probability": 0.004109131389782306,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 94,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.06239679455757,
+      "mean_ownership_mass": 0.02935780936968513,
+      "median_ownership_mass": 0.016563761979341507,
+      "mean_no_object_probability": 0.9836945259594359,
+      "mean_max_thing_class_probability": 0.004114935025199884,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 95,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.65042450884357,
+      "mean_ownership_mass": 0.02895549268441755,
+      "median_ownership_mass": 0.0164655027911067,
+      "mean_no_object_probability": 0.9831763477995992,
+      "mean_max_thing_class_probability": 0.004274459113162266,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 96,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.968311159638688,
+      "mean_ownership_mass": 0.029265928866834656,
+      "median_ownership_mass": 0.016597658395767212,
+      "mean_no_object_probability": 0.9844020869350061,
+      "mean_max_thing_class_probability": 0.003942852938166652,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 97,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 29.877834711340256,
+      "mean_ownership_mass": 0.02917757296029322,
+      "median_ownership_mass": 0.016613549552857876,
+      "mean_no_object_probability": 0.9847466386272572,
+      "mean_max_thing_class_probability": 0.003839425658441087,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 98,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.290091705159284,
+      "mean_ownership_mass": 0.029580167680819613,
+      "median_ownership_mass": 0.016801947727799416,
+      "mean_no_object_probability": 0.9844785209279507,
+      "mean_max_thing_class_probability": 0.0038674937426321776,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    },
+    {
+      "query_id": 99,
+      "n_windows": 1024,
+      "n_hungarian_matches": 0,
+      "n_windows_matched": 0,
+      "total_matched_gt_anchor_count": 0,
+      "total_ownership_mass": 30.44873664295301,
+      "mean_ownership_mass": 0.029735094377883797,
+      "median_ownership_mass": 0.016774363815784454,
+      "mean_no_object_probability": 0.9841163972159848,
+      "mean_max_thing_class_probability": 0.003975571586181559,
+      "mean_matched_gt_iou_2d": null,
+      "mean_matched_anchor_fraction": null,
+      "n_class_aware_success_iou50": 0,
+      "n_class_agnostic_success_iou50": 0,
+      "positive_match_rate": 0.0,
+      "positive_anchor_exposure": 0,
+      "negative_only_windows": 1024,
+      "unique_scene_count_matched": 0
+    }
+  ]
+}
