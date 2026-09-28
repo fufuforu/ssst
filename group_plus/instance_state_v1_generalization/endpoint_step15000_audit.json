@@ -1,0 +1,35 @@
+{
+  "endpoint_dir": "workspace_group_plus/instance_state_v1_generalization/arm_C_frozen/endpoint_step15000",
+  "files": [
+    "COMPLETE",
+    "train_state.pt"
+  ],
+  "COMPLETE": "C step 15000",
+  "train_state_bytes": 909393811,
+  "endpoint_model_bytes": 891326648,
+  "global_step": 15000,
+  "arm": "C",
+  "coupled": false,
+  "plan_sha256": "665858b4cc9b6d64ce9164e77c1d14ebeb05989f752fc4124cfcfb203d615569",
+  "plan_sha256_matches_disk": true,
+  "rng_keys": [
+    "cuda",
+    "numpy",
+    "python",
+    "torch"
+  ],
+  "optimizer_groups": [
+    "instance_state_decay",
+    "instance_state_nodecay"
+  ],
+  "backbone_group_present": false,
+  "optimizer_state_entries": 53,
+  "model_tensors": 509,
+  "all_finite": true,
+  "endpoint_model_matches_train_state": true,
+  "frozen_bitwise_equal_pretrained": true,
+  "frozen_changed_vs_pretrained": [],
+  "frozen_bitwise_equal_step5000": true,
+  "frozen_changed_vs_step5000": [],
+  "instance_state_tensors_moved_since_5000": 44
+}

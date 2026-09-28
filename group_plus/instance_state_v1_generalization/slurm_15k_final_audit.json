@@ -1,0 +1,23 @@
+{
+  "checked_at": "2026-09-28T13:32:35.651938",
+  "job_id": 56136,
+  "squeue_before": "RUNNING",
+  "sacct": [
+    "56136           RUNNING   01:13:12      0:0 ",
+    "56136.0       COMPLETED   01:08:30      0:0"
+  ],
+  "node": "3dimage-11",
+  "active_python_before": 0,
+  "gpu_compute_apps_before": 0,
+  "log_mtime": "2026-09-28T13:27:52",
+  "log_bytes": 2081,
+  "log_finished_line": "[gen] continuation finished in 4077s",
+  "last_step_line": "[gen] EVAL 15000 train16 ctx mIoU 0.257 val8 0.154 val32 0.105 val32t 0.109 recall32 0.049 psnr32 24.40",
+  "endpoint_dir": "workspace_group_plus/instance_state_v1_generalization/arm_C_frozen/endpoint_step15000",
+  "endpoint_files": [
+    "COMPLETE",
+    "train_state.pt"
+  ],
+  "COMPLETE": "C step 15000",
+  "verdict": "job step 56136.0 COMPLETED (exit 0:0); the log reached global step 15000, ran the final evaluation and exited normally; no python child and no GPU compute process remained; the endpoint was written with its COMPLETE marker.  The outer bash was a stale srun wrapper."
+}

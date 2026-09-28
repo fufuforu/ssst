@@ -4,3 +4,25 @@
 [gen] step 5500 loss 2.4410 recon 0.0291 und 2.4118 lr 9.98e-05
 [gen] step 6000 loss 0.9648 recon 0.0274 und 0.9374 lr 9.84e-05
 [gen] step 6500 loss 1.5996 recon 0.0156 und 1.5840 lr 9.58e-05
+[gen] step 7000 loss 1.1357 recon 0.0263 und 1.1094 lr 9.21e-05
+[gen] step 7500 loss 1.7538 recon 0.0295 und 1.7242 lr 8.73e-05
+[gen] EVAL 7500 train16 ctx mIoU 0.137 val8 0.146 val32 0.083 val32t 0.088 recall32 0.055 psnr32 24.40
+[gen] step 8000 loss 1.1397 recon 0.0191 und 1.1206 lr 8.16e-05
+[gen] step 8500 loss 1.3484 recon 0.0688 und 1.2796 lr 7.50e-05
+[gen] step 9000 loss 1.4932 recon 0.0231 und 1.4702 lr 6.79e-05
+[gen] step 9500 loss 1.1050 recon 0.0360 und 1.0689 lr 6.04e-05
+[gen] step 10000 loss 1.2918 recon 0.0116 und 1.2802 lr 5.26e-05
+[gen] EVAL 10000 train16 ctx mIoU 0.170 val8 0.160 val32 0.090 val32t 0.092 recall32 0.043 psnr32 24.40
+[gen] step 10500 loss 1.2015 recon 0.0245 und 1.1770 lr 4.47e-05
+[gen] step 11000 loss 1.3499 recon 0.0695 und 1.2803 lr 3.71e-05
+[gen] step 11500 loss 1.2372 recon 0.0382 und 1.1990 lr 2.97e-05
+[gen] step 12000 loss 1.0014 recon 0.0344 und 0.9670 lr 2.30e-05
+[gen] step 12500 loss 0.7609 recon 0.0146 und 0.7463 lr 1.69e-05
+[gen] EVAL 12500 train16 ctx mIoU 0.215 val8 0.127 val32 0.095 val32t 0.102 recall32 0.037 psnr32 24.40
+[gen] step 13000 loss 0.8392 recon 0.0299 und 0.8094 lr 1.17e-05
+[gen] step 13500 loss 1.2412 recon 0.0202 und 1.2210 lr 7.56e-06
+[gen] step 14000 loss 0.5520 recon 0.0158 und 0.5362 lr 4.50e-06
+[gen] step 14500 loss 1.0519 recon 0.0189 und 1.0330 lr 2.63e-06
+[gen] step 15000 loss 0.8167 recon 0.0173 und 0.7994 lr 2.00e-06
+[gen] EVAL 15000 train16 ctx mIoU 0.257 val8 0.154 val32 0.105 val32t 0.109 recall32 0.049 psnr32 24.40
+[gen] continuation finished in 4077s
