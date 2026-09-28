@@ -1,0 +1,77 @@
+{
+  "scope": "val32 context (2 context views), S1 step5000",
+  "unit": "visible GT instance occurrence per val32 window (sum over windows; the same ScanNet scene-global instance appears once per window it is visible in)",
+  "gt_occurrences": 163,
+  "unique_scene_instances": 163,
+  "note": "A/B/C are 2D projected CENTRE coverage proxies, not true 3D object coverage: a Gaussian footprint can cover an object even when no centre projects inside it",
+  "coverage_table": {
+    "all": {
+      "gt_count": 163,
+      "A_all1024": 0.9079754601226994,
+      "B_fps100": 0.803680981595092,
+      "C_local8": 0.9079754601226994,
+      "D_recovered": 0.03680981595092025
+    },
+    "small": {
+      "gt_count": 26,
+      "A_all1024": 0.5384615384615384,
+      "B_fps100": 0.23076923076923078,
+      "C_local8": 0.5384615384615384,
+      "D_recovered": 0.0
+    },
+    "medium": {
+      "gt_count": 61,
+      "A_all1024": 0.9508196721311475,
+      "B_fps100": 0.8032786885245902,
+      "C_local8": 0.9508196721311475,
+      "D_recovered": 0.01639344262295082
+    },
+    "large": {
+      "gt_count": 76,
+      "A_all1024": 1.0,
+      "B_fps100": 1.0,
+      "C_local8": 1.0,
+      "D_recovered": 0.06578947368421052
+    }
+  },
+  "conditional_final_recall": {
+    "P_D": 0.03680981595092025,
+    "P_D_given_A": {
+      "n": 148,
+      "P_D_given": 0.04054054054054054
+    },
+    "P_D_given_B": {
+      "n": 131,
+      "P_D_given": 0.04580152671755725
+    },
+    "P_D_given_C": {
+      "n": 148,
+      "P_D_given": 0.04054054054054054
+    },
+    "P_D_given_A1_B0": {
+      "n": 17,
+      "P_D": 0.0
+    },
+    "realisation_ratio_D_over_A": 0.04054054054054054,
+    "realisation_ratio_D_over_B": 0.04580152671755725,
+    "realisation_ratio_D_over_C": 0.04054054054054054
+  },
+  "transitions": {
+    "A=0": 15,
+    "A=1,B=0": 17,
+    "B=1,C=1": 131,
+    "A=1,C=0": 0,
+    "C=1,D=0": 142,
+    "C=1,D=1": 6,
+    "A=0,D=1": 0
+  },
+  "C1_D0": {
+    "count": 142,
+    "fraction_of_all_GT": 0.8711656441717791,
+    "fraction_of_C_covered": 0.9594594594594594
+  },
+  "A1_B0": {
+    "count": 17,
+    "fraction_of_all_GT": 0.10429447852760736
+  }
+}
