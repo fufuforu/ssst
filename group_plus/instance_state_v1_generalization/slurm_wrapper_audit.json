@@ -1,0 +1,50 @@
+{
+  "checked_at": "2026-09-28T12:10:57.839007",
+  "method": "squeue + scontrol + sacct + node process tree (srun ps on 3dimage-11) + GPU compute-app query + log mtime + endpoint COMPLETE + torch.load + frozen bitwise comparison",
+  "jobs": [
+    {
+      "job_id": "56086",
+      "slurm_state_before": "RUNNING",
+      "children": [
+        "56086           RUNNING      0:0",
+        "56086.0       COMPLETED      0:0"
+      ],
+      "node": "3dimage-11"
+    },
+    {
+      "job_id": "56087",
+      "slurm_state_before": "RUNNING",
+      "children": [
+        "56087           RUNNING      0:0",
+        "56087.0       COMPLETED      0:0"
+      ],
+      "node": "3dimage-11"
+    }
+  ],
+  "node_process_check": {
+    "node": "3dimage-11",
+    "active_mawb_python_before": 0,
+    "gpu_compute_apps": [],
+    "note": "only the wrapper bash remained; no python child, no GPU memory in use"
+  },
+  "log_check": {
+    "train_log": {
+      "mtime": "2026-09-28T11:33:59",
+      "bytes": 4229
+    },
+    "coverage_log": {
+      "mtime": "2026-09-28T11:19:09",
+      "bytes": 851
+    },
+    "train_log_tail": "finished 5000 steps in 2645s",
+    "coverage_log_complete": true
+  },
+  "endpoint_complete": true,
+  "endpoint_audit_file": "group_plus/instance_state_v1_generalization/endpoint_step5000_audit.json",
+  "action": "scancel 56086 56087 - both were stale srun/bash wrappers: their job steps (56086.0 / 56087.0) had already COMPLETED with exit 0:0, no python child remained on 3dimage-11, no GPU compute app was registered, the train log stopped growing at 11:33:59 (finished 5000 steps) and the coverage log at 11:19:09, and the step-5000 endpoint was written with its COMPLETE marker and loads cleanly.",
+  "slurm_state_after": {
+    "56086": "CANCELLED+",
+    "56087": "CANCELLED+"
+  },
+  "squeue_after": "JOBID ST"
+}

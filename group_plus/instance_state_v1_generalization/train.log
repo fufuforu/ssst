@@ -1,0 +1,60 @@
+[runtime] fused-ssim extension unavailable; using import stand-in /space/mawb/ssst/third_party/shims
+[runtime] preloaded precompiled gsplat extension from /space/mawb/tokengs_siu3r_joint_v1/.torch_extensions_v4/gsplat_cuda/gsplat_cuda.so
+[gen] step 0 evaluated; trainable 2,785,296 / frozen 220,002,620
+[gen] step 100 loss 1.1629 recon 0.0219 und 1.9018 lr 5.00e-05
+[gen] step 200 loss 1.7579 recon 0.0351 und 1.7227 lr 1.00e-04
+[gen] EVAL 200 train16 ctx mIoU 0.043 val8 ctx 0.066 val32 ctx 0.044 val32 target 0.044 recall32 0.000 psnr32 24.40
+[gen] step 300 loss 2.3565 recon 0.0170 und 2.3395 lr 9.99e-05
+[gen] step 400 loss 1.6844 recon 0.0589 und 1.6255 lr 9.96e-05
+[gen] step 500 loss 1.6967 recon 0.0082 und 1.6885 lr 9.91e-05
+[gen] EVAL 500 train16 ctx mIoU 0.058 val8 ctx 0.079 val32 ctx 0.044 val32 target 0.044 recall32 0.000 psnr32 24.40
+[gen] step 600 loss 2.1300 recon 0.0476 und 2.0824 lr 9.83e-05
+[gen] step 700 loss 1.8543 recon 0.0150 und 1.8394 lr 9.74e-05
+[gen] step 800 loss 1.5051 recon 0.0398 und 1.4653 lr 9.63e-05
+[gen] step 900 loss 2.1569 recon 0.0253 und 2.1315 lr 9.49e-05
+[gen] step 1000 loss 1.2544 recon 0.0208 und 1.2336 lr 9.34e-05
+[gen] EVAL 1000 train16 ctx mIoU 0.054 val8 ctx 0.098 val32 ctx 0.062 val32 target 0.063 recall32 0.006 psnr32 24.40
+[gen] step 1100 loss 1.4307 recon 0.0312 und 1.3995 lr 9.17e-05
+[gen] step 1200 loss 1.1678 recon 0.0264 und 1.1414 lr 8.99e-05
+[gen] step 1300 loss 1.8998 recon 0.0265 und 1.8733 lr 8.78e-05
+[gen] step 1400 loss 1.4113 recon 0.0227 und 1.3886 lr 8.56e-05
+[gen] step 1500 loss 1.0890 recon 0.0089 und 1.0801 lr 8.33e-05
+[gen] step 1600 loss 1.2244 recon 0.0151 und 1.2093 lr 8.08e-05
+[gen] step 1700 loss 2.1200 recon 0.0055 und 2.1145 lr 7.82e-05
+[gen] step 1800 loss 1.4485 recon 0.0232 und 1.4253 lr 7.55e-05
+[gen] step 1900 loss 1.4017 recon 0.0270 und 1.3746 lr 7.27e-05
+[gen] step 2000 loss 1.6845 recon 0.0287 und 1.6557 lr 6.98e-05
+[gen] EVAL 2000 train16 ctx mIoU 0.119 val8 ctx 0.107 val32 ctx 0.064 val32 target 0.067 recall32 0.012 psnr32 24.40
+[gen] step 2100 loss 1.0799 recon 0.0387 und 1.0412 lr 6.68e-05
+[gen] step 2200 loss 1.3854 recon 0.0232 und 1.3622 lr 6.37e-05
+[gen] step 2300 loss 1.2909 recon 0.0294 und 1.2615 lr 6.06e-05
+[gen] step 2400 loss 2.1271 recon 0.0476 und 2.0795 lr 5.74e-05
+[gen] step 2500 loss 1.2135 recon 0.0125 und 1.2011 lr 5.42e-05
+[gen] step 2600 loss 1.5168 recon 0.0259 und 1.4909 lr 5.10e-05
+[gen] step 2700 loss 1.1398 recon 0.0459 und 1.0939 lr 4.78e-05
+[gen] step 2800 loss 1.4676 recon 0.0310 und 1.4366 lr 4.46e-05
+[gen] step 2900 loss 1.8543 recon 0.0211 und 1.8331 lr 4.14e-05
+[gen] step 3000 loss 1.5255 recon 0.0079 und 1.5177 lr 3.83e-05
+[gen] step 3100 loss 1.2377 recon 0.0148 und 1.2230 lr 3.52e-05
+[gen] step 3200 loss 1.4067 recon 0.0370 und 1.3698 lr 3.22e-05
+[gen] step 3300 loss 1.1537 recon 0.0189 und 1.1348 lr 2.93e-05
+[gen] step 3400 loss 1.3866 recon 0.0209 und 1.3657 lr 2.65e-05
+[gen] step 3500 loss 0.8828 recon 0.0302 und 0.8525 lr 2.38e-05
+[gen] EVAL 3500 train16 ctx mIoU 0.145 val8 ctx 0.143 val32 ctx 0.094 val32 target 0.100 recall32 0.030 psnr32 24.40
+[gen] step 3600 loss 1.5765 recon 0.0160 und 1.5605 lr 2.12e-05
+[gen] step 3700 loss 1.0120 recon 0.0336 und 0.9783 lr 1.87e-05
+[gen] step 3800 loss 1.3689 recon 0.0419 und 1.3270 lr 1.64e-05
+[gen] step 3900 loss 1.1768 recon 0.0149 und 1.1620 lr 1.42e-05
+[gen] step 4000 loss 1.6635 recon 0.0288 und 1.6347 lr 1.21e-05
+[gen] step 4100 loss 1.0014 recon 0.0100 und 0.9914 lr 1.03e-05
+[gen] step 4200 loss 0.8615 recon 0.0246 und 0.8369 lr 8.56e-06
+[gen] step 4300 loss 1.1079 recon 0.0283 und 1.0796 lr 7.05e-06
+[gen] step 4400 loss 1.5910 recon 0.0362 und 1.5548 lr 5.73e-06
+[gen] step 4500 loss 1.4490 recon 0.0121 und 1.4369 lr 4.60e-06
+[gen] step 4600 loss 0.7926 recon 0.0365 und 0.7562 lr 3.67e-06
+[gen] step 4700 loss 1.4131 recon 0.0217 und 1.3914 lr 2.94e-06
+[gen] step 4800 loss 2.0496 recon 0.0163 und 2.0333 lr 2.42e-06
+[gen] step 4900 loss 1.3771 recon 0.0552 und 1.3219 lr 2.10e-06
+[gen] step 5000 loss 1.3480 recon 0.0305 und 1.3175 lr 2.00e-06
+[gen] EVAL 5000 train16 ctx mIoU 0.144 val8 ctx 0.142 val32 ctx 0.096 val32 target 0.101 recall32 0.030 psnr32 24.40
+[gen] finished 5000 steps in 2645s

@@ -1,0 +1,577 @@
+{
+  "counts": {
+    "total": 222787916,
+    "frozen": 220002620,
+    "trainable": 2785296
+  },
+  "trainable_names": [
+    "instance_state.query_init",
+    "instance_state.ln_h.weight",
+    "instance_state.ln_h.bias",
+    "instance_state.proj_h.weight",
+    "instance_state.proj_h.bias",
+    "instance_state.proj_m.weight",
+    "instance_state.proj_m.bias",
+    "instance_state.ln_x.weight",
+    "instance_state.ln_x.bias",
+    "instance_state.ln_e.weight",
+    "instance_state.ln_e.bias",
+    "instance_state.proj_e.weight",
+    "instance_state.proj_e.bias",
+    "instance_state.ln_u.weight",
+    "instance_state.ln_u.bias",
+    "instance_state.proj_u.weight",
+    "instance_state.proj_u.bias",
+    "instance_state.gru.weight_ih",
+    "instance_state.gru.weight_hh",
+    "instance_state.gru.bias_ih",
+    "instance_state.gru.bias_hh",
+    "instance_state.ln_gru.weight",
+    "instance_state.ln_gru.bias",
+    "instance_state.ffn_fc1.weight",
+    "instance_state.ffn_fc1.bias",
+    "instance_state.ffn_fc2.weight",
+    "instance_state.ffn_fc2.bias",
+    "instance_state.ln_ffn.weight",
+    "instance_state.ln_ffn.bias",
+    "instance_state.token_void.weight",
+    "instance_state.token_void.bias",
+    "instance_state.thing_classifier.weight",
+    "instance_state.thing_classifier.bias",
+    "instance_state.ln_vq.weight",
+    "instance_state.ln_vq.bias",
+    "instance_state.proj_vq.weight",
+    "instance_state.proj_vq.bias",
+    "instance_state.ln_fx.weight",
+    "instance_state.ln_fx.bias",
+    "instance_state.ln_fm.weight",
+    "instance_state.ln_fm.bias",
+    "instance_state.proj_wh.weight",
+    "instance_state.proj_wh.bias",
+    "instance_state.proj_wmu.weight",
+    "instance_state.proj_wmu.bias",
+    "instance_state.proj_wr.weight",
+    "instance_state.proj_wr.bias",
+    "instance_state.proj_wgs.weight",
+    "instance_state.proj_wgs.bias",
+    "instance_state.ln_de.weight",
+    "instance_state.ln_de.bias",
+    "instance_state.proj_de.weight",
+    "instance_state.proj_de.bias",
+    "instance_state.proj_off.weight",
+    "instance_state.proj_off.bias",
+    "instance_state.ln_void.weight",
+    "instance_state.ln_void.bias",
+    "instance_state.proj_gvoid.weight",
+    "instance_state.proj_gvoid.bias"
+  ],
+  "n_frozen_names": 450,
+  "non_instance_state_trainable": [],
+  "optimizer_groups": [
+    {
+      "name": "instance_state_decay",
+      "params": 18,
+      "numel": 2743496,
+      "weight_decay": 0.05
+    },
+    {
+      "name": "instance_state_nodecay",
+      "params": 41,
+      "numel": 41800,
+      "weight_decay": 0.0
+    }
+  ],
+  "optimizer_param_rows": [
+    {
+      "name": "instance_state.query_init",
+      "shape": [
+        102,
+        256
+      ],
+      "numel": 26112,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.ln_h.weight",
+      "shape": [
+        1024
+      ],
+      "numel": 1024,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.ln_h.bias",
+      "shape": [
+        1024
+      ],
+      "numel": 1024,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.proj_h.weight",
+      "shape": [
+        256,
+        1024
+      ],
+      "numel": 262144,
+      "group": "instance_state_decay"
+    },
+    {
+      "name": "instance_state.proj_h.bias",
+      "shape": [
+        256
+      ],
+      "numel": 256,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.proj_m.weight",
+      "shape": [
+        256,
+        4
+      ],
+      "numel": 1024,
+      "group": "instance_state_decay"
+    },
+    {
+      "name": "instance_state.proj_m.bias",
+      "shape": [
+        256
+      ],
+      "numel": 256,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.ln_x.weight",
+      "shape": [
+        256
+      ],
+      "numel": 256,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.ln_x.bias",
+      "shape": [
+        256
+      ],
+      "numel": 256,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.ln_e.weight",
+      "shape": [
+        256
+      ],
+      "numel": 256,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.ln_e.bias",
+      "shape": [
+        256
+      ],
+      "numel": 256,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.proj_e.weight",
+      "shape": [
+        16,
+        256
+      ],
+      "numel": 4096,
+      "group": "instance_state_decay"
+    },
+    {
+      "name": "instance_state.proj_e.bias",
+      "shape": [
+        16
+      ],
+      "numel": 16,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.ln_u.weight",
+      "shape": [
+        256
+      ],
+      "numel": 256,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.ln_u.bias",
+      "shape": [
+        256
+      ],
+      "numel": 256,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.proj_u.weight",
+      "shape": [
+        16,
+        256
+      ],
+      "numel": 4096,
+      "group": "instance_state_decay"
+    },
+    {
+      "name": "instance_state.proj_u.bias",
+      "shape": [
+        16
+      ],
+      "numel": 16,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.gru.weight_ih",
+      "shape": [
+        768,
+        256
+      ],
+      "numel": 196608,
+      "group": "instance_state_decay"
+    },
+    {
+      "name": "instance_state.gru.weight_hh",
+      "shape": [
+        768,
+        256
+      ],
+      "numel": 196608,
+      "group": "instance_state_decay"
+    },
+    {
+      "name": "instance_state.gru.bias_ih",
+      "shape": [
+        768
+      ],
+      "numel": 768,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.gru.bias_hh",
+      "shape": [
+        768
+      ],
+      "numel": 768,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.ln_gru.weight",
+      "shape": [
+        256
+      ],
+      "numel": 256,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.ln_gru.bias",
+      "shape": [
+        256
+      ],
+      "numel": 256,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.ffn_fc1.weight",
+      "shape": [
+        512,
+        256
+      ],
+      "numel": 131072,
+      "group": "instance_state_decay"
+    },
+    {
+      "name": "instance_state.ffn_fc1.bias",
+      "shape": [
+        512
+      ],
+      "numel": 512,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.ffn_fc2.weight",
+      "shape": [
+        256,
+        512
+      ],
+      "numel": 131072,
+      "group": "instance_state_decay"
+    },
+    {
+      "name": "instance_state.ffn_fc2.bias",
+      "shape": [
+        256
+      ],
+      "numel": 256,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.ln_ffn.weight",
+      "shape": [
+        256
+      ],
+      "numel": 256,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.ln_ffn.bias",
+      "shape": [
+        256
+      ],
+      "numel": 256,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.token_void.weight",
+      "shape": [
+        1,
+        256
+      ],
+      "numel": 256,
+      "group": "instance_state_decay"
+    },
+    {
+      "name": "instance_state.token_void.bias",
+      "shape": [
+        1
+      ],
+      "numel": 1,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.thing_classifier.weight",
+      "shape": [
+        19,
+        256
+      ],
+      "numel": 4864,
+      "group": "instance_state_decay"
+    },
+    {
+      "name": "instance_state.thing_classifier.bias",
+      "shape": [
+        19
+      ],
+      "numel": 19,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.ln_vq.weight",
+      "shape": [
+        256
+      ],
+      "numel": 256,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.ln_vq.bias",
+      "shape": [
+        256
+      ],
+      "numel": 256,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.proj_vq.weight",
+      "shape": [
+        256,
+        256
+      ],
+      "numel": 65536,
+      "group": "instance_state_decay"
+    },
+    {
+      "name": "instance_state.proj_vq.bias",
+      "shape": [
+        256
+      ],
+      "numel": 256,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.ln_fx.weight",
+      "shape": [
+        256
+      ],
+      "numel": 256,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.ln_fx.bias",
+      "shape": [
+        256
+      ],
+      "numel": 256,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.ln_fm.weight",
+      "shape": [
+        256
+      ],
+      "numel": 256,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.ln_fm.bias",
+      "shape": [
+        256
+      ],
+      "numel": 256,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.proj_wh.weight",
+      "shape": [
+        1024,
+        518
+      ],
+      "numel": 530432,
+      "group": "instance_state_decay"
+    },
+    {
+      "name": "instance_state.proj_wh.bias",
+      "shape": [
+        1024
+      ],
+      "numel": 1024,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.proj_wmu.weight",
+      "shape": [
+        3,
+        518
+      ],
+      "numel": 1554,
+      "group": "instance_state_decay"
+    },
+    {
+      "name": "instance_state.proj_wmu.bias",
+      "shape": [
+        3
+      ],
+      "numel": 3,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.proj_wr.weight",
+      "shape": [
+        1,
+        518
+      ],
+      "numel": 518,
+      "group": "instance_state_decay"
+    },
+    {
+      "name": "instance_state.proj_wr.bias",
+      "shape": [
+        1
+      ],
+      "numel": 1,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.proj_wgs.weight",
+      "shape": [
+        192,
+        518
+      ],
+      "numel": 99456,
+      "group": "instance_state_decay"
+    },
+    {
+      "name": "instance_state.proj_wgs.bias",
+      "shape": [
+        192
+      ],
+      "numel": 192,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.ln_de.weight",
+      "shape": [
+        1024
+      ],
+      "numel": 1024,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.ln_de.bias",
+      "shape": [
+        1024
+      ],
+      "numel": 1024,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.proj_de.weight",
+      "shape": [
+        1024,
+        1024
+      ],
+      "numel": 1048576,
+      "group": "instance_state_decay"
+    },
+    {
+      "name": "instance_state.proj_de.bias",
+      "shape": [
+        1024
+      ],
+      "numel": 1024,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.proj_off.weight",
+      "shape": [
+        16,
+        3
+      ],
+      "numel": 48,
+      "group": "instance_state_decay"
+    },
+    {
+      "name": "instance_state.proj_off.bias",
+      "shape": [
+        16
+      ],
+      "numel": 16,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.ln_void.weight",
+      "shape": [
+        1024
+      ],
+      "numel": 1024,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.ln_void.bias",
+      "shape": [
+        1024
+      ],
+      "numel": 1024,
+      "group": "instance_state_nodecay"
+    },
+    {
+      "name": "instance_state.proj_gvoid.weight",
+      "shape": [
+        64,
+        1024
+      ],
+      "numel": 65536,
+      "group": "instance_state_decay"
+    },
+    {
+      "name": "instance_state.proj_gvoid.bias",
+      "shape": [
+        64
+      ],
+      "numel": 64,
+      "group": "instance_state_nodecay"
+    }
+  ]
+}
