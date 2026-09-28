@@ -1,0 +1,29 @@
+{
+  "gpu": "NVIDIA GeForce RTX 4090",
+  "cuda_available": true,
+  "cuda_visible_devices": "0",
+  "torch_version": "2.7.0+cu126",
+  "torch_cuda_version": "12.6",
+  "gsplat_forward": "pass",
+  "checkpoint": "/space/mawb/ssst/workspace_recon_diag/full_train/run_lrcap2e5/best_monitor/model.pt",
+  "scene": "scene0000_00",
+  "context_frames": [
+    3551,
+    3596
+  ],
+  "coupled": false,
+  "beta": 0.0,
+  "gaussian_max_abs_diff": 0.0,
+  "gaussian_repeat_baseline_max_abs_diff": 0.0,
+  "rgb_max_abs_diff": 0.0,
+  "rgb_mean_abs_diff": 0.0,
+  "baseline_psnr": 22.12148666381836,
+  "anchor_group_psnr": 22.12148666381836,
+  "psnr_abs_diff": 0.0,
+  "baseline_repeat_rgb_diff": 0.0,
+  "anchor_group_repeat_rgb_diff": 0.0,
+  "anchor_group_repeat_gaussian_max_abs_diff": 0.0,
+  "status": "pass",
+  "blocker": false,
+  "pass_target": true
+}

@@ -1,0 +1,28 @@
+{
+  "manifest": "/datapool/mawb/ssst/group_plus/instance_state_v1_generalization/train128_windows1024.json",
+  "window_index": 0,
+  "scene": "scene0000_00",
+  "context_frames": [
+    3551,
+    3596
+  ],
+  "total_anchors": 1024,
+  "thing_anchors": 211,
+  "wall_anchors": 236,
+  "floor_anchors": 431,
+  "ignore_anchors": 146,
+  "gt_thing_count": 5,
+  "gt_with_anchor_support": 4,
+  "gt_without_anchor_support": 1,
+  "per_gt_anchor_counts": [
+    3,
+    157,
+    44,
+    0,
+    7
+  ],
+  "min": 0,
+  "median": 7,
+  "p90": 157,
+  "max": 157
+}

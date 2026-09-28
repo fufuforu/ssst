@@ -1,0 +1,83 @@
+{
+  "checks": [
+    {
+      "check": "1.shapes",
+      "ok": true,
+      "detail": "(1, 3, 6) (1, 3, 8) (1, 3, 8)"
+    },
+    {
+      "check": "2.seed_included",
+      "ok": true,
+      "detail": "indices [[0, 32, 15, 24, 33, 1, 18, 31], [5, 14, 12, 29, 20, 25, 37, 6], [11, 31, 18, 28, 32, 0, 2, 13]]"
+    },
+    {
+      "check": "3.weight_normalised",
+      "ok": true,
+      "detail": "max|sum-1| 1.19e-07"
+    },
+    {
+      "check": "4.nonnegative",
+      "ok": true,
+      "detail": "min w 6.577e-02"
+    },
+    {
+      "check": "5.identical_features",
+      "ok": true,
+      "detail": "max|pooled-x| 2.38e-07"
+    },
+    {
+      "check": "6.k1_regression",
+      "ok": true,
+      "detail": "max|k1 - gather| 0.00e+00"
+    },
+    {
+      "check": "7a.feature_gradient",
+      "ok": true,
+      "detail": "20 x rows received gradient"
+    },
+    {
+      "check": "7b.no_geometry_gradient",
+      "ok": true,
+      "detail": "weights/selection use mu.detach(); mu has no grad_fn"
+    },
+    {
+      "check": "8.pre_update_equal",
+      "ok": true,
+      "detail": "{\"fps_index_equal\": true, \"c_init_equal\": true, \"s_init_equal\": true, \"q_stuff_init_equal\": true, \"anchor_mu_init_equal\": true}"
+    },
+    {
+      "check": "9.only_q_thing_differs",
+      "ok": true,
+      "detail": "max|dq_thing_init| 2.4409e+00"
+    },
+    {
+      "check": "10.param_count_equal",
+      "ok": true,
+      "detail": "S0 222,787,916 == S1 222,787,916"
+    },
+    {
+      "check": "11.projection_parity",
+      "ok": true,
+      "detail": "max|du| 0.00e+00 max|dv| 0.00e+00"
+    },
+    {
+      "check": "12.init_diversity_recorded",
+      "ok": true,
+      "detail": "pre-update S0 0.509 vs S1 0.706"
+    }
+  ],
+  "failed": [],
+  "ok": true,
+  "equivalence": {
+    "fps_index_equal": true,
+    "c_init_equal": true,
+    "s_init_equal": true,
+    "q_stuff_init_equal": true,
+    "anchor_mu_init_equal": true,
+    "q_thing_init_differs": true,
+    "q_thing_init_max_abs_delta": 2.4408926963806152,
+    "param_count_S0": 222787916,
+    "param_count_S1": 222787916,
+    "param_count_equal": true
+  }
+}

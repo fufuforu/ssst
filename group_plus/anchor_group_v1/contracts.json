@@ -1,0 +1,135 @@
+{
+  "architecture": "LOCUSGS_ANCHOR_GROUP_V1",
+  "passed": 15,
+  "failed": 0,
+  "checks": [
+    {
+      "contract": "C1_shapes",
+      "passed": true,
+      "detail": {
+        "a": [
+          1,
+          1024,
+          256
+        ],
+        "q": [
+          1,
+          102,
+          256
+        ],
+        "A_pre": [
+          1,
+          1024,
+          103
+        ],
+        "A_post": [
+          1,
+          1024,
+          103
+        ],
+        "c": [
+          1,
+          100,
+          3
+        ],
+        "s": [
+          1,
+          100,
+          3
+        ]
+      }
+    },
+    {
+      "contract": "C2_simplex",
+      "passed": true,
+      "detail": {
+        "max_sum_error": 3.5762786865234375e-07
+      }
+    },
+    {
+      "contract": "C3_no_fps_local8",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "contract": "C4_all_anchor_gradient",
+      "passed": true,
+      "detail": {
+        "all_anchor_grad_rows": 1024
+      }
+    },
+    {
+      "contract": "C5_query_gradient",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "contract": "C6_gaussian_parent_exact",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "contract": "C7_same_instance",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "contract": "C8_one_view",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "contract": "C9_instance_conflict",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "contract": "C10_thing_stuff_conflict",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "contract": "C11_wall",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "contract": "C12_floor",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "contract": "C13_no_observation",
+      "passed": true,
+      "detail": null
+    },
+    {
+      "contract": "C14_perfect_beats_permuted",
+      "passed": true,
+      "detail": {
+        "perfect_ce": 0.005012536887079477,
+        "permuted_ce": 5.298317909240723,
+        "perfect_dice": 0.0040000081062316895,
+        "permuted_dice": 0.7960000038146973
+      }
+    },
+    {
+      "contract": "C15_unified_hungarian_unique",
+      "passed": true,
+      "detail": {
+        "pairs": [
+          [
+            0,
+            0
+          ],
+          [
+            1,
+            1
+          ]
+        ],
+        "single_solve": true,
+        "shared_pairs_for_pixel_anchor": true
+      }
+    }
+  ]
+}

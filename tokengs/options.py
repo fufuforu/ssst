@@ -251,6 +251,8 @@ class Options:
     # seed (S0 = False keeps the single-anchor feature).  No new learnable parameter.
     instance_state_local3d: bool = False
     instance_state_local_k: int = 8
+    # Anchor-Group V1 has an independent controller and ignores legacy local3d.
+    anchor_group_init_seed: int = 31415
     # --- from-scratch group G0/G1 experiment: 100 instance groups + background
     # slot, 101-way token->slot softmax, optional gated write-back into the
     # reconstruction tokens between decoder layers 10 and 11 ---
@@ -902,6 +904,21 @@ config_defaults["train_siu3r_instance_state_locusgs_local3d"] = config_defaults[
     experiment_name="siu3r_instance_state_locusgs_local3d",
     instance_state_local3d=True,
     instance_state_local_k=8,
+)
+
+config_doc["train_siu3r_anchor_group_v1"] = (
+    "LOCUSGS_ANCHOR_GROUP_V1: all 1024 reconstruction anchors interact with 100 thing + "
+    "2 stuff queries and one non-query void channel; beta is fixed at zero."
+)
+config_defaults["train_siu3r_anchor_group_v1"] = config_defaults[
+    "train_siu3r_locusgs_recon_bounded_delta_frozen_radius"
+].evolve(
+    model_type="siu3r_anchor_group_locusgs",
+    workspace="/space/mawb/ssst/workspace_group_plus/anchor_group_v1",
+    experiment_name="siu3r_anchor_group_v1",
+    project_name="TokenGS-LocusGS",
+    instance_state_coupled=False,
+    instance_state_local3d=False,
 )
 
 AllConfigs = tyro.extras.subcommand_type_from_defaults(config_defaults, config_doc)

@@ -1,0 +1,7 @@
+{
+  "instance_state_evaluator_contract": {"passed": 8, "failed": 0, "status": "pass", "artifact": "legacy_eval_contract.json"},
+  "instance_state_loss_contract": {"passed": 16, "failed": 0, "status": "pass", "artifact": "legacy_loss_contract.json"},
+  "s1_local3d_helper_contract": {"passed": 8, "failed": 0, "status": "pass", "artifact": "legacy_s1_contract_gpu/s1_initialization_contract_corrected.json"},
+  "gpu_forward_and_loss": {"status": "pass", "artifact": "legacy_forward_regression.json", "S0": {"architecture_name": "LOCUSGS_INSTANCE_STATE_V1", "instance_state_local3d": false, "initialization": "single-anchor", "forward": "pass", "loss": "pass"}, "S1": {"architecture_name": "LOCUSGS_INSTANCE_STATE_V1", "instance_state_local3d": true, "k": 8, "initialization": "local8", "forward": "pass", "loss": "pass"}},
+  "training": "not run"
+}
