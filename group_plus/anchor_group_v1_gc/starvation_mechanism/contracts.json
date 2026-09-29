@@ -3,84 +3,69 @@
   "optimizer_step_count": 0,
   "endpoint_state_tensor_count": 509,
   "endpoint_state_changed_tensor_names": [],
+  "winner_removal_sha256_before": {
+    "winner_removal_train1024.json": "e412622a2889e923a2eddc11757e6caefbb3baf52da110f89d969ab485fee438",
+    "winner_removal_val32.json": "f1bc8d20978109034d8f5f8e79a2e2cc27fd81fd4cd6562beb52aede2db3af06",
+    "winner_removal_summary.json": "663ebe273be4a475233b30ea7043b20b305b93e5bcd74fddef501a37bd2d35b4"
+  },
+  "winner_removal_sha256_after": {
+    "winner_removal_train1024.json": "e412622a2889e923a2eddc11757e6caefbb3baf52da110f89d969ab485fee438",
+    "winner_removal_val32.json": "f1bc8d20978109034d8f5f8e79a2e2cc27fd81fd4cd6562beb52aede2db3af06",
+    "winner_removal_summary.json": "663ebe273be4a475233b30ea7043b20b305b93e5bcd74fddef501a37bd2d35b4"
+  },
   "contracts": [
     {
-      "id": "SM-C1",
+      "id": "FIX-C1",
       "status": "PASS",
-      "detail": "strict formal step5000 endpoint audit and payload identity verified"
+      "detail": "weighted CE and directional autograd use the same returned logits19 tensor object"
     },
     {
-      "id": "SM-C2",
+      "id": "FIX-C2",
       "status": "PASS",
-      "detail": "historical query sets derived from train1024 utilization artifact"
+      "detail": "autograd.grad uses allow_unused=False; all 16 gradients present with shape [1,100,19] and finite"
     },
     {
-      "id": "SM-C3",
+      "id": "FIX-C3",
       "status": "PASS",
-      "detail": "the exact fixed16 manifest indices were used"
+      "detail": "autograd vs analytic max_abs=2.32830644e-10, relative_l2_max=3.55599785e-07; required <=1e-7 / <=1e-6"
     },
     {
-      "id": "SM-C4",
+      "id": "FIX-C4",
       "status": "PASS",
-      "detail": "one retained model forward per gradient window"
+      "detail": "all 66 matched query rows have exact zero direct no-object drive"
     },
     {
-      "id": "SM-C5",
+      "id": "FIX-C5",
       "status": "PASS",
-      "detail": "one production Hungarian solve per gradient window; component scalar check pins the existing pairs"
+      "detail": "all 1534 unmatched rows have nonnegative drive; positive=1534, exact_zero=0"
     },
     {
-      "id": "SM-C6",
+      "id": "FIX-C6",
       "status": "PASS",
-      "detail": "max decomposition error=1.1920929e-07"
+      "detail": "U1-U9 scalar decomposition max error=1.1920929e-07; required <=1e-6"
     },
     {
-      "id": "SM-C7",
+      "id": "FIX-C7",
       "status": "PASS",
-      "detail": "q_final max_abs=1.11758709e-08, relative_l2=2.43747694e-07"
+      "detail": "original component gradient-sum parity max_abs=5.36441803e-07, relative_l2=6.73961875e-07"
     },
     {
-      "id": "SM-C8",
+      "id": "FIX-C8",
       "status": "PASS",
-      "detail": "query_init max_abs=4.17232513e-07, relative_l2=7.34965864e-07"
+      "detail": "all 509 endpoint state tensors remained exact and unchanged"
     },
     {
-      "id": "SM-C9",
+      "id": "FIX-C9",
       "status": "PASS",
-      "detail": "all state hashes and values remained unchanged during Audit A"
+      "detail": "winner-removal train1024/val32/summary SHA256 unchanged"
     },
     {
-      "id": "SM-C10",
+      "id": "FIX-C10",
       "status": "PASS",
-      "detail": "all train windows covered=1024/1024; GT rows=4062"
-    },
-    {
-      "id": "SM-C11",
-      "status": "PASS",
-      "detail": "all val32 context windows covered=32/32; GT rows=168"
-    },
-    {
-      "id": "SM-C12",
-      "status": "PASS",
-      "detail": "production Hungarian pairs exact on 1024/1024 train and 32/32 val windows"
-    },
-    {
-      "id": "SM-C13",
-      "status": "PASS",
-      "detail": "counterfactuals changed only candidate rows in fixed prediction cost matrices"
-    },
-    {
-      "id": "SM-C14",
-      "status": "PASS",
-      "detail": "optimizer_step_count=0; no optimizer was constructed"
-    },
-    {
-      "id": "SM-C15",
-      "status": "PASS",
-      "detail": "formal endpoint remained torch.equal across all 509 state tensors after Audit A and B"
+      "detail": "optimizer_step_count=0; no optimizer was created"
     }
   ],
-  "passed": 15,
-  "total": 15,
+  "passed": 10,
+  "total": 10,
   "status": "pass"
 }

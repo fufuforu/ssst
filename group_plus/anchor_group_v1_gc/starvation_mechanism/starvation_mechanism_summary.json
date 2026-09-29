@@ -116,7 +116,7 @@
   "interpretation": {
     "largest_historical_never_query_init_gradient_component": "U_unmatched_noobject",
     "largest_current_unmatched_query_init_gradient_component": "U_matched_class",
-    "historical_never_noobject_increase_drive_median": 0.0,
+    "historical_never_noobject_increase_drive_median": 1.3639928511111066e-05,
     "historical_never_anchor_positive_drive_median": 0.0,
     "historical_never_anchor_negative_suppression_median": 1.4317128602669982e-06,
     "historical_never_anchor_net_logit_grad_median": 1.4317128602669982e-06,
@@ -880,11 +880,14 @@
         "evidence": {
           "historical_never_U_unmatched_noobject_qinit_grad_median": 0.001654358464293182,
           "historical_never_U_unmatched_noobject_norm_share_proxy_median": 0.4138261209086911,
-          "noobject_increase_drive_median": 0.0,
+          "noobject_increase_drive_median": 1.3639928511111066e-05,
           "anchor_positive_drive_median": 0.0,
           "anchor_negative_suppression_median": 1.4317128602669982e-06,
           "anchor_suppression_over_U_anchor_ce_qinit_norm": 0.003052591187794259,
-          "anchor_net_logit_grad_median": 1.4317128602669982e-06
+          "anchor_net_logit_grad_median": 1.4317128602669982e-06,
+          "historical_never_noobject_probability_median": 0.9910557568073273,
+          "current_unmatched_noobject_drive_median": 1.4751998151041334e-05,
+          "interpretation_scope": "endpoint current pressure; does not establish earlier training causality"
         }
       },
       "B_winner_monopolization_or_limited_slot_opportunity": {
@@ -913,5 +916,10 @@
     "interpretation_limits": "Evidence labels summarize fixed endpoint measurements only; no corrective strategy is selected."
   },
   "optimizer_step_count": 0,
-  "model_loss_hungarian_shared_gradient_query_definitions_changed": false
+  "model_loss_hungarian_shared_gradient_query_definitions_changed": false,
+  "winner_removal_artifact_sha256": {
+    "winner_removal_train1024.json": "e412622a2889e923a2eddc11757e6caefbb3baf52da110f89d969ab485fee438",
+    "winner_removal_val32.json": "f1bc8d20978109034d8f5f8e79a2e2cc27fd81fd4cd6562beb52aede2db3af06",
+    "winner_removal_summary.json": "663ebe273be4a475233b30ea7043b20b305b93e5bcd74fddef501a37bd2d35b4"
+  }
 }

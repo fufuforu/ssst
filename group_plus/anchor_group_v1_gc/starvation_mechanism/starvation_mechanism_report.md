@@ -42,19 +42,31 @@ Values below are median per-query row gradient norms pooled over the fixed 16 wi
 | Query group | No-object increase drive | Anchor positive drive | Anchor negative suppression | Anchor net suppressive gradient |
 |---|---:|---:|---:|---:|
 | current_matched | 0.0000 | 0.0039 | 0.0030 | -3.31e-05 |
-| current_unmatched | 0.0000 | 0.0000 | 1.49e-06 | 1.49e-06 |
-| historical_top10 | 0.0000 | 0.0000 | 0.00059 | 6.47e-05 |
-| historical_never | 0.0000 | 0.0000 | 1.43e-06 | 1.43e-06 |
-| historical_rare | 0.0000 | 0.0000 | 1.44e-06 | 1.43e-06 |
+| current_unmatched | 1.48e-05 | 0.0000 | 1.49e-06 | 1.49e-06 |
+| historical_top10 | 0.000379 | 0.0000 | 0.00059 | 6.47e-05 |
+| historical_never | 1.36e-05 | 0.0000 | 1.43e-06 | 1.43e-06 |
+| historical_rare | 1.43e-05 | 0.0000 | 1.44e-06 | 1.43e-06 |
 
 ### Direct answers from the measured rows
 
 - Historical-never query_init largest component: `U_unmatched_noobject` (median row norm 0.0017); its norm-share proxy median is 0.4138.
 - Current-unmatched query_init largest component: `U_matched_class` (median row norm 0.0023).
-- Historical-never unmatched no-object CE q_init row-norm median 0.0017; its no-object-logit increase drive mean/median/p90 is 0.0000/0.0000/0.0000.
+- Historical-never unmatched no-object CE q_init row-norm median 0.0017; its no-object-logit increase drive mean/median/p90 is 1.85e-05/1.36e-05/4.06e-05.
 - Historical-never anchor positive drive mean/median/p90 is 0.0000/0.0000/0.0000; negative suppression is 3.68e-06/1.43e-06/1.03e-05. Suppression / anchor-CE q_init row norm = 0.0031.
 - Historical-never q_init row medians: matched-class CE 0.0015, stuff 0.000841, semantic 0.000402, identity 0.0000.
 - Anchor CE versus unmatched no-object CE q_init median row norm: 0.000469 vs 0.0017.
+
+## Corrected unmatched no-object direction
+
+The no-object gradient is differentiated against the exact logits tensor consumed by weighted CE (`allow_unused=False`). The autograd drive and the weighted-mean analytic formula are checked on every query in all fixed16 windows. These are endpoint pressures; they do not establish whether the same pressure caused collapse earlier in training.
+
+| Query group | no-object increase drive mean | median | p10 | p90 | max | P(no-object) mean | median | p10 | p90 |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| current_matched | 0.0000 | 0.0000 | -0.0000 | -0.0000 | -0.0000 | 0.1736 | 0.0309 | 0.0074 | 0.7270 |
+| current_unmatched | 8.06e-05 | 1.48e-05 | 7.6e-06 | 6.77e-05 | 0.0017 | 0.9457 | 0.9906 | 0.9443 | 0.9949 |
+| historical_top10 | 0.000559 | 0.000379 | -0.0000 | 0.0014 | 0.0017 | 0.2908 | 0.1768 | 0.0106 | 0.7668 |
+| historical_never | 1.85e-05 | 1.36e-05 | 7.17e-06 | 4.06e-05 | 7e-05 | 0.9868 | 0.9911 | 0.9742 | 0.9951 |
+| historical_rare | 1.89e-05 | 1.43e-05 | 7.42e-06 | 4.09e-05 | 8.96e-05 | 0.9864 | 0.9910 | 0.9740 | 0.9949 |
 
 ## Historical-never / rare counterfactual candidate quality
 
@@ -101,30 +113,26 @@ Candidate quality is measured on fixed predictions; these are not model performa
 
 ## Mechanism evidence
 
-- **A_negative_supervision_starvation**: moderate evidence; measured evidence: `{"anchor_negative_suppression_median": 1.4317128602669982e-06, "anchor_net_logit_grad_median": 1.4317128602669982e-06, "anchor_positive_drive_median": 0.0, "anchor_suppression_over_U_anchor_ce_qinit_norm": 0.003052591187794259, "historical_never_U_unmatched_noobject_norm_share_proxy_median": 0.4138261209086911, "historical_never_U_unmatched_noobject_qinit_grad_median": 0.001654358464293182, "noobject_increase_drive_median": 0.0}`.
+- **A_negative_supervision_starvation**: moderate evidence; measured evidence: `{"anchor_negative_suppression_median": 1.4317128602669982e-06, "anchor_net_logit_grad_median": 1.4317128602669982e-06, "anchor_positive_drive_median": 0.0, "anchor_suppression_over_U_anchor_ce_qinit_norm": 0.003052591187794259, "current_unmatched_noobject_drive_median": 1.4751998151041334e-05, "historical_never_U_unmatched_noobject_norm_share_proxy_median": 0.4138261209086911, "historical_never_U_unmatched_noobject_qinit_grad_median": 0.001654358464293182, "historical_never_noobject_probability_median": 0.9910557568073273, "interpretation_scope": "endpoint current pressure; does not establish earlier training causality", "noobject_increase_drive_median": 1.3639928511111066e-05}`.
 - **B_winner_monopolization_or_limited_slot_opportunity**: weak/no evidence; measured evidence: `{"candidate_rows": 7251, "historical_never_alternates": 103, "historical_never_strong": 0, "historical_rare_alternates": 783, "historical_rare_strong": 0, "strong_alternates": 0}`.
 - **C_representation_level_dead_slots**: strong evidence; measured evidence: `{"aggregate_counterfactual_rows": 7251, "anchor_correct_ge_0_25_count": 0, "historical_never_candidate_rows": 103, "historical_rare_candidate_rows": 783, "pixel_iou_ge_0_25_count": 0, "strong_alternate_fraction": 0.0}`.
 Val32 has the same counterfactual direction: neither Top5 nor Top10 displaced-GT alternate crosses pixel IoU≥.25 or anchor-correct fraction≥.25, and no strong alternate occurs. Gradient attribution was only defined on fixed training windows; no val32 gradient inference is made.
+Mechanism A is interpreted from the corrected endpoint drive and the recorded no-object probabilities. Positive current unmatched drive is evidence of current negative-class pressure only; it cannot establish earlier training causality.
 
 ## Contracts
 
 | Contract | Status |
 |---|---|
-| SM-C1 | PASS |
-| SM-C2 | PASS |
-| SM-C3 | PASS |
-| SM-C4 | PASS |
-| SM-C5 | PASS |
-| SM-C6 | PASS |
-| SM-C7 | PASS |
-| SM-C8 | PASS |
-| SM-C9 | PASS |
-| SM-C10 | PASS |
-| SM-C11 | PASS |
-| SM-C12 | PASS |
-| SM-C13 | PASS |
-| SM-C14 | PASS |
-| SM-C15 | PASS |
+| FIX-C1 | PASS |
+| FIX-C2 | PASS |
+| FIX-C3 | PASS |
+| FIX-C4 | PASS |
+| FIX-C5 | PASS |
+| FIX-C6 | PASS |
+| FIX-C7 | PASS |
+| FIX-C8 | PASS |
+| FIX-C9 | PASS |
+| FIX-C10 | PASS |
 
 The audit identifies the starvation mechanism(s).
 No corrective training strategy was implemented or selected.

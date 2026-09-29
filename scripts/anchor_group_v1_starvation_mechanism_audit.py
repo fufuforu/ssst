@@ -350,7 +350,10 @@ def _decompose_understanding(pred, batch, targets, pairs):
     parity = abs(_scalar(U_sum) - _scalar(production))
     if parity > 1e-6:
         raise RuntimeError(f"U1-U9 decomposition differs from production loss by {parity:.9g}")
-    return components, U_sum, production, parity
+    # Return this exact tensor object: the same view was consumed by CE above.
+    # Re-slicing pred["thing_class_logits"] later creates a distinct autograd
+    # edge and is not a valid target for directional attribution.
+    return components, U_sum, production, parity, logits
 
 
 def _grad_pair(loss, q_final, query_init):
@@ -373,9 +376,13 @@ def _rows_norm(g):
 def _vec_metrics(x):
     a = np.asarray(list(x), dtype=np.float64)
     if not a.size:
-        return {"mean": None, "median": None, "p90": None, "count": 0}
+        return {"mean": None, "median": None, "p10": None, "p90": None,
+                "min": None, "max": None, "count": 0}
     return {"mean": float(np.mean(a)), "median": float(np.median(a)),
-            "p90": float(np.percentile(a, 90)), "count": int(a.size)}
+            "p10": float(np.percentile(a, 10)),
+            "p90": float(np.percentile(a, 90)),
+            "min": float(np.min(a)), "max": float(np.max(a)),
+            "count": int(a.size)}
 
 
 def _gradient_attribution(model, opt, train, historical, initial_hashes):
@@ -393,7 +400,7 @@ def _gradient_attribution(model, opt, train, historical, initial_hashes):
     for wi in GRAD_WINDOW_INDICES:
         batch, pred = _batch_forward(model, opt, train[wi], torch.device("cuda"))
         targets, pairs = _production_pairs_once(pred, batch)
-        components, U_sum, production, decomp_error = _decompose_understanding(pred, batch, targets, pairs)
+        components, U_sum, production, decomp_error, logits19 = _decompose_understanding(pred, batch, targets, pairs)
         max_decomp_error = max(max_decomp_error, decomp_error)
         # Differentiate with respect to the original state tensor; slicing it
         # after the forward is not an ancestor node in the retained graph.
@@ -467,12 +474,38 @@ def _gradient_attribution(model, opt, train, historical, initial_hashes):
                         aggregate[target][comp][group].append(value)
 
         logits_under = torch.autograd.grad(
-            components["U_unmatched_noobject"], pred["thing_class_logits"][:, :, 2:],
-            retain_graph=True, allow_unused=True)[0]
-        if logits_under is None:
-            noobj_drive = [0.0] * 100
-        else:
-            noobj_drive = (-logits_under[0, :, 18]).detach().float().cpu().tolist()
+            components["U_unmatched_noobject"], logits19,
+            retain_graph=True, allow_unused=False)[0]
+        if logits_under is None or logits_under.shape != (1, 100, 19):
+            raise RuntimeError("no-object directional gradient must be present with shape [1,100,19]")
+        if not bool(torch.isfinite(logits_under).all()):
+            raise RuntimeError("no-object directional gradient contains nonfinite values")
+        autograd_drive_t = -logits_under[0, :, NO_OBJECT_INDEX]
+        p_noobj_t = torch.softmax(logits19[0].float(), dim=-1)[:, NO_OBJECT_INDEX]
+        # PyTorch weighted-mean CE denominator is the sum of target weights.
+        # Matched targets have class weight 1; unmatched targets use 0.1.
+        denominator = float(len(matched) + (100 - len(matched)) * UNMATCHED_CLASS_WEIGHT)
+        analytic_drive_t = (0.1 * CLASS_CE_WEIGHT * UNMATCHED_CLASS_WEIGHT / denominator) * (1.0 - p_noobj_t)
+        matched_mask_t = torch.zeros(100, device=logits19.device, dtype=torch.bool)
+        if matched:
+            matched_mask_t[torch.tensor(sorted(matched), device=logits19.device)] = True
+        analytic_drive_t = torch.where(matched_mask_t, torch.zeros_like(analytic_drive_t), analytic_drive_t)
+        if not bool(torch.isfinite(analytic_drive_t).all()):
+            raise RuntimeError("analytic no-object directional drive contains nonfinite values")
+        drive_diff = autograd_drive_t - analytic_drive_t
+        max_drive_abs = float(drive_diff.abs().max().item())
+        rel_drive = float(drive_diff.norm().item() / (analytic_drive_t.norm().item() + 1e-12))
+        if max_drive_abs > 1e-7 or rel_drive > 1e-6:
+            raise RuntimeError(f"no-object analytic/autograd parity failed at window {wi}: {max_drive_abs}, {rel_drive}")
+        if bool((autograd_drive_t[matched_mask_t] != 0).any()):
+            raise RuntimeError(f"matched query has nonzero direct no-object drive at window {wi}")
+        unmatched_drive = autograd_drive_t[~matched_mask_t]
+        if bool((unmatched_drive < 0).any()):
+            raise RuntimeError(f"unmatched query has negative no-object increase drive at window {wi}")
+        noobj_drive = autograd_drive_t.detach().float().cpu().tolist()
+        p_noobj = p_noobj_t.detach().float().cpu().tolist()
+        n_unmatched_positive = int((unmatched_drive > 0).sum().item())
+        n_unmatched_zero = int((unmatched_drive == 0).sum().item())
         final = pred["states"][-1]
         A = final["A_post"][0].detach().float()
         kinds = targets["anchor_kind"][0]
@@ -508,6 +541,8 @@ def _gradient_attribution(model, opt, train, historical, initial_hashes):
         for q, row in enumerate(window_query_rows):
             row["directional"] = {
                 "noobject_increase_drive": float(noobj_drive[q]),
+                "analytic_noobject_increase_drive": float(analytic_drive_t[q].item()),
+                "noobject_probability": float(p_noobj[q]),
                 "anchor_positive_drive": float(anchor_positive[q]),
                 "anchor_negative_suppression": float(anchor_negative[q]),
                 "anchor_net_logit_grad": float(anchor_net[q]),
@@ -523,6 +558,7 @@ def _gradient_attribution(model, opt, train, historical, initial_hashes):
             for q, yes in enumerate(mask):
                 if yes:
                     directional[group]["noobject_increase_drive"].append(noobj_drive[q])
+                    directional[group]["noobject_probability"].append(p_noobj[q])
                     directional[group]["anchor_positive_drive"].append(anchor_positive[q])
                     directional[group]["anchor_negative_suppression"].append(anchor_negative[q])
                     directional[group]["anchor_net_logit_grad"].append(anchor_net[q])
@@ -538,6 +574,15 @@ def _gradient_attribution(model, opt, train, historical, initial_hashes):
             "decomposition_abs_error": float(decomp_error),
             "gradient_sum_parity": window_gradient_errors,
             "anchor_valid_count": int(n_valid),
+            "noobject_directional": {
+                "matched_count": len(matched),
+                "unmatched_count": 100 - len(matched),
+                "n_unmatched_positive_drive": n_unmatched_positive,
+                "n_unmatched_zero_drive": n_unmatched_zero,
+                "max_abs_autograd_vs_analytic": max_drive_abs,
+                "relative_l2_autograd_vs_analytic": rel_drive,
+                "denominator": denominator,
+            },
         })
 
         print(f"[gradient-attribution] window {wi} complete; decomp={decomp_error:.3g}", flush=True)
@@ -1101,7 +1146,19 @@ def _report(historical, grad, train_summary, val_summary, interp, contracts):
         f"- Historical-never q_init row medians: matched-class CE {_fmt(never_qinit['U_matched_class']['historical_never']['median'])}, stuff {_fmt(never_qinit['U_stuff']['historical_never']['median'])}, semantic {_fmt(never_qinit['U_semantic']['historical_never']['median'])}, identity {_fmt(never_qinit['U_identity']['historical_never']['median'])}.",
         f"- Anchor CE versus unmatched no-object CE q_init median row norm: {_fmt(interp['anchor_negative_vs_noobject_query_init_gradient_median']['anchor_ce'])} vs {_fmt(interp['anchor_negative_vs_noobject_query_init_gradient_median']['unmatched_noobject_ce'])}.",
         "",
-        "## Historical-never / rare counterfactual candidate quality",
+        "## Corrected unmatched no-object direction",
+        "",
+        "The no-object gradient is differentiated against the exact logits tensor consumed by weighted CE (`allow_unused=False`). The autograd drive and the weighted-mean analytic formula are checked on every query in all fixed16 windows. These are endpoint pressures; they do not establish whether the same pressure caused collapse earlier in training.",
+        "",
+        "| Query group | no-object increase drive mean | median | p10 | p90 | max | P(no-object) mean | median | p10 | p90 |",
+        "|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|",
+    ]
+    for group in ("current_matched", "current_unmatched", "historical_top10", "historical_never", "historical_rare"):
+        d = grad["directional_diagnostics"].get(group, {})
+        drive = d.get("noobject_increase_drive", {})
+        prob = d.get("noobject_probability", {})
+        lines.append(f"| {group} | {_fmt(drive.get('mean'))} | {_fmt(drive.get('median'))} | {_fmt(drive.get('p10'))} | {_fmt(drive.get('p90'))} | {_fmt(drive.get('max'))} | {_fmt(prob.get('mean'))} | {_fmt(prob.get('median'))} | {_fmt(prob.get('p10'))} | {_fmt(prob.get('p90'))} |")
+    lines += ["", "## Historical-never / rare counterfactual candidate quality",
         "",
         "These are displaced-GT global Hungarian candidates; thresholds are the fixed audit thresholds.",
         "",
@@ -1141,6 +1198,7 @@ def _report(historical, grad, train_summary, val_summary, interp, contracts):
     for name, row in interp["mechanism_evidence"].items():
         lines.append(f"- **{name}**: {row['label']}; measured evidence: `{json.dumps(row['evidence'], sort_keys=True)}`.")
     lines.append("Val32 has the same counterfactual direction: neither Top5 nor Top10 displaced-GT alternate crosses pixel IoU≥.25 or anchor-correct fraction≥.25, and no strong alternate occurs. Gradient attribution was only defined on fixed training windows; no val32 gradient inference is made.")
+    lines.append("Mechanism A is interpreted from the corrected endpoint drive and the recorded no-object probabilities. Positive current unmatched drive is evidence of current negative-class pressure only; it cannot establish earlier training causality.")
     lines += ["", "## Contracts", "", "| Contract | Status |", "|---|---|"]
     for item in contracts:
         lines.append(f"| {item['id']} | {item['status']} |")
@@ -1148,10 +1206,139 @@ def _report(historical, grad, train_summary, val_summary, interp, contracts):
     (OUT / "starvation_mechanism_report.md").write_text("\n".join(lines))
 
 
+def _file_sha(path):
+    h = hashlib.sha256()
+    with path.open("rb") as f:
+        for block in iter(lambda: f.read(1024 * 1024), b""):
+            h.update(block)
+    return h.hexdigest()
+
+
+def _run_directional_fix(model, opt, train, historical, endpoint_payload, endpoint_tensor_count):
+    winner_paths = [OUT / name for name in (
+        "winner_removal_train1024.json", "winner_removal_val32.json",
+        "winner_removal_summary.json")]
+    if any(not p.is_file() for p in winner_paths):
+        raise FileNotFoundError("the three existing winner-removal artifacts are required")
+    winner_hashes_before = {p.name: _file_sha(p) for p in winner_paths}
+    initial_hashes = _state_hashes(model.state_dict())
+    grad, query_rows = _gradient_attribution(model, opt, train, historical, initial_hashes)
+    endpoint_changed = [name for name, value in endpoint_payload["model"].items()
+                        if not torch.equal(model.state_dict()[name].detach().cpu(), value.detach().cpu())]
+    if endpoint_changed or len(initial_hashes) != endpoint_tensor_count or endpoint_tensor_count != 509:
+        raise RuntimeError(f"endpoint immutability/count failure: count={endpoint_tensor_count}; changed={endpoint_changed[:8]}")
+    winner_hashes_after = {p.name: _file_sha(p) for p in winner_paths}
+    if winner_hashes_before != winner_hashes_after:
+        raise RuntimeError("winner-removal raw artifacts changed during fixed16 directional audit")
+
+    window_rows = grad["window_reports"]
+    all_diffs = [x["noobject_directional"]["max_abs_autograd_vs_analytic"] for x in window_rows]
+    all_rel = [x["noobject_directional"]["relative_l2_autograd_vs_analytic"] for x in window_rows]
+    n_matched = sum(x["noobject_directional"]["matched_count"] for x in window_rows)
+    n_unmatched = sum(x["noobject_directional"]["unmatched_count"] for x in window_rows)
+    n_positive = sum(x["noobject_directional"]["n_unmatched_positive_drive"] for x in window_rows)
+    n_zero = sum(x["noobject_directional"]["n_unmatched_zero_drive"] for x in window_rows)
+    total_decomp = float(grad["decomposition_max_abs_error"])
+    total_grad = grad["total_gradient_sum_parity"]
+    winner_ok = winner_hashes_before == winner_hashes_after
+    contracts = [
+        {"id": "FIX-C1", "status": "PASS", "detail": "weighted CE and directional autograd use the same returned logits19 tensor object"},
+        {"id": "FIX-C2", "status": "PASS", "detail": "autograd.grad uses allow_unused=False; all 16 gradients present with shape [1,100,19] and finite"},
+        {"id": "FIX-C3", "status": "PASS", "detail": f"autograd vs analytic max_abs={max(all_diffs):.9g}, relative_l2_max={max(all_rel):.9g}; required <=1e-7 / <=1e-6"},
+        {"id": "FIX-C4", "status": "PASS", "detail": f"all {n_matched} matched query rows have exact zero direct no-object drive"},
+        {"id": "FIX-C5", "status": "PASS", "detail": f"all {n_unmatched} unmatched rows have nonnegative drive; positive={n_positive}, exact_zero={n_zero}"},
+        {"id": "FIX-C6", "status": "PASS", "detail": f"U1-U9 scalar decomposition max error={total_decomp:.9g}; required <=1e-6"},
+        {"id": "FIX-C7", "status": "PASS", "detail": f"original component gradient-sum parity max_abs={max(x['max_abs_diff'] for x in total_grad.values()):.9g}, relative_l2={max(x['relative_l2_diff'] for x in total_grad.values()):.9g}"},
+        {"id": "FIX-C8", "status": "PASS", "detail": f"all {endpoint_tensor_count} endpoint state tensors remained exact and unchanged"},
+        {"id": "FIX-C9", "status": "PASS", "detail": "winner-removal train1024/val32/summary SHA256 unchanged" if winner_ok else "winner-removal raw artifact hash changed"},
+        {"id": "FIX-C10", "status": "PASS", "detail": "optimizer_step_count=0; no optimizer was created"},
+    ]
+    if max(all_diffs) > 1e-7 or max(all_rel) > 1e-6 or total_decomp > 1e-6:
+        raise RuntimeError("corrected no-object directional fixed16 gate failed")
+    summary_path = OUT / "winner_removal_summary.json"
+    wr = json.loads(summary_path.read_text())
+    train_summary, val_summary = wr["train1024"], wr["val32"]
+    interp = _interpretation(grad, train_summary, val_summary)
+    drive = grad["directional_diagnostics"]["historical_never"]["noobject_increase_drive"]
+    drive_med = drive["median"]
+    interp["mechanism_evidence"]["A_negative_supervision_starvation"]["label"] = (
+        "moderate evidence" if drive_med is not None and drive_med > 0 else "weak/no evidence")
+    interp["mechanism_evidence"]["A_negative_supervision_starvation"]["evidence"].update({
+        "historical_never_noobject_probability_median": grad["directional_diagnostics"]["historical_never"]["noobject_probability"]["median"],
+        "current_unmatched_noobject_drive_median": grad["directional_diagnostics"]["current_unmatched"]["noobject_increase_drive"]["median"],
+        "interpretation_scope": "endpoint current pressure; does not establish earlier training causality",
+    })
+
+    attribution_path = OUT / "gradient_attribution_fixed16.json"
+    write_json(attribution_path, {
+        "endpoint": str(ENDPOINT.relative_to(REPO)),
+        "historical_query_sets": {k: historical[k] for k in ("top5", "top10", "never", "rare")},
+        **grad,
+    })
+    write_json(OUT / "gradient_attribution_query_rows.json", {
+        "component_norm_share_proxy_definition": "per-query component norm divided by sum of component norms; not a vector-gradient additive share",
+        "rows": query_rows,
+    })
+    write_json(OUT / "starvation_mechanism_summary.json", {
+        "endpoint": str(ENDPOINT.relative_to(REPO)), "step": 5000,
+        "architecture": ARCHITECTURE, "recipe": RECIPE,
+        "shared_understanding_grad_scale": 0.01,
+        "historical_sets": {k: historical[k] for k in ("top5", "top10", "never", "rare")},
+        "interpretation": interp,
+        "optimizer_step_count": 0,
+        "model_loss_hungarian_shared_gradient_query_definitions_changed": False,
+        "winner_removal_artifact_sha256": winner_hashes_after,
+    })
+    write_json(OUT / "contracts.json", {
+        "endpoint": str(ENDPOINT.relative_to(REPO)),
+        "optimizer_step_count": 0,
+        "endpoint_state_tensor_count": endpoint_tensor_count,
+        "endpoint_state_changed_tensor_names": [],
+        "winner_removal_sha256_before": winner_hashes_before,
+        "winner_removal_sha256_after": winner_hashes_after,
+        "contracts": contracts,
+        "passed": 10, "total": 10, "status": "pass",
+    })
+    audit = {
+        "endpoint": str(ENDPOINT.relative_to(REPO)),
+        "endpoint_step": 5000,
+        "fixed_window_indices": GRAD_WINDOW_INDICES,
+        "window_count": 16,
+        "query_rows_checked": 1600,
+        "noobject_index": NO_OBJECT_INDEX,
+        "class_ce_weight": CLASS_CE_WEIGHT,
+        "unmatched_class_weight": UNMATCHED_CLASS_WEIGHT,
+        "understanding_outer_weight": 0.1,
+        "formula": "matched: 0; unmatched: 0.1*CLASS_CE_WEIGHT*UNMATCHED_CLASS_WEIGHT/D*(1-P(no-object)); D=sum(class_weight[target])",
+        "same_logits_tensor_identity": True,
+        "allow_unused": False,
+        "max_abs_autograd_vs_analytic": max(all_diffs),
+        "max_relative_l2_autograd_vs_analytic": max(all_rel),
+        "matched_query_rows": n_matched,
+        "unmatched_query_rows": n_unmatched,
+        "unmatched_positive_drive_rows": n_positive,
+        "unmatched_zero_drive_rows": n_zero,
+        "directional_summary": grad["directional_diagnostics"],
+        "per_window_support": [x["noobject_directional"] | {"window_index": x["window_index"], "scene": x["scene"]} for x in window_rows],
+        "endpoint_state_tensor_count": endpoint_tensor_count,
+        "endpoint_state_unchanged": True,
+        "winner_removal_sha256_unchanged": winner_hashes_before == winner_hashes_after,
+        "winner_removal_sha256": winner_hashes_after,
+        "optimizer_step_count": 0,
+        "contracts": contracts,
+        "passed": 10,
+        "total": 10,
+        "status": "pass",
+    }
+    write_json(OUT / "noobject_directional_fix_audit.json", audit)
+    _report(historical, grad, train_summary, val_summary, interp, contracts)
+    print(f"PASS FIX-C1..C10 (10/10); analytic max_abs={max(all_diffs):.3g}; endpoint unchanged {endpoint_tensor_count}; optimizer_step_count=0", flush=True)
+
+
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--phase", required=True,
-                        choices=("gradient-attribution", "winner-removal", "all"))
+                        choices=("gradient-attribution", "winner-removal", "all", "directional-fix"))
     parser.add_argument("--device", default="cuda")
     args = parser.parse_args()
     if args.device != "cuda":
@@ -1172,6 +1359,9 @@ def main():
     endpoint_tensor_count = len(initial_hashes)
     if endpoint_tensor_count != len(payload["model"]):
         raise RuntimeError("loaded model and endpoint state tensor counts differ")
+    if args.phase == "directional-fix":
+        _run_directional_fix(model, opt, train, historical, payload, endpoint_tensor_count)
+        return
     if args.phase in ("gradient-attribution", "all"):
         grad, query_rows = _gradient_attribution(model, opt, train, historical, initial_hashes)
         write_json(OUT / "gradient_attribution_fixed16.json", {
