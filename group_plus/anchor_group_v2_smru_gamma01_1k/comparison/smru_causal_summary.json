@@ -1,0 +1,304 @@
+{
+  "registered_outcome": "SMRU-B",
+  "numeric_basis": {
+    "500": {
+      "slot_diversity": {
+        "control_qin_pr": 70.88492275556776,
+        "smru_qin_pr": 58.05096831857707,
+        "control_qout_pr": 2.395351155973623,
+        "smru_qout_pr": 55.694757606399406,
+        "control_qout_cosine_p90": 0.9945993996966336,
+        "smru_qout_cosine_p90": 0.37337659944847523,
+        "control_uout_pr": 2.1958463075001635,
+        "smru_uout_pr": 7.501136568741828
+      },
+      "gt_specialization": {
+        "control_l6_best_dice": 0.16003206353221966,
+        "smru_l6_best_dice": 0.3195583084534564,
+        "control_l12_best_dice": 0.20960624195811176,
+        "smru_l12_best_dice": 0.28938988065462834,
+        "control_l12_hard_correct": 0.1245232683374898,
+        "smru_l12_hard_correct": 0.288118460585173,
+        "control_l12_best_query_effq": 2.6467732473720864,
+        "smru_l12_best_query_effq": 2.6805530845425745
+      },
+      "slot_utilization": {
+        "control_unique": 58,
+        "smru_unique": 61,
+        "control_effective_q": 12.636693316749055,
+        "smru_effective_q": 13.000366889735943,
+        "control_top5_share": 0.67232890201871,
+        "smru_top5_share": 0.7023633677991138,
+        "control_match_gini": 0.9030920728705072,
+        "smru_match_gini": 0.8997341211225998
+      },
+      "grouping": {
+        "control_supported_gt_recall50": 0.006944444444444444,
+        "smru_supported_gt_recall50": 0.13286713286713286,
+        "control_ca_r50": 0.0,
+        "smru_ca_r50": 0.0,
+        "control_thing_miou": 0.006680535586646961,
+        "smru_thing_miou": 0.004140440582386027,
+        "control_class_aware_r50": 0.0,
+        "smru_class_aware_r50": 0.0
+      }
+    },
+    "1000": {
+      "slot_diversity": {
+        "control_qin_pr": 70.31467879861023,
+        "smru_qin_pr": 9.582470849586324,
+        "control_qout_pr": 2.147269987217478,
+        "smru_qout_pr": 7.786665270750065,
+        "control_qout_cosine_p90": 0.9985352138044763,
+        "smru_qout_cosine_p90": 0.8492911834306724,
+        "control_uout_pr": 1.8290510343452486,
+        "smru_uout_pr": 3.0910267920884396
+      },
+      "gt_specialization": {
+        "control_l6_best_dice": 0.16862584524823593,
+        "smru_l6_best_dice": 0.3397986021037597,
+        "control_l12_best_dice": 0.26150821187734374,
+        "smru_l12_best_dice": 0.33188156535274216,
+        "control_l12_hard_correct": 0.29538556654177456,
+        "smru_l12_hard_correct": 0.3381233549566267,
+        "control_l12_best_query_effq": 2.7585341279697912,
+        "smru_l12_best_query_effq": 2.8045386781441364
+      },
+      "slot_utilization": {
+        "control_unique": 53,
+        "smru_unique": 22,
+        "control_effective_q": 11.239978866111382,
+        "smru_effective_q": 10.413050842987207,
+        "control_top5_share": 0.7434761201378631,
+        "smru_top5_share": 0.725258493353028,
+        "control_match_gini": 0.9130871491875923,
+        "smru_match_gini": 0.9212801575578533
+      },
+      "grouping": {
+        "control_supported_gt_recall50": 0.136986301369863,
+        "smru_supported_gt_recall50": 0.1724137931034483,
+        "control_ca_r50": 0.006134969325153374,
+        "smru_ca_r50": 0.03067484662576687,
+        "control_thing_miou": 0.012357237077056356,
+        "smru_thing_miou": 0.0021541270726815084,
+        "control_class_aware_r50": 0.0,
+        "smru_class_aware_r50": 0.0
+      }
+    }
+  },
+  "deltas_smru_minus_control": {
+    "500": {
+      "slot_diversity": {
+        "qin_pr": {
+          "control": 70.88492275556776,
+          "smru": 58.05096831857707,
+          "absolute_delta": -12.833954436990687,
+          "relative_delta": -0.18105337408980426
+        },
+        "qout_pr": {
+          "control": 2.395351155973623,
+          "smru": 55.694757606399406,
+          "absolute_delta": 53.299406450425785,
+          "relative_delta": 22.251186978370825
+        },
+        "qout_cosine_p90": {
+          "control": 0.9945993996966336,
+          "smru": 0.37337659944847523,
+          "absolute_delta": -0.6212228002481583,
+          "relative_delta": -0.6245959935604625
+        }
+      },
+      "gt_specialization": {
+        "l6_best_dice": {
+          "control": 0.16003206353221966,
+          "smru": 0.3195583084534564,
+          "absolute_delta": 0.15952624492123674,
+          "relative_delta": 0.9968392670829925
+        },
+        "l12_best_dice": {
+          "control": 0.20960624195811176,
+          "smru": 0.28938988065462834,
+          "absolute_delta": 0.07978363869651658,
+          "relative_delta": 0.38063579572435036
+        },
+        "l12_hard_correct": {
+          "control": 0.1245232683374898,
+          "smru": 0.288118460585173,
+          "absolute_delta": 0.16359519224768318,
+          "relative_delta": 1.3137720719335642
+        },
+        "l12_best_query_effq": {
+          "control": 2.6467732473720864,
+          "smru": 2.6805530845425745,
+          "absolute_delta": 0.03377983717048805,
+          "relative_delta": 0.012762648709717458
+        }
+      },
+      "slot_utilization": {
+        "unique": {
+          "control": 58.0,
+          "smru": 61.0,
+          "absolute_delta": 3.0,
+          "relative_delta": 0.05172413793103448
+        },
+        "effective_q": {
+          "control": 12.636693316749055,
+          "smru": 13.000366889735943,
+          "absolute_delta": 0.3636735729868885,
+          "relative_delta": 0.028779172198858748
+        },
+        "top5_share": {
+          "control": 0.67232890201871,
+          "smru": 0.7023633677991138,
+          "absolute_delta": 0.030034465780403807,
+          "relative_delta": 0.044672281215672016
+        },
+        "match_gini": {
+          "control": 0.9030920728705072,
+          "smru": 0.8997341211225998,
+          "absolute_delta": -0.0033579517479074283,
+          "relative_delta": -0.003718282829384241
+        }
+      },
+      "grouping": {
+        "supported_gt_recall50": {
+          "control": 0.006944444444444444,
+          "smru": 0.13286713286713286,
+          "absolute_delta": 0.12592268842268842,
+          "relative_delta": 18.132867132867133
+        },
+        "ca_r50": {
+          "control": 0.0,
+          "smru": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": null
+        },
+        "thing_miou": {
+          "control": 0.006680535586646961,
+          "smru": 0.004140440582386027,
+          "absolute_delta": -0.0025400950042609336,
+          "relative_delta": -0.38022325774868554
+        },
+        "class_aware_r50": {
+          "control": 0.0,
+          "smru": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": null
+        }
+      }
+    },
+    "1000": {
+      "slot_diversity": {
+        "qin_pr": {
+          "control": 70.31467879861023,
+          "smru": 9.582470849586324,
+          "absolute_delta": -60.73220794902391,
+          "relative_delta": -0.8637201930903833
+        },
+        "qout_pr": {
+          "control": 2.147269987217478,
+          "smru": 7.786665270750065,
+          "absolute_delta": 5.639395283532587,
+          "relative_delta": 2.6263093682226475
+        },
+        "qout_cosine_p90": {
+          "control": 0.9985352138044763,
+          "smru": 0.8492911834306724,
+          "absolute_delta": -0.14924403037380385,
+          "relative_delta": -0.1494629616567808
+        }
+      },
+      "gt_specialization": {
+        "l6_best_dice": {
+          "control": 0.16862584524823593,
+          "smru": 0.3397986021037597,
+          "absolute_delta": 0.17117275685552374,
+          "relative_delta": 1.0151039219613012
+        },
+        "l12_best_dice": {
+          "control": 0.26150821187734374,
+          "smru": 0.33188156535274216,
+          "absolute_delta": 0.07037335347539841,
+          "relative_delta": 0.2691057117105214
+        },
+        "l12_hard_correct": {
+          "control": 0.29538556654177456,
+          "smru": 0.3381233549566267,
+          "absolute_delta": 0.04273778841485215,
+          "relative_delta": 0.14468475530204353
+        },
+        "l12_best_query_effq": {
+          "control": 2.7585341279697912,
+          "smru": 2.8045386781441364,
+          "absolute_delta": 0.04600455017434513,
+          "relative_delta": 0.016677172744715422
+        }
+      },
+      "slot_utilization": {
+        "unique": {
+          "control": 53.0,
+          "smru": 22.0,
+          "absolute_delta": -31.0,
+          "relative_delta": -0.5849056603773585
+        },
+        "effective_q": {
+          "control": 11.239978866111382,
+          "smru": 10.413050842987207,
+          "absolute_delta": -0.8269280231241751,
+          "relative_delta": -0.07357024714853949
+        },
+        "top5_share": {
+          "control": 0.7434761201378631,
+          "smru": 0.725258493353028,
+          "absolute_delta": -0.018217626784835073,
+          "relative_delta": -0.024503311258278166
+        },
+        "match_gini": {
+          "control": 0.9130871491875923,
+          "smru": 0.9212801575578533,
+          "absolute_delta": 0.008193008370261046,
+          "relative_delta": 0.008972865708985906
+        }
+      },
+      "grouping": {
+        "supported_gt_recall50": {
+          "control": 0.136986301369863,
+          "smru": 0.1724137931034483,
+          "absolute_delta": 0.03542749173358528,
+          "relative_delta": 0.25862068965517254
+        },
+        "ca_r50": {
+          "control": 0.006134969325153374,
+          "smru": 0.03067484662576687,
+          "absolute_delta": 0.024539877300613498,
+          "relative_delta": 4.0
+        },
+        "thing_miou": {
+          "control": 0.012357237077056356,
+          "smru": 0.0021541270726815084,
+          "absolute_delta": -0.010203110004374847,
+          "relative_delta": -0.8256789070850579
+        },
+        "class_aware_r50": {
+          "control": 0.0,
+          "smru": 0.0,
+          "absolute_delta": 0.0,
+          "relative_delta": null
+        }
+      }
+    }
+  },
+  "directional_checks_at_1000": {
+    "slot_diversity_directionally_better_at_500_and_1000": true,
+    "slot_diversity_relative_to_control": true,
+    "smru_layer6_qin_pr": 9.582470849586324,
+    "smru_layer6_qout_pr": 7.786665270750065,
+    "smru_layer6_qout_pr_retention": 0.812594725616746,
+    "gt_specialization_improved": true,
+    "slot_utilization_improved": false,
+    "grouping_improved": false,
+    "all_grouping_metrics_lower": false
+  },
+  "interpretation": "Relative query-output diversity improves, but the change does not produce synchronized gains in slot utilization and grouping/task metrics.",
+  "evidence_text": "At steps 500 and 1000, SM-RU has higher layer-6 q_out PR and lower q_out cosine p90 than Control. At step 1000, SM-RU q_in/q_out PR is 9.582/7.787 (within-layer retention 0.813), so query input diversity has also fallen during training. GT-specialization indicators improve, but step-1000 utilization and task metrics are mixed: effective matched queries 10.413 vs 11.240; supported-GT recall50 0.1724 vs 0.1370; ca-R50 0.0307 vs 0.0061; thing mIoU 0.0022 vs 0.0124."
+}

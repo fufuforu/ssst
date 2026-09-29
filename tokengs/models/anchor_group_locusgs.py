@@ -44,6 +44,13 @@ class AnchorGroupController(nn.Module):
                 "anchor_group_query_update_gamma must be exactly 1.0 or 0.1"
             )
         self.query_update_gamma = gamma
+        self.query_update_scale_match = bool(
+            getattr(opt, "anchor_group_query_update_scale_match", False)
+        )
+        if self.query_update_scale_match and gamma != 0.1:
+            raise ValueError(
+                "query update scale matching is only valid with gamma=0.1"
+            )
         self.ln_h, self.proj_h, self.proj_m = nn.LayerNorm(C), nn.Linear(C,D), nn.Linear(4,D)
         self.ln_x = nn.LayerNorm(D)
         self.ln_e, self.proj_e = nn.LayerNorm(D), nn.Linear(D,ID_DIM)
@@ -120,8 +127,18 @@ class AnchorGroupController(nn.Module):
         if self.query_update_gamma == 1.0:
             # Preserve the original V1 production floating-point path exactly.
             q_new = q_candidate
-        else:
+        elif not self.query_update_scale_match:
+            # Preserve the previously registered plain V2-RU path exactly.
             q_new = q + self.query_update_gamma * (q_candidate - q)
+        else:
+            q_norm = torch.linalg.vector_norm(q, dim=-1, keepdim=True)
+            candidate_norm = torch.linalg.vector_norm(
+                q_candidate, dim=-1, keepdim=True
+            )
+            candidate_scaled = q_candidate * (
+                q_norm / candidate_norm.clamp_min(1e-6)
+            )
+            q_new = q + self.query_update_gamma * (candidate_scaled - q)
         q_new = torch.where((mass < 1e-4).unsqueeze(-1),q,q_new)
         A_post = self.assign_group(a,q_new,void_logit)
         wt = A_post[:,:,:NUM_THING]
@@ -182,6 +199,8 @@ class LocusGSAnchorGroupRecon(LocusGSRecon):
             self.anchor_group=AnchorGroupController(opt)
         if self.anchor_group.query_update_gamma == 1.0:
             self.architecture_name = "LOCUSGS_ANCHOR_GROUP_V1"
+        elif self.anchor_group.query_update_scale_match:
+            self.architecture_name = "LOCUSGS_ANCHOR_GROUP_V2_SMRU_GAMMA01"
         else:
             self.architecture_name = "LOCUSGS_ANCHOR_GROUP_V2_RU_GAMMA01"
         self.instance_state_layers=tuple(opt.instance_state_layers); self.understanding_step=0

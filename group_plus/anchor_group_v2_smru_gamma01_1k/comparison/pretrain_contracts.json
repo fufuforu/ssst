@@ -1,0 +1,731 @@
+{
+  "status": "pass",
+  "passed": 16,
+  "total": 16,
+  "failed": [],
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "torch": "2.7.0+cu126",
+  "cuda": "12.6",
+  "monitor_hashes": {
+    "monitor_train16.json": {
+      "sha256": "133811557d13dca81864b9843b831f89df9226a899c381bfb79e0131991a5961",
+      "source_v1_gc_byte_identical": true
+    },
+    "monitor_8pairs.json": {
+      "sha256": "5dae7077779dd398ba97851f0259aef2df7de083df80f5a6bea4b5f5e731c321",
+      "source_v1_gc_byte_identical": true
+    },
+    "monitor_32pairs.json": {
+      "sha256": "af51dfe52d8cf31140f028a5c3b1d1bc5402fd524805d241940f314fad87bd36",
+      "source_v1_gc_byte_identical": true
+    },
+    "train128_class_coverage.json": {
+      "sha256": "9c5914187271016ad75b6cda5a6929ba222b426094f7ef73e47aae60e012c371",
+      "source_v1_gc_byte_identical": true
+    }
+  },
+  "pretrained_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f",
+  "manifest_sha256": "1f37d08c2941920d94a172d62f95dd494b1126374215833999dc9d75ad9fc483",
+  "plan_sha256": "ffd97c5e018fd5075650a5718503b26c3e566f0e3b516e392ebc657aa01c1323",
+  "initial_state_tensor_count": 509,
+  "parameter_numel": [
+    222787916,
+    222787916,
+    222787916
+  ],
+  "optimizer_groups": {
+    "anchor_group_decay": {
+      "tensor_count": 18,
+      "numel": 2743496,
+      "weight_decay": 0.05,
+      "lr": 0.0001
+    },
+    "anchor_group_nodecay": {
+      "tensor_count": 41,
+      "numel": 41800,
+      "weight_decay": 0.0,
+      "lr": 0.0001
+    },
+    "reconstruction_decay": {
+      "tensor_count": 115,
+      "numel": 218773504,
+      "weight_decay": 0.05,
+      "lr": 1e-05
+    },
+    "reconstruction_nodecay": {
+      "tensor_count": 335,
+      "numel": 1229116,
+      "weight_decay": 0.0,
+      "lr": 1e-05
+    }
+  },
+  "reconstruction_parity": {
+    "control": {
+      "gpu": "NVIDIA GeForce RTX 3090",
+      "cuda_available": true,
+      "checkpoint_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f",
+      "scene": null,
+      "gaussian_max_abs_diff": 0.0,
+      "rgb_max_abs_diff": 0.0,
+      "psnr_baseline": 22.204113006591797,
+      "psnr_anchor_group_v1_gc": 22.204113006591797,
+      "psnr_abs_diff": 0.0,
+      "status": "pass"
+    },
+    "smru": {
+      "gpu": "NVIDIA GeForce RTX 3090",
+      "cuda_available": true,
+      "checkpoint_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f",
+      "scene": null,
+      "gaussian_max_abs_diff": 0.0,
+      "rgb_max_abs_diff": 0.0,
+      "psnr_baseline": 22.204113006591797,
+      "psnr_anchor_group_v1_gc": 22.204113006591797,
+      "psnr_abs_diff": 0.0,
+      "status": "pass"
+    }
+  },
+  "regressions": {
+    "phase_a_cpu": {
+      "passed": 18,
+      "failed": 0,
+      "total": 18,
+      "status": "pass"
+    },
+    "legacy_loss_cpu": {
+      "ok": true,
+      "check_count": 16
+    },
+    "legacy_evaluator_cpu": {
+      "ok": true,
+      "check_count": 8
+    },
+    "v1_gc_contracts": {
+      "passed": 15,
+      "total": 15,
+      "status": "pass"
+    },
+    "s0_s1_gpu_forward": {
+      "gpu": "NVIDIA GeForce RTX 3090",
+      "cuda_available": true,
+      "torch": "2.7.0+cu126",
+      "torch_cuda": "12.6",
+      "scene": "scene0000_00",
+      "window_index": 0,
+      "models": {
+        "S0": {
+          "architecture_name": "LOCUSGS_INSTANCE_STATE_V1",
+          "instance_state_local3d": false,
+          "local3d_k": null,
+          "forward": "pass",
+          "finite": {
+            "gaussians": true,
+            "region_mass": true,
+            "semantic_scores": true,
+            "loss": true
+          },
+          "loss": "pass",
+          "initialization_path": "single-anchor",
+          "loss_value": 0.7401922345161438
+        },
+        "S1": {
+          "architecture_name": "LOCUSGS_INSTANCE_STATE_V1",
+          "instance_state_local3d": true,
+          "local3d_k": 8,
+          "forward": "pass",
+          "finite": {
+            "gaussians": true,
+            "region_mass": true,
+            "semantic_scores": true,
+            "loss": true
+          },
+          "loss": "pass",
+          "initialization_path": "local8",
+          "loss_value": 0.7294127941131592
+        }
+      },
+      "status": "pass"
+    },
+    "gpu": "NVIDIA GeForce RTX 3090",
+    "status": "pass"
+  },
+  "checks": {
+    "SM-C1_repository_identity": {
+      "passed": true,
+      "detail": {
+        "head": "da2f06c5e85e2affee1d4014a42668b1024d390e",
+        "origin_main": "da2f06c5e85e2affee1d4014a42668b1024d390e"
+      }
+    },
+    "SM-C2_no_new_parameter_or_state": {
+      "passed": true,
+      "detail": {
+        "state_tensor_count": 509,
+        "state_exact_all_three": true,
+        "state_equal_results": [
+          [
+            true,
+            509,
+            [],
+            0.0
+          ],
+          [
+            true,
+            509,
+            [],
+            0.0
+          ]
+        ],
+        "parameter_names_equal": true,
+        "parameter_shapes_equal": true,
+        "parameter_numel": [
+          222787916,
+          222787916,
+          222787916
+        ]
+      }
+    },
+    "SM-C3_legacy_path_exact": {
+      "passed": true,
+      "detail": {
+        "layers": [
+          {
+            "layer": 6,
+            "max_abs_diff": 0.0,
+            "exact": true
+          },
+          {
+            "layer": 8,
+            "max_abs_diff": 0.0,
+            "exact": true
+          },
+          {
+            "layer": 10,
+            "max_abs_diff": 0.0,
+            "exact": true
+          },
+          {
+            "layer": 12,
+            "max_abs_diff": 0.0,
+            "exact": true
+          }
+        ]
+      }
+    },
+    "SM-C4_previous_ru_compatibility": {
+      "passed": true,
+      "detail": {
+        "layers": [
+          {
+            "layer": 6,
+            "max_abs_diff": 0.0
+          },
+          {
+            "layer": 8,
+            "max_abs_diff": 0.0
+          },
+          {
+            "layer": 10,
+            "max_abs_diff": 0.0
+          },
+          {
+            "layer": 12,
+            "max_abs_diff": 0.0
+          }
+        ]
+      }
+    },
+    "SM-C5_scale_matched_formula": {
+      "passed": true,
+      "detail": {
+        "layers": [
+          {
+            "layer": 6,
+            "max_abs_diff": 0.0
+          },
+          {
+            "layer": 8,
+            "max_abs_diff": 0.0
+          },
+          {
+            "layer": 10,
+            "max_abs_diff": 0.0
+          },
+          {
+            "layer": 12,
+            "max_abs_diff": 0.0
+          }
+        ]
+      }
+    },
+    "SM-C6_norm_matching": {
+      "passed": true,
+      "detail": {
+        "layers": [
+          {
+            "layer": 6,
+            "sample_count": 102,
+            "norm_max_abs_diff": 2.9802322387695312e-08,
+            "scaled_to_q_ratio_mean": 1.0,
+            "scaled_to_q_ratio_median": 1.0,
+            "scaled_to_q_ratio_p10": 1.0,
+            "scaled_to_q_ratio_p90": 1.0000001192092896,
+            "direction_cosine_min": 0.9999998807907104,
+            "update_ratio_max_abs_error": 1.4901161193847656e-08,
+            "raw_candidate_to_q_norm_ratio_median": 50.14905548095703
+          },
+          {
+            "layer": 8,
+            "sample_count": 102,
+            "norm_max_abs_diff": 2.9802322387695312e-08,
+            "scaled_to_q_ratio_mean": 1.0,
+            "scaled_to_q_ratio_median": 1.0,
+            "scaled_to_q_ratio_p10": 1.0,
+            "scaled_to_q_ratio_p90": 1.0000001192092896,
+            "direction_cosine_min": 0.9999998807907104,
+            "update_ratio_max_abs_error": 1.4901161193847656e-08,
+            "raw_candidate_to_q_norm_ratio_median": 55.112789154052734
+          },
+          {
+            "layer": 10,
+            "sample_count": 102,
+            "norm_max_abs_diff": 2.9802322387695312e-08,
+            "scaled_to_q_ratio_mean": 1.0,
+            "scaled_to_q_ratio_median": 1.0,
+            "scaled_to_q_ratio_p10": 1.0,
+            "scaled_to_q_ratio_p90": 1.0000001192092896,
+            "direction_cosine_min": 0.9999998807907104,
+            "update_ratio_max_abs_error": 1.4901161193847656e-08,
+            "raw_candidate_to_q_norm_ratio_median": 60.5274658203125
+          },
+          {
+            "layer": 12,
+            "sample_count": 102,
+            "norm_max_abs_diff": 2.9802322387695312e-08,
+            "scaled_to_q_ratio_mean": 1.0,
+            "scaled_to_q_ratio_median": 1.0,
+            "scaled_to_q_ratio_p10": 1.0,
+            "scaled_to_q_ratio_p90": 1.0000001192092896,
+            "direction_cosine_min": 0.9999998807907104,
+            "update_ratio_max_abs_error": 1.4901161193847656e-08,
+            "raw_candidate_to_q_norm_ratio_median": 65.77360534667969
+          }
+        ]
+      }
+    },
+    "SM-C7_direction_preservation": {
+      "passed": true,
+      "detail": {
+        "layers": [
+          {
+            "layer": 6,
+            "sample_count": 102,
+            "norm_max_abs_diff": 2.9802322387695312e-08,
+            "scaled_to_q_ratio_mean": 1.0,
+            "scaled_to_q_ratio_median": 1.0,
+            "scaled_to_q_ratio_p10": 1.0,
+            "scaled_to_q_ratio_p90": 1.0000001192092896,
+            "direction_cosine_min": 0.9999998807907104,
+            "update_ratio_max_abs_error": 1.4901161193847656e-08,
+            "raw_candidate_to_q_norm_ratio_median": 50.14905548095703
+          },
+          {
+            "layer": 8,
+            "sample_count": 102,
+            "norm_max_abs_diff": 2.9802322387695312e-08,
+            "scaled_to_q_ratio_mean": 1.0,
+            "scaled_to_q_ratio_median": 1.0,
+            "scaled_to_q_ratio_p10": 1.0,
+            "scaled_to_q_ratio_p90": 1.0000001192092896,
+            "direction_cosine_min": 0.9999998807907104,
+            "update_ratio_max_abs_error": 1.4901161193847656e-08,
+            "raw_candidate_to_q_norm_ratio_median": 55.112789154052734
+          },
+          {
+            "layer": 10,
+            "sample_count": 102,
+            "norm_max_abs_diff": 2.9802322387695312e-08,
+            "scaled_to_q_ratio_mean": 1.0,
+            "scaled_to_q_ratio_median": 1.0,
+            "scaled_to_q_ratio_p10": 1.0,
+            "scaled_to_q_ratio_p90": 1.0000001192092896,
+            "direction_cosine_min": 0.9999998807907104,
+            "update_ratio_max_abs_error": 1.4901161193847656e-08,
+            "raw_candidate_to_q_norm_ratio_median": 60.5274658203125
+          },
+          {
+            "layer": 12,
+            "sample_count": 102,
+            "norm_max_abs_diff": 2.9802322387695312e-08,
+            "scaled_to_q_ratio_mean": 1.0,
+            "scaled_to_q_ratio_median": 1.0,
+            "scaled_to_q_ratio_p10": 1.0,
+            "scaled_to_q_ratio_p90": 1.0000001192092896,
+            "direction_cosine_min": 0.9999998807907104,
+            "update_ratio_max_abs_error": 1.4901161193847656e-08,
+            "raw_candidate_to_q_norm_ratio_median": 65.77360534667969
+          }
+        ]
+      }
+    },
+    "SM-C8_interpolation_magnitude": {
+      "passed": true,
+      "detail": {
+        "layers": [
+          {
+            "layer": 6,
+            "sample_count": 102,
+            "norm_max_abs_diff": 2.9802322387695312e-08,
+            "scaled_to_q_ratio_mean": 1.0,
+            "scaled_to_q_ratio_median": 1.0,
+            "scaled_to_q_ratio_p10": 1.0,
+            "scaled_to_q_ratio_p90": 1.0000001192092896,
+            "direction_cosine_min": 0.9999998807907104,
+            "update_ratio_max_abs_error": 1.4901161193847656e-08,
+            "raw_candidate_to_q_norm_ratio_median": 50.14905548095703
+          },
+          {
+            "layer": 8,
+            "sample_count": 102,
+            "norm_max_abs_diff": 2.9802322387695312e-08,
+            "scaled_to_q_ratio_mean": 1.0,
+            "scaled_to_q_ratio_median": 1.0,
+            "scaled_to_q_ratio_p10": 1.0,
+            "scaled_to_q_ratio_p90": 1.0000001192092896,
+            "direction_cosine_min": 0.9999998807907104,
+            "update_ratio_max_abs_error": 1.4901161193847656e-08,
+            "raw_candidate_to_q_norm_ratio_median": 55.112789154052734
+          },
+          {
+            "layer": 10,
+            "sample_count": 102,
+            "norm_max_abs_diff": 2.9802322387695312e-08,
+            "scaled_to_q_ratio_mean": 1.0,
+            "scaled_to_q_ratio_median": 1.0,
+            "scaled_to_q_ratio_p10": 1.0,
+            "scaled_to_q_ratio_p90": 1.0000001192092896,
+            "direction_cosine_min": 0.9999998807907104,
+            "update_ratio_max_abs_error": 1.4901161193847656e-08,
+            "raw_candidate_to_q_norm_ratio_median": 60.5274658203125
+          },
+          {
+            "layer": 12,
+            "sample_count": 102,
+            "norm_max_abs_diff": 2.9802322387695312e-08,
+            "scaled_to_q_ratio_mean": 1.0,
+            "scaled_to_q_ratio_median": 1.0,
+            "scaled_to_q_ratio_p10": 1.0,
+            "scaled_to_q_ratio_p90": 1.0000001192092896,
+            "direction_cosine_min": 0.9999998807907104,
+            "update_ratio_max_abs_error": 1.4901161193847656e-08,
+            "raw_candidate_to_q_norm_ratio_median": 65.77360534667969
+          }
+        ]
+      }
+    },
+    "SM-C9_no_detach_gradient_path": {
+      "passed": true,
+      "detail": {
+        "gradient_stats": {
+          "anchor_group.query_init": {
+            "present": true,
+            "finite": true,
+            "norm": 5.9029669761657715
+          },
+          "anchor_group.gru.weight_ih": {
+            "present": true,
+            "finite": true,
+            "norm": 0.3152008056640625
+          },
+          "anchor_group.ffn_fc1.weight": {
+            "present": true,
+            "finite": true,
+            "norm": 0.19962893426418304
+          },
+          "anchor_group.proj_u.weight": {
+            "present": true,
+            "finite": true,
+            "norm": 1.2746896743774414
+          }
+        },
+        "source_has_no_detach_in_update": true
+      }
+    },
+    "SM-C10_preupdate_identity": {
+      "passed": true,
+      "detail": {
+        "q_in_layers_equal": true,
+        "per_layer": [
+          {
+            "layer": 6,
+            "A_pre_exact": true,
+            "mass_exact": true,
+            "z_exact": true,
+            "candidate_exact": true
+          }
+        ]
+      }
+    },
+    "SM-C11_low_mass_skip": {
+      "passed": true,
+      "detail": {
+        "layers": [
+          {
+            "layer": 6,
+            "all_mass_below_threshold": true,
+            "all_three_exact_qin": true
+          },
+          {
+            "layer": 8,
+            "all_mass_below_threshold": true,
+            "all_three_exact_qin": true
+          },
+          {
+            "layer": 10,
+            "all_mass_below_threshold": true,
+            "all_three_exact_qin": true
+          },
+          {
+            "layer": 12,
+            "all_mass_below_threshold": true,
+            "all_three_exact_qin": true
+          }
+        ]
+      }
+    },
+    "SM-C12_reconstruction_invariance": {
+      "passed": true,
+      "detail": {
+        "gaussians": {
+          "gaussians": true
+        },
+        "canonical_reconstruction": {
+          "layer6_tokens": true,
+          "layer6_mu": true,
+          "layer6_radii": true,
+          "layer8_tokens": true,
+          "layer8_mu": true,
+          "layer8_radii": true,
+          "layer10_tokens": true,
+          "layer10_mu": true,
+          "layer10_radii": true,
+          "layer12_tokens": true,
+          "layer12_mu": true,
+          "layer12_radii": true
+        },
+        "parity_control": {
+          "gpu": "NVIDIA GeForce RTX 3090",
+          "cuda_available": true,
+          "checkpoint_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f",
+          "scene": null,
+          "gaussian_max_abs_diff": 0.0,
+          "rgb_max_abs_diff": 0.0,
+          "psnr_baseline": 22.204113006591797,
+          "psnr_anchor_group_v1_gc": 22.204113006591797,
+          "psnr_abs_diff": 0.0,
+          "status": "pass"
+        },
+        "parity_smru": {
+          "gpu": "NVIDIA GeForce RTX 3090",
+          "cuda_available": true,
+          "checkpoint_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f",
+          "scene": null,
+          "gaussian_max_abs_diff": 0.0,
+          "rgb_max_abs_diff": 0.0,
+          "psnr_baseline": 22.204113006591797,
+          "psnr_anchor_group_v1_gc": 22.204113006591797,
+          "psnr_abs_diff": 0.0,
+          "status": "pass"
+        }
+      }
+    },
+    "SM-C13_optimizer_parity": {
+      "passed": true,
+      "detail": {
+        "control": {
+          "anchor_group_decay": {
+            "tensor_count": 18,
+            "numel": 2743496,
+            "weight_decay": 0.05,
+            "lr": 0.0001
+          },
+          "anchor_group_nodecay": {
+            "tensor_count": 41,
+            "numel": 41800,
+            "weight_decay": 0.0,
+            "lr": 0.0001
+          },
+          "reconstruction_decay": {
+            "tensor_count": 115,
+            "numel": 218773504,
+            "weight_decay": 0.05,
+            "lr": 1e-05
+          },
+          "reconstruction_nodecay": {
+            "tensor_count": 335,
+            "numel": 1229116,
+            "weight_decay": 0.0,
+            "lr": 1e-05
+          }
+        },
+        "old_ru": {
+          "anchor_group_decay": {
+            "tensor_count": 18,
+            "numel": 2743496,
+            "weight_decay": 0.05,
+            "lr": 0.0001
+          },
+          "anchor_group_nodecay": {
+            "tensor_count": 41,
+            "numel": 41800,
+            "weight_decay": 0.0,
+            "lr": 0.0001
+          },
+          "reconstruction_decay": {
+            "tensor_count": 115,
+            "numel": 218773504,
+            "weight_decay": 0.05,
+            "lr": 1e-05
+          },
+          "reconstruction_nodecay": {
+            "tensor_count": 335,
+            "numel": 1229116,
+            "weight_decay": 0.0,
+            "lr": 1e-05
+          }
+        },
+        "smru": {
+          "anchor_group_decay": {
+            "tensor_count": 18,
+            "numel": 2743496,
+            "weight_decay": 0.05,
+            "lr": 0.0001
+          },
+          "anchor_group_nodecay": {
+            "tensor_count": 41,
+            "numel": 41800,
+            "weight_decay": 0.0,
+            "lr": 0.0001
+          },
+          "reconstruction_decay": {
+            "tensor_count": 115,
+            "numel": 218773504,
+            "weight_decay": 0.05,
+            "lr": 1e-05
+          },
+          "reconstruction_nodecay": {
+            "tensor_count": 335,
+            "numel": 1229116,
+            "weight_decay": 0.0,
+            "lr": 1e-05
+          }
+        }
+      }
+    },
+    "SM-C14_recipe_parity": {
+      "passed": true,
+      "detail": {
+        "warmup_points": {
+          "200": 0.0,
+          "201": 0.00125,
+          "600": 0.5,
+          "999": 0.99875,
+          "1000": 1.0
+        },
+        "gc_alpha": 0.01,
+        "clip": 1.0,
+        "unmatched_noobj_scale": 1.0,
+        "control": {
+          "recipe": "ANCHOR_GROUP_V1_GC_SMRU_CONTROL_1K",
+          "gamma": 1.0,
+          "scale_match": false
+        },
+        "smru": {
+          "recipe": "ANCHOR_GROUP_V2_SMRU_GAMMA01_1K",
+          "gamma": 0.1,
+          "scale_match": true
+        },
+        "manifest_sha256": "1f37d08c2941920d94a172d62f95dd494b1126374215833999dc9d75ad9fc483",
+        "plan_sha256": "ffd97c5e018fd5075650a5718503b26c3e566f0e3b516e392ebc657aa01c1323"
+      }
+    },
+    "SM-C15_previous_regressions": {
+      "passed": true,
+      "detail": {
+        "phase_a_cpu": {
+          "passed": 18,
+          "failed": 0,
+          "total": 18,
+          "status": "pass"
+        },
+        "legacy_loss_cpu": {
+          "ok": true,
+          "check_count": 16
+        },
+        "legacy_evaluator_cpu": {
+          "ok": true,
+          "check_count": 8
+        },
+        "v1_gc_contracts": {
+          "passed": 15,
+          "total": 15,
+          "status": "pass"
+        },
+        "s0_s1_gpu_forward": {
+          "gpu": "NVIDIA GeForce RTX 3090",
+          "cuda_available": true,
+          "torch": "2.7.0+cu126",
+          "torch_cuda": "12.6",
+          "scene": "scene0000_00",
+          "window_index": 0,
+          "models": {
+            "S0": {
+              "architecture_name": "LOCUSGS_INSTANCE_STATE_V1",
+              "instance_state_local3d": false,
+              "local3d_k": null,
+              "forward": "pass",
+              "finite": {
+                "gaussians": true,
+                "region_mass": true,
+                "semantic_scores": true,
+                "loss": true
+              },
+              "loss": "pass",
+              "initialization_path": "single-anchor",
+              "loss_value": 0.7401922345161438
+            },
+            "S1": {
+              "architecture_name": "LOCUSGS_INSTANCE_STATE_V1",
+              "instance_state_local3d": true,
+              "local3d_k": 8,
+              "forward": "pass",
+              "finite": {
+                "gaussians": true,
+                "region_mass": true,
+                "semantic_scores": true,
+                "loss": true
+              },
+              "loss": "pass",
+              "initialization_path": "local8",
+              "loss_value": 0.7294127941131592
+            }
+          },
+          "status": "pass"
+        },
+        "gpu": "NVIDIA GeForce RTX 3090",
+        "status": "pass"
+      }
+    },
+    "SM-C16_scientific_file_boundary": {
+      "passed": true,
+      "detail": {
+        "tracked_changes": [
+          "docs/fixed4_shared_head.md",
+          "tokengs/models/anchor_group_locusgs.py"
+        ],
+        "anchor_group_loss_clean": true,
+        "only_allowed_tracked_model_file": true
+      }
+    }
+  }
+}

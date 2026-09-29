@@ -1,0 +1,84 @@
+{
+  "steps": {
+    "500": {
+      "control": {
+        "l6_qout_pr": 2.395351155973623,
+        "l6_pr_retention": 0.03379211068951157,
+        "l6_qout_norm": 16.003994259988076,
+        "l6_best_dice": 0.16003206353221966,
+        "l12_best_query_effective_q": 2.6467732473720864,
+        "train1024_unique": 58,
+        "train1024_effective_q": 12.636693316749055,
+        "supported_gt_recall50": 0.006944444444444444,
+        "ca_r50": 0.0,
+        "thing_miou": 0.006680535586646961
+      },
+      "smru": {
+        "l6_qout_pr": 55.694757606399406,
+        "l6_pr_retention": 0.9594113452294706,
+        "l6_qout_norm": 0.3450190831605434,
+        "l6_best_dice": 0.3195583084534564,
+        "l12_best_query_effective_q": 2.6805530845425745,
+        "train1024_unique": 61,
+        "train1024_effective_q": 13.000366889735943,
+        "supported_gt_recall50": 0.13286713286713286,
+        "ca_r50": 0.0,
+        "thing_miou": 0.004140440582386027
+      },
+      "previous_ru_historical": {
+        "l6_qout_pr": 3.2456879240810963,
+        "l6_pr_retention": 0.04579268301795758,
+        "l6_qout_norm": 1.6518939855749206,
+        "l6_best_dice": 0.205450196905749,
+        "l12_best_query_effective_q": 2.4358810805530906,
+        "train1024_unique": 65,
+        "train1024_effective_q": 11.536391991947653,
+        "supported_gt_recall50": 0.1310344827586207,
+        "ca_r50": 0.006134969325153374,
+        "thing_miou": 0.0015583786809761806,
+        "source": "committed historical artifacts; not retrained in this paired experiment"
+      }
+    },
+    "1000": {
+      "control": {
+        "l6_qout_pr": 2.147269987217478,
+        "l6_pr_retention": 0.030538004637232573,
+        "l6_qout_norm": 15.999681762318106,
+        "l6_best_dice": 0.16862584524823593,
+        "l12_best_query_effective_q": 2.7585341279697912,
+        "train1024_unique": 53,
+        "train1024_effective_q": 11.239978866111382,
+        "supported_gt_recall50": 0.136986301369863,
+        "ca_r50": 0.006134969325153374,
+        "thing_miou": 0.012357237077056356
+      },
+      "smru": {
+        "l6_qout_pr": 7.786665270750065,
+        "l6_pr_retention": 0.812594725616746,
+        "l6_qout_norm": 0.865126929382197,
+        "l6_best_dice": 0.3397986021037597,
+        "l12_best_query_effective_q": 2.8045386781441364,
+        "train1024_unique": 22,
+        "train1024_effective_q": 10.413050842987207,
+        "supported_gt_recall50": 0.1724137931034483,
+        "ca_r50": 0.03067484662576687,
+        "thing_miou": 0.0021541270726815084
+      },
+      "previous_ru_historical": {
+        "l6_qout_pr": 2.342001718554493,
+        "l6_pr_retention": 0.033448912241061814,
+        "l6_qout_norm": 1.6790652695830088,
+        "l6_best_dice": 0.24153621441342177,
+        "l12_best_query_effective_q": 2.5090586209761128,
+        "train1024_unique": 56,
+        "train1024_effective_q": 10.99177869988837,
+        "supported_gt_recall50": 0.1276595744680851,
+        "ca_r50": 0.0,
+        "thing_miou": 0.004292339874755791,
+        "source": "committed historical artifacts; not retrained in this paired experiment"
+      }
+    }
+  },
+  "previous_ru_retrained": false,
+  "status": "pass"
+}

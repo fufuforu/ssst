@@ -1,0 +1,174 @@
+{
+  "status": "pass",
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "total_memory_gib": 23.68426513671875,
+  "torch": "2.7.0+cu126",
+  "cuda": "12.6",
+  "step": 600,
+  "understanding_weight": 0.5,
+  "initial_state_exact": true,
+  "initial_state_tensor_count": 509,
+  "optimizer_step_count": 2,
+  "arms": {
+    "control": {
+      "gamma": 1.0,
+      "scale_match": false,
+      "loss_recon": 0.04761504381895065,
+      "loss_understanding": 3.648267984390259,
+      "loss_anchor_group": 4.933707237243652,
+      "loss_total": 1.8717490434646606,
+      "uweight": 0.5,
+      "optimizer_groups": [
+        {
+          "name": "anchor_group_decay",
+          "tensor_count": 18,
+          "numel": 2743496,
+          "lr": 0.0001,
+          "weight_decay": 0.05
+        },
+        {
+          "name": "anchor_group_nodecay",
+          "tensor_count": 41,
+          "numel": 41800,
+          "lr": 0.0001,
+          "weight_decay": 0.0
+        },
+        {
+          "name": "reconstruction_decay",
+          "tensor_count": 115,
+          "numel": 218773504,
+          "lr": 1e-05,
+          "weight_decay": 0.05
+        },
+        {
+          "name": "reconstruction_nodecay",
+          "tensor_count": 335,
+          "numel": 1229116,
+          "lr": 1e-05,
+          "weight_decay": 0.0
+        }
+      ],
+      "gradients": {
+        "anchor_group.query_init": {
+          "present": true,
+          "finite": true,
+          "norm": 1.969983458518982,
+          "nonzero": true
+        },
+        "anchor_group.gru.weight_ih": {
+          "present": true,
+          "finite": true,
+          "norm": 3.1110222339630127,
+          "nonzero": true
+        },
+        "anchor_group.ffn_fc1.weight": {
+          "present": true,
+          "finite": true,
+          "norm": 3.6350488662719727,
+          "nonzero": true
+        },
+        "anchor_group.proj_u.weight": {
+          "present": true,
+          "finite": true,
+          "norm": 0.8666725754737854,
+          "nonzero": true
+        }
+      },
+      "preclip_global_norm": 8.530712127685547,
+      "clip_coefficient": 0.1172234941009332,
+      "post_step_optimizer_finite": true
+    },
+    "smru": {
+      "gamma": 0.1,
+      "scale_match": true,
+      "loss_recon": 0.047595322132110596,
+      "loss_understanding": 3.0175981521606445,
+      "loss_anchor_group": 4.393622398376465,
+      "loss_total": 1.556394338607788,
+      "uweight": 0.5,
+      "optimizer_groups": [
+        {
+          "name": "anchor_group_decay",
+          "tensor_count": 18,
+          "numel": 2743496,
+          "lr": 0.0001,
+          "weight_decay": 0.05
+        },
+        {
+          "name": "anchor_group_nodecay",
+          "tensor_count": 41,
+          "numel": 41800,
+          "lr": 0.0001,
+          "weight_decay": 0.0
+        },
+        {
+          "name": "reconstruction_decay",
+          "tensor_count": 115,
+          "numel": 218773504,
+          "lr": 1e-05,
+          "weight_decay": 0.05
+        },
+        {
+          "name": "reconstruction_nodecay",
+          "tensor_count": 335,
+          "numel": 1229116,
+          "lr": 1e-05,
+          "weight_decay": 0.0
+        }
+      ],
+      "gradients": {
+        "anchor_group.query_init": {
+          "present": true,
+          "finite": true,
+          "norm": 5.9029669761657715,
+          "nonzero": true
+        },
+        "anchor_group.gru.weight_ih": {
+          "present": true,
+          "finite": true,
+          "norm": 0.3152008354663849,
+          "nonzero": true
+        },
+        "anchor_group.ffn_fc1.weight": {
+          "present": true,
+          "finite": true,
+          "norm": 0.19962893426418304,
+          "nonzero": true
+        },
+        "anchor_group.proj_u.weight": {
+          "present": true,
+          "finite": true,
+          "norm": 1.2746896743774414,
+          "nonzero": true
+        }
+      },
+      "preclip_global_norm": 7.0369977951049805,
+      "clip_coefficient": 0.1421060354160657,
+      "post_step_optimizer_finite": true,
+      "scale_match_formula_checks": [
+        {
+          "layer": 6,
+          "norm_match_max_abs_error": 2.9802322387695312e-08,
+          "update_ratio_max_abs_error": 1.4901161193847656e-08
+        },
+        {
+          "layer": 8,
+          "norm_match_max_abs_error": 2.9802322387695312e-08,
+          "update_ratio_max_abs_error": 1.4901161193847656e-08
+        },
+        {
+          "layer": 10,
+          "norm_match_max_abs_error": 2.9802322387695312e-08,
+          "update_ratio_max_abs_error": 1.4901161193847656e-08
+        },
+        {
+          "layer": 12,
+          "norm_match_max_abs_error": 2.9802322387695312e-08,
+          "update_ratio_max_abs_error": 1.4901161193847656e-08
+        }
+      ],
+      "peak_allocated_gib": 6.642551422119141,
+      "peak_reserved_gib": 7.03515625
+    }
+  }
+}
