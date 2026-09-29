@@ -1,0 +1,216 @@
+{
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "total_memory_gib": 23.68426513671875,
+  "torch": "2.7.0+cu126",
+  "cuda": "12.6",
+  "initial_model_state": {
+    "tensor_count": 509,
+    "exact": true,
+    "mismatched_keys": [],
+    "max_abs_diff": 0.0
+  },
+  "same_batch_object": true,
+  "step": 1000,
+  "forward_tensor_parity": {
+    "gaussians": {
+      "exact": true,
+      "max_abs_diff": 0.0
+    },
+    "rgb": {
+      "exact": true,
+      "max_abs_diff": 0.0
+    },
+    "A_post": {
+      "exact": true,
+      "max_abs_diff": 0.0
+    },
+    "region_mass": {
+      "exact": true,
+      "max_abs_diff": 0.0
+    },
+    "semantic_scores": {
+      "exact": true,
+      "max_abs_diff": 0.0
+    },
+    "thing_class_logits": {
+      "exact": true,
+      "max_abs_diff": 0.0
+    }
+  },
+  "forward_tensor_all_exact": true,
+  "hungarian_pairs": {
+    "control": [
+      [
+        [
+          16,
+          3
+        ],
+        [
+          56,
+          1
+        ],
+        [
+          87,
+          0
+        ],
+        [
+          88,
+          2
+        ]
+      ]
+    ],
+    "ablation": [
+      [
+        [
+          16,
+          3
+        ],
+        [
+          56,
+          1
+        ],
+        [
+          87,
+          0
+        ],
+        [
+          88,
+          2
+        ]
+      ]
+    ],
+    "exact": true
+  },
+  "loss_component_parity_and_identity": {
+    "control_loss_recon": 0.020756341516971588,
+    "ablation_loss_recon": 0.020812444388866425,
+    "loss_recon_abs_diff": 5.6102871894836426e-05,
+    "control_loss_understanding": 3.7445127964019775,
+    "ablation_loss_understanding": 3.11995267868042,
+    "control_minus_ablation_understanding": 0.6245601177215576,
+    "weighted_unmatched_noobj_understanding": 0.6245601177215576,
+    "ablation_identity_abs_error": 0.0,
+    "control_matched_ce": 1.008251428604126,
+    "ablation_matched_ce": 1.008251428604126,
+    "control_unmatched_ce": 3.122800588607788,
+    "ablation_unmatched_ce": 3.122800588607788
+  },
+  "arms": {
+    "control": {
+      "recipe": "ANCHOR_GROUP_V1_GC_CONTROL_1K",
+      "unmatched_noobj_scale": 1.0,
+      "step": 1000,
+      "understanding_weight": 1.0,
+      "loss": 3.7652690410614014,
+      "loss_recon": 0.020756341516971588,
+      "loss_understanding": 3.7445127964019775,
+      "loss_anchor_group": 5.1167778968811035,
+      "online_matched_query_ids": [
+        16,
+        56,
+        87,
+        88
+      ],
+      "group_lr": 9.34352447854375e-05,
+      "reconstruction_lr": 9.34352447854375e-06,
+      "optimizer_groups": [
+        {
+          "name": "anchor_group_decay",
+          "tensor_count": 18,
+          "numel": 2743496,
+          "lr": 0.0001,
+          "weight_decay": 0.05
+        },
+        {
+          "name": "anchor_group_nodecay",
+          "tensor_count": 41,
+          "numel": 41800,
+          "lr": 0.0001,
+          "weight_decay": 0.0
+        },
+        {
+          "name": "reconstruction_decay",
+          "tensor_count": 115,
+          "numel": 218773504,
+          "lr": 1e-05,
+          "weight_decay": 0.05
+        },
+        {
+          "name": "reconstruction_nodecay",
+          "tensor_count": 335,
+          "numel": 1229116,
+          "lr": 1e-05,
+          "weight_decay": 0.0
+        }
+      ],
+      "preclip_global_norm": 21.279319763183594,
+      "parameter_delta_max_abs": {
+        "query_init": 9.343773126602173e-05,
+        "late_decoder": 9.346753358840942e-06,
+        "anchor_mu": 9.5367431640625e-06,
+        "activation_head": 9.343260899186134e-06
+      },
+      "optimizer_step_finite": true
+    },
+    "ablation": {
+      "recipe": "ANCHOR_GROUP_V1_GC_NO_UNMATCHED_NOOBJ_1K",
+      "unmatched_noobj_scale": 0.0,
+      "step": 1000,
+      "understanding_weight": 1.0,
+      "loss": 3.1407651901245117,
+      "loss_recon": 0.020812444388866425,
+      "loss_understanding": 3.11995267868042,
+      "loss_anchor_group": 5.1167778968811035,
+      "online_matched_query_ids": [
+        16,
+        56,
+        87,
+        88
+      ],
+      "group_lr": 9.34352447854375e-05,
+      "reconstruction_lr": 9.34352447854375e-06,
+      "optimizer_groups": [
+        {
+          "name": "anchor_group_decay",
+          "tensor_count": 18,
+          "numel": 2743496,
+          "lr": 0.0001,
+          "weight_decay": 0.05
+        },
+        {
+          "name": "anchor_group_nodecay",
+          "tensor_count": 41,
+          "numel": 41800,
+          "lr": 0.0001,
+          "weight_decay": 0.0
+        },
+        {
+          "name": "reconstruction_decay",
+          "tensor_count": 115,
+          "numel": 218773504,
+          "lr": 1e-05,
+          "weight_decay": 0.05
+        },
+        {
+          "name": "reconstruction_nodecay",
+          "tensor_count": 335,
+          "numel": 1229116,
+          "lr": 1e-05,
+          "weight_decay": 0.0
+        }
+      ],
+      "preclip_global_norm": 20.33492088317871,
+      "parameter_delta_max_abs": {
+        "query_init": 9.343773126602173e-05,
+        "late_decoder": 9.346753358840942e-06,
+        "anchor_mu": 9.5367431640625e-06,
+        "activation_head": 9.343260899186134e-06
+      },
+      "optimizer_step_finite": true
+    }
+  },
+  "optimizer_step_count": 2,
+  "status": "pass",
+  "peak_allocated_gib": 7.584575176239014,
+  "peak_reserved_gib": 8.076171875
+}

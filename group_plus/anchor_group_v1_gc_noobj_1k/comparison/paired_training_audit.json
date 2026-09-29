@@ -1,0 +1,166 @@
+{
+  "completed_steps_per_arm": {
+    "control": 1000,
+    "ablation": 1000
+  },
+  "fresh_initial_state_sha256": {
+    "control": "5a5047c1f7f4d8f9670194f7eb42f824a18ab83a9f16c9098ae208d70eb3204e",
+    "ablation": "5a5047c1f7f4d8f9670194f7eb42f824a18ab83a9f16c9098ae208d70eb3204e"
+  },
+  "initial_state_equal": true,
+  "endpoint_audits": {
+    "control": {
+      "step": 1000,
+      "architecture": "LOCUSGS_ANCHOR_GROUP_V1",
+      "recipe": "ANCHOR_GROUP_V1_GC_CONTROL_1K",
+      "joint": true,
+      "beta": 0,
+      "shared_understanding_grad_scale": 0.01,
+      "unmatched_noobj_scale": 1.0,
+      "manifest_sha256": "1f37d08c2941920d94a172d62f95dd494b1126374215833999dc9d75ad9fc483",
+      "parent_plan_sha256": "ffd97c5e018fd5075650a5718503b26c3e566f0e3b516e392ebc657aa01c1323",
+      "plan_prefix_length": 1000,
+      "pretrained_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f",
+      "rng_present": true,
+      "model_tensors_finite": true,
+      "optimizer_tensors_finite": true,
+      "trainable_reconstruction_numel": 220002620,
+      "trainable_anchor_group_numel": 2785296,
+      "frozen_numel": 0,
+      "frozen_parameter_names": [],
+      "status": "pass"
+    },
+    "ablation": {
+      "step": 1000,
+      "architecture": "LOCUSGS_ANCHOR_GROUP_V1",
+      "recipe": "ANCHOR_GROUP_V1_GC_NO_UNMATCHED_NOOBJ_1K",
+      "joint": true,
+      "beta": 0,
+      "shared_understanding_grad_scale": 0.01,
+      "unmatched_noobj_scale": 0.0,
+      "manifest_sha256": "1f37d08c2941920d94a172d62f95dd494b1126374215833999dc9d75ad9fc483",
+      "parent_plan_sha256": "ffd97c5e018fd5075650a5718503b26c3e566f0e3b516e392ebc657aa01c1323",
+      "plan_prefix_length": 1000,
+      "pretrained_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f",
+      "rng_present": true,
+      "model_tensors_finite": true,
+      "optimizer_tensors_finite": true,
+      "trainable_reconstruction_numel": 220002620,
+      "trainable_anchor_group_numel": 2785296,
+      "frozen_numel": 0,
+      "frozen_parameter_names": [],
+      "status": "pass"
+    }
+  },
+  "train_summaries": {
+    "control": {
+      "completed_steps": 1000,
+      "logged_train_steps": 10,
+      "logged_steps": [
+        100,
+        200,
+        300,
+        400,
+        500,
+        600,
+        700,
+        800,
+        900,
+        1000
+      ],
+      "all_logged_metrics_finite": true,
+      "gpu": "NVIDIA GeForce RTX 3090",
+      "cuda_visible_devices": "0",
+      "torch": "2.7.0+cu126",
+      "torch_cuda": "12.6",
+      "manifest_sha256": "1f37d08c2941920d94a172d62f95dd494b1126374215833999dc9d75ad9fc483",
+      "parent_plan_sha256": "ffd97c5e018fd5075650a5718503b26c3e566f0e3b516e392ebc657aa01c1323",
+      "plan_prefix_length": 1000,
+      "pretrained_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f",
+      "recipe": "ANCHOR_GROUP_V1_GC_CONTROL_1K",
+      "shared_understanding_grad_scale": 0.01,
+      "unmatched_noobj_scale": 1.0,
+      "trainable_reconstruction_numel": 220002620,
+      "trainable_anchor_group_numel": 2785296,
+      "frozen_numel": 0,
+      "preclip_norm": {
+        "median": 6.49707818031311,
+        "p10": 2.12836377620697,
+        "p90": 10.62532396316528,
+        "max": 17.54963493347168
+      },
+      "clip_coefficient": {
+        "median": 0.15829555794877262,
+        "fraction_actually_clipped": 0.9
+      },
+      "fresh_initial_state_sha256": "5a5047c1f7f4d8f9670194f7eb42f824a18ab83a9f16c9098ae208d70eb3204e",
+      "status": "pass"
+    },
+    "ablation": {
+      "completed_steps": 1000,
+      "logged_train_steps": 10,
+      "logged_steps": [
+        100,
+        200,
+        300,
+        400,
+        500,
+        600,
+        700,
+        800,
+        900,
+        1000
+      ],
+      "all_logged_metrics_finite": true,
+      "gpu": "NVIDIA GeForce RTX 3090",
+      "cuda_visible_devices": "0",
+      "torch": "2.7.0+cu126",
+      "torch_cuda": "12.6",
+      "manifest_sha256": "1f37d08c2941920d94a172d62f95dd494b1126374215833999dc9d75ad9fc483",
+      "parent_plan_sha256": "ffd97c5e018fd5075650a5718503b26c3e566f0e3b516e392ebc657aa01c1323",
+      "plan_prefix_length": 1000,
+      "pretrained_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f",
+      "recipe": "ANCHOR_GROUP_V1_GC_NO_UNMATCHED_NOOBJ_1K",
+      "shared_understanding_grad_scale": 0.01,
+      "unmatched_noobj_scale": 0.0,
+      "trainable_reconstruction_numel": 220002620,
+      "trainable_anchor_group_numel": 2785296,
+      "frozen_numel": 0,
+      "preclip_norm": {
+        "median": 4.694067001342773,
+        "p10": 2.990363299846649,
+        "p90": 8.068497276306152,
+        "max": 10.506368637084961
+      },
+      "clip_coefficient": {
+        "median": 0.21305955737801063,
+        "fraction_actually_clipped": 0.9
+      },
+      "fresh_initial_state_sha256": "5a5047c1f7f4d8f9670194f7eb42f824a18ab83a9f16c9098ae208d70eb3204e",
+      "status": "pass"
+    }
+  },
+  "manifest_sha256": "1f37d08c2941920d94a172d62f95dd494b1126374215833999dc9d75ad9fc483",
+  "parent_plan_sha256": "ffd97c5e018fd5075650a5718503b26c3e566f0e3b516e392ebc657aa01c1323",
+  "plan_prefix_length": 1000,
+  "pretrained_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f",
+  "monitor_sha256": {
+    "monitor_train16.json": {
+      "sha256": "133811557d13dca81864b9843b831f89df9226a899c381bfb79e0131991a5961",
+      "source_v1_gc_byte_identical": true
+    },
+    "monitor_8pairs.json": {
+      "sha256": "5dae7077779dd398ba97851f0259aef2df7de083df80f5a6bea4b5f5e731c321",
+      "source_v1_gc_byte_identical": true
+    },
+    "monitor_32pairs.json": {
+      "sha256": "af51dfe52d8cf31140f028a5c3b1d1bc5402fd524805d241940f314fad87bd36",
+      "source_v1_gc_byte_identical": true
+    },
+    "train128_class_coverage.json": {
+      "sha256": "9c5914187271016ad75b6cda5a6929ba222b426094f7ef73e47aae60e012c371",
+      "source_v1_gc_byte_identical": true
+    }
+  },
+  "status": "pass"
+}

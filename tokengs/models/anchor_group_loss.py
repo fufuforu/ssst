@@ -103,18 +103,33 @@ def unified_hungarian(prediction,batch,targets=None,match_points=4096):
     return t,out
 
 def anchor_group_losses(prediction,batch,opt=None):
-    del opt
     device=prediction["gaussians"].device; sem=batch["semantic_label_all"][:,:2].long(); ins=batch["instance_label_all"][:,:2].long()
     _check_labels(sem,ins,where="anchor_group_losses")
+    unmatched_noobj_scale=float(getattr(opt,"anchor_group_unmatched_noobj_scale",1.0)) if opt is not None else 1.0
+    if unmatched_noobj_scale not in (0.0,1.0):
+        raise ValueError(f"anchor_group_unmatched_noobj_scale must be exactly 0.0 or 1.0, got {unmatched_noobj_scale!r}")
     t,pairs=unified_hungarian(prediction,batch)
     region=_flat_regions(prediction["region_mass"][:,:,:100],100); logits=prediction["thing_class_logits"][:,:,2:]
     zero=prediction["gaussians"].sum()*0; thing_total=zero; ce_terms=[]; bce_terms=[]; dice_terms=[]
     ownership=prediction["anchor_assignment"]; anchor_ce=[]; anchor_dice=[]
     class_weight=torch.ones(19,device=device); class_weight[18]=UNMATCHED_CLASS_WEIGHT
+    ce_matched_terms=[]; ce_unmatched_terms=[]
     for b,(qi,ki) in enumerate(pairs):
         cls=t["gt_classes"][b]; masks=t["gt_pixel_masks"][b]; target=torch.full((100,),NO_OBJECT_INDEX,device=device,dtype=torch.long)
         target[qi]=cls[ki]-2
-        ce=F.cross_entropy(logits[b].float(),target,weight=class_weight,reduction="mean"); ce_terms.append(ce)
+        ce_full=F.cross_entropy(logits[b].float(),target,weight=class_weight,reduction="mean")
+        per_query=F.cross_entropy(logits[b].float(),target,weight=class_weight,reduction="none")
+        denominator=class_weight[target].sum()
+        matched_mask=torch.zeros(100,device=device,dtype=torch.bool);matched_mask[qi]=True
+        ce_unmatched=per_query[~matched_mask].sum()/denominator
+        ce_matched=ce_full-ce_unmatched
+        if unmatched_noobj_scale==1.0:
+            ce=ce_full
+        elif unmatched_noobj_scale==0.0:
+            ce=ce_full-ce_unmatched
+        else:
+            raise ValueError(f"anchor_group_unmatched_noobj_scale must be exactly 0.0 or 1.0, got {unmatched_noobj_scale!r}")
+        ce_terms.append(ce);ce_matched_terms.append(ce_matched);ce_unmatched_terms.append(ce_unmatched)
         if qi.numel():
             flatvalid=((sem[b]>=0)&(sem[b]<=19)&((sem[b]<2)|(ins[b]>0))).flatten(); z=torch.logit(region[b,:,flatvalid].clamp(1e-6,1-1e-6)); y=masks.flatten(1)[:,flatvalid].float()
             bce=F.binary_cross_entropy_with_logits(z[qi],y[ki],reduction="none").mean(); p=z[qi].sigmoid(); inter=(p*y[ki]).sum(1); den=p.sum(1)+y[ki].sum(1); dice=(1-(2*inter+1)/(den+1)).mean()
@@ -142,7 +157,10 @@ def anchor_group_losses(prediction,batch,opt=None):
     total=.1*L2d+.1*stuff+.1*semantic+.01*ident+.1*Lgroup
     thing_count=int((t["anchor_kind"]==THING).sum()); wall_count=int((t["anchor_kind"]==WALL).sum()); floor_count=int((t["anchor_kind"]==FLOOR).sum()); valid_count=thing_count+wall_count+floor_count
     support=t["Y_anchor"].sum(-1)>0
-    metrics={"loss_anchor_group":float(Lgroup.detach()),"anchor_ce":float(Lce.detach()),"anchor_dice":float(Ldice.detach()),"anchor_valid_count":valid_count,"anchor_thing_count":thing_count,"anchor_wall_count":wall_count,"anchor_floor_count":floor_count,"anchor_ignore_count":int(t["anchor_kind"].eq(IGNORE).sum()),"gt_with_anchor_support":int(support.sum()),"gt_without_anchor_support":int((~support).sum()),"loss_thing_2d":float(L2d.detach()),"loss_stuff_2d":float(stuff.detach()),"loss_semantic":float(semantic.detach()),"loss_identity":float(ident.detach()),"loss_understanding":float(total.detach())}
+    ce_matched_mean=torch.stack(ce_matched_terms).mean()
+    ce_unmatched_mean=torch.stack(ce_unmatched_terms).mean()
+    weighted_unmatched_noobj_understanding=0.1*CLASS_CE_WEIGHT*ce_unmatched_mean
+    metrics={"loss_anchor_group":float(Lgroup.detach()),"anchor_ce":float(Lce.detach()),"anchor_dice":float(Ldice.detach()),"anchor_valid_count":valid_count,"anchor_thing_count":thing_count,"anchor_wall_count":wall_count,"anchor_floor_count":floor_count,"anchor_ignore_count":int(t["anchor_kind"].eq(IGNORE).sum()),"gt_with_anchor_support":int(support.sum()),"gt_without_anchor_support":int((~support).sum()),"loss_thing_2d":float(L2d.detach()),"thing_ce":float(torch.stack(ce_terms).mean().detach()),"thing_ce_matched":float(ce_matched_mean.detach()),"thing_ce_unmatched":float(ce_unmatched_mean.detach()),"pixel_bce":float(torch.stack(bce_terms).mean().detach()),"pixel_dice":float(torch.stack(dice_terms).mean().detach()),"unmatched_noobj_scale":unmatched_noobj_scale,"weighted_unmatched_noobj_understanding":float(weighted_unmatched_noobj_understanding.detach()),"loss_stuff_2d":float(stuff.detach()),"loss_semantic":float(semantic.detach()),"loss_identity":float(ident.detach()),"loss_understanding":float(total.detach())}
     metrics.update(sm); metrics.update(smm); metrics.update(idm)
     return total,metrics
 

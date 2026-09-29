@@ -1,0 +1,231 @@
+{
+  "architecture": "LOCUSGS_ANCHOR_GROUP_V1",
+  "parent_recipe": "ANCHOR_GROUP_V1_GC_ALPHA001",
+  "arm_scales": {
+    "control": 1.0,
+    "ablation": 0.0
+  },
+  "checkpoint_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f",
+  "manifest_sha256": "1f37d08c2941920d94a172d62f95dd494b1126374215833999dc9d75ad9fc483",
+  "parent_plan_sha256": "ffd97c5e018fd5075650a5718503b26c3e566f0e3b516e392ebc657aa01c1323",
+  "plan_prefix_length": 1000,
+  "monitor_sha256": {
+    "monitor_train16.json": {
+      "sha256": "133811557d13dca81864b9843b831f89df9226a899c381bfb79e0131991a5961",
+      "source_v1_gc_byte_identical": true
+    },
+    "monitor_8pairs.json": {
+      "sha256": "5dae7077779dd398ba97851f0259aef2df7de083df80f5a6bea4b5f5e731c321",
+      "source_v1_gc_byte_identical": true
+    },
+    "monitor_32pairs.json": {
+      "sha256": "af51dfe52d8cf31140f028a5c3b1d1bc5402fd524805d241940f314fad87bd36",
+      "source_v1_gc_byte_identical": true
+    },
+    "train128_class_coverage.json": {
+      "sha256": "9c5914187271016ad75b6cda5a6929ba222b426094f7ef73e47aae60e012c371",
+      "source_v1_gc_byte_identical": true
+    }
+  },
+  "transfer": {
+    "source_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f",
+    "pretrained_step": 47500,
+    "matched_reconstruction_tensor_count": 450,
+    "new_anchor_group_tensor_count": 59,
+    "missing_non_group_keys": [],
+    "unexpected_source_reconstruction_keys": [],
+    "shape_mismatch_keys": [],
+    "group_seed_values_preserved": true,
+    "group_init_changed_keys": []
+  },
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "torch": "2.7.0+cu126",
+  "cuda": "12.6",
+  "checks": {
+    "NOOBJ-C1_baseline_scalar_parity": {
+      "passed": true,
+      "thing_ce_max_abs_diff": 0.0,
+      "loss_understanding_max_abs_diff": 0.0,
+      "default_scale_exact": true
+    },
+    "NOOBJ-C2_baseline_gradient_parity": {
+      "passed": true,
+      "max_abs_diff": 6.556510925292969e-07,
+      "relative_l2_diff": 3.164698972653886e-07,
+      "parameters": [
+        "q_final",
+        "anchor_group.query_init",
+        "thing_classifier.weight",
+        "thing_classifier.bias"
+      ]
+    },
+    "NOOBJ-C3_ablation_scalar_difference_identity": {
+      "passed": true,
+      "control_minus_ablation": 0.6245601177215576,
+      "weighted_unmatched_noobj_understanding": 0.6245601177215576,
+      "abs_diff": 0.0,
+      "classifier_ce_control_minus_ablation": 3.122800588607788,
+      "classifier_ce_unmatched_component": 3.122800588607788,
+      "classifier_ce_abs_diff": 0.0,
+      "direct_logit_gradient_max_abs_diff": 1.1175870895385742e-08,
+      "direct_logit_gradient_relative_l2_diff": 7.4924250001096e-08
+    },
+    "NOOBJ-C4_matched_ce_unchanged": {
+      "passed": true,
+      "max_abs_diff": 0.0
+    },
+    "NOOBJ-C5_nonclass_losses_unchanged": {
+      "passed": true,
+      "unchanged_loss_diffs": {
+        "loss_anchor_group": 0.0,
+        "anchor_ce": 0.0,
+        "anchor_dice": 0.0,
+        "loss_stuff_2d": 0.0,
+        "loss_semantic": 0.0,
+        "loss_identity": 0.0
+      },
+      "pixel_bce": 0.15367870032787323,
+      "pixel_dice": 0.972777783870697,
+      "pixel_component_diffs": {
+        "pixel_bce": 0.0,
+        "pixel_dice": 0.0
+      },
+      "pixel_bce_and_dice_exact": true
+    },
+    "NOOBJ-C6_hungarian_pairs_unchanged": {
+      "passed": true,
+      "control_pairs": [
+        [
+          [
+            16,
+            3
+          ],
+          [
+            56,
+            1
+          ],
+          [
+            87,
+            0
+          ],
+          [
+            88,
+            2
+          ]
+        ]
+      ],
+      "ablation_pairs": [
+        [
+          [
+            16,
+            3
+          ],
+          [
+            56,
+            1
+          ],
+          [
+            87,
+            0
+          ],
+          [
+            88,
+            2
+          ]
+        ]
+      ]
+    },
+    "NOOBJ-C7_gc_backward_unchanged": {
+      "passed": true,
+      "shared_scale": 0.01,
+      "helper": "scripts.anchor_group_v1_gc.backward_gradient_controlled"
+    },
+    "NOOBJ-C8_optimizer_groups_unchanged": {
+      "passed": true,
+      "groups": {
+        "anchor_group_decay": {
+          "tensor_count": 18,
+          "numel": 2743496
+        },
+        "anchor_group_nodecay": {
+          "tensor_count": 41,
+          "numel": 41800
+        },
+        "reconstruction_decay": {
+          "tensor_count": 115,
+          "numel": 218773504
+        },
+        "reconstruction_nodecay": {
+          "tensor_count": 335,
+          "numel": 1229116
+        }
+      }
+    },
+    "NOOBJ-C9_lr_schedule_unchanged": {
+      "passed": true,
+      "lr_by_step": {
+        "0": {
+          "anchor_group_decay": 0.0,
+          "anchor_group_nodecay": 0.0,
+          "reconstruction_decay": 0.0,
+          "reconstruction_nodecay": 0.0
+        },
+        "1": {
+          "anchor_group_decay": 5.000000000000001e-07,
+          "anchor_group_nodecay": 5.000000000000001e-07,
+          "reconstruction_decay": 5.0000000000000004e-08,
+          "reconstruction_nodecay": 5.0000000000000004e-08
+        },
+        "200": {
+          "anchor_group_decay": 0.0001,
+          "anchor_group_nodecay": 0.0001,
+          "reconstruction_decay": 1e-05,
+          "reconstruction_nodecay": 1e-05
+        },
+        "500": {
+          "anchor_group_decay": 9.90584787397583e-05,
+          "anchor_group_nodecay": 9.90584787397583e-05,
+          "reconstruction_decay": 9.90584787397583e-06,
+          "reconstruction_nodecay": 9.90584787397583e-06
+        },
+        "1000": {
+          "anchor_group_decay": 9.34352447854375e-05,
+          "anchor_group_nodecay": 9.34352447854375e-05,
+          "reconstruction_decay": 9.34352447854375e-06,
+          "reconstruction_nodecay": 9.34352447854375e-06
+        }
+      },
+      "total_steps": 5000
+    },
+    "NOOBJ-C10_phase_a_regression": {
+      "passed": true,
+      "passed_count": 18,
+      "total": 18
+    },
+    "NOOBJ-C11_v1_gc_regression": {
+      "passed": true,
+      "passed_count": 15,
+      "total": 15
+    },
+    "NOOBJ-C12_reconstruction_and_legacy_regression": {
+      "passed": true,
+      "reconstruction_parity": {
+        "gpu": "NVIDIA GeForce RTX 3090",
+        "cuda_available": true,
+        "checkpoint_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f",
+        "scene": null,
+        "gaussian_max_abs_diff": 0.0,
+        "rgb_max_abs_diff": 0.0,
+        "psnr_baseline": 26.979652404785156,
+        "psnr_anchor_group_v1_gc": 26.979652404785156,
+        "psnr_abs_diff": 0.0,
+        "status": "pass"
+      },
+      "legacy_s0_s1": "pass"
+    }
+  },
+  "passed": 12,
+  "total": 12,
+  "failed": [],
+  "status": "pass"
+}

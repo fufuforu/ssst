@@ -1,0 +1,64 @@
+{
+  "phase_a_cpu": {
+    "passed": 18,
+    "failed": 0,
+    "total": 18,
+    "status": "pass"
+  },
+  "legacy_loss_cpu": {
+    "ok": true,
+    "check_count": 16
+  },
+  "legacy_evaluator_cpu": {
+    "ok": true,
+    "check_count": 8
+  },
+  "v1_gc_contracts": {
+    "passed": 15,
+    "total": 15,
+    "status": "pass"
+  },
+  "s0_s1_gpu_forward": {
+    "gpu": "NVIDIA GeForce RTX 3090",
+    "cuda_available": true,
+    "torch": "2.7.0+cu126",
+    "torch_cuda": "12.6",
+    "scene": "scene0000_00",
+    "window_index": 0,
+    "models": {
+      "S0": {
+        "architecture_name": "LOCUSGS_INSTANCE_STATE_V1",
+        "instance_state_local3d": false,
+        "local3d_k": null,
+        "forward": "pass",
+        "finite": {
+          "gaussians": true,
+          "region_mass": true,
+          "semantic_scores": true,
+          "loss": true
+        },
+        "loss": "pass",
+        "initialization_path": "single-anchor",
+        "loss_value": 0.740193247795105
+      },
+      "S1": {
+        "architecture_name": "LOCUSGS_INSTANCE_STATE_V1",
+        "instance_state_local3d": true,
+        "local3d_k": 8,
+        "forward": "pass",
+        "finite": {
+          "gaussians": true,
+          "region_mass": true,
+          "semantic_scores": true,
+          "loss": true
+        },
+        "loss": "pass",
+        "initialization_path": "local8",
+        "loss_value": 0.7294127941131592
+      }
+    },
+    "status": "pass"
+  },
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "status": "pass"
+}

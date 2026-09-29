@@ -1,0 +1,35 @@
+{
+  "baseline_checkpoint_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f",
+  "endpoint_step": 1000,
+  "categories": {
+    "other_reconstruction": {
+      "tensor_count": 69,
+      "numel": 41541504,
+      "l2_delta": 0.8960525921415805,
+      "relative_l2_delta": 0.00615097999160597,
+      "max_abs_delta": 0.0014722584746778011
+    },
+    "decoder": {
+      "tensor_count": 324,
+      "numel": 176411136,
+      "l2_delta": 2.4411435530564805,
+      "relative_l2_delta": 0.008399910719594708,
+      "max_abs_delta": 0.0019419416785240173
+    },
+    "activation_head": {
+      "tensor_count": 2,
+      "numel": 918400,
+      "l2_delta": 0.18797185699407418,
+      "relative_l2_delta": 0.009394724798739212,
+      "max_abs_delta": 0.0017631202936172485
+    },
+    "anchor_geometry": {
+      "tensor_count": 55,
+      "numel": 1131580,
+      "l2_delta": 0.14361511554083398,
+      "relative_l2_delta": 0.0022296788740079334,
+      "max_abs_delta": 0.0012205735547468066
+    }
+  },
+  "status": "pass"
+}
