@@ -1,0 +1,9 @@
+{
+  "step0_evaluation_completed": true,
+  "model_state_exact_unchanged": true,
+  "changed_state_keys": [],
+  "optimizer_state_empty_before_step1": true,
+  "model_training_mode_restored": true,
+  "reconstruction_parity": "pass",
+  "status": "pass"
+}

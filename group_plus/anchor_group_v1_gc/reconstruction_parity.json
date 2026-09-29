@@ -5,8 +5,8 @@
   "scene": null,
   "gaussian_max_abs_diff": 0.0,
   "rgb_max_abs_diff": 0.0,
-  "psnr_baseline": 22.12148666381836,
-  "psnr_anchor_group_v1_gc": 22.12148666381836,
+  "psnr_baseline": 24.641307830810547,
+  "psnr_anchor_group_v1_gc": 24.641307830810547,
   "psnr_abs_diff": 0.0,
   "status": "pass"
 }

@@ -1,0 +1,22 @@
+{
+  "step": 5000,
+  "architecture": "LOCUSGS_ANCHOR_GROUP_V1",
+  "recipe": "ANCHOR_GROUP_V1_GC_ALPHA001",
+  "joint": true,
+  "beta": 0,
+  "shared_understanding_grad_scale": 0.01,
+  "manifest_sha256": "1f37d08c2941920d94a172d62f95dd494b1126374215833999dc9d75ad9fc483",
+  "plan_sha256": "ffd97c5e018fd5075650a5718503b26c3e566f0e3b516e392ebc657aa01c1323",
+  "pretrained_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f",
+  "endpoint_path": "workspace_group_plus/anchor_group_v1_gc/formal_endpoint_step5000.pt",
+  "model_tensors_finite": true,
+  "optimizer_tensors_finite": true,
+  "all_parameters_trainable": true,
+  "frozen_numel": 0,
+  "frozen_parameter_names": [],
+  "trainable_reconstruction_numel": 220002620,
+  "trainable_anchor_group_numel": 2785296,
+  "rng_present": true,
+  "mismatches": {},
+  "status": "pass"
+}

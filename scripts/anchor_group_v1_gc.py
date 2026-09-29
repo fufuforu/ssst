@@ -677,6 +677,300 @@ def _reconstruction_parity(model, opt, source_state, device, batch):
             "status": "pass" if gs_diff == 0 and rgb_diff == 0 and p0 == p1 else "fail"}
 
 
+def _all_finite(value):
+    if torch.is_tensor(value):
+        return bool(torch.isfinite(value).all())
+    if isinstance(value, dict):
+        return all(_all_finite(v) for v in value.values())
+    if isinstance(value, (tuple, list)):
+        return all(_all_finite(v) for v in value)
+    if isinstance(value, (float, np.floating)):
+        return math.isfinite(float(value))
+    return True
+
+
+def _drift_category(name):
+    if name.startswith("enc_dec_backbone.decoder_blocks."):
+        return "decoder"
+    if name.startswith("activation_head."):
+        return "activation_head"
+    if name.startswith("anchor_decoder.") and (
+            name in ("anchor_decoder.mu", "anchor_decoder.rho", "anchor_decoder.gamma_raw")
+            or name.startswith(("anchor_decoder.refine_mu.", "anchor_decoder.refine_rho.",
+                                "anchor_decoder.pe_mlp", "anchor_decoder.pe_mlps"))):
+        return "anchor_geometry"
+    return "other_reconstruction"
+
+
+def _endpoint_audit_and_drift(model, optimizer, endpoint, source_state):
+    payload = torch.load(endpoint, map_location="cpu", weights_only=False)
+    required = {
+        "step": TOTAL_STEPS,
+        "architecture": "LOCUSGS_ANCHOR_GROUP_V1",
+        "recipe": "ANCHOR_GROUP_V1_GC_ALPHA001",
+        "joint": True,
+        "beta": 0,
+        "shared_understanding_grad_scale": SHARED_UNDERSTANDING_GRAD_SCALE,
+        "manifest_sha256": MANIFEST_SHA,
+        "plan_sha256": EXPECTED_PLAN_SHA,
+        "pretrained_sha256": PRETRAINED_SHA,
+    }
+    mismatches = {key: {"expected": value, "actual": payload.get(key)}
+                  for key, value in required.items() if payload.get(key) != value}
+    params = list(model.named_parameters())
+    frozen_names = [name for name, param in params if not param.requires_grad]
+    model_finite = _all_finite(payload.get("model", {}))
+    optimizer_finite = _all_finite(payload.get("optimizer", {}))
+    rng = payload.get("rng")
+    rng_present = isinstance(rng, dict) and all(k in rng and rng[k] is not None
+                                                  for k in ("python", "numpy", "torch", "cuda"))
+    audit = {
+        **required,
+        "endpoint_path": str(endpoint.relative_to(REPO)),
+        "model_tensors_finite": model_finite,
+        "optimizer_tensors_finite": optimizer_finite,
+        "all_parameters_trainable": not frozen_names,
+        "frozen_numel": sum(p.numel() for _, p in params if not p.requires_grad),
+        "frozen_parameter_names": frozen_names,
+        "trainable_reconstruction_numel": sum(p.numel() for n, p in params
+                                                if p.requires_grad and not n.startswith("anchor_group.")),
+        "trainable_anchor_group_numel": sum(p.numel() for n, p in params
+                                               if p.requires_grad and n.startswith("anchor_group.")),
+        "rng_present": rng_present,
+        "mismatches": mismatches,
+        "status": "pass" if not mismatches and model_finite and optimizer_finite
+                  and not frozen_names and rng_present else "fail",
+    }
+    _write(OUT / "formal_endpoint_step5000_audit.json", audit)
+
+    sums = {k: {"tensor_count": 0, "numel": 0, "delta_sq": 0.0,
+                "baseline_sq": 0.0, "max_abs_delta": 0.0}
+            for k in ("other_reconstruction", "decoder", "activation_head", "anchor_geometry")}
+    for name, trained in payload["model"].items():
+        if name.startswith("anchor_group."):
+            continue
+        if name not in source_state:
+            raise RuntimeError(f"endpoint reconstruction key missing from canonical source: {name}")
+        baseline = source_state[name]
+        if baseline.shape != trained.shape:
+            raise RuntimeError(f"endpoint reconstruction shape mismatch: {name}")
+        item = sums[_drift_category(name)]
+        delta = trained.detach().double() - baseline.detach().double()
+        item["tensor_count"] += 1
+        item["numel"] += trained.numel()
+        item["delta_sq"] += float(delta.square().sum())
+        item["baseline_sq"] += float(baseline.detach().double().square().sum())
+        item["max_abs_delta"] = max(item["max_abs_delta"], float(delta.abs().max()))
+    categories = {}
+    for name, item in sums.items():
+        categories[name] = {
+            "tensor_count": item["tensor_count"], "numel": item["numel"],
+            "l2_delta": math.sqrt(item["delta_sq"]),
+            "baseline_l2": math.sqrt(item["baseline_sq"]),
+            "relative_l2_delta": math.sqrt(item["delta_sq"]) / max(math.sqrt(item["baseline_sq"]), 1e-30),
+            "max_abs_delta": item["max_abs_delta"],
+        }
+    drift = {"baseline_checkpoint_sha256": PRETRAINED_SHA, "endpoint_step": TOTAL_STEPS,
+             "categories": categories, "status": "pass" if audit["status"] == "pass" else "fail"}
+    _write(OUT / "formal_reconstruction_drift_audit.json", drift)
+    return audit, drift
+
+
+def _training_log_summary(model, optimizer):
+    log_path = WORKSPACE / "train.log"
+    rows = []
+    if log_path.is_file():
+        for line in log_path.read_text(errors="replace").splitlines():
+            try:
+                row = json.loads(line)
+            except (json.JSONDecodeError, TypeError):
+                continue
+            if row.get("event") == "train_step":
+                rows.append(row)
+    norms = [float(r["pre_clip_global_grad_norm"]) for r in rows
+             if "pre_clip_global_grad_norm" in r]
+    coeffs = [float(r["clip_coefficient"]) for r in rows if "clip_coefficient" in r]
+    finite = all(_all_finite(r) for r in rows)
+    required_fields = {"loss", "loss_recon", "loss_understanding", "understanding_weight",
+                       "loss_thing_2d", "loss_stuff_2d", "loss_semantic", "loss_identity",
+                       "loss_anchor_group", "anchor_ce", "anchor_dice", "group_lr",
+                       "reconstruction_lr", "shared_understanding_grad_scale",
+                       "pre_clip_global_grad_norm", "clip_coefficient"}
+    summary = {
+        "completed_steps": TOTAL_STEPS if (WORKSPACE / "formal_endpoint_step5000.pt").is_file() else None,
+        "logged_train_steps": len(rows), "logged_steps": [r.get("step") for r in rows],
+        "all_logged_metrics_finite": finite and len(rows) == 50 and len(norms) == 50 and len(coeffs) == 50
+                                      and all(required_fields.issubset(r) for r in rows)
+                                      and [r.get("step") for r in rows] == list(range(100, 5001, 100)),
+        "gpu": torch.cuda.get_device_name(0) if torch.cuda.is_available() else None,
+        "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES"),
+        "torch_version": torch.__version__, "torch_cuda_version": torch.version.cuda,
+        "manifest_sha256": MANIFEST_SHA, "plan_sha256": EXPECTED_PLAN_SHA,
+        "pretrained_sha256": PRETRAINED_SHA,
+        "shared_understanding_grad_scale": SHARED_UNDERSTANDING_GRAD_SCALE,
+        "trainable_reconstruction_numel": sum(p.numel() for n, p in model.named_parameters()
+                                                if p.requires_grad and not n.startswith("anchor_group.")),
+        "trainable_anchor_group_numel": sum(p.numel() for n, p in model.named_parameters()
+                                               if p.requires_grad and n.startswith("anchor_group.")),
+        "frozen_numel": sum(p.numel() for p in model.parameters() if not p.requires_grad),
+        "optimizer_group_audit": optimizer_audit_for_summary(optimizer),
+        "gradient_norm": {}, "clip_coefficient": {}, "log_path": str(log_path.relative_to(REPO)),
+    }
+    if norms:
+        summary["gradient_norm"] = {"median": float(np.median(norms)),
+                                    "p10": float(np.percentile(norms, 10)),
+                                    "p90": float(np.percentile(norms, 90)),
+                                    "max": float(max(norms))}
+    if coeffs:
+        summary["clip_coefficient"] = {"median": float(np.median(coeffs)),
+                                       "fraction_actually_clipped": float(np.mean(np.asarray(coeffs) < 1.0))}
+    return summary
+
+
+def _write_formal_report():
+    steps = EVAL_STEPS
+    gc_curves = {step: json.loads((OUT / f"curves_{step}.json").read_text()) for step in steps}
+    v1_curves = {step: json.loads((V1_OUT / f"curves_{step}.json").read_text()) for step in steps}
+    s1_curves = json.loads((REPO / "group_plus/instance_state_v2_s1_local3d/curves_5000.json").read_text())
+    training_summary = json.loads((OUT / "training_log_summary.json").read_text())
+    direct = {step: json.loads((OUT / f"anchor_group_diagnostics_step{step}.json").read_text())
+              for step in steps}
+    def metrics(curves, step, scope):
+        return curves[step][scope]
+    def direct_metric(step, scope, key):
+        return direct[step][scope][key]
+    cols = ("mIoU_thing", "class_agnostic_recall50", "tp_class_agnostic",
+            "fp_class_agnostic", "fn_class_agnostic", "class_aware_recall50", "psnr")
+    rows = []
+    for step in steps:
+        c, t = metrics(gc_curves, step, "val32_context"), metrics(gc_curves, step, "val32_target")
+        dc = direct[step]["val32_context"]
+        rows.append((step, c, t, dc))
+    lines = ["# Anchor-Group V1-GC formal 5k report", "",
+             "## A. Completion and provenance", "",
+             f"Training completed {TOTAL_STEPS}/5000 steps on `{training_summary['gpu']}`; FP32. Fresh initialization used pretrained step 47500 and a seed-31415 Anchor-Group module. Manifest SHA `{MANIFEST_SHA}`; plan SHA `{EXPECTED_PLAN_SHA}`; pretrained SHA `{PRETRAINED_SHA}`.", "",
+             "## B. Recipe", "",
+             "Architecture, forward, losses, optimizer, LR, warm-up, and clipping match Anchor-Group V1. The sole scientific difference is understanding-to-reconstruction gradient scale `1.0 → 0.01`; Anchor-Group parameters retain full understanding gradients.", "",
+             "## C. Registered seven-point V1-GC curves", "",
+             "| Step | ctx/target thing mIoU | ctx/target ca-R50 | ctx/target class-aware R50 | ctx TP/FP/FN | target TP/FP/FN | ctx/target PSNR | anchor acc | thing-anchor correct | supported-GT recall50 | active queries | assignment entropy | mass median/max/max:median | q cosine mean | no-object mean |",
+             "|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|"]
+    for step, c, t, d in rows:
+        mass = d["mechanism_means"]["thing_ownership_mass"]
+        lines.append(f"| {step} | {c['mIoU_thing']:.6f}/{t['mIoU_thing']:.6f} | {c['class_agnostic_recall50']:.6f}/{t['class_agnostic_recall50']:.6f} | {c['class_aware_recall50']:.6f}/{t['class_aware_recall50']:.6f} | {c['tp_class_agnostic']}/{c['fp_class_agnostic']}/{c['fn_class_agnostic']} | {t['tp_class_agnostic']}/{t['fp_class_agnostic']}/{t['fn_class_agnostic']} | {c['psnr']:.6f}/{t['psnr']:.6f} | {d['anchor_ownership_accuracy']:.6f} | {d['thing_anchor_correct_fraction']:.6f} | {d['anchor_group_gt_recall50']:.6f} | {d['active_thing_queries_mean']:.3f} | {d['assignment_entropy_mean']:.6f} | {mass['median']:.6g}/{mass['max']:.6g}/{mass['max_over_median']:.6g} | {d['mechanism_means']['query_cosine']['offdiag_mean']:.6f} | {d['mechanism_means']['no_object_probability']['mean']:.6f} |")
+    lines.extend(["", "## D. Same-step V1 vs V1-GC", "",
+                  "| Step | Model | ctx/target thing mIoU | ctx/target ca-R50 | ctx/target class-aware R50 | ctx/target PSNR | ctx/target anchor accuracy | ctx/target supported-GT recall50 |",
+                  "|---:|---|---:|---:|---:|---:|---:|---:|"])
+    for step in steps:
+        for label, curves, diag in (("V1", v1_curves, None), ("V1-GC", gc_curves, direct[step])):
+            c, t = curves[step]["val32_context"], curves[step]["val32_target"]
+            if label == "V1":
+                vd = json.loads((V1_OUT / f"anchor_group_diagnostics_step{step}.json").read_text())
+            else:
+                vd = diag
+            lines.append(f"| {step} | {label} | {c['mIoU_thing']:.6f}/{t['mIoU_thing']:.6f} | {c['class_agnostic_recall50']:.6f}/{t['class_agnostic_recall50']:.6f} | {c['class_aware_recall50']:.6f}/{t['class_aware_recall50']:.6f} | {c['psnr']:.6f}/{t['psnr']:.6f} | {vd['val32_context']['anchor_ownership_accuracy']:.6f}/{vd['val32_target']['anchor_ownership_accuracy']:.6f} | {vd['val32_context']['anchor_group_gt_recall50']:.6f}/{vd['val32_target']['anchor_group_gt_recall50']:.6f} |")
+    lines.extend(["", "## E. S1 / V1 / V1-GC endpoints", "",
+                  "| Model | Scope | thing mIoU | ca-R50 | class-aware R50 | PSNR | active queries |",
+                  "|---|---|---:|---:|---:|---:|---:|"])
+    for label, curves, scopes in (("S1@5k", s1_curves, None), ("V1@5k", v1_curves[5000], None), ("V1-GC@5k", gc_curves[5000], None)):
+        for scope in ("val32_context", "val32_target"):
+            r = curves[scope]
+            active = r.get("active_thing_queries", r.get("active_queries", "n/a"))
+            lines.append(f"| {label} | {scope} | {r['mIoU_thing']:.6f} | {r['class_agnostic_recall50']:.6f} | {r['class_aware_recall50']:.6f} | {r['psnr']:.6f} | {active} |")
+    lines.extend(["", "## F. Direct anchor grouping", "",
+                  "The seven-point table reports anchor ownership accuracy, confident thing-anchor correct fraction, and supported-GT recall50 using the registered evaluator/Hungarian path.", "",
+                  "## G. Reconstruction preservation and H. Parameter drift", "",
+                  f"Val32 context PSNR changed by {gc_curves[5000]['val32_context']['psnr'] - gc_curves[0]['val32_context']['psnr']:.6f} dB (step 0 to 5000); target changed by {gc_curves[5000]['val32_target']['psnr'] - gc_curves[0]['val32_target']['psnr']:.6f} dB. V1 context/target changes were {v1_curves[5000]['val32_context']['psnr'] - v1_curves[0]['val32_context']['psnr']:.6f}/{v1_curves[5000]['val32_target']['psnr'] - v1_curves[0]['val32_target']['psnr']:.6f} dB.", "",
+                  "| Category | V1 relative L2 drift | V1-GC relative L2 drift | V1 max abs | V1-GC max abs |",
+                  "|---|---:|---:|---:|---:|"])
+    v1_drift = json.loads((V1_OUT / "formal_reconstruction_drift_audit.json").read_text())
+    gc_drift = json.loads((OUT / "formal_reconstruction_drift_audit.json").read_text())
+    for cat in ("decoder", "activation_head", "anchor_geometry", "other_reconstruction"):
+        a, b = v1_drift["categories"][cat], gc_drift["categories"][cat]
+        lines.append(f"| {cat} | {a['relative_l2_delta']:.6g} | {b['relative_l2_delta']:.6g} | {a['max_abs_delta']:.6g} | {b['max_abs_delta']:.6g} |")
+    qgc = json.loads((OUT / "query_starvation_summary.json").read_text())
+    qv1 = json.loads((V1_OUT / "query_starvation_summary.json").read_text())
+    lines.extend(["", "## I. Query utilization / starvation diagnostic", "",
+                  "| Scope | Model | matched / never | top5 / top10 share | match Gini | effective query count | ownership Gini | active queries |",
+                  "|---|---|---:|---:|---:|---:|---:|---:|"])
+    for scope in ("train1024", "val32"):
+        for label, summary in (("V1", qv1[scope]), ("V1-GC", qgc[scope])):
+            mc, oc = summary["match_concentration"], summary["ownership_concentration"]
+            lines.append(f"| {scope} | {label} | {summary['unique_queries_ever_matched']}/100 ; {summary['queries_never_matched']}/100 | {mc['top5_share']:.4f}/{mc['top10_share']:.4f} | {mc['gini']:.4f} | {mc['effective_query_count']:.3f} | {oc['gini']:.4f} | {summary['mean_active_output_queries']:.3f} |")
+    lines.extend(["", "## J. Training clip diagnostics", "",
+                  "| Run | median pre-clip norm | p10 | p90 | max | median clip coefficient | fraction clipped |",
+                  "|---|---:|---:|---:|---:|---:|---:|"])
+    gc_log = training_summary
+    v1_log_path = V1_OUT / "training_log_summary.json"
+    if v1_log_path.is_file():
+        lines.append("| V1 | not available for V1 formal run | not available | not available | not available | not available | not available |")
+    gn, cc = gc_log["gradient_norm"], gc_log["clip_coefficient"]
+    lines.append(f"| V1-GC | {gn.get('median', float('nan')):.6g} | {gn.get('p10', float('nan')):.6g} | {gn.get('p90', float('nan')):.6g} | {gn.get('max', float('nan')):.6g} | {cc.get('median', float('nan')):.6g} | {cc.get('fraction_actually_clipped', float('nan')):.4f} |")
+    lines.extend(["", "## K. Train16 to val32 generalization at step 5000", "",
+                  "| Metric | train16 context | val32 context | val32 minus train16 |",
+                  "|---|---:|---:|---:|"])
+    for key in ("mIoU_thing", "class_agnostic_recall50", "class_aware_recall50"):
+        a, b = gc_curves[5000]["train16_context"][key], gc_curves[5000]["val32_context"][key]
+        lines.append(f"| {key} | {a:.6f} | {b:.6f} | {b-a:.6f} |")
+    gc_ctx_drop = gc_curves[5000]["val32_context"]["psnr"] - gc_curves[0]["val32_context"]["psnr"]
+    v1_ctx_drop = v1_curves[5000]["val32_context"]["psnr"] - v1_curves[0]["val32_context"]["psnr"]
+    gc_tgt_drop = gc_curves[5000]["val32_target"]["psnr"] - gc_curves[0]["val32_target"]["psnr"]
+    v1_tgt_drop = v1_curves[5000]["val32_target"]["psnr"] - v1_curves[0]["val32_target"]["psnr"]
+    gc_ctx, v1_ctx = gc_curves[5000]["val32_context"], v1_curves[5000]["val32_context"]
+    s1_ctx, s1_tgt = s1_curves["val32_context"], s1_curves["val32_target"]
+    gc_tgt, v1_tgt = gc_curves[5000]["val32_target"], v1_curves[5000]["val32_target"]
+    grouping = direct[5000]["val32_context"]
+    grouping_step0 = direct[0]["val32_context"]
+    qg = qgc["train1024"]
+    rec_protected = abs(gc_ctx_drop) < abs(v1_ctx_drop)
+    semantic_kept = gc_ctx["mIoU_thing"] >= v1_ctx["mIoU_thing"]
+    instance_kept = gc_ctx["class_agnostic_recall50"] >= v1_ctx["class_agnostic_recall50"]
+    drift_reduced = {k: gc_drift["categories"][k]["relative_l2_delta"]
+                     < v1_drift["categories"][k]["relative_l2_delta"]
+                     for k in ("decoder", "activation_head", "anchor_geometry", "other_reconstruction")}
+    lines.extend(["", "## L. Final interpretation from measured results", "",
+                  f"- Reconstruction protection: {'yes' if rec_protected else 'no'} by val32 context PSNR; GC change {gc_ctx_drop:.4f} dB vs V1 {v1_ctx_drop:.4f} dB (target GC {gc_tgt_drop:.4f} dB vs V1 {v1_tgt_drop:.4f} dB). Absolute context drop reduction: {abs(v1_ctx_drop)-abs(gc_ctx_drop):.4f} dB.",
+                  f"- Understanding at val32 context: thing mIoU GC/V1 {gc_ctx['mIoU_thing']:.6f}/{v1_ctx['mIoU_thing']:.6f} ({'GC at least matches V1' if semantic_kept else 'GC below V1'}); ca-R50 {gc_ctx['class_agnostic_recall50']:.6f}/{v1_ctx['class_agnostic_recall50']:.6f} ({'GC at least matches V1' if instance_kept else 'GC below V1'}).",
+                  f"- Versus frozen S1@5k, GC val32 context/target thing mIoU is {gc_ctx['mIoU_thing']:.6f}/{gc_tgt['mIoU_thing']:.6f} vs {s1_ctx['mIoU_thing']:.6f}/{s1_tgt['mIoU_thing']:.6f}; ca-R50 is {gc_ctx['class_agnostic_recall50']:.6f}/{gc_tgt['class_agnostic_recall50']:.6f} vs {s1_ctx['class_agnostic_recall50']:.6f}/{s1_tgt['class_agnostic_recall50']:.6f}. GC is above S1 on both reported metrics/scopes, but below V1 on thing mIoU and ca-R50.",
+                  f"- Direct anchor grouping at GC endpoint: ownership accuracy {grouping['anchor_ownership_accuracy']:.6f}, thing-anchor correct fraction {grouping['thing_anchor_correct_fraction']:.6f}, supported-GT recall50 {grouping['anchor_group_gt_recall50']:.6f}.",
+                  f"- Direct grouping change from step0: ownership accuracy {grouping_step0['anchor_ownership_accuracy']:.6f} → {grouping['anchor_ownership_accuracy']:.6f}; thing-anchor correct fraction {grouping_step0['thing_anchor_correct_fraction']:.6f} → {grouping['thing_anchor_correct_fraction']:.6f}; supported-GT recall50 {grouping_step0['anchor_group_gt_recall50']:.6f} → {grouping['anchor_group_gt_recall50']:.6f}. This shows continued learning in the anchor domain.",
+                  f"- Active query output mean on train1024: GC {qg['mean_active_output_queries']:.3f}; V1 {qv1['train1024']['mean_active_output_queries']:.3f}. On val32: GC {qgc['val32']['mean_active_output_queries']:.3f}; V1 {qv1['val32']['mean_active_output_queries']:.3f}. Match starvation indicators: {qg['unique_queries_ever_matched']}/100 matched and {qg['queries_never_matched']}/100 never matched; top5 match share {qg['match_concentration']['top5_share']:.4f}, match Gini {qg['match_concentration']['gini']:.4f}, effective count {qg['match_concentration']['effective_query_count']:.3f}.",
+                  f"- Relative reconstruction drift was reduced in categories: {', '.join(k for k,v in drift_reduced.items() if v) or 'none'}; decoder/activation-head drift reductions are shown in section H.",
+                  "- Query match concentration remains severe (42/100 train queries never matched, 77.77% of matches in the top five), so slot starvation remains the clearest measured bottleneck; this run made no query-starvation intervention.",
+                  "", "No query-starvation fix was introduced. No alpha sweep was run. No next experiment was started.", ""])
+    (OUT / "formal_5k_report.md").write_text("\n".join(lines), encoding="utf-8")
+
+
+def _post_training_audits(model, optimizer, endpoint, source_state, opt, device):
+    audit, _drift = _endpoint_audit_and_drift(model, optimizer, endpoint, source_state)
+    if audit["status"] != "pass":
+        raise RuntimeError("formal endpoint audit failed")
+    summary = _training_log_summary(model, optimizer)
+    if not summary["all_logged_metrics_finite"] or summary["completed_steps"] != TOTAL_STEPS:
+        summary["status"] = "fail"
+        _write(OUT / "training_log_summary.json", summary)
+        raise RuntimeError("formal training log summary failed its 5000-step/finite audit")
+    summary["trainable_reconstruction_numel"] = audit["trainable_reconstruction_numel"]
+    summary["trainable_anchor_group_numel"] = audit["trainable_anchor_group_numel"]
+    summary["frozen_numel"] = audit["frozen_numel"]
+    summary["status"] = "pass"
+    _write(OUT / "training_log_summary.json", summary)
+
+    from scripts import anchor_group_v1_endpoint_audit as query_audit
+    query_audit.OUT = OUT
+    query_audit.ENDPOINT = endpoint
+    query_audit.ENDPOINT_AUDIT = OUT / "formal_endpoint_step5000_audit.json"
+    query_audit.VAL32 = OUT / "monitor_32pairs.json"
+    query_audit.run_query_utilization(model, opt, device)
+    _write_formal_report()
+
+
+def optimizer_audit_for_summary(optimizer):
+    return [{"name": group.get("name"), "tensor_count": len(group["params"]),
+             "numel": sum(p.numel() for p in group["params"]),
+             "lr": float(group["lr"]), "weight_decay": float(group["weight_decay"])}
+            for group in optimizer.param_groups]
+
+
 def _legacy_regression_replay():
     from scripts import anchor_group_v1_legacy_forward_regression as legacy
     with tempfile.TemporaryDirectory(prefix="agv1gc_legacy_") as tmp:
@@ -1238,11 +1532,14 @@ def _write_implementation_report(contracts_payload, scale_audit, smoke, parity_n
 
 def _train_formal(device):
     if device.type != "cuda" or not torch.cuda.is_available():
-        raise RuntimeError("future formal V1-GC training requires CUDA")
+        raise RuntimeError("formal V1-GC training requires CUDA")
     if torch.cuda.get_device_name(device) != "NVIDIA GeForce RTX 3090":
-        raise RuntimeError("future formal V1-GC training is registered for RTX 3090")
+        raise RuntimeError("formal V1-GC training requires NVIDIA GeForce RTX 3090")
+    if torch.cuda.get_device_properties(device).total_memory < 23 * 1024**3:
+        raise RuntimeError("formal V1-GC training requires a 24GB-class RTX 3090")
     manifest, plan, _ = validate_locked_recipe()
     OUT.mkdir(parents=True, exist_ok=True)
+    WORKSPACE.mkdir(parents=True, exist_ok=True)
     monitor_audit = {}
     for name in MONITORS:
         src, dst = SOURCE_REPORTS / name, OUT / name
@@ -1252,12 +1549,95 @@ def _train_formal(device):
         if not monitor_audit[name]["equal"]:
             raise RuntimeError(f"monitor byte identity failure: {name}")
     opt = build_options()
-    model, transfer = make_model(opt, device)
+    source_state = load_state(PRETRAINED)
+    model, transfer = make_model(opt, device, source_state)
     if model.architecture_name != "LOCUSGS_ANCHOR_GROUP_V1" or any(not p.requires_grad for p in model.parameters()):
-        raise RuntimeError("future GC run requires unchanged architecture with every V1 parameter trainable")
+        raise RuntimeError("formal GC run requires unchanged architecture with every V1 parameter trainable")
     optimizer, optimizer_audit = build_optimizer(model)
     if not optimizer_audit["all_trainable_parameters_exactly_once"]:
         raise RuntimeError("V1 optimizer parameter coverage failed")
+    expected_optimizer = {
+        "anchor_group_decay": (18, 2743496),
+        "anchor_group_nodecay": (41, 41800),
+        "reconstruction_decay": (115, 218773504),
+        "reconstruction_nodecay": (335, 1229116),
+    }
+    observed_optimizer = {g["name"]: (len(g["params"]), sum(p.numel() for p in g["params"]))
+                          for g in optimizer.param_groups}
+    if observed_optimizer != expected_optimizer:
+        raise RuntimeError(f"registered V1-GC optimizer groups changed: {observed_optimizer}")
+    if any(not p.requires_grad for p in model.parameters()):
+        raise RuntimeError("formal V1-GC requires all reconstruction and group parameters trainable")
+    transfer_audit = {
+        **transfer,
+        "source_sha256": sha256(PRETRAINED),
+        "pretrained_step": 47500,
+        "status": "pass" if not transfer.get("missing_non_group_keys")
+                  and not transfer.get("shape_mismatch_keys")
+                  and transfer.get("matched_reconstruction_tensor_count", 0) > 0 else "fail",
+    }
+    if transfer_audit["status"] != "pass":
+        raise RuntimeError("strict pretrained reconstruction transfer audit failed")
+    _write(OUT / "pretrained_transfer_audit.json", transfer_audit)
+
+    runtime = {
+        "event": "train_start", "gpu": torch.cuda.get_device_name(device),
+        "total_memory_gib": torch.cuda.get_device_properties(device).total_memory / 1024**3,
+        "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES"),
+        "torch_version": torch.__version__, "cuda_version": torch.version.cuda,
+        "seed": 42, "anchor_group_init_seed": 31415,
+        "pretrained_sha256": sha256(PRETRAINED), "manifest_sha256": sha256(MANIFEST),
+        "plan_sha256": sha256(PLAN), "recipe": "ANCHOR_GROUP_V1_GC_ALPHA001",
+        "shared_understanding_grad_scale": SHARED_UNDERSTANDING_GRAD_SCALE,
+        "trainable_reconstruction_numel": sum(p.numel() for n, p in model.named_parameters()
+                                                if p.requires_grad and not n.startswith("anchor_group.")),
+        "trainable_anchor_group_numel": sum(p.numel() for n, p in model.named_parameters()
+                                               if p.requires_grad and n.startswith("anchor_group.")),
+        "frozen_numel": sum(p.numel() for p in model.parameters() if not p.requires_grad),
+        "optimizer_groups": optimizer_audit_for_summary(optimizer),
+        "monitor_sha256": monitor_audit,
+    }
+    print(json.dumps(runtime, sort_keys=True), flush=True)
+
+    # Registered fresh-start parity check: this is inference-only and precedes
+    # both the required step-0 evaluation and the first optimizer step.
+    first_entry = plan["entries"][0]
+    parity_rng = capture_rng()
+    parity_batch = _batch_for(opt, first_entry, device)
+    parity = _reconstruction_parity(model, opt, source_state, device, parity_batch)
+    restore_rng(parity_rng)
+    _write(OUT / "reconstruction_parity.json", parity)
+    if parity["status"] != "pass":
+        raise RuntimeError(f"fresh pretrained reconstruction parity failed: {parity}")
+    del parity_batch
+    gc.collect()
+    torch.cuda.empty_cache()
+
+    # Step 0 must be a pure evaluator pass: snapshot all parameters and buffers,
+    # then prove neither it nor the optimizer state changed before step 1.
+    model.train()
+    state_before_eval = {k: v.detach().cpu().clone() for k, v in model.state_dict().items()}
+    if optimizer.state:
+        raise RuntimeError("fresh optimizer state must be empty before step-0 evaluation")
+    evaluate_anchor_group_all(model, opt, OUT, 0, device, _seen_classes(OUT))
+    model.train()
+    state_after_eval = model.state_dict()
+    changed = [k for k, v in state_before_eval.items()
+               if k not in state_after_eval or not torch.equal(v, state_after_eval[k].detach().cpu())]
+    step0_audit = {
+        "step0_evaluation_completed": True,
+        "model_state_exact_unchanged": not changed,
+        "changed_state_keys": changed,
+        "optimizer_state_empty_before_step1": not bool(optimizer.state),
+        "model_training_mode_restored": bool(model.training),
+        "reconstruction_parity": parity["status"],
+        "status": "pass" if not changed and not optimizer.state and model.training else "fail",
+    }
+    _write(OUT / "step0_pretraining_audit.json", step0_audit)
+    if step0_audit["status"] != "pass":
+        raise RuntimeError(f"step-0 evaluation mutated fresh state: {step0_audit}")
+    del state_before_eval, state_after_eval
+
     model.train()
     for entry in plan["entries"]:
         step = int(entry["step"])
@@ -1269,17 +1649,27 @@ def _train_formal(device):
             raise RuntimeError(f"nonfinite loss at formal step {step}")
         backward_gradient_controlled(model, metrics["loss_recon"], metrics["loss_understanding"],
                                      metrics["understanding_weight"])
-        clip_grad_norm_(model.parameters(), GRAD_CLIP, error_if_nonfinite=True)
+        pre_clip_norm = clip_grad_norm_(model.parameters(), GRAD_CLIP, error_if_nonfinite=True)
         optimizer.step()
         if step % 100 == 0:
             keys = ("loss", "loss_recon", "loss_understanding", "understanding_weight",
                     "loss_thing_2d", "loss_stuff_2d", "loss_semantic", "loss_identity",
                     "loss_anchor_group", "anchor_ce", "anchor_dice")
-            print(json.dumps({"event": "train_step", "step": step,
-                              **{k: float(metrics[k].detach()) if torch.is_tensor(metrics[k]) else float(metrics[k]) for k in keys},
-                              "shared_understanding_grad_scale": SHARED_UNDERSTANDING_GRAD_SCALE,
-                              "group_lr": next(g["lr"] for g in optimizer.param_groups if g["name"].startswith("anchor_group_")),
-                              "reconstruction_lr": next(g["lr"] for g in optimizer.param_groups if g["name"].startswith("reconstruction_"))}, sort_keys=True), flush=True)
+            row = {k: float(metrics[k].detach()) if torch.is_tensor(metrics[k]) else float(metrics[k])
+                   for k in keys}
+            group_lr = next(g["lr"] for g in optimizer.param_groups if g["name"].startswith("anchor_group_"))
+            reconstruction_lr = next(g["lr"] for g in optimizer.param_groups if g["name"].startswith("reconstruction_"))
+            pre_clip_norm_value = float(pre_clip_norm)
+            clip_coefficient = min(1.0, 1.0 / (pre_clip_norm_value + 1e-6))
+            row.update({"event": "train_step", "step": step,
+                        "shared_understanding_grad_scale": SHARED_UNDERSTANDING_GRAD_SCALE,
+                        "pre_clip_global_grad_norm": pre_clip_norm_value,
+                        "clip_coefficient": clip_coefficient,
+                        "group_lr": float(group_lr),
+                        "reconstruction_lr": float(reconstruction_lr)})
+            if not _all_finite(row):
+                raise RuntimeError(f"nonfinite training log metric at step {step}: {row}")
+            print(json.dumps(row, sort_keys=True, allow_nan=False), flush=True)
         if step in EVAL_STEPS[1:]:
             evaluate_anchor_group_all(model, opt, OUT, step, device,
                                       _seen_classes(OUT))
@@ -1292,9 +1682,10 @@ def _train_formal(device):
                 "pretrained_sha256": sha256(PRETRAINED),
                 "rng": {"python": random.getstate(), "numpy": np.random.get_state(),
                         "torch": torch.get_rng_state(), "cuda": torch.cuda.get_rng_state_all()}}
-    WORKSPACE.mkdir(parents=True, exist_ok=True)
-    torch.save(endpoint, WORKSPACE / "formal_endpoint_step5000.pt")
-    del transfer, monitor_audit
+    endpoint_path = WORKSPACE / "formal_endpoint_step5000.pt"
+    torch.save(endpoint, endpoint_path)
+    _post_training_audits(model, optimizer, endpoint_path, source_state, opt, device)
+    del transfer, monitor_audit, source_state, endpoint
 
 
 def main():

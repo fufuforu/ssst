@@ -7,5 +7,6 @@
   "unexpected_source_reconstruction_keys": [],
   "shape_mismatch_keys": [],
   "group_seed_values_preserved": true,
-  "group_init_changed_keys": []
+  "group_init_changed_keys": [],
+  "status": "pass"
 }
