@@ -1,0 +1,184 @@
+{
+  "repo_identity": {
+    "head": "4722c0f78c59aaf7fdc7cc0b60683e149854f4c2",
+    "origin_main": "4722c0f78c59aaf7fdc7cc0b60683e149854f4c2",
+    "pass": true
+  },
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "torch": "2.7.0+cu126",
+  "cuda": "12.6",
+  "cuda_visible_devices": null,
+  "manifest_sha256": "1f37d08c2941920d94a172d62f95dd494b1126374215833999dc9d75ad9fc483",
+  "parent_plan_sha256": "ffd97c5e018fd5075650a5718503b26c3e566f0e3b516e392ebc657aa01c1323",
+  "pretrained_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f",
+  "group_temperature": 0.1,
+  "global_seed": 42,
+  "anchor_group_init_seed": 31415,
+  "window_indices": [
+    0,
+    64,
+    128,
+    192,
+    256,
+    320,
+    384,
+    448,
+    512,
+    576,
+    640,
+    704,
+    768,
+    832,
+    896,
+    960
+  ],
+  "window_count": 16,
+  "checkpoint_metadata": {
+    "control_step500": {
+      "path": "workspace_group_plus/anchor_group_v1_gc_noobj_1k/control/checkpoint_step500.pt",
+      "sha256_before": "f798fb111ebcd3ba4902b0c9d8cf8249384a55f582f95c11038cd322ba7b4b91",
+      "metadata": {
+        "step": 500,
+        "architecture": "LOCUSGS_ANCHOR_GROUP_V1",
+        "recipe": "ANCHOR_GROUP_V1_GC_CONTROL_1K",
+        "unmatched_noobj_scale": 1.0,
+        "shared_understanding_grad_scale": 0.01,
+        "manifest_sha256": "1f37d08c2941920d94a172d62f95dd494b1126374215833999dc9d75ad9fc483",
+        "parent_plan_sha256": "ffd97c5e018fd5075650a5718503b26c3e566f0e3b516e392ebc657aa01c1323",
+        "pretrained_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f"
+      },
+      "mismatches": {},
+      "model_tensor_count": 509,
+      "optimizer_payload_ignored": true
+    },
+    "control_step1000": {
+      "path": "workspace_group_plus/anchor_group_v1_gc_noobj_1k/control/checkpoint_step1000.pt",
+      "sha256_before": "225f1a0ca624312296135621b4e15d459d01ef471c82772c5fc9d74ed9a29c84",
+      "metadata": {
+        "step": 1000,
+        "architecture": "LOCUSGS_ANCHOR_GROUP_V1",
+        "recipe": "ANCHOR_GROUP_V1_GC_CONTROL_1K",
+        "unmatched_noobj_scale": 1.0,
+        "shared_understanding_grad_scale": 0.01,
+        "manifest_sha256": "1f37d08c2941920d94a172d62f95dd494b1126374215833999dc9d75ad9fc483",
+        "parent_plan_sha256": "ffd97c5e018fd5075650a5718503b26c3e566f0e3b516e392ebc657aa01c1323",
+        "pretrained_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f"
+      },
+      "mismatches": {},
+      "model_tensor_count": 509,
+      "optimizer_payload_ignored": true
+    },
+    "ablation_step500": {
+      "path": "workspace_group_plus/anchor_group_v1_gc_noobj_1k/ablation/checkpoint_step500.pt",
+      "sha256_before": "92e608b2af8fdfd6833302e07111772d65f28340c78ddef37490a37f94b7820b",
+      "metadata": {
+        "step": 500,
+        "architecture": "LOCUSGS_ANCHOR_GROUP_V1",
+        "recipe": "ANCHOR_GROUP_V1_GC_NO_UNMATCHED_NOOBJ_1K",
+        "unmatched_noobj_scale": 0.0,
+        "shared_understanding_grad_scale": 0.01,
+        "manifest_sha256": "1f37d08c2941920d94a172d62f95dd494b1126374215833999dc9d75ad9fc483",
+        "parent_plan_sha256": "ffd97c5e018fd5075650a5718503b26c3e566f0e3b516e392ebc657aa01c1323",
+        "pretrained_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f"
+      },
+      "mismatches": {},
+      "model_tensor_count": 509,
+      "optimizer_payload_ignored": true
+    },
+    "ablation_step1000": {
+      "path": "workspace_group_plus/anchor_group_v1_gc_noobj_1k/ablation/checkpoint_step1000.pt",
+      "sha256_before": "471b3a3e103051db5651d39871de3855cf2b226d889106bb238090e198c81087",
+      "metadata": {
+        "step": 1000,
+        "architecture": "LOCUSGS_ANCHOR_GROUP_V1",
+        "recipe": "ANCHOR_GROUP_V1_GC_NO_UNMATCHED_NOOBJ_1K",
+        "unmatched_noobj_scale": 0.0,
+        "shared_understanding_grad_scale": 0.01,
+        "manifest_sha256": "1f37d08c2941920d94a172d62f95dd494b1126374215833999dc9d75ad9fc483",
+        "parent_plan_sha256": "ffd97c5e018fd5075650a5718503b26c3e566f0e3b516e392ebc657aa01c1323",
+        "pretrained_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f"
+      },
+      "mismatches": {},
+      "model_tensor_count": 509,
+      "optimizer_payload_ignored": true
+    }
+  },
+  "sequential_anchor_independence": {
+    "pass": true,
+    "beta": 0,
+    "temperature": 0.1,
+    "forward_group_source_sha256": "7b9aac81a2b6321ea247a72d1610769539039c5363ec4d11dba5d2cc2278000e",
+    "evidence": "canonical decoder states are emitted before q initialization; encode_token consumes only saved decoder tokens, mu, radii, ell"
+  },
+  "fresh_step0": {
+    "control_transfer": {
+      "step": 0,
+      "architecture": "LOCUSGS_ANCHOR_GROUP_V1",
+      "recipe": "ANCHOR_GROUP_V1_GC_CONTROL_1K",
+      "unmatched_noobj_scale": 1.0,
+      "shared_understanding_grad_scale": 0.01,
+      "parent_plan_sha256": "ffd97c5e018fd5075650a5718503b26c3e566f0e3b516e392ebc657aa01c1323",
+      "manifest_sha256": "1f37d08c2941920d94a172d62f95dd494b1126374215833999dc9d75ad9fc483",
+      "pretrained_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f",
+      "fresh_transfer": {
+        "source_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f",
+        "pretrained_step": 47500,
+        "matched_reconstruction_tensor_count": 450,
+        "new_anchor_group_tensor_count": 59,
+        "missing_non_group_keys": [],
+        "unexpected_source_reconstruction_keys": [],
+        "shape_mismatch_keys": [],
+        "group_seed_values_preserved": true,
+        "group_init_changed_keys": []
+      }
+    },
+    "control_ablation_exact_state_equal": true,
+    "state_tensor_count": 509,
+    "state_hash": "5a5047c1f7f4d8f9670194f7eb42f824a18ab83a9f16c9098ae208d70eb3204e"
+  },
+  "checkpoint_sha256_before": {
+    "control_500": "f798fb111ebcd3ba4902b0c9d8cf8249384a55f582f95c11038cd322ba7b4b91",
+    "control_1000": "225f1a0ca624312296135621b4e15d459d01ef471c82772c5fc9d74ed9a29c84",
+    "ablation_500": "92e608b2af8fdfd6833302e07111772d65f28340c78ddef37490a37f94b7820b",
+    "ablation_1000": "471b3a3e103051db5651d39871de3855cf2b226d889106bb238090e198c81087"
+  },
+  "checkpoint_sha256_after": {
+    "control_500": "f798fb111ebcd3ba4902b0c9d8cf8249384a55f582f95c11038cd322ba7b4b91",
+    "control_1000": "225f1a0ca624312296135621b4e15d459d01ef471c82772c5fc9d74ed9a29c84",
+    "ablation_500": "92e608b2af8fdfd6833302e07111772d65f28340c78ddef37490a37f94b7820b",
+    "ablation_1000": "471b3a3e103051db5651d39871de3855cf2b226d889106bb238090e198c81087"
+  },
+  "checkpoint_sha_unchanged": true,
+  "model_immutability": {
+    "fresh_step0": {
+      "torch_equal": true,
+      "mismatched_keys": [],
+      "state_hash_before": "5a5047c1f7f4d8f9670194f7eb42f824a18ab83a9f16c9098ae208d70eb3204e",
+      "state_hash_after": "5a5047c1f7f4d8f9670194f7eb42f824a18ab83a9f16c9098ae208d70eb3204e"
+    },
+    "control_step500": {
+      "torch_equal": true,
+      "mismatched_keys": [],
+      "state_hash_before": "db9b8d4dc9a7a54cbb1e9051111bcde844efac7b08d39c1414daa893f3af619f",
+      "state_hash_after": "db9b8d4dc9a7a54cbb1e9051111bcde844efac7b08d39c1414daa893f3af619f"
+    },
+    "ablation_step500": {
+      "torch_equal": true,
+      "mismatched_keys": [],
+      "state_hash_before": "0b40cd5e2ddd724152eea6a9404ff04b1989ae84ae8aba6698f256779359913c",
+      "state_hash_after": "0b40cd5e2ddd724152eea6a9404ff04b1989ae84ae8aba6698f256779359913c"
+    },
+    "control_step1000": {
+      "torch_equal": true,
+      "mismatched_keys": [],
+      "state_hash_before": "38277430b9cfb6547d61670d1e2f95cd6b3601483fb362629c825e334bfe7807",
+      "state_hash_after": "38277430b9cfb6547d61670d1e2f95cd6b3601483fb362629c825e334bfe7807"
+    },
+    "ablation_step1000": {
+      "torch_equal": true,
+      "mismatched_keys": [],
+      "state_hash_before": "9eb255eefcaf56d1957eac488bc12d2e41ddc2a7079f80f0cf7bc90fd1788c55",
+      "state_hash_after": "9eb255eefcaf56d1957eac488bc12d2e41ddc2a7079f80f0cf7bc90fd1788c55"
+    }
+  }
+}

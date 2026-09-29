@@ -1,0 +1,168 @@
+{
+  "status": "pass",
+  "passed": 15,
+  "total": 15,
+  "forward_count": 80,
+  "gt_target_build_count": 80,
+  "grad_enabled_forward_count": 0,
+  "backward_count": 0,
+  "autograd_grad_count": 0,
+  "optimizer_construct_count": 0,
+  "optimizer_step_count": 0,
+  "contracts": [
+    {
+      "id": "CF-C1 repository identity",
+      "pass": true,
+      "detail": {
+        "head": "4722c0f78c59aaf7fdc7cc0b60683e149854f4c2",
+        "origin_main": "4722c0f78c59aaf7fdc7cc0b60683e149854f4c2",
+        "pass": true
+      }
+    },
+    {
+      "id": "CF-C2 checkpoint provenance",
+      "pass": true,
+      "detail": {
+        "trained_checkpoint_count": 4,
+        "mismatches": 0
+      }
+    },
+    {
+      "id": "CF-C3 fresh step0 exact initialization",
+      "pass": true,
+      "detail": {
+        "state_tensors": 509,
+        "torch_equal": true
+      }
+    },
+    {
+      "id": "CF-C4 forward coverage",
+      "pass": true,
+      "detail": {
+        "expected": 80,
+        "actual": 80
+      }
+    },
+    {
+      "id": "CF-C5 one production forward and one GT build per case",
+      "pass": true,
+      "detail": {
+        "state_count": 5,
+        "cases": 80,
+        "gt_target_build_count": 80
+      }
+    },
+    {
+      "id": "CF-C6 production A_pre replay",
+      "pass": true,
+      "detail": {
+        "max_abs_diff": 0.0
+      }
+    },
+    {
+      "id": "CF-C7 production q_out replay",
+      "pass": true,
+      "detail": {
+        "max_abs_diff": 0.0
+      }
+    },
+    {
+      "id": "CF-C8 production A_post replay",
+      "pass": true,
+      "detail": {
+        "max_abs_diff": 0.0
+      }
+    },
+    {
+      "id": "CF-C9 sequential PROD replay",
+      "pass": true,
+      "detail": {
+        "max_abs_diff": 0.0,
+        "count": 320
+      }
+    },
+    {
+      "id": "CF-C10 no-grad only",
+      "pass": true,
+      "detail": {
+        "grad_enabled_forward_count": 0,
+        "backward_count": 0,
+        "autograd_grad_count": 0
+      }
+    },
+    {
+      "id": "CF-C11 no optimizer",
+      "pass": true,
+      "detail": {
+        "optimizer_construct_count": 0,
+        "optimizer_step_count": 0
+      }
+    },
+    {
+      "id": "CF-C12 model immutability",
+      "pass": true,
+      "detail": {
+        "fresh_step0": {
+          "torch_equal": true,
+          "mismatched_keys": [],
+          "state_hash_before": "5a5047c1f7f4d8f9670194f7eb42f824a18ab83a9f16c9098ae208d70eb3204e",
+          "state_hash_after": "5a5047c1f7f4d8f9670194f7eb42f824a18ab83a9f16c9098ae208d70eb3204e"
+        },
+        "control_step500": {
+          "torch_equal": true,
+          "mismatched_keys": [],
+          "state_hash_before": "db9b8d4dc9a7a54cbb1e9051111bcde844efac7b08d39c1414daa893f3af619f",
+          "state_hash_after": "db9b8d4dc9a7a54cbb1e9051111bcde844efac7b08d39c1414daa893f3af619f"
+        },
+        "ablation_step500": {
+          "torch_equal": true,
+          "mismatched_keys": [],
+          "state_hash_before": "0b40cd5e2ddd724152eea6a9404ff04b1989ae84ae8aba6698f256779359913c",
+          "state_hash_after": "0b40cd5e2ddd724152eea6a9404ff04b1989ae84ae8aba6698f256779359913c"
+        },
+        "control_step1000": {
+          "torch_equal": true,
+          "mismatched_keys": [],
+          "state_hash_before": "38277430b9cfb6547d61670d1e2f95cd6b3601483fb362629c825e334bfe7807",
+          "state_hash_after": "38277430b9cfb6547d61670d1e2f95cd6b3601483fb362629c825e334bfe7807"
+        },
+        "ablation_step1000": {
+          "torch_equal": true,
+          "mismatched_keys": [],
+          "state_hash_before": "9eb255eefcaf56d1957eac488bc12d2e41ddc2a7079f80f0cf7bc90fd1788c55",
+          "state_hash_after": "9eb255eefcaf56d1957eac488bc12d2e41ddc2a7079f80f0cf7bc90fd1788c55"
+        }
+      }
+    },
+    {
+      "id": "CF-C13 checkpoint immutability",
+      "pass": true,
+      "detail": {
+        "sha_before_after_equal": true
+      }
+    },
+    {
+      "id": "CF-C14 existing scientific files unchanged",
+      "pass": true,
+      "detail": {
+        "protected_files": [
+          "tokengs/models/anchor_group_locusgs.py",
+          "tokengs/models/anchor_group_loss.py",
+          "scripts/anchor_group_v1_gc.py",
+          "scripts/anchor_group_v1_gc_noobj_1k.py",
+          "scripts/anchor_group_v1_slot_dynamics_audit.py"
+        ],
+        "unstaged_diff_empty": true,
+        "staged_diff_empty": true,
+        "pass": true
+      }
+    },
+    {
+      "id": "CF-C15 metric finiteness",
+      "pass": true,
+      "detail": {
+        "all_non_null_scalars_finite": true
+      }
+    }
+  ]
+}

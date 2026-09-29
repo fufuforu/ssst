@@ -1,0 +1,186 @@
+{
+  "answers": {
+    "primary_localization": "mixed",
+    "query_centric_restoration": "No. At Control1000 layer6 QC versus PROD q_out PR is 1.90 vs 1.97, ownership effective-Q 19.39 vs 19.57, and GT best Dice 0.199 vs 0.199; at Control500 QC does not improve these metrics either.",
+    "rationale": "Empirical q\u2192u compression is present below the 16-D ceiling, but proj_u's singular spectrum is near full-rank. ZERO rules out severe intrinsic GRU/FFN collapse; shared nonzero evidence sharply raises query cosine. QC does not restore q-out diversity or GT specialization, so changing the production normalization alone is not supported as a remedy.",
+    "zero_evidence_intrinsic_collapse": "No. ZERO preserves most rank: Control500 q_in\u2192v_gru\u2192q_out PR is approximately 70.75\u219264.60\u219260.64, not 70\u21922\u20133."
+  },
+  "contract_status": "pass",
+  "contracts_passed": 15,
+  "contracts_total": 15,
+  "diagnostic_labels": {
+    "PD-A_projection_bottleneck": {
+      "level": "moderate evidence",
+      "measurements": [
+        {
+          "proj_u_singular_pr": 14.891663551330566,
+          "q_ln_pr": 71.12124099598489,
+          "state": "control_step500",
+          "top4_energy": 0.3405141830444336,
+          "u_linear_pr": 11.478780226552198,
+          "u_norm_pr": 11.498309711386987
+        },
+        {
+          "proj_u_singular_pr": 14.889324188232422,
+          "q_ln_pr": 71.4341225212826,
+          "state": "ablation_step500",
+          "top4_energy": 0.34051722288131714,
+          "u_linear_pr": 12.638554968322167,
+          "u_norm_pr": 13.069499741688828
+        },
+        {
+          "proj_u_singular_pr": 14.904703140258789,
+          "q_ln_pr": 70.34220297047365,
+          "state": "control_step1000",
+          "top4_energy": 0.34011268615722656,
+          "u_linear_pr": 5.361861519710755,
+          "u_norm_pr": 5.437184934439351
+        },
+        {
+          "proj_u_singular_pr": 14.896158218383789,
+          "q_ln_pr": 71.47830849635292,
+          "state": "ablation_step1000",
+          "top4_energy": 0.34008532762527466,
+          "u_linear_pr": 11.535721208726672,
+          "u_norm_pr": 11.973936091875473
+        }
+      ]
+    },
+    "PD-B_production_aggregation_bottleneck": {
+      "level": "weak/no evidence",
+      "measurements": [
+        {
+          "prod_GT_best_dice": 0.15474736305300033,
+          "prod_qout_pr": 2.188729066510743,
+          "prod_z_cos_p90": 0.9958472944601784,
+          "qc_GT_best_dice": 0.1503006207581714,
+          "qc_qout_pr": 1.8327507316960991,
+          "qc_z_cos_p90": 0.9967708684582968,
+          "state": "control_step500"
+        },
+        {
+          "prod_GT_best_dice": 0.13570899144335097,
+          "prod_qout_pr": 2.7910172690536155,
+          "prod_z_cos_p90": 0.9784709025203326,
+          "qc_GT_best_dice": 0.13352279027322617,
+          "qc_qout_pr": 2.5793630925089963,
+          "qc_z_cos_p90": 0.9903000688005312,
+          "state": "ablation_step500"
+        },
+        {
+          "prod_GT_best_dice": 0.19856685212066205,
+          "prod_qout_pr": 1.97424344728379,
+          "prod_z_cos_p90": 0.999707195938653,
+          "qc_GT_best_dice": 0.1993683691855704,
+          "qc_qout_pr": 1.9009234435921902,
+          "qc_z_cos_p90": 0.9997616724996803,
+          "state": "control_step1000"
+        },
+        {
+          "prod_GT_best_dice": 0.18656619778472305,
+          "prod_qout_pr": 2.6623377455207784,
+          "prod_z_cos_p90": 0.9936003170629498,
+          "qc_GT_best_dice": 0.20349435597928084,
+          "qc_qout_pr": 2.5307059102778195,
+          "qc_z_cos_p90": 0.994084559327196,
+          "state": "ablation_step1000"
+        }
+      ]
+    },
+    "PD-C_shared_evidence_overwrite": {
+      "level": "moderate evidence",
+      "measurements": [
+        {
+          "global_mean_GT_best_dice": 0.0414821366061256,
+          "global_mean_qout_cos_p90": 0.999096149817706,
+          "global_mean_qout_pr": 54.35498300103674,
+          "state": "control_step500",
+          "zero_GT_best_dice": 0.22815450878559573,
+          "zero_qin_pr": 70.7540997517756,
+          "zero_qout_cos_p90": 0.1668820379599892,
+          "zero_qout_pr": 60.635955596947824
+        },
+        {
+          "global_mean_GT_best_dice": 0.03935189967366656,
+          "global_mean_qout_cos_p90": 0.9989846951801897,
+          "global_mean_qout_pr": 54.636095850289664,
+          "state": "ablation_step500",
+          "zero_GT_best_dice": 0.21808320686986532,
+          "zero_qin_pr": 71.05145072142818,
+          "zero_qout_cos_p90": 0.1565045246811113,
+          "zero_qout_pr": 60.87814119301822
+        },
+        {
+          "global_mean_GT_best_dice": 0.04138800313081138,
+          "global_mean_qout_cos_p90": 0.9990974809831488,
+          "global_mean_qout_pr": 53.73703857304824,
+          "state": "control_step1000",
+          "zero_GT_best_dice": 0.24729559771073356,
+          "zero_qin_pr": 69.96671839385637,
+          "zero_qout_cos_p90": 0.19673337101152097,
+          "zero_qout_pr": 59.94548821091815
+        },
+        {
+          "global_mean_GT_best_dice": 0.03960904800257714,
+          "global_mean_qout_cos_p90": 0.9991154957991574,
+          "global_mean_qout_pr": 54.744103384916116,
+          "state": "ablation_step1000",
+          "zero_GT_best_dice": 0.2389059132064673,
+          "zero_qin_pr": 71.08785014983708,
+          "zero_qout_cos_p90": 0.17727592557038135,
+          "zero_qout_pr": 60.95345703670506
+        }
+      ]
+    },
+    "PD-D_intrinsic_recurrent_update_contraction": {
+      "level": "weak/no evidence",
+      "measurements": [
+        {
+          "state": "control_step500",
+          "zero_qin_pr": 70.7540997517756,
+          "zero_qout_pr": 60.635955596947824,
+          "zero_vgru_pr": 64.60117897533397
+        },
+        {
+          "state": "ablation_step500",
+          "zero_qin_pr": 71.05145072142818,
+          "zero_qout_pr": 60.87814119301822,
+          "zero_vgru_pr": 64.79251723608051
+        },
+        {
+          "state": "control_step1000",
+          "zero_qin_pr": 69.96671839385637,
+          "zero_qout_pr": 59.94548821091815,
+          "zero_vgru_pr": 64.18357098485397
+        },
+        {
+          "state": "ablation_step1000",
+          "zero_qin_pr": 71.08785014983708,
+          "zero_qout_pr": 60.95345703670506,
+          "zero_vgru_pr": 64.88243914041313
+        }
+      ]
+    },
+    "answers": {
+      "primary_localization": "mixed",
+      "query_centric_restoration": "No. At Control1000 layer6 QC versus PROD q_out PR is 1.90 vs 1.97, ownership effective-Q 19.39 vs 19.57, and GT best Dice 0.199 vs 0.199; at Control500 QC does not improve these metrics either.",
+      "rationale": "Empirical q\u2192u compression is present below the 16-D ceiling, but proj_u's singular spectrum is near full-rank. ZERO rules out severe intrinsic GRU/FFN collapse; shared nonzero evidence sharply raises query cosine. QC does not restore q-out diversity or GT specialization, so changing the production normalization alone is not supported as a remedy.",
+      "zero_evidence_intrinsic_collapse": "No. ZERO preserves most rank: Control500 q_in\u2192v_gru\u2192q_out PR is approximately 70.75\u219264.60\u219260.64, not 70\u21922\u20133."
+    }
+  },
+  "forward_count": 80,
+  "primary_localization": "mixed",
+  "production_replay": {
+    "A_post_max_abs_diff": 0.0,
+    "A_pre_max_abs_diff": 0.0,
+    "q_out_max_abs_diff": 0.0,
+    "sequential_prod_q_max_abs_diff": 0.0
+  },
+  "static_sequential_anchor_independence": {
+    "beta": 0,
+    "evidence": "canonical decoder states are emitted before q initialization; encode_token consumes only saved decoder tokens, mu, radii, ell",
+    "forward_group_source_sha256": "7b9aac81a2b6321ea247a72d1610769539039c5363ec4d11dba5d2cc2278000e",
+    "pass": true,
+    "temperature": 0.1
+  }
+}
