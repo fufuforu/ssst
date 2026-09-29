@@ -1,0 +1,573 @@
+{
+  "status": "pass",
+  "passed": 14,
+  "total": 14,
+  "failed": [],
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "torch": "2.7.0+cu126",
+  "cuda": "12.6",
+  "monitor_hashes": {
+    "monitor_train16.json": {
+      "sha256": "133811557d13dca81864b9843b831f89df9226a899c381bfb79e0131991a5961",
+      "source_v1_gc_byte_identical": true
+    },
+    "monitor_8pairs.json": {
+      "sha256": "5dae7077779dd398ba97851f0259aef2df7de083df80f5a6bea4b5f5e731c321",
+      "source_v1_gc_byte_identical": true
+    },
+    "monitor_32pairs.json": {
+      "sha256": "af51dfe52d8cf31140f028a5c3b1d1bc5402fd524805d241940f314fad87bd36",
+      "source_v1_gc_byte_identical": true
+    },
+    "train128_class_coverage.json": {
+      "sha256": "9c5914187271016ad75b6cda5a6929ba222b426094f7ef73e47aae60e012c371",
+      "source_v1_gc_byte_identical": true
+    }
+  },
+  "pretrained_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f",
+  "manifest_sha256": "1f37d08c2941920d94a172d62f95dd494b1126374215833999dc9d75ad9fc483",
+  "plan_sha256": "ffd97c5e018fd5075650a5718503b26c3e566f0e3b516e392ebc657aa01c1323",
+  "initial_state_tensor_count": 509,
+  "initial_state_exact": true,
+  "control_parameter_count": 222787916,
+  "ru_parameter_count": 222787916,
+  "reconstruction_parity": {
+    "control": {
+      "gpu": "NVIDIA GeForce RTX 3090",
+      "cuda_available": true,
+      "checkpoint_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f",
+      "scene": null,
+      "gaussian_max_abs_diff": 0.0,
+      "rgb_max_abs_diff": 0.0,
+      "psnr_baseline": 22.204113006591797,
+      "psnr_anchor_group_v1_gc": 22.204113006591797,
+      "psnr_abs_diff": 0.0,
+      "status": "pass"
+    },
+    "ru": {
+      "gpu": "NVIDIA GeForce RTX 3090",
+      "cuda_available": true,
+      "checkpoint_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f",
+      "scene": null,
+      "gaussian_max_abs_diff": 0.0,
+      "rgb_max_abs_diff": 0.0,
+      "psnr_baseline": 22.204113006591797,
+      "psnr_anchor_group_v1_gc": 22.204113006591797,
+      "psnr_abs_diff": 0.0,
+      "status": "pass"
+    }
+  },
+  "regressions": {
+    "phase_a_cpu": {
+      "passed": 18,
+      "failed": 0,
+      "total": 18,
+      "status": "pass"
+    },
+    "legacy_loss_cpu": {
+      "ok": true,
+      "check_count": 16
+    },
+    "legacy_evaluator_cpu": {
+      "ok": true,
+      "check_count": 8
+    },
+    "v1_gc_contracts": {
+      "passed": 15,
+      "total": 15,
+      "status": "pass"
+    },
+    "s0_s1_gpu_forward": {
+      "gpu": "NVIDIA GeForce RTX 3090",
+      "cuda_available": true,
+      "torch": "2.7.0+cu126",
+      "torch_cuda": "12.6",
+      "scene": "scene0000_00",
+      "window_index": 0,
+      "models": {
+        "S0": {
+          "architecture_name": "LOCUSGS_INSTANCE_STATE_V1",
+          "instance_state_local3d": false,
+          "local3d_k": null,
+          "forward": "pass",
+          "finite": {
+            "gaussians": true,
+            "region_mass": true,
+            "semantic_scores": true,
+            "loss": true
+          },
+          "loss": "pass",
+          "initialization_path": "single-anchor",
+          "loss_value": 0.7401925325393677
+        },
+        "S1": {
+          "architecture_name": "LOCUSGS_INSTANCE_STATE_V1",
+          "instance_state_local3d": true,
+          "local3d_k": 8,
+          "forward": "pass",
+          "finite": {
+            "gaussians": true,
+            "region_mass": true,
+            "semantic_scores": true,
+            "loss": true
+          },
+          "loss": "pass",
+          "initialization_path": "local8",
+          "loss_value": 0.7294130325317383
+        }
+      },
+      "status": "pass"
+    },
+    "gpu": "NVIDIA GeForce RTX 3090",
+    "status": "pass"
+  },
+  "checks": {
+    "RU-C1_repository_identity": {
+      "passed": true,
+      "detail": {
+        "head": "6c85a9c5aa367ab57ea36c3bdb44e4ded39a3a20",
+        "origin_main": "6c85a9c5aa367ab57ea36c3bdb44e4ded39a3a20"
+      }
+    },
+    "RU-C2_no_new_parameter_or_state": {
+      "passed": true,
+      "detail": {
+        "state_tensor_count": 509,
+        "state_exact": true,
+        "state_mismatches": [],
+        "parameter_mismatches": [],
+        "optimizer_groups": {
+          "anchor_group_decay": {
+            "tensor_count": 18,
+            "numel": 2743496,
+            "weight_decay": 0.05,
+            "lr": 0.0001
+          },
+          "anchor_group_nodecay": {
+            "tensor_count": 41,
+            "numel": 41800,
+            "weight_decay": 0.0,
+            "lr": 0.0001
+          },
+          "reconstruction_decay": {
+            "tensor_count": 115,
+            "numel": 218773504,
+            "weight_decay": 0.05,
+            "lr": 1e-05
+          },
+          "reconstruction_nodecay": {
+            "tensor_count": 335,
+            "numel": 1229116,
+            "weight_decay": 0.0,
+            "lr": 1e-05
+          }
+        }
+      }
+    },
+    "RU-C3_gamma1_old_path_q_exact": {
+      "passed": true,
+      "detail": {
+        "layers": [
+          {
+            "layer": 6,
+            "q_error": 0.0
+          },
+          {
+            "layer": 8,
+            "q_error": 0.0
+          },
+          {
+            "layer": 10,
+            "q_error": 0.0
+          },
+          {
+            "layer": 12,
+            "q_error": 0.0
+          }
+        ],
+        "candidate_identity": true
+      }
+    },
+    "RU-C4_gamma01_interpolation": {
+      "passed": true,
+      "detail": {
+        "layers": [
+          {
+            "layer": 6,
+            "q_error": 0.0
+          },
+          {
+            "layer": 8,
+            "q_error": 0.0
+          },
+          {
+            "layer": 10,
+            "q_error": 0.0
+          },
+          {
+            "layer": 12,
+            "q_error": 0.0
+          }
+        ],
+        "ratio_sample_count": 408,
+        "max_ratio_error": 1.4901161193847656e-08
+      }
+    },
+    "RU-C5_preupdate_evidence_exact": {
+      "passed": true,
+      "detail": {
+        "per_layer": [
+          {
+            "A_pre": true,
+            "mass": true,
+            "z": true,
+            "candidate": true
+          },
+          {
+            "A_pre": true,
+            "mass": true,
+            "z": true,
+            "candidate": true
+          },
+          {
+            "A_pre": true,
+            "mass": true,
+            "z": true,
+            "candidate": true
+          },
+          {
+            "A_pre": true,
+            "mass": true,
+            "z": true,
+            "candidate": true
+          }
+        ]
+      }
+    },
+    "RU-C6_low_mass_skip_exact": {
+      "passed": true,
+      "detail": {
+        "all_void_mass_max": 0.0,
+        "control_q_exact": true,
+        "ru_q_exact": true
+      }
+    },
+    "RU-C7_no_extra_normalization": {
+      "passed": true,
+      "detail": {
+        "source_check_pass": true,
+        "ln_mix_present": false
+      }
+    },
+    "RU-C8_reconstruction_branch_invariant": {
+      "passed": true,
+      "detail": {
+        "gaussians": {
+          "exact": true,
+          "max_abs_diff": 0.0
+        },
+        "layer6_tokens": {
+          "exact": true,
+          "max_abs_diff": 0.0
+        },
+        "layer6_mu": {
+          "exact": true,
+          "max_abs_diff": 0.0
+        },
+        "layer6_radii": {
+          "exact": true,
+          "max_abs_diff": 0.0
+        },
+        "layer8_tokens": {
+          "exact": true,
+          "max_abs_diff": 0.0
+        },
+        "layer8_mu": {
+          "exact": true,
+          "max_abs_diff": 0.0
+        },
+        "layer8_radii": {
+          "exact": true,
+          "max_abs_diff": 0.0
+        },
+        "layer10_tokens": {
+          "exact": true,
+          "max_abs_diff": 0.0
+        },
+        "layer10_mu": {
+          "exact": true,
+          "max_abs_diff": 0.0
+        },
+        "layer10_radii": {
+          "exact": true,
+          "max_abs_diff": 0.0
+        },
+        "layer12_tokens": {
+          "exact": true,
+          "max_abs_diff": 0.0
+        },
+        "layer12_mu": {
+          "exact": true,
+          "max_abs_diff": 0.0
+        },
+        "layer12_radii": {
+          "exact": true,
+          "max_abs_diff": 0.0
+        }
+      }
+    },
+    "RU-C9_loss_definition_unchanged": {
+      "passed": true,
+      "detail": {
+        "anchor_group_loss_diff_empty": true,
+        "unmatched_noobj_scale_control_ru": [
+          1.0,
+          1.0
+        ],
+        "production_ce_reference": {
+          "control": {
+            "scale": 1.0,
+            "production_ce": 3.581350326538086,
+            "reference_ce": 3.581350326538086,
+            "abs_diff": 0.0
+          },
+          "ru": {
+            "scale": 1.0,
+            "production_ce": 2.8848917484283447,
+            "reference_ce": 2.8848917484283447,
+            "abs_diff": 0.0
+          }
+        }
+      }
+    },
+    "RU-C10_unified_hungarian_unchanged": {
+      "passed": true,
+      "detail": {
+        "loss_file_diff_empty": true,
+        "phase_a_contracts": 18
+      }
+    },
+    "RU-C11_optimizer_parity": {
+      "passed": true,
+      "detail": {
+        "control": {
+          "anchor_group_decay": {
+            "tensor_count": 18,
+            "numel": 2743496,
+            "weight_decay": 0.05,
+            "lr": 0.0001
+          },
+          "anchor_group_nodecay": {
+            "tensor_count": 41,
+            "numel": 41800,
+            "weight_decay": 0.0,
+            "lr": 0.0001
+          },
+          "reconstruction_decay": {
+            "tensor_count": 115,
+            "numel": 218773504,
+            "weight_decay": 0.05,
+            "lr": 1e-05
+          },
+          "reconstruction_nodecay": {
+            "tensor_count": 335,
+            "numel": 1229116,
+            "weight_decay": 0.0,
+            "lr": 1e-05
+          }
+        },
+        "ru": {
+          "anchor_group_decay": {
+            "tensor_count": 18,
+            "numel": 2743496,
+            "weight_decay": 0.05,
+            "lr": 0.0001
+          },
+          "anchor_group_nodecay": {
+            "tensor_count": 41,
+            "numel": 41800,
+            "weight_decay": 0.0,
+            "lr": 0.0001
+          },
+          "reconstruction_decay": {
+            "tensor_count": 115,
+            "numel": 218773504,
+            "weight_decay": 0.05,
+            "lr": 1e-05
+          },
+          "reconstruction_nodecay": {
+            "tensor_count": 335,
+            "numel": 1229116,
+            "weight_decay": 0.0,
+            "lr": 1e-05
+          }
+        },
+        "exact": true
+      }
+    },
+    "RU-C12_schedule_parity": {
+      "passed": true,
+      "detail": {
+        "warmup": {
+          "200": 0.0,
+          "201": 0.00125,
+          "600": 0.5,
+          "999": 0.99875,
+          "1000": 1.0
+        },
+        "lr": {
+          "1": {
+            "control": {
+              "anchor_group_decay": 5.000000000000001e-07,
+              "anchor_group_nodecay": 5.000000000000001e-07,
+              "reconstruction_decay": 5.0000000000000004e-08,
+              "reconstruction_nodecay": 5.0000000000000004e-08
+            },
+            "ru": {
+              "anchor_group_decay": 5.000000000000001e-07,
+              "anchor_group_nodecay": 5.000000000000001e-07,
+              "reconstruction_decay": 5.0000000000000004e-08,
+              "reconstruction_nodecay": 5.0000000000000004e-08
+            },
+            "exact": true
+          },
+          "200": {
+            "control": {
+              "anchor_group_decay": 0.0001,
+              "anchor_group_nodecay": 0.0001,
+              "reconstruction_decay": 1e-05,
+              "reconstruction_nodecay": 1e-05
+            },
+            "ru": {
+              "anchor_group_decay": 0.0001,
+              "anchor_group_nodecay": 0.0001,
+              "reconstruction_decay": 1e-05,
+              "reconstruction_nodecay": 1e-05
+            },
+            "exact": true
+          },
+          "600": {
+            "control": {
+              "anchor_group_decay": 9.833036548816434e-05,
+              "anchor_group_nodecay": 9.833036548816434e-05,
+              "reconstruction_decay": 9.833036548816435e-06,
+              "reconstruction_nodecay": 9.833036548816435e-06
+            },
+            "ru": {
+              "anchor_group_decay": 9.833036548816434e-05,
+              "anchor_group_nodecay": 9.833036548816434e-05,
+              "reconstruction_decay": 9.833036548816435e-06,
+              "reconstruction_nodecay": 9.833036548816435e-06
+            },
+            "exact": true
+          },
+          "1000": {
+            "control": {
+              "anchor_group_decay": 9.34352447854375e-05,
+              "anchor_group_nodecay": 9.34352447854375e-05,
+              "reconstruction_decay": 9.34352447854375e-06,
+              "reconstruction_nodecay": 9.34352447854375e-06
+            },
+            "ru": {
+              "anchor_group_decay": 9.34352447854375e-05,
+              "anchor_group_nodecay": 9.34352447854375e-05,
+              "reconstruction_decay": 9.34352447854375e-06,
+              "reconstruction_nodecay": 9.34352447854375e-06
+            },
+            "exact": true
+          }
+        },
+        "gc_alpha": 0.01,
+        "clip": 1.0
+      }
+    },
+    "RU-C13_existing_regressions": {
+      "passed": true,
+      "detail": {
+        "phase_a_cpu": {
+          "passed": 18,
+          "failed": 0,
+          "total": 18,
+          "status": "pass"
+        },
+        "legacy_loss_cpu": {
+          "ok": true,
+          "check_count": 16
+        },
+        "legacy_evaluator_cpu": {
+          "ok": true,
+          "check_count": 8
+        },
+        "v1_gc_contracts": {
+          "passed": 15,
+          "total": 15,
+          "status": "pass"
+        },
+        "s0_s1_gpu_forward": {
+          "gpu": "NVIDIA GeForce RTX 3090",
+          "cuda_available": true,
+          "torch": "2.7.0+cu126",
+          "torch_cuda": "12.6",
+          "scene": "scene0000_00",
+          "window_index": 0,
+          "models": {
+            "S0": {
+              "architecture_name": "LOCUSGS_INSTANCE_STATE_V1",
+              "instance_state_local3d": false,
+              "local3d_k": null,
+              "forward": "pass",
+              "finite": {
+                "gaussians": true,
+                "region_mass": true,
+                "semantic_scores": true,
+                "loss": true
+              },
+              "loss": "pass",
+              "initialization_path": "single-anchor",
+              "loss_value": 0.7401925325393677
+            },
+            "S1": {
+              "architecture_name": "LOCUSGS_INSTANCE_STATE_V1",
+              "instance_state_local3d": true,
+              "local3d_k": 8,
+              "forward": "pass",
+              "finite": {
+                "gaussians": true,
+                "region_mass": true,
+                "semantic_scores": true,
+                "loss": true
+              },
+              "loss": "pass",
+              "initialization_path": "local8",
+              "loss_value": 0.7294130325317383
+            }
+          },
+          "status": "pass"
+        },
+        "gpu": "NVIDIA GeForce RTX 3090",
+        "status": "pass"
+      }
+    },
+    "RU-C14_noobj_scale_is_production_one": {
+      "passed": true,
+      "detail": {
+        "control_scale": 1.0,
+        "ru_scale": 1.0,
+        "production_ce_reference": {
+          "control": {
+            "scale": 1.0,
+            "production_ce": 3.581350326538086,
+            "reference_ce": 3.581350326538086,
+            "abs_diff": 0.0
+          },
+          "ru": {
+            "scale": 1.0,
+            "production_ce": 2.8848917484283447,
+            "reference_ce": 2.8848917484283447,
+            "abs_diff": 0.0
+          }
+        }
+      }
+    }
+  }
+}

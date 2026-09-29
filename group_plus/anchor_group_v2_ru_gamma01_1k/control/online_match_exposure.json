@@ -1,0 +1,2967 @@
+{
+  "definition": "per-step no-grad production unified_hungarian on each training prediction/batch",
+  "plan_prefix_length": 1000,
+  "snapshots": {
+    "200": {
+      "step": 200,
+      "total_online_gt_matches": 805,
+      "unique_queries_ever_matched": 83,
+      "never_matched_queries": 17,
+      "top1_share": 0.07950310559006211,
+      "top5_share": 0.29316770186335406,
+      "top10_share": 0.46211180124223605,
+      "top20_share": 0.6658385093167702,
+      "match_gini": 0.6459006211180125,
+      "normalized_entropy": 0.8346444530093104,
+      "effective_query_count": 46.69699197353932,
+      "first_positive_coverage": {
+        "by_step200": 83,
+        "by_step500": 83,
+        "by_step1000": 83,
+        "newly_matched_by_current_step": 1,
+        "ever_matched": 83
+      },
+      "query_rows": [
+        {
+          "query_id": 0,
+          "online_match_count": 4,
+          "first_positive_step": 37,
+          "n_distinct_scenes_matched": 4
+        },
+        {
+          "query_id": 1,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 2,
+          "online_match_count": 24,
+          "first_positive_step": 12,
+          "n_distinct_scenes_matched": 18
+        },
+        {
+          "query_id": 3,
+          "online_match_count": 1,
+          "first_positive_step": 27,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 4,
+          "online_match_count": 8,
+          "first_positive_step": 6,
+          "n_distinct_scenes_matched": 7
+        },
+        {
+          "query_id": 5,
+          "online_match_count": 2,
+          "first_positive_step": 24,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 6,
+          "online_match_count": 3,
+          "first_positive_step": 130,
+          "n_distinct_scenes_matched": 3
+        },
+        {
+          "query_id": 7,
+          "online_match_count": 8,
+          "first_positive_step": 8,
+          "n_distinct_scenes_matched": 7
+        },
+        {
+          "query_id": 8,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 9,
+          "online_match_count": 52,
+          "first_positive_step": 5,
+          "n_distinct_scenes_matched": 39
+        },
+        {
+          "query_id": 10,
+          "online_match_count": 13,
+          "first_positive_step": 14,
+          "n_distinct_scenes_matched": 12
+        },
+        {
+          "query_id": 11,
+          "online_match_count": 1,
+          "first_positive_step": 138,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 12,
+          "online_match_count": 1,
+          "first_positive_step": 200,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 13,
+          "online_match_count": 7,
+          "first_positive_step": 25,
+          "n_distinct_scenes_matched": 7
+        },
+        {
+          "query_id": 14,
+          "online_match_count": 1,
+          "first_positive_step": 191,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 15,
+          "online_match_count": 12,
+          "first_positive_step": 43,
+          "n_distinct_scenes_matched": 12
+        },
+        {
+          "query_id": 16,
+          "online_match_count": 2,
+          "first_positive_step": 72,
+          "n_distinct_scenes_matched": 2
+        },
+        {
+          "query_id": 17,
+          "online_match_count": 24,
+          "first_positive_step": 4,
+          "n_distinct_scenes_matched": 22
+        },
+        {
+          "query_id": 18,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 19,
+          "online_match_count": 12,
+          "first_positive_step": 53,
+          "n_distinct_scenes_matched": 11
+        },
+        {
+          "query_id": 20,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 21,
+          "online_match_count": 5,
+          "first_positive_step": 80,
+          "n_distinct_scenes_matched": 5
+        },
+        {
+          "query_id": 22,
+          "online_match_count": 4,
+          "first_positive_step": 56,
+          "n_distinct_scenes_matched": 4
+        },
+        {
+          "query_id": 23,
+          "online_match_count": 15,
+          "first_positive_step": 25,
+          "n_distinct_scenes_matched": 12
+        },
+        {
+          "query_id": 24,
+          "online_match_count": 5,
+          "first_positive_step": 57,
+          "n_distinct_scenes_matched": 4
+        },
+        {
+          "query_id": 25,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 26,
+          "online_match_count": 1,
+          "first_positive_step": 57,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 27,
+          "online_match_count": 22,
+          "first_positive_step": 28,
+          "n_distinct_scenes_matched": 20
+        },
+        {
+          "query_id": 28,
+          "online_match_count": 1,
+          "first_positive_step": 51,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 29,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 30,
+          "online_match_count": 9,
+          "first_positive_step": 79,
+          "n_distinct_scenes_matched": 8
+        },
+        {
+          "query_id": 31,
+          "online_match_count": 9,
+          "first_positive_step": 8,
+          "n_distinct_scenes_matched": 9
+        },
+        {
+          "query_id": 32,
+          "online_match_count": 4,
+          "first_positive_step": 74,
+          "n_distinct_scenes_matched": 4
+        },
+        {
+          "query_id": 33,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 34,
+          "online_match_count": 24,
+          "first_positive_step": 5,
+          "n_distinct_scenes_matched": 20
+        },
+        {
+          "query_id": 35,
+          "online_match_count": 46,
+          "first_positive_step": 14,
+          "n_distinct_scenes_matched": 40
+        },
+        {
+          "query_id": 36,
+          "online_match_count": 6,
+          "first_positive_step": 30,
+          "n_distinct_scenes_matched": 6
+        },
+        {
+          "query_id": 37,
+          "online_match_count": 1,
+          "first_positive_step": 182,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 38,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 39,
+          "online_match_count": 6,
+          "first_positive_step": 2,
+          "n_distinct_scenes_matched": 5
+        },
+        {
+          "query_id": 40,
+          "online_match_count": 14,
+          "first_positive_step": 3,
+          "n_distinct_scenes_matched": 12
+        },
+        {
+          "query_id": 41,
+          "online_match_count": 4,
+          "first_positive_step": 7,
+          "n_distinct_scenes_matched": 4
+        },
+        {
+          "query_id": 42,
+          "online_match_count": 8,
+          "first_positive_step": 8,
+          "n_distinct_scenes_matched": 6
+        },
+        {
+          "query_id": 43,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 44,
+          "online_match_count": 2,
+          "first_positive_step": 146,
+          "n_distinct_scenes_matched": 2
+        },
+        {
+          "query_id": 45,
+          "online_match_count": 7,
+          "first_positive_step": 7,
+          "n_distinct_scenes_matched": 7
+        },
+        {
+          "query_id": 46,
+          "online_match_count": 64,
+          "first_positive_step": 1,
+          "n_distinct_scenes_matched": 49
+        },
+        {
+          "query_id": 47,
+          "online_match_count": 6,
+          "first_positive_step": 2,
+          "n_distinct_scenes_matched": 5
+        },
+        {
+          "query_id": 48,
+          "online_match_count": 27,
+          "first_positive_step": 1,
+          "n_distinct_scenes_matched": 26
+        },
+        {
+          "query_id": 49,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 50,
+          "online_match_count": 2,
+          "first_positive_step": 74,
+          "n_distinct_scenes_matched": 2
+        },
+        {
+          "query_id": 51,
+          "online_match_count": 1,
+          "first_positive_step": 31,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 52,
+          "online_match_count": 1,
+          "first_positive_step": 151,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 53,
+          "online_match_count": 2,
+          "first_positive_step": 15,
+          "n_distinct_scenes_matched": 2
+        },
+        {
+          "query_id": 54,
+          "online_match_count": 39,
+          "first_positive_step": 4,
+          "n_distinct_scenes_matched": 35
+        },
+        {
+          "query_id": 55,
+          "online_match_count": 3,
+          "first_positive_step": 151,
+          "n_distinct_scenes_matched": 3
+        },
+        {
+          "query_id": 56,
+          "online_match_count": 32,
+          "first_positive_step": 1,
+          "n_distinct_scenes_matched": 25
+        },
+        {
+          "query_id": 57,
+          "online_match_count": 4,
+          "first_positive_step": 43,
+          "n_distinct_scenes_matched": 4
+        },
+        {
+          "query_id": 58,
+          "online_match_count": 9,
+          "first_positive_step": 7,
+          "n_distinct_scenes_matched": 9
+        },
+        {
+          "query_id": 59,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 60,
+          "online_match_count": 7,
+          "first_positive_step": 2,
+          "n_distinct_scenes_matched": 5
+        },
+        {
+          "query_id": 61,
+          "online_match_count": 5,
+          "first_positive_step": 16,
+          "n_distinct_scenes_matched": 5
+        },
+        {
+          "query_id": 62,
+          "online_match_count": 3,
+          "first_positive_step": 20,
+          "n_distinct_scenes_matched": 3
+        },
+        {
+          "query_id": 63,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 64,
+          "online_match_count": 1,
+          "first_positive_step": 198,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 65,
+          "online_match_count": 1,
+          "first_positive_step": 169,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 66,
+          "online_match_count": 1,
+          "first_positive_step": 151,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 67,
+          "online_match_count": 4,
+          "first_positive_step": 64,
+          "n_distinct_scenes_matched": 4
+        },
+        {
+          "query_id": 68,
+          "online_match_count": 2,
+          "first_positive_step": 12,
+          "n_distinct_scenes_matched": 2
+        },
+        {
+          "query_id": 69,
+          "online_match_count": 13,
+          "first_positive_step": 14,
+          "n_distinct_scenes_matched": 13
+        },
+        {
+          "query_id": 70,
+          "online_match_count": 1,
+          "first_positive_step": 50,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 71,
+          "online_match_count": 10,
+          "first_positive_step": 2,
+          "n_distinct_scenes_matched": 10
+        },
+        {
+          "query_id": 72,
+          "online_match_count": 4,
+          "first_positive_step": 61,
+          "n_distinct_scenes_matched": 4
+        },
+        {
+          "query_id": 73,
+          "online_match_count": 1,
+          "first_positive_step": 180,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 74,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 75,
+          "online_match_count": 7,
+          "first_positive_step": 58,
+          "n_distinct_scenes_matched": 7
+        },
+        {
+          "query_id": 76,
+          "online_match_count": 10,
+          "first_positive_step": 3,
+          "n_distinct_scenes_matched": 9
+        },
+        {
+          "query_id": 77,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 78,
+          "online_match_count": 13,
+          "first_positive_step": 13,
+          "n_distinct_scenes_matched": 11
+        },
+        {
+          "query_id": 79,
+          "online_match_count": 35,
+          "first_positive_step": 12,
+          "n_distinct_scenes_matched": 30
+        },
+        {
+          "query_id": 80,
+          "online_match_count": 15,
+          "first_positive_step": 1,
+          "n_distinct_scenes_matched": 14
+        },
+        {
+          "query_id": 81,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 82,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 83,
+          "online_match_count": 4,
+          "first_positive_step": 14,
+          "n_distinct_scenes_matched": 4
+        },
+        {
+          "query_id": 84,
+          "online_match_count": 3,
+          "first_positive_step": 74,
+          "n_distinct_scenes_matched": 3
+        },
+        {
+          "query_id": 85,
+          "online_match_count": 15,
+          "first_positive_step": 5,
+          "n_distinct_scenes_matched": 12
+        },
+        {
+          "query_id": 86,
+          "online_match_count": 4,
+          "first_positive_step": 80,
+          "n_distinct_scenes_matched": 4
+        },
+        {
+          "query_id": 87,
+          "online_match_count": 1,
+          "first_positive_step": 185,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 88,
+          "online_match_count": 20,
+          "first_positive_step": 6,
+          "n_distinct_scenes_matched": 20
+        },
+        {
+          "query_id": 89,
+          "online_match_count": 2,
+          "first_positive_step": 85,
+          "n_distinct_scenes_matched": 2
+        },
+        {
+          "query_id": 90,
+          "online_match_count": 12,
+          "first_positive_step": 28,
+          "n_distinct_scenes_matched": 11
+        },
+        {
+          "query_id": 91,
+          "online_match_count": 3,
+          "first_positive_step": 37,
+          "n_distinct_scenes_matched": 3
+        },
+        {
+          "query_id": 92,
+          "online_match_count": 1,
+          "first_positive_step": 60,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 93,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 94,
+          "online_match_count": 3,
+          "first_positive_step": 50,
+          "n_distinct_scenes_matched": 3
+        },
+        {
+          "query_id": 95,
+          "online_match_count": 2,
+          "first_positive_step": 81,
+          "n_distinct_scenes_matched": 2
+        },
+        {
+          "query_id": 96,
+          "online_match_count": 1,
+          "first_positive_step": 23,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 97,
+          "online_match_count": 6,
+          "first_positive_step": 13,
+          "n_distinct_scenes_matched": 6
+        },
+        {
+          "query_id": 98,
+          "online_match_count": 29,
+          "first_positive_step": 9,
+          "n_distinct_scenes_matched": 22
+        },
+        {
+          "query_id": 99,
+          "online_match_count": 8,
+          "first_positive_step": 20,
+          "n_distinct_scenes_matched": 8
+        }
+      ],
+      "top20": [
+        {
+          "query_id": 46,
+          "online_match_count": 64,
+          "first_positive_step": 1,
+          "n_distinct_scenes_matched": 49
+        },
+        {
+          "query_id": 9,
+          "online_match_count": 52,
+          "first_positive_step": 5,
+          "n_distinct_scenes_matched": 39
+        },
+        {
+          "query_id": 35,
+          "online_match_count": 46,
+          "first_positive_step": 14,
+          "n_distinct_scenes_matched": 40
+        },
+        {
+          "query_id": 54,
+          "online_match_count": 39,
+          "first_positive_step": 4,
+          "n_distinct_scenes_matched": 35
+        },
+        {
+          "query_id": 79,
+          "online_match_count": 35,
+          "first_positive_step": 12,
+          "n_distinct_scenes_matched": 30
+        },
+        {
+          "query_id": 56,
+          "online_match_count": 32,
+          "first_positive_step": 1,
+          "n_distinct_scenes_matched": 25
+        },
+        {
+          "query_id": 98,
+          "online_match_count": 29,
+          "first_positive_step": 9,
+          "n_distinct_scenes_matched": 22
+        },
+        {
+          "query_id": 48,
+          "online_match_count": 27,
+          "first_positive_step": 1,
+          "n_distinct_scenes_matched": 26
+        },
+        {
+          "query_id": 2,
+          "online_match_count": 24,
+          "first_positive_step": 12,
+          "n_distinct_scenes_matched": 18
+        },
+        {
+          "query_id": 17,
+          "online_match_count": 24,
+          "first_positive_step": 4,
+          "n_distinct_scenes_matched": 22
+        },
+        {
+          "query_id": 34,
+          "online_match_count": 24,
+          "first_positive_step": 5,
+          "n_distinct_scenes_matched": 20
+        },
+        {
+          "query_id": 27,
+          "online_match_count": 22,
+          "first_positive_step": 28,
+          "n_distinct_scenes_matched": 20
+        },
+        {
+          "query_id": 88,
+          "online_match_count": 20,
+          "first_positive_step": 6,
+          "n_distinct_scenes_matched": 20
+        },
+        {
+          "query_id": 23,
+          "online_match_count": 15,
+          "first_positive_step": 25,
+          "n_distinct_scenes_matched": 12
+        },
+        {
+          "query_id": 80,
+          "online_match_count": 15,
+          "first_positive_step": 1,
+          "n_distinct_scenes_matched": 14
+        },
+        {
+          "query_id": 85,
+          "online_match_count": 15,
+          "first_positive_step": 5,
+          "n_distinct_scenes_matched": 12
+        },
+        {
+          "query_id": 40,
+          "online_match_count": 14,
+          "first_positive_step": 3,
+          "n_distinct_scenes_matched": 12
+        },
+        {
+          "query_id": 10,
+          "online_match_count": 13,
+          "first_positive_step": 14,
+          "n_distinct_scenes_matched": 12
+        },
+        {
+          "query_id": 69,
+          "online_match_count": 13,
+          "first_positive_step": 14,
+          "n_distinct_scenes_matched": 13
+        },
+        {
+          "query_id": 78,
+          "online_match_count": 13,
+          "first_positive_step": 13,
+          "n_distinct_scenes_matched": 11
+        }
+      ]
+    },
+    "500": {
+      "step": 500,
+      "total_online_gt_matches": 1959,
+      "unique_queries_ever_matched": 91,
+      "never_matched_queries": 9,
+      "top1_share": 0.1276161306789178,
+      "top5_share": 0.4660541092394079,
+      "top10_share": 0.6161306789178151,
+      "top20_share": 0.7672281776416539,
+      "match_gini": 0.7264777947932619,
+      "normalized_entropy": 0.7599912176989461,
+      "effective_query_count": 33.111772948931616,
+      "first_positive_coverage": {
+        "by_step200": 83,
+        "by_step500": 91,
+        "by_step1000": 91,
+        "newly_matched_by_current_step": 0,
+        "ever_matched": 91
+      },
+      "query_rows": [
+        {
+          "query_id": 0,
+          "online_match_count": 7,
+          "first_positive_step": 37,
+          "n_distinct_scenes_matched": 7
+        },
+        {
+          "query_id": 1,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 2,
+          "online_match_count": 24,
+          "first_positive_step": 12,
+          "n_distinct_scenes_matched": 18
+        },
+        {
+          "query_id": 3,
+          "online_match_count": 1,
+          "first_positive_step": 27,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 4,
+          "online_match_count": 12,
+          "first_positive_step": 6,
+          "n_distinct_scenes_matched": 11
+        },
+        {
+          "query_id": 5,
+          "online_match_count": 8,
+          "first_positive_step": 24,
+          "n_distinct_scenes_matched": 7
+        },
+        {
+          "query_id": 6,
+          "online_match_count": 3,
+          "first_positive_step": 130,
+          "n_distinct_scenes_matched": 3
+        },
+        {
+          "query_id": 7,
+          "online_match_count": 12,
+          "first_positive_step": 8,
+          "n_distinct_scenes_matched": 11
+        },
+        {
+          "query_id": 8,
+          "online_match_count": 1,
+          "first_positive_step": 228,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 9,
+          "online_match_count": 56,
+          "first_positive_step": 5,
+          "n_distinct_scenes_matched": 42
+        },
+        {
+          "query_id": 10,
+          "online_match_count": 14,
+          "first_positive_step": 14,
+          "n_distinct_scenes_matched": 13
+        },
+        {
+          "query_id": 11,
+          "online_match_count": 2,
+          "first_positive_step": 138,
+          "n_distinct_scenes_matched": 2
+        },
+        {
+          "query_id": 12,
+          "online_match_count": 37,
+          "first_positive_step": 200,
+          "n_distinct_scenes_matched": 32
+        },
+        {
+          "query_id": 13,
+          "online_match_count": 34,
+          "first_positive_step": 25,
+          "n_distinct_scenes_matched": 31
+        },
+        {
+          "query_id": 14,
+          "online_match_count": 2,
+          "first_positive_step": 191,
+          "n_distinct_scenes_matched": 2
+        },
+        {
+          "query_id": 15,
+          "online_match_count": 12,
+          "first_positive_step": 43,
+          "n_distinct_scenes_matched": 12
+        },
+        {
+          "query_id": 16,
+          "online_match_count": 2,
+          "first_positive_step": 72,
+          "n_distinct_scenes_matched": 2
+        },
+        {
+          "query_id": 17,
+          "online_match_count": 25,
+          "first_positive_step": 4,
+          "n_distinct_scenes_matched": 23
+        },
+        {
+          "query_id": 18,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 19,
+          "online_match_count": 31,
+          "first_positive_step": 53,
+          "n_distinct_scenes_matched": 28
+        },
+        {
+          "query_id": 20,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 21,
+          "online_match_count": 6,
+          "first_positive_step": 80,
+          "n_distinct_scenes_matched": 5
+        },
+        {
+          "query_id": 22,
+          "online_match_count": 5,
+          "first_positive_step": 56,
+          "n_distinct_scenes_matched": 5
+        },
+        {
+          "query_id": 23,
+          "online_match_count": 17,
+          "first_positive_step": 25,
+          "n_distinct_scenes_matched": 14
+        },
+        {
+          "query_id": 24,
+          "online_match_count": 5,
+          "first_positive_step": 57,
+          "n_distinct_scenes_matched": 4
+        },
+        {
+          "query_id": 25,
+          "online_match_count": 1,
+          "first_positive_step": 495,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 26,
+          "online_match_count": 1,
+          "first_positive_step": 57,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 27,
+          "online_match_count": 250,
+          "first_positive_step": 28,
+          "n_distinct_scenes_matched": 108
+        },
+        {
+          "query_id": 28,
+          "online_match_count": 5,
+          "first_positive_step": 51,
+          "n_distinct_scenes_matched": 5
+        },
+        {
+          "query_id": 29,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 30,
+          "online_match_count": 11,
+          "first_positive_step": 79,
+          "n_distinct_scenes_matched": 10
+        },
+        {
+          "query_id": 31,
+          "online_match_count": 11,
+          "first_positive_step": 8,
+          "n_distinct_scenes_matched": 11
+        },
+        {
+          "query_id": 32,
+          "online_match_count": 4,
+          "first_positive_step": 74,
+          "n_distinct_scenes_matched": 4
+        },
+        {
+          "query_id": 33,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 34,
+          "online_match_count": 27,
+          "first_positive_step": 5,
+          "n_distinct_scenes_matched": 21
+        },
+        {
+          "query_id": 35,
+          "online_match_count": 52,
+          "first_positive_step": 14,
+          "n_distinct_scenes_matched": 46
+        },
+        {
+          "query_id": 36,
+          "online_match_count": 6,
+          "first_positive_step": 30,
+          "n_distinct_scenes_matched": 6
+        },
+        {
+          "query_id": 37,
+          "online_match_count": 1,
+          "first_positive_step": 182,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 38,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 39,
+          "online_match_count": 6,
+          "first_positive_step": 2,
+          "n_distinct_scenes_matched": 5
+        },
+        {
+          "query_id": 40,
+          "online_match_count": 14,
+          "first_positive_step": 3,
+          "n_distinct_scenes_matched": 12
+        },
+        {
+          "query_id": 41,
+          "online_match_count": 5,
+          "first_positive_step": 7,
+          "n_distinct_scenes_matched": 5
+        },
+        {
+          "query_id": 42,
+          "online_match_count": 17,
+          "first_positive_step": 8,
+          "n_distinct_scenes_matched": 15
+        },
+        {
+          "query_id": 43,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 44,
+          "online_match_count": 11,
+          "first_positive_step": 146,
+          "n_distinct_scenes_matched": 11
+        },
+        {
+          "query_id": 45,
+          "online_match_count": 7,
+          "first_positive_step": 7,
+          "n_distinct_scenes_matched": 7
+        },
+        {
+          "query_id": 46,
+          "online_match_count": 207,
+          "first_positive_step": 1,
+          "n_distinct_scenes_matched": 100
+        },
+        {
+          "query_id": 47,
+          "online_match_count": 14,
+          "first_positive_step": 2,
+          "n_distinct_scenes_matched": 12
+        },
+        {
+          "query_id": 48,
+          "online_match_count": 103,
+          "first_positive_step": 1,
+          "n_distinct_scenes_matched": 69
+        },
+        {
+          "query_id": 49,
+          "online_match_count": 4,
+          "first_positive_step": 419,
+          "n_distinct_scenes_matched": 3
+        },
+        {
+          "query_id": 50,
+          "online_match_count": 3,
+          "first_positive_step": 74,
+          "n_distinct_scenes_matched": 3
+        },
+        {
+          "query_id": 51,
+          "online_match_count": 1,
+          "first_positive_step": 31,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 52,
+          "online_match_count": 144,
+          "first_positive_step": 151,
+          "n_distinct_scenes_matched": 91
+        },
+        {
+          "query_id": 53,
+          "online_match_count": 2,
+          "first_positive_step": 15,
+          "n_distinct_scenes_matched": 2
+        },
+        {
+          "query_id": 54,
+          "online_match_count": 109,
+          "first_positive_step": 4,
+          "n_distinct_scenes_matched": 75
+        },
+        {
+          "query_id": 55,
+          "online_match_count": 3,
+          "first_positive_step": 151,
+          "n_distinct_scenes_matched": 3
+        },
+        {
+          "query_id": 56,
+          "online_match_count": 32,
+          "first_positive_step": 1,
+          "n_distinct_scenes_matched": 25
+        },
+        {
+          "query_id": 57,
+          "online_match_count": 5,
+          "first_positive_step": 43,
+          "n_distinct_scenes_matched": 5
+        },
+        {
+          "query_id": 58,
+          "online_match_count": 9,
+          "first_positive_step": 7,
+          "n_distinct_scenes_matched": 9
+        },
+        {
+          "query_id": 59,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 60,
+          "online_match_count": 7,
+          "first_positive_step": 2,
+          "n_distinct_scenes_matched": 5
+        },
+        {
+          "query_id": 61,
+          "online_match_count": 7,
+          "first_positive_step": 16,
+          "n_distinct_scenes_matched": 7
+        },
+        {
+          "query_id": 62,
+          "online_match_count": 5,
+          "first_positive_step": 20,
+          "n_distinct_scenes_matched": 5
+        },
+        {
+          "query_id": 63,
+          "online_match_count": 1,
+          "first_positive_step": 278,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 64,
+          "online_match_count": 44,
+          "first_positive_step": 198,
+          "n_distinct_scenes_matched": 39
+        },
+        {
+          "query_id": 65,
+          "online_match_count": 4,
+          "first_positive_step": 169,
+          "n_distinct_scenes_matched": 4
+        },
+        {
+          "query_id": 66,
+          "online_match_count": 203,
+          "first_positive_step": 151,
+          "n_distinct_scenes_matched": 106
+        },
+        {
+          "query_id": 67,
+          "online_match_count": 4,
+          "first_positive_step": 64,
+          "n_distinct_scenes_matched": 4
+        },
+        {
+          "query_id": 68,
+          "online_match_count": 29,
+          "first_positive_step": 12,
+          "n_distinct_scenes_matched": 26
+        },
+        {
+          "query_id": 69,
+          "online_match_count": 14,
+          "first_positive_step": 14,
+          "n_distinct_scenes_matched": 13
+        },
+        {
+          "query_id": 70,
+          "online_match_count": 2,
+          "first_positive_step": 50,
+          "n_distinct_scenes_matched": 2
+        },
+        {
+          "query_id": 71,
+          "online_match_count": 11,
+          "first_positive_step": 2,
+          "n_distinct_scenes_matched": 11
+        },
+        {
+          "query_id": 72,
+          "online_match_count": 4,
+          "first_positive_step": 61,
+          "n_distinct_scenes_matched": 4
+        },
+        {
+          "query_id": 73,
+          "online_match_count": 2,
+          "first_positive_step": 180,
+          "n_distinct_scenes_matched": 2
+        },
+        {
+          "query_id": 74,
+          "online_match_count": 1,
+          "first_positive_step": 221,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 75,
+          "online_match_count": 9,
+          "first_positive_step": 58,
+          "n_distinct_scenes_matched": 8
+        },
+        {
+          "query_id": 76,
+          "online_match_count": 10,
+          "first_positive_step": 3,
+          "n_distinct_scenes_matched": 9
+        },
+        {
+          "query_id": 77,
+          "online_match_count": 1,
+          "first_positive_step": 497,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 78,
+          "online_match_count": 15,
+          "first_positive_step": 13,
+          "n_distinct_scenes_matched": 13
+        },
+        {
+          "query_id": 79,
+          "online_match_count": 39,
+          "first_positive_step": 12,
+          "n_distinct_scenes_matched": 33
+        },
+        {
+          "query_id": 80,
+          "online_match_count": 26,
+          "first_positive_step": 1,
+          "n_distinct_scenes_matched": 23
+        },
+        {
+          "query_id": 81,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 82,
+          "online_match_count": 2,
+          "first_positive_step": 262,
+          "n_distinct_scenes_matched": 2
+        },
+        {
+          "query_id": 83,
+          "online_match_count": 10,
+          "first_positive_step": 14,
+          "n_distinct_scenes_matched": 9
+        },
+        {
+          "query_id": 84,
+          "online_match_count": 4,
+          "first_positive_step": 74,
+          "n_distinct_scenes_matched": 4
+        },
+        {
+          "query_id": 85,
+          "online_match_count": 15,
+          "first_positive_step": 5,
+          "n_distinct_scenes_matched": 12
+        },
+        {
+          "query_id": 86,
+          "online_match_count": 4,
+          "first_positive_step": 80,
+          "n_distinct_scenes_matched": 4
+        },
+        {
+          "query_id": 87,
+          "online_match_count": 5,
+          "first_positive_step": 185,
+          "n_distinct_scenes_matched": 5
+        },
+        {
+          "query_id": 88,
+          "online_match_count": 23,
+          "first_positive_step": 6,
+          "n_distinct_scenes_matched": 22
+        },
+        {
+          "query_id": 89,
+          "online_match_count": 3,
+          "first_positive_step": 85,
+          "n_distinct_scenes_matched": 3
+        },
+        {
+          "query_id": 90,
+          "online_match_count": 12,
+          "first_positive_step": 28,
+          "n_distinct_scenes_matched": 11
+        },
+        {
+          "query_id": 91,
+          "online_match_count": 4,
+          "first_positive_step": 37,
+          "n_distinct_scenes_matched": 4
+        },
+        {
+          "query_id": 92,
+          "online_match_count": 1,
+          "first_positive_step": 60,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 93,
+          "online_match_count": 2,
+          "first_positive_step": 218,
+          "n_distinct_scenes_matched": 2
+        },
+        {
+          "query_id": 94,
+          "online_match_count": 3,
+          "first_positive_step": 50,
+          "n_distinct_scenes_matched": 3
+        },
+        {
+          "query_id": 95,
+          "online_match_count": 2,
+          "first_positive_step": 81,
+          "n_distinct_scenes_matched": 2
+        },
+        {
+          "query_id": 96,
+          "online_match_count": 1,
+          "first_positive_step": 23,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 97,
+          "online_match_count": 9,
+          "first_positive_step": 13,
+          "n_distinct_scenes_matched": 9
+        },
+        {
+          "query_id": 98,
+          "online_match_count": 31,
+          "first_positive_step": 9,
+          "n_distinct_scenes_matched": 24
+        },
+        {
+          "query_id": 99,
+          "online_match_count": 9,
+          "first_positive_step": 20,
+          "n_distinct_scenes_matched": 9
+        }
+      ],
+      "top20": [
+        {
+          "query_id": 27,
+          "online_match_count": 250,
+          "first_positive_step": 28,
+          "n_distinct_scenes_matched": 108
+        },
+        {
+          "query_id": 46,
+          "online_match_count": 207,
+          "first_positive_step": 1,
+          "n_distinct_scenes_matched": 100
+        },
+        {
+          "query_id": 66,
+          "online_match_count": 203,
+          "first_positive_step": 151,
+          "n_distinct_scenes_matched": 106
+        },
+        {
+          "query_id": 52,
+          "online_match_count": 144,
+          "first_positive_step": 151,
+          "n_distinct_scenes_matched": 91
+        },
+        {
+          "query_id": 54,
+          "online_match_count": 109,
+          "first_positive_step": 4,
+          "n_distinct_scenes_matched": 75
+        },
+        {
+          "query_id": 48,
+          "online_match_count": 103,
+          "first_positive_step": 1,
+          "n_distinct_scenes_matched": 69
+        },
+        {
+          "query_id": 9,
+          "online_match_count": 56,
+          "first_positive_step": 5,
+          "n_distinct_scenes_matched": 42
+        },
+        {
+          "query_id": 35,
+          "online_match_count": 52,
+          "first_positive_step": 14,
+          "n_distinct_scenes_matched": 46
+        },
+        {
+          "query_id": 64,
+          "online_match_count": 44,
+          "first_positive_step": 198,
+          "n_distinct_scenes_matched": 39
+        },
+        {
+          "query_id": 79,
+          "online_match_count": 39,
+          "first_positive_step": 12,
+          "n_distinct_scenes_matched": 33
+        },
+        {
+          "query_id": 12,
+          "online_match_count": 37,
+          "first_positive_step": 200,
+          "n_distinct_scenes_matched": 32
+        },
+        {
+          "query_id": 13,
+          "online_match_count": 34,
+          "first_positive_step": 25,
+          "n_distinct_scenes_matched": 31
+        },
+        {
+          "query_id": 56,
+          "online_match_count": 32,
+          "first_positive_step": 1,
+          "n_distinct_scenes_matched": 25
+        },
+        {
+          "query_id": 19,
+          "online_match_count": 31,
+          "first_positive_step": 53,
+          "n_distinct_scenes_matched": 28
+        },
+        {
+          "query_id": 98,
+          "online_match_count": 31,
+          "first_positive_step": 9,
+          "n_distinct_scenes_matched": 24
+        },
+        {
+          "query_id": 68,
+          "online_match_count": 29,
+          "first_positive_step": 12,
+          "n_distinct_scenes_matched": 26
+        },
+        {
+          "query_id": 34,
+          "online_match_count": 27,
+          "first_positive_step": 5,
+          "n_distinct_scenes_matched": 21
+        },
+        {
+          "query_id": 80,
+          "online_match_count": 26,
+          "first_positive_step": 1,
+          "n_distinct_scenes_matched": 23
+        },
+        {
+          "query_id": 17,
+          "online_match_count": 25,
+          "first_positive_step": 4,
+          "n_distinct_scenes_matched": 23
+        },
+        {
+          "query_id": 2,
+          "online_match_count": 24,
+          "first_positive_step": 12,
+          "n_distinct_scenes_matched": 18
+        }
+      ]
+    },
+    "1000": {
+      "step": 1000,
+      "total_online_gt_matches": 3966,
+      "unique_queries_ever_matched": 93,
+      "never_matched_queries": 7,
+      "top1_share": 0.15052950075642965,
+      "top5_share": 0.5801815431164902,
+      "top10_share": 0.7523953605648008,
+      "top20_share": 0.8502269288956127,
+      "match_gini": 0.7994704992435704,
+      "normalized_entropy": 0.6787408996429883,
+      "effective_query_count": 22.776227876634525,
+      "first_positive_coverage": {
+        "by_step200": 83,
+        "by_step500": 91,
+        "by_step1000": 93,
+        "newly_matched_by_current_step": 0,
+        "ever_matched": 93
+      },
+      "query_rows": [
+        {
+          "query_id": 0,
+          "online_match_count": 7,
+          "first_positive_step": 37,
+          "n_distinct_scenes_matched": 7
+        },
+        {
+          "query_id": 1,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 2,
+          "online_match_count": 25,
+          "first_positive_step": 12,
+          "n_distinct_scenes_matched": 19
+        },
+        {
+          "query_id": 3,
+          "online_match_count": 2,
+          "first_positive_step": 27,
+          "n_distinct_scenes_matched": 2
+        },
+        {
+          "query_id": 4,
+          "online_match_count": 13,
+          "first_positive_step": 6,
+          "n_distinct_scenes_matched": 12
+        },
+        {
+          "query_id": 5,
+          "online_match_count": 11,
+          "first_positive_step": 24,
+          "n_distinct_scenes_matched": 10
+        },
+        {
+          "query_id": 6,
+          "online_match_count": 4,
+          "first_positive_step": 130,
+          "n_distinct_scenes_matched": 4
+        },
+        {
+          "query_id": 7,
+          "online_match_count": 29,
+          "first_positive_step": 8,
+          "n_distinct_scenes_matched": 23
+        },
+        {
+          "query_id": 8,
+          "online_match_count": 3,
+          "first_positive_step": 228,
+          "n_distinct_scenes_matched": 3
+        },
+        {
+          "query_id": 9,
+          "online_match_count": 56,
+          "first_positive_step": 5,
+          "n_distinct_scenes_matched": 42
+        },
+        {
+          "query_id": 10,
+          "online_match_count": 16,
+          "first_positive_step": 14,
+          "n_distinct_scenes_matched": 15
+        },
+        {
+          "query_id": 11,
+          "online_match_count": 3,
+          "first_positive_step": 138,
+          "n_distinct_scenes_matched": 3
+        },
+        {
+          "query_id": 12,
+          "online_match_count": 184,
+          "first_positive_step": 200,
+          "n_distinct_scenes_matched": 89
+        },
+        {
+          "query_id": 13,
+          "online_match_count": 58,
+          "first_positive_step": 25,
+          "n_distinct_scenes_matched": 42
+        },
+        {
+          "query_id": 14,
+          "online_match_count": 2,
+          "first_positive_step": 191,
+          "n_distinct_scenes_matched": 2
+        },
+        {
+          "query_id": 15,
+          "online_match_count": 14,
+          "first_positive_step": 43,
+          "n_distinct_scenes_matched": 12
+        },
+        {
+          "query_id": 16,
+          "online_match_count": 3,
+          "first_positive_step": 72,
+          "n_distinct_scenes_matched": 3
+        },
+        {
+          "query_id": 17,
+          "online_match_count": 25,
+          "first_positive_step": 4,
+          "n_distinct_scenes_matched": 23
+        },
+        {
+          "query_id": 18,
+          "online_match_count": 1,
+          "first_positive_step": 595,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 19,
+          "online_match_count": 47,
+          "first_positive_step": 53,
+          "n_distinct_scenes_matched": 40
+        },
+        {
+          "query_id": 20,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 21,
+          "online_match_count": 6,
+          "first_positive_step": 80,
+          "n_distinct_scenes_matched": 5
+        },
+        {
+          "query_id": 22,
+          "online_match_count": 5,
+          "first_positive_step": 56,
+          "n_distinct_scenes_matched": 5
+        },
+        {
+          "query_id": 23,
+          "online_match_count": 18,
+          "first_positive_step": 25,
+          "n_distinct_scenes_matched": 15
+        },
+        {
+          "query_id": 24,
+          "online_match_count": 5,
+          "first_positive_step": 57,
+          "n_distinct_scenes_matched": 4
+        },
+        {
+          "query_id": 25,
+          "online_match_count": 5,
+          "first_positive_step": 495,
+          "n_distinct_scenes_matched": 5
+        },
+        {
+          "query_id": 26,
+          "online_match_count": 1,
+          "first_positive_step": 57,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 27,
+          "online_match_count": 597,
+          "first_positive_step": 28,
+          "n_distinct_scenes_matched": 125
+        },
+        {
+          "query_id": 28,
+          "online_match_count": 6,
+          "first_positive_step": 51,
+          "n_distinct_scenes_matched": 6
+        },
+        {
+          "query_id": 29,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 30,
+          "online_match_count": 11,
+          "first_positive_step": 79,
+          "n_distinct_scenes_matched": 10
+        },
+        {
+          "query_id": 31,
+          "online_match_count": 11,
+          "first_positive_step": 8,
+          "n_distinct_scenes_matched": 11
+        },
+        {
+          "query_id": 32,
+          "online_match_count": 4,
+          "first_positive_step": 74,
+          "n_distinct_scenes_matched": 4
+        },
+        {
+          "query_id": 33,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 34,
+          "online_match_count": 27,
+          "first_positive_step": 5,
+          "n_distinct_scenes_matched": 21
+        },
+        {
+          "query_id": 35,
+          "online_match_count": 52,
+          "first_positive_step": 14,
+          "n_distinct_scenes_matched": 46
+        },
+        {
+          "query_id": 36,
+          "online_match_count": 6,
+          "first_positive_step": 30,
+          "n_distinct_scenes_matched": 6
+        },
+        {
+          "query_id": 37,
+          "online_match_count": 2,
+          "first_positive_step": 182,
+          "n_distinct_scenes_matched": 2
+        },
+        {
+          "query_id": 38,
+          "online_match_count": 36,
+          "first_positive_step": 542,
+          "n_distinct_scenes_matched": 25
+        },
+        {
+          "query_id": 39,
+          "online_match_count": 6,
+          "first_positive_step": 2,
+          "n_distinct_scenes_matched": 5
+        },
+        {
+          "query_id": 40,
+          "online_match_count": 15,
+          "first_positive_step": 3,
+          "n_distinct_scenes_matched": 13
+        },
+        {
+          "query_id": 41,
+          "online_match_count": 5,
+          "first_positive_step": 7,
+          "n_distinct_scenes_matched": 5
+        },
+        {
+          "query_id": 42,
+          "online_match_count": 21,
+          "first_positive_step": 8,
+          "n_distinct_scenes_matched": 19
+        },
+        {
+          "query_id": 43,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 44,
+          "online_match_count": 11,
+          "first_positive_step": 146,
+          "n_distinct_scenes_matched": 11
+        },
+        {
+          "query_id": 45,
+          "online_match_count": 8,
+          "first_positive_step": 7,
+          "n_distinct_scenes_matched": 8
+        },
+        {
+          "query_id": 46,
+          "online_match_count": 456,
+          "first_positive_step": 1,
+          "n_distinct_scenes_matched": 119
+        },
+        {
+          "query_id": 47,
+          "online_match_count": 17,
+          "first_positive_step": 2,
+          "n_distinct_scenes_matched": 13
+        },
+        {
+          "query_id": 48,
+          "online_match_count": 181,
+          "first_positive_step": 1,
+          "n_distinct_scenes_matched": 86
+        },
+        {
+          "query_id": 49,
+          "online_match_count": 38,
+          "first_positive_step": 419,
+          "n_distinct_scenes_matched": 22
+        },
+        {
+          "query_id": 50,
+          "online_match_count": 7,
+          "first_positive_step": 74,
+          "n_distinct_scenes_matched": 7
+        },
+        {
+          "query_id": 51,
+          "online_match_count": 1,
+          "first_positive_step": 31,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 52,
+          "online_match_count": 457,
+          "first_positive_step": 151,
+          "n_distinct_scenes_matched": 125
+        },
+        {
+          "query_id": 53,
+          "online_match_count": 2,
+          "first_positive_step": 15,
+          "n_distinct_scenes_matched": 2
+        },
+        {
+          "query_id": 54,
+          "online_match_count": 146,
+          "first_positive_step": 4,
+          "n_distinct_scenes_matched": 87
+        },
+        {
+          "query_id": 55,
+          "online_match_count": 4,
+          "first_positive_step": 151,
+          "n_distinct_scenes_matched": 4
+        },
+        {
+          "query_id": 56,
+          "online_match_count": 32,
+          "first_positive_step": 1,
+          "n_distinct_scenes_matched": 25
+        },
+        {
+          "query_id": 57,
+          "online_match_count": 6,
+          "first_positive_step": 43,
+          "n_distinct_scenes_matched": 6
+        },
+        {
+          "query_id": 58,
+          "online_match_count": 9,
+          "first_positive_step": 7,
+          "n_distinct_scenes_matched": 9
+        },
+        {
+          "query_id": 59,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 60,
+          "online_match_count": 7,
+          "first_positive_step": 2,
+          "n_distinct_scenes_matched": 5
+        },
+        {
+          "query_id": 61,
+          "online_match_count": 7,
+          "first_positive_step": 16,
+          "n_distinct_scenes_matched": 7
+        },
+        {
+          "query_id": 62,
+          "online_match_count": 6,
+          "first_positive_step": 20,
+          "n_distinct_scenes_matched": 6
+        },
+        {
+          "query_id": 63,
+          "online_match_count": 2,
+          "first_positive_step": 278,
+          "n_distinct_scenes_matched": 2
+        },
+        {
+          "query_id": 64,
+          "online_match_count": 114,
+          "first_positive_step": 198,
+          "n_distinct_scenes_matched": 73
+        },
+        {
+          "query_id": 65,
+          "online_match_count": 5,
+          "first_positive_step": 169,
+          "n_distinct_scenes_matched": 4
+        },
+        {
+          "query_id": 66,
+          "online_match_count": 570,
+          "first_positive_step": 151,
+          "n_distinct_scenes_matched": 126
+        },
+        {
+          "query_id": 67,
+          "online_match_count": 4,
+          "first_positive_step": 64,
+          "n_distinct_scenes_matched": 4
+        },
+        {
+          "query_id": 68,
+          "online_match_count": 221,
+          "first_positive_step": 12,
+          "n_distinct_scenes_matched": 99
+        },
+        {
+          "query_id": 69,
+          "online_match_count": 14,
+          "first_positive_step": 14,
+          "n_distinct_scenes_matched": 13
+        },
+        {
+          "query_id": 70,
+          "online_match_count": 2,
+          "first_positive_step": 50,
+          "n_distinct_scenes_matched": 2
+        },
+        {
+          "query_id": 71,
+          "online_match_count": 15,
+          "first_positive_step": 2,
+          "n_distinct_scenes_matched": 15
+        },
+        {
+          "query_id": 72,
+          "online_match_count": 6,
+          "first_positive_step": 61,
+          "n_distinct_scenes_matched": 6
+        },
+        {
+          "query_id": 73,
+          "online_match_count": 2,
+          "first_positive_step": 180,
+          "n_distinct_scenes_matched": 2
+        },
+        {
+          "query_id": 74,
+          "online_match_count": 1,
+          "first_positive_step": 221,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 75,
+          "online_match_count": 10,
+          "first_positive_step": 58,
+          "n_distinct_scenes_matched": 9
+        },
+        {
+          "query_id": 76,
+          "online_match_count": 11,
+          "first_positive_step": 3,
+          "n_distinct_scenes_matched": 10
+        },
+        {
+          "query_id": 77,
+          "online_match_count": 3,
+          "first_positive_step": 497,
+          "n_distinct_scenes_matched": 3
+        },
+        {
+          "query_id": 78,
+          "online_match_count": 15,
+          "first_positive_step": 13,
+          "n_distinct_scenes_matched": 13
+        },
+        {
+          "query_id": 79,
+          "online_match_count": 40,
+          "first_positive_step": 12,
+          "n_distinct_scenes_matched": 34
+        },
+        {
+          "query_id": 80,
+          "online_match_count": 27,
+          "first_positive_step": 1,
+          "n_distinct_scenes_matched": 23
+        },
+        {
+          "query_id": 81,
+          "online_match_count": 0,
+          "first_positive_step": null,
+          "n_distinct_scenes_matched": 0
+        },
+        {
+          "query_id": 82,
+          "online_match_count": 9,
+          "first_positive_step": 262,
+          "n_distinct_scenes_matched": 8
+        },
+        {
+          "query_id": 83,
+          "online_match_count": 13,
+          "first_positive_step": 14,
+          "n_distinct_scenes_matched": 11
+        },
+        {
+          "query_id": 84,
+          "online_match_count": 5,
+          "first_positive_step": 74,
+          "n_distinct_scenes_matched": 5
+        },
+        {
+          "query_id": 85,
+          "online_match_count": 21,
+          "first_positive_step": 5,
+          "n_distinct_scenes_matched": 17
+        },
+        {
+          "query_id": 86,
+          "online_match_count": 4,
+          "first_positive_step": 80,
+          "n_distinct_scenes_matched": 4
+        },
+        {
+          "query_id": 87,
+          "online_match_count": 5,
+          "first_positive_step": 185,
+          "n_distinct_scenes_matched": 5
+        },
+        {
+          "query_id": 88,
+          "online_match_count": 24,
+          "first_positive_step": 6,
+          "n_distinct_scenes_matched": 22
+        },
+        {
+          "query_id": 89,
+          "online_match_count": 4,
+          "first_positive_step": 85,
+          "n_distinct_scenes_matched": 4
+        },
+        {
+          "query_id": 90,
+          "online_match_count": 12,
+          "first_positive_step": 28,
+          "n_distinct_scenes_matched": 11
+        },
+        {
+          "query_id": 91,
+          "online_match_count": 5,
+          "first_positive_step": 37,
+          "n_distinct_scenes_matched": 5
+        },
+        {
+          "query_id": 92,
+          "online_match_count": 4,
+          "first_positive_step": 60,
+          "n_distinct_scenes_matched": 4
+        },
+        {
+          "query_id": 93,
+          "online_match_count": 6,
+          "first_positive_step": 218,
+          "n_distinct_scenes_matched": 6
+        },
+        {
+          "query_id": 94,
+          "online_match_count": 3,
+          "first_positive_step": 50,
+          "n_distinct_scenes_matched": 3
+        },
+        {
+          "query_id": 95,
+          "online_match_count": 2,
+          "first_positive_step": 81,
+          "n_distinct_scenes_matched": 2
+        },
+        {
+          "query_id": 96,
+          "online_match_count": 1,
+          "first_positive_step": 23,
+          "n_distinct_scenes_matched": 1
+        },
+        {
+          "query_id": 97,
+          "online_match_count": 9,
+          "first_positive_step": 13,
+          "n_distinct_scenes_matched": 9
+        },
+        {
+          "query_id": 98,
+          "online_match_count": 31,
+          "first_positive_step": 9,
+          "n_distinct_scenes_matched": 24
+        },
+        {
+          "query_id": 99,
+          "online_match_count": 9,
+          "first_positive_step": 20,
+          "n_distinct_scenes_matched": 9
+        }
+      ],
+      "top20": [
+        {
+          "query_id": 27,
+          "online_match_count": 597,
+          "first_positive_step": 28,
+          "n_distinct_scenes_matched": 125
+        },
+        {
+          "query_id": 66,
+          "online_match_count": 570,
+          "first_positive_step": 151,
+          "n_distinct_scenes_matched": 126
+        },
+        {
+          "query_id": 52,
+          "online_match_count": 457,
+          "first_positive_step": 151,
+          "n_distinct_scenes_matched": 125
+        },
+        {
+          "query_id": 46,
+          "online_match_count": 456,
+          "first_positive_step": 1,
+          "n_distinct_scenes_matched": 119
+        },
+        {
+          "query_id": 68,
+          "online_match_count": 221,
+          "first_positive_step": 12,
+          "n_distinct_scenes_matched": 99
+        },
+        {
+          "query_id": 12,
+          "online_match_count": 184,
+          "first_positive_step": 200,
+          "n_distinct_scenes_matched": 89
+        },
+        {
+          "query_id": 48,
+          "online_match_count": 181,
+          "first_positive_step": 1,
+          "n_distinct_scenes_matched": 86
+        },
+        {
+          "query_id": 54,
+          "online_match_count": 146,
+          "first_positive_step": 4,
+          "n_distinct_scenes_matched": 87
+        },
+        {
+          "query_id": 64,
+          "online_match_count": 114,
+          "first_positive_step": 198,
+          "n_distinct_scenes_matched": 73
+        },
+        {
+          "query_id": 13,
+          "online_match_count": 58,
+          "first_positive_step": 25,
+          "n_distinct_scenes_matched": 42
+        },
+        {
+          "query_id": 9,
+          "online_match_count": 56,
+          "first_positive_step": 5,
+          "n_distinct_scenes_matched": 42
+        },
+        {
+          "query_id": 35,
+          "online_match_count": 52,
+          "first_positive_step": 14,
+          "n_distinct_scenes_matched": 46
+        },
+        {
+          "query_id": 19,
+          "online_match_count": 47,
+          "first_positive_step": 53,
+          "n_distinct_scenes_matched": 40
+        },
+        {
+          "query_id": 79,
+          "online_match_count": 40,
+          "first_positive_step": 12,
+          "n_distinct_scenes_matched": 34
+        },
+        {
+          "query_id": 49,
+          "online_match_count": 38,
+          "first_positive_step": 419,
+          "n_distinct_scenes_matched": 22
+        },
+        {
+          "query_id": 38,
+          "online_match_count": 36,
+          "first_positive_step": 542,
+          "n_distinct_scenes_matched": 25
+        },
+        {
+          "query_id": 56,
+          "online_match_count": 32,
+          "first_positive_step": 1,
+          "n_distinct_scenes_matched": 25
+        },
+        {
+          "query_id": 98,
+          "online_match_count": 31,
+          "first_positive_step": 9,
+          "n_distinct_scenes_matched": 24
+        },
+        {
+          "query_id": 7,
+          "online_match_count": 29,
+          "first_positive_step": 8,
+          "n_distinct_scenes_matched": 23
+        },
+        {
+          "query_id": 34,
+          "online_match_count": 27,
+          "first_positive_step": 5,
+          "n_distinct_scenes_matched": 21
+        }
+      ]
+    }
+  },
+  "final_first_positive_coverage": {
+    "200": 83,
+    "500": 91,
+    "1000": 93
+  },
+  "queries": [
+    {
+      "query_id": 0,
+      "online_match_count": 7,
+      "first_positive_step": 37,
+      "n_distinct_scenes_matched": 7
+    },
+    {
+      "query_id": 1,
+      "online_match_count": 0,
+      "first_positive_step": null,
+      "n_distinct_scenes_matched": 0
+    },
+    {
+      "query_id": 2,
+      "online_match_count": 25,
+      "first_positive_step": 12,
+      "n_distinct_scenes_matched": 19
+    },
+    {
+      "query_id": 3,
+      "online_match_count": 2,
+      "first_positive_step": 27,
+      "n_distinct_scenes_matched": 2
+    },
+    {
+      "query_id": 4,
+      "online_match_count": 13,
+      "first_positive_step": 6,
+      "n_distinct_scenes_matched": 12
+    },
+    {
+      "query_id": 5,
+      "online_match_count": 11,
+      "first_positive_step": 24,
+      "n_distinct_scenes_matched": 10
+    },
+    {
+      "query_id": 6,
+      "online_match_count": 4,
+      "first_positive_step": 130,
+      "n_distinct_scenes_matched": 4
+    },
+    {
+      "query_id": 7,
+      "online_match_count": 29,
+      "first_positive_step": 8,
+      "n_distinct_scenes_matched": 23
+    },
+    {
+      "query_id": 8,
+      "online_match_count": 3,
+      "first_positive_step": 228,
+      "n_distinct_scenes_matched": 3
+    },
+    {
+      "query_id": 9,
+      "online_match_count": 56,
+      "first_positive_step": 5,
+      "n_distinct_scenes_matched": 42
+    },
+    {
+      "query_id": 10,
+      "online_match_count": 16,
+      "first_positive_step": 14,
+      "n_distinct_scenes_matched": 15
+    },
+    {
+      "query_id": 11,
+      "online_match_count": 3,
+      "first_positive_step": 138,
+      "n_distinct_scenes_matched": 3
+    },
+    {
+      "query_id": 12,
+      "online_match_count": 184,
+      "first_positive_step": 200,
+      "n_distinct_scenes_matched": 89
+    },
+    {
+      "query_id": 13,
+      "online_match_count": 58,
+      "first_positive_step": 25,
+      "n_distinct_scenes_matched": 42
+    },
+    {
+      "query_id": 14,
+      "online_match_count": 2,
+      "first_positive_step": 191,
+      "n_distinct_scenes_matched": 2
+    },
+    {
+      "query_id": 15,
+      "online_match_count": 14,
+      "first_positive_step": 43,
+      "n_distinct_scenes_matched": 12
+    },
+    {
+      "query_id": 16,
+      "online_match_count": 3,
+      "first_positive_step": 72,
+      "n_distinct_scenes_matched": 3
+    },
+    {
+      "query_id": 17,
+      "online_match_count": 25,
+      "first_positive_step": 4,
+      "n_distinct_scenes_matched": 23
+    },
+    {
+      "query_id": 18,
+      "online_match_count": 1,
+      "first_positive_step": 595,
+      "n_distinct_scenes_matched": 1
+    },
+    {
+      "query_id": 19,
+      "online_match_count": 47,
+      "first_positive_step": 53,
+      "n_distinct_scenes_matched": 40
+    },
+    {
+      "query_id": 20,
+      "online_match_count": 0,
+      "first_positive_step": null,
+      "n_distinct_scenes_matched": 0
+    },
+    {
+      "query_id": 21,
+      "online_match_count": 6,
+      "first_positive_step": 80,
+      "n_distinct_scenes_matched": 5
+    },
+    {
+      "query_id": 22,
+      "online_match_count": 5,
+      "first_positive_step": 56,
+      "n_distinct_scenes_matched": 5
+    },
+    {
+      "query_id": 23,
+      "online_match_count": 18,
+      "first_positive_step": 25,
+      "n_distinct_scenes_matched": 15
+    },
+    {
+      "query_id": 24,
+      "online_match_count": 5,
+      "first_positive_step": 57,
+      "n_distinct_scenes_matched": 4
+    },
+    {
+      "query_id": 25,
+      "online_match_count": 5,
+      "first_positive_step": 495,
+      "n_distinct_scenes_matched": 5
+    },
+    {
+      "query_id": 26,
+      "online_match_count": 1,
+      "first_positive_step": 57,
+      "n_distinct_scenes_matched": 1
+    },
+    {
+      "query_id": 27,
+      "online_match_count": 597,
+      "first_positive_step": 28,
+      "n_distinct_scenes_matched": 125
+    },
+    {
+      "query_id": 28,
+      "online_match_count": 6,
+      "first_positive_step": 51,
+      "n_distinct_scenes_matched": 6
+    },
+    {
+      "query_id": 29,
+      "online_match_count": 0,
+      "first_positive_step": null,
+      "n_distinct_scenes_matched": 0
+    },
+    {
+      "query_id": 30,
+      "online_match_count": 11,
+      "first_positive_step": 79,
+      "n_distinct_scenes_matched": 10
+    },
+    {
+      "query_id": 31,
+      "online_match_count": 11,
+      "first_positive_step": 8,
+      "n_distinct_scenes_matched": 11
+    },
+    {
+      "query_id": 32,
+      "online_match_count": 4,
+      "first_positive_step": 74,
+      "n_distinct_scenes_matched": 4
+    },
+    {
+      "query_id": 33,
+      "online_match_count": 0,
+      "first_positive_step": null,
+      "n_distinct_scenes_matched": 0
+    },
+    {
+      "query_id": 34,
+      "online_match_count": 27,
+      "first_positive_step": 5,
+      "n_distinct_scenes_matched": 21
+    },
+    {
+      "query_id": 35,
+      "online_match_count": 52,
+      "first_positive_step": 14,
+      "n_distinct_scenes_matched": 46
+    },
+    {
+      "query_id": 36,
+      "online_match_count": 6,
+      "first_positive_step": 30,
+      "n_distinct_scenes_matched": 6
+    },
+    {
+      "query_id": 37,
+      "online_match_count": 2,
+      "first_positive_step": 182,
+      "n_distinct_scenes_matched": 2
+    },
+    {
+      "query_id": 38,
+      "online_match_count": 36,
+      "first_positive_step": 542,
+      "n_distinct_scenes_matched": 25
+    },
+    {
+      "query_id": 39,
+      "online_match_count": 6,
+      "first_positive_step": 2,
+      "n_distinct_scenes_matched": 5
+    },
+    {
+      "query_id": 40,
+      "online_match_count": 15,
+      "first_positive_step": 3,
+      "n_distinct_scenes_matched": 13
+    },
+    {
+      "query_id": 41,
+      "online_match_count": 5,
+      "first_positive_step": 7,
+      "n_distinct_scenes_matched": 5
+    },
+    {
+      "query_id": 42,
+      "online_match_count": 21,
+      "first_positive_step": 8,
+      "n_distinct_scenes_matched": 19
+    },
+    {
+      "query_id": 43,
+      "online_match_count": 0,
+      "first_positive_step": null,
+      "n_distinct_scenes_matched": 0
+    },
+    {
+      "query_id": 44,
+      "online_match_count": 11,
+      "first_positive_step": 146,
+      "n_distinct_scenes_matched": 11
+    },
+    {
+      "query_id": 45,
+      "online_match_count": 8,
+      "first_positive_step": 7,
+      "n_distinct_scenes_matched": 8
+    },
+    {
+      "query_id": 46,
+      "online_match_count": 456,
+      "first_positive_step": 1,
+      "n_distinct_scenes_matched": 119
+    },
+    {
+      "query_id": 47,
+      "online_match_count": 17,
+      "first_positive_step": 2,
+      "n_distinct_scenes_matched": 13
+    },
+    {
+      "query_id": 48,
+      "online_match_count": 181,
+      "first_positive_step": 1,
+      "n_distinct_scenes_matched": 86
+    },
+    {
+      "query_id": 49,
+      "online_match_count": 38,
+      "first_positive_step": 419,
+      "n_distinct_scenes_matched": 22
+    },
+    {
+      "query_id": 50,
+      "online_match_count": 7,
+      "first_positive_step": 74,
+      "n_distinct_scenes_matched": 7
+    },
+    {
+      "query_id": 51,
+      "online_match_count": 1,
+      "first_positive_step": 31,
+      "n_distinct_scenes_matched": 1
+    },
+    {
+      "query_id": 52,
+      "online_match_count": 457,
+      "first_positive_step": 151,
+      "n_distinct_scenes_matched": 125
+    },
+    {
+      "query_id": 53,
+      "online_match_count": 2,
+      "first_positive_step": 15,
+      "n_distinct_scenes_matched": 2
+    },
+    {
+      "query_id": 54,
+      "online_match_count": 146,
+      "first_positive_step": 4,
+      "n_distinct_scenes_matched": 87
+    },
+    {
+      "query_id": 55,
+      "online_match_count": 4,
+      "first_positive_step": 151,
+      "n_distinct_scenes_matched": 4
+    },
+    {
+      "query_id": 56,
+      "online_match_count": 32,
+      "first_positive_step": 1,
+      "n_distinct_scenes_matched": 25
+    },
+    {
+      "query_id": 57,
+      "online_match_count": 6,
+      "first_positive_step": 43,
+      "n_distinct_scenes_matched": 6
+    },
+    {
+      "query_id": 58,
+      "online_match_count": 9,
+      "first_positive_step": 7,
+      "n_distinct_scenes_matched": 9
+    },
+    {
+      "query_id": 59,
+      "online_match_count": 0,
+      "first_positive_step": null,
+      "n_distinct_scenes_matched": 0
+    },
+    {
+      "query_id": 60,
+      "online_match_count": 7,
+      "first_positive_step": 2,
+      "n_distinct_scenes_matched": 5
+    },
+    {
+      "query_id": 61,
+      "online_match_count": 7,
+      "first_positive_step": 16,
+      "n_distinct_scenes_matched": 7
+    },
+    {
+      "query_id": 62,
+      "online_match_count": 6,
+      "first_positive_step": 20,
+      "n_distinct_scenes_matched": 6
+    },
+    {
+      "query_id": 63,
+      "online_match_count": 2,
+      "first_positive_step": 278,
+      "n_distinct_scenes_matched": 2
+    },
+    {
+      "query_id": 64,
+      "online_match_count": 114,
+      "first_positive_step": 198,
+      "n_distinct_scenes_matched": 73
+    },
+    {
+      "query_id": 65,
+      "online_match_count": 5,
+      "first_positive_step": 169,
+      "n_distinct_scenes_matched": 4
+    },
+    {
+      "query_id": 66,
+      "online_match_count": 570,
+      "first_positive_step": 151,
+      "n_distinct_scenes_matched": 126
+    },
+    {
+      "query_id": 67,
+      "online_match_count": 4,
+      "first_positive_step": 64,
+      "n_distinct_scenes_matched": 4
+    },
+    {
+      "query_id": 68,
+      "online_match_count": 221,
+      "first_positive_step": 12,
+      "n_distinct_scenes_matched": 99
+    },
+    {
+      "query_id": 69,
+      "online_match_count": 14,
+      "first_positive_step": 14,
+      "n_distinct_scenes_matched": 13
+    },
+    {
+      "query_id": 70,
+      "online_match_count": 2,
+      "first_positive_step": 50,
+      "n_distinct_scenes_matched": 2
+    },
+    {
+      "query_id": 71,
+      "online_match_count": 15,
+      "first_positive_step": 2,
+      "n_distinct_scenes_matched": 15
+    },
+    {
+      "query_id": 72,
+      "online_match_count": 6,
+      "first_positive_step": 61,
+      "n_distinct_scenes_matched": 6
+    },
+    {
+      "query_id": 73,
+      "online_match_count": 2,
+      "first_positive_step": 180,
+      "n_distinct_scenes_matched": 2
+    },
+    {
+      "query_id": 74,
+      "online_match_count": 1,
+      "first_positive_step": 221,
+      "n_distinct_scenes_matched": 1
+    },
+    {
+      "query_id": 75,
+      "online_match_count": 10,
+      "first_positive_step": 58,
+      "n_distinct_scenes_matched": 9
+    },
+    {
+      "query_id": 76,
+      "online_match_count": 11,
+      "first_positive_step": 3,
+      "n_distinct_scenes_matched": 10
+    },
+    {
+      "query_id": 77,
+      "online_match_count": 3,
+      "first_positive_step": 497,
+      "n_distinct_scenes_matched": 3
+    },
+    {
+      "query_id": 78,
+      "online_match_count": 15,
+      "first_positive_step": 13,
+      "n_distinct_scenes_matched": 13
+    },
+    {
+      "query_id": 79,
+      "online_match_count": 40,
+      "first_positive_step": 12,
+      "n_distinct_scenes_matched": 34
+    },
+    {
+      "query_id": 80,
+      "online_match_count": 27,
+      "first_positive_step": 1,
+      "n_distinct_scenes_matched": 23
+    },
+    {
+      "query_id": 81,
+      "online_match_count": 0,
+      "first_positive_step": null,
+      "n_distinct_scenes_matched": 0
+    },
+    {
+      "query_id": 82,
+      "online_match_count": 9,
+      "first_positive_step": 262,
+      "n_distinct_scenes_matched": 8
+    },
+    {
+      "query_id": 83,
+      "online_match_count": 13,
+      "first_positive_step": 14,
+      "n_distinct_scenes_matched": 11
+    },
+    {
+      "query_id": 84,
+      "online_match_count": 5,
+      "first_positive_step": 74,
+      "n_distinct_scenes_matched": 5
+    },
+    {
+      "query_id": 85,
+      "online_match_count": 21,
+      "first_positive_step": 5,
+      "n_distinct_scenes_matched": 17
+    },
+    {
+      "query_id": 86,
+      "online_match_count": 4,
+      "first_positive_step": 80,
+      "n_distinct_scenes_matched": 4
+    },
+    {
+      "query_id": 87,
+      "online_match_count": 5,
+      "first_positive_step": 185,
+      "n_distinct_scenes_matched": 5
+    },
+    {
+      "query_id": 88,
+      "online_match_count": 24,
+      "first_positive_step": 6,
+      "n_distinct_scenes_matched": 22
+    },
+    {
+      "query_id": 89,
+      "online_match_count": 4,
+      "first_positive_step": 85,
+      "n_distinct_scenes_matched": 4
+    },
+    {
+      "query_id": 90,
+      "online_match_count": 12,
+      "first_positive_step": 28,
+      "n_distinct_scenes_matched": 11
+    },
+    {
+      "query_id": 91,
+      "online_match_count": 5,
+      "first_positive_step": 37,
+      "n_distinct_scenes_matched": 5
+    },
+    {
+      "query_id": 92,
+      "online_match_count": 4,
+      "first_positive_step": 60,
+      "n_distinct_scenes_matched": 4
+    },
+    {
+      "query_id": 93,
+      "online_match_count": 6,
+      "first_positive_step": 218,
+      "n_distinct_scenes_matched": 6
+    },
+    {
+      "query_id": 94,
+      "online_match_count": 3,
+      "first_positive_step": 50,
+      "n_distinct_scenes_matched": 3
+    },
+    {
+      "query_id": 95,
+      "online_match_count": 2,
+      "first_positive_step": 81,
+      "n_distinct_scenes_matched": 2
+    },
+    {
+      "query_id": 96,
+      "online_match_count": 1,
+      "first_positive_step": 23,
+      "n_distinct_scenes_matched": 1
+    },
+    {
+      "query_id": 97,
+      "online_match_count": 9,
+      "first_positive_step": 13,
+      "n_distinct_scenes_matched": 9
+    },
+    {
+      "query_id": 98,
+      "online_match_count": 31,
+      "first_positive_step": 9,
+      "n_distinct_scenes_matched": 24
+    },
+    {
+      "query_id": 99,
+      "online_match_count": 9,
+      "first_positive_step": 20,
+      "n_distinct_scenes_matched": 9
+    }
+  ],
+  "top20": [
+    {
+      "query_id": 27,
+      "online_match_count": 597,
+      "first_positive_step": 28,
+      "n_distinct_scenes_matched": 125
+    },
+    {
+      "query_id": 66,
+      "online_match_count": 570,
+      "first_positive_step": 151,
+      "n_distinct_scenes_matched": 126
+    },
+    {
+      "query_id": 52,
+      "online_match_count": 457,
+      "first_positive_step": 151,
+      "n_distinct_scenes_matched": 125
+    },
+    {
+      "query_id": 46,
+      "online_match_count": 456,
+      "first_positive_step": 1,
+      "n_distinct_scenes_matched": 119
+    },
+    {
+      "query_id": 68,
+      "online_match_count": 221,
+      "first_positive_step": 12,
+      "n_distinct_scenes_matched": 99
+    },
+    {
+      "query_id": 12,
+      "online_match_count": 184,
+      "first_positive_step": 200,
+      "n_distinct_scenes_matched": 89
+    },
+    {
+      "query_id": 48,
+      "online_match_count": 181,
+      "first_positive_step": 1,
+      "n_distinct_scenes_matched": 86
+    },
+    {
+      "query_id": 54,
+      "online_match_count": 146,
+      "first_positive_step": 4,
+      "n_distinct_scenes_matched": 87
+    },
+    {
+      "query_id": 64,
+      "online_match_count": 114,
+      "first_positive_step": 198,
+      "n_distinct_scenes_matched": 73
+    },
+    {
+      "query_id": 13,
+      "online_match_count": 58,
+      "first_positive_step": 25,
+      "n_distinct_scenes_matched": 42
+    },
+    {
+      "query_id": 9,
+      "online_match_count": 56,
+      "first_positive_step": 5,
+      "n_distinct_scenes_matched": 42
+    },
+    {
+      "query_id": 35,
+      "online_match_count": 52,
+      "first_positive_step": 14,
+      "n_distinct_scenes_matched": 46
+    },
+    {
+      "query_id": 19,
+      "online_match_count": 47,
+      "first_positive_step": 53,
+      "n_distinct_scenes_matched": 40
+    },
+    {
+      "query_id": 79,
+      "online_match_count": 40,
+      "first_positive_step": 12,
+      "n_distinct_scenes_matched": 34
+    },
+    {
+      "query_id": 49,
+      "online_match_count": 38,
+      "first_positive_step": 419,
+      "n_distinct_scenes_matched": 22
+    },
+    {
+      "query_id": 38,
+      "online_match_count": 36,
+      "first_positive_step": 542,
+      "n_distinct_scenes_matched": 25
+    },
+    {
+      "query_id": 56,
+      "online_match_count": 32,
+      "first_positive_step": 1,
+      "n_distinct_scenes_matched": 25
+    },
+    {
+      "query_id": 98,
+      "online_match_count": 31,
+      "first_positive_step": 9,
+      "n_distinct_scenes_matched": 24
+    },
+    {
+      "query_id": 7,
+      "online_match_count": 29,
+      "first_positive_step": 8,
+      "n_distinct_scenes_matched": 23
+    },
+    {
+      "query_id": 34,
+      "online_match_count": 27,
+      "first_positive_step": 5,
+      "n_distinct_scenes_matched": 21
+    }
+  ]
+}

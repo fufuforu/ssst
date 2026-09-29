@@ -38,6 +38,12 @@ class AnchorGroupController(nn.Module):
         super().__init__()
         C, D, P = int(opt.enc_embed_dim), STATE_DIM, int(opt.dec_patch_size) ** 2
         self.C, self.D, self.patches = C, D, P
+        gamma = float(getattr(opt, "anchor_group_query_update_gamma", 1.0))
+        if gamma not in (1.0, 0.1):
+            raise ValueError(
+                "anchor_group_query_update_gamma must be exactly 1.0 or 0.1"
+            )
+        self.query_update_gamma = gamma
         self.ln_h, self.proj_h, self.proj_m = nn.LayerNorm(C), nn.Linear(C,D), nn.Linear(4,D)
         self.ln_x = nn.LayerNorm(D)
         self.ln_e, self.proj_e = nn.LayerNorm(D), nn.Linear(D,ID_DIM)
@@ -110,7 +116,12 @@ class AnchorGroupController(nn.Module):
         w = A_pre[:,:,:NUM_QUERIES] / (mass.unsqueeze(1)+1e-6)
         z = torch.einsum("btq,btd->bqd",w,a)
         v = self.ln_gru(self.gru(z.reshape(-1,self.D),q.reshape(-1,self.D))).reshape_as(q)
-        q_new = self.ln_ffn(v+self.ffn_fc2(F.gelu(self.ffn_fc1(v))))
+        q_candidate = self.ln_ffn(v+self.ffn_fc2(F.gelu(self.ffn_fc1(v))))
+        if self.query_update_gamma == 1.0:
+            # Preserve the original V1 production floating-point path exactly.
+            q_new = q_candidate
+        else:
+            q_new = q + self.query_update_gamma * (q_candidate - q)
         q_new = torch.where((mass < 1e-4).unsqueeze(-1),q,q_new)
         A_post = self.assign_group(a,q_new,void_logit)
         wt = A_post[:,:,:NUM_THING]
@@ -169,6 +180,10 @@ class LocusGSAnchorGroupRecon(LocusGSRecon):
         with torch.random.fork_rng(devices=[]):
             torch.manual_seed(int(getattr(opt,"anchor_group_init_seed",31415)))
             self.anchor_group=AnchorGroupController(opt)
+        if self.anchor_group.query_update_gamma == 1.0:
+            self.architecture_name = "LOCUSGS_ANCHOR_GROUP_V1"
+        else:
+            self.architecture_name = "LOCUSGS_ANCHOR_GROUP_V2_RU_GAMMA01"
         self.instance_state_layers=tuple(opt.instance_state_layers); self.understanding_step=0
 
     def decode_group(self,model_input):
