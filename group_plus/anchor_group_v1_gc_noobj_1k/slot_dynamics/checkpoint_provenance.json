@@ -1,0 +1,124 @@
+{
+  "repo_identity": {
+    "head": "8154526eed3fb256a5abf6ec8e5da4de31dbaf96",
+    "origin_main": "8154526eed3fb256a5abf6ec8e5da4de31dbaf96",
+    "pass": true
+  },
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "torch": "2.7.0+cu126",
+  "cuda": "12.6",
+  "manifest_sha256": "1f37d08c2941920d94a172d62f95dd494b1126374215833999dc9d75ad9fc483",
+  "plan_sha256": "ffd97c5e018fd5075650a5718503b26c3e566f0e3b516e392ebc657aa01c1323",
+  "pretrained_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f",
+  "checkpoints": {
+    "control_step200": {
+      "path": "workspace_group_plus/anchor_group_v1_gc_noobj_1k/control/checkpoint_step200.pt",
+      "sha256_before": "050a7fe5038d1d3661a255aa23056c74d0042f29c31fc2a76f5f2c7449ff0bae",
+      "metadata": {
+        "step": 200,
+        "architecture": "LOCUSGS_ANCHOR_GROUP_V1",
+        "recipe": "ANCHOR_GROUP_V1_GC_CONTROL_1K",
+        "unmatched_noobj_scale": 1.0,
+        "shared_understanding_grad_scale": 0.01,
+        "parent_plan_sha256": "ffd97c5e018fd5075650a5718503b26c3e566f0e3b516e392ebc657aa01c1323",
+        "manifest_sha256": "1f37d08c2941920d94a172d62f95dd494b1126374215833999dc9d75ad9fc483",
+        "pretrained_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f"
+      },
+      "mismatches": {},
+      "model_tensor_count": 509,
+      "optimizer_payload_ignored": true,
+      "sha256_after": "050a7fe5038d1d3661a255aa23056c74d0042f29c31fc2a76f5f2c7449ff0bae"
+    },
+    "control_step500": {
+      "path": "workspace_group_plus/anchor_group_v1_gc_noobj_1k/control/checkpoint_step500.pt",
+      "sha256_before": "f798fb111ebcd3ba4902b0c9d8cf8249384a55f582f95c11038cd322ba7b4b91",
+      "metadata": {
+        "step": 500,
+        "architecture": "LOCUSGS_ANCHOR_GROUP_V1",
+        "recipe": "ANCHOR_GROUP_V1_GC_CONTROL_1K",
+        "unmatched_noobj_scale": 1.0,
+        "shared_understanding_grad_scale": 0.01,
+        "parent_plan_sha256": "ffd97c5e018fd5075650a5718503b26c3e566f0e3b516e392ebc657aa01c1323",
+        "manifest_sha256": "1f37d08c2941920d94a172d62f95dd494b1126374215833999dc9d75ad9fc483",
+        "pretrained_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f"
+      },
+      "mismatches": {},
+      "model_tensor_count": 509,
+      "optimizer_payload_ignored": true,
+      "sha256_after": "f798fb111ebcd3ba4902b0c9d8cf8249384a55f582f95c11038cd322ba7b4b91"
+    },
+    "control_step1000": {
+      "path": "workspace_group_plus/anchor_group_v1_gc_noobj_1k/control/checkpoint_step1000.pt",
+      "sha256_before": "225f1a0ca624312296135621b4e15d459d01ef471c82772c5fc9d74ed9a29c84",
+      "metadata": {
+        "step": 1000,
+        "architecture": "LOCUSGS_ANCHOR_GROUP_V1",
+        "recipe": "ANCHOR_GROUP_V1_GC_CONTROL_1K",
+        "unmatched_noobj_scale": 1.0,
+        "shared_understanding_grad_scale": 0.01,
+        "parent_plan_sha256": "ffd97c5e018fd5075650a5718503b26c3e566f0e3b516e392ebc657aa01c1323",
+        "manifest_sha256": "1f37d08c2941920d94a172d62f95dd494b1126374215833999dc9d75ad9fc483",
+        "pretrained_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f"
+      },
+      "mismatches": {},
+      "model_tensor_count": 509,
+      "optimizer_payload_ignored": true,
+      "sha256_after": "225f1a0ca624312296135621b4e15d459d01ef471c82772c5fc9d74ed9a29c84"
+    },
+    "ablation_step200": {
+      "path": "workspace_group_plus/anchor_group_v1_gc_noobj_1k/ablation/checkpoint_step200.pt",
+      "sha256_before": "1b80e833a71c5f81c710c4141badeca633a6d5cd86be2acb668869b6466daa09",
+      "metadata": {
+        "step": 200,
+        "architecture": "LOCUSGS_ANCHOR_GROUP_V1",
+        "recipe": "ANCHOR_GROUP_V1_GC_NO_UNMATCHED_NOOBJ_1K",
+        "unmatched_noobj_scale": 0.0,
+        "shared_understanding_grad_scale": 0.01,
+        "parent_plan_sha256": "ffd97c5e018fd5075650a5718503b26c3e566f0e3b516e392ebc657aa01c1323",
+        "manifest_sha256": "1f37d08c2941920d94a172d62f95dd494b1126374215833999dc9d75ad9fc483",
+        "pretrained_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f"
+      },
+      "mismatches": {},
+      "model_tensor_count": 509,
+      "optimizer_payload_ignored": true,
+      "sha256_after": "1b80e833a71c5f81c710c4141badeca633a6d5cd86be2acb668869b6466daa09"
+    },
+    "ablation_step500": {
+      "path": "workspace_group_plus/anchor_group_v1_gc_noobj_1k/ablation/checkpoint_step500.pt",
+      "sha256_before": "92e608b2af8fdfd6833302e07111772d65f28340c78ddef37490a37f94b7820b",
+      "metadata": {
+        "step": 500,
+        "architecture": "LOCUSGS_ANCHOR_GROUP_V1",
+        "recipe": "ANCHOR_GROUP_V1_GC_NO_UNMATCHED_NOOBJ_1K",
+        "unmatched_noobj_scale": 0.0,
+        "shared_understanding_grad_scale": 0.01,
+        "parent_plan_sha256": "ffd97c5e018fd5075650a5718503b26c3e566f0e3b516e392ebc657aa01c1323",
+        "manifest_sha256": "1f37d08c2941920d94a172d62f95dd494b1126374215833999dc9d75ad9fc483",
+        "pretrained_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f"
+      },
+      "mismatches": {},
+      "model_tensor_count": 509,
+      "optimizer_payload_ignored": true,
+      "sha256_after": "92e608b2af8fdfd6833302e07111772d65f28340c78ddef37490a37f94b7820b"
+    },
+    "ablation_step1000": {
+      "path": "workspace_group_plus/anchor_group_v1_gc_noobj_1k/ablation/checkpoint_step1000.pt",
+      "sha256_before": "471b3a3e103051db5651d39871de3855cf2b226d889106bb238090e198c81087",
+      "metadata": {
+        "step": 1000,
+        "architecture": "LOCUSGS_ANCHOR_GROUP_V1",
+        "recipe": "ANCHOR_GROUP_V1_GC_NO_UNMATCHED_NOOBJ_1K",
+        "unmatched_noobj_scale": 0.0,
+        "shared_understanding_grad_scale": 0.01,
+        "parent_plan_sha256": "ffd97c5e018fd5075650a5718503b26c3e566f0e3b516e392ebc657aa01c1323",
+        "manifest_sha256": "1f37d08c2941920d94a172d62f95dd494b1126374215833999dc9d75ad9fc483",
+        "pretrained_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f"
+      },
+      "mismatches": {},
+      "model_tensor_count": 509,
+      "optimizer_payload_ignored": true,
+      "sha256_after": "471b3a3e103051db5651d39871de3855cf2b226d889106bb238090e198c81087"
+    }
+  },
+  "all_checkpoint_sha_unchanged": true
+}

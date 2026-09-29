@@ -1,0 +1,236 @@
+{
+  "head": "8154526eed3fb256a5abf6ec8e5da4de31dbaf96",
+  "origin_main": "8154526eed3fb256a5abf6ec8e5da4de31dbaf96",
+  "forward_count": 384,
+  "target_build_calls": 384,
+  "backward_count": 0,
+  "optimizer_construct_count": 0,
+  "optimizer_step_count": 0,
+  "contracts": [
+    {
+      "id": "SF-C1 repository identity",
+      "pass": true,
+      "detail": {
+        "head": "8154526eed3fb256a5abf6ec8e5da4de31dbaf96",
+        "origin_main": "8154526eed3fb256a5abf6ec8e5da4de31dbaf96",
+        "pass": true
+      }
+    },
+    {
+      "id": "SF-C2 checkpoint provenance",
+      "pass": true,
+      "detail": {
+        "checkpoint_count": 6,
+        "mismatches": 0
+      }
+    },
+    {
+      "id": "SF-C3 fresh step0 parity",
+      "pass": true,
+      "detail": {
+        "tensor_count": 509,
+        "mismatched_keys": []
+      }
+    },
+    {
+      "id": "SF-C7 query category parity",
+      "pass": true,
+      "detail": {
+        "control_0_fixed16": {
+          "unique": 95,
+          "never": 5
+        },
+        "control_0_val32": {
+          "unique": 56,
+          "never": 44
+        },
+        "control_200_fixed16": {
+          "unique": 95,
+          "never": 5
+        },
+        "control_200_val32": {
+          "unique": 62,
+          "never": 38
+        },
+        "control_500_fixed16": {
+          "unique": 66,
+          "never": 34
+        },
+        "control_500_val32": {
+          "unique": 31,
+          "never": 69
+        },
+        "control_1000_fixed16": {
+          "unique": 52,
+          "never": 48
+        },
+        "control_1000_val32": {
+          "unique": 28,
+          "never": 72
+        },
+        "ablation_0_fixed16": {
+          "unique": 95,
+          "never": 5
+        },
+        "ablation_0_val32": {
+          "unique": 56,
+          "never": 44
+        },
+        "ablation_200_fixed16": {
+          "unique": 94,
+          "never": 6
+        },
+        "ablation_200_val32": {
+          "unique": 57,
+          "never": 43
+        },
+        "ablation_500_fixed16": {
+          "unique": 84,
+          "never": 16
+        },
+        "ablation_500_val32": {
+          "unique": 34,
+          "never": 66
+        },
+        "ablation_1000_fixed16": {
+          "unique": 52,
+          "never": 48
+        },
+        "ablation_1000_val32": {
+          "unique": 27,
+          "never": 73
+        }
+      }
+    },
+    {
+      "id": "SF-C4 registered layers and intermediate state keys",
+      "pass": true,
+      "detail": {
+        "layers": [
+          6,
+          8,
+          10,
+          12
+        ],
+        "fps_none_beta_zero": true
+      }
+    },
+    {
+      "id": "SF-C5 A_pre recomputation parity",
+      "pass": true,
+      "detail": {
+        "max_abs_diff": 0.0
+      }
+    },
+    {
+      "id": "SF-C6 A_post recomputation parity",
+      "pass": true,
+      "detail": {
+        "max_abs_diff": 0.0
+      }
+    },
+    {
+      "id": "SF-C8 forward coverage",
+      "pass": true,
+      "detail": {
+        "forward_count": 384,
+        "expected": 384
+      }
+    },
+    {
+      "id": "SF-C9 one forward per case",
+      "pass": true,
+      "detail": {
+        "model_forward_calls": 384,
+        "cases": 384
+      }
+    },
+    {
+      "id": "SF-C10 fixed-final GT once per forward",
+      "pass": true,
+      "detail": {
+        "target_build_calls": 384
+      }
+    },
+    {
+      "id": "SF-C11 metric finiteness",
+      "pass": true,
+      "detail": {
+        "finite": true
+      }
+    },
+    {
+      "id": "SF-C12 no gradient or training",
+      "pass": true,
+      "detail": {
+        "backward_count": 0,
+        "optimizer_construct_count": 0,
+        "optimizer_step_count": 0
+      }
+    },
+    {
+      "id": "SF-C13 model immutability",
+      "pass": true,
+      "detail": {
+        "control_step0": {
+          "before": "5a5047c1f7f4d8f9670194f7eb42f824a18ab83a9f16c9098ae208d70eb3204e",
+          "after": "5a5047c1f7f4d8f9670194f7eb42f824a18ab83a9f16c9098ae208d70eb3204e",
+          "unchanged": true
+        },
+        "control_step200": {
+          "before": "b735c737348d0e76f8d7fc7d735ab5b0506f3243371c2dc2de73078a7170921c",
+          "after": "b735c737348d0e76f8d7fc7d735ab5b0506f3243371c2dc2de73078a7170921c",
+          "unchanged": true
+        },
+        "control_step500": {
+          "before": "db9b8d4dc9a7a54cbb1e9051111bcde844efac7b08d39c1414daa893f3af619f",
+          "after": "db9b8d4dc9a7a54cbb1e9051111bcde844efac7b08d39c1414daa893f3af619f",
+          "unchanged": true
+        },
+        "control_step1000": {
+          "before": "38277430b9cfb6547d61670d1e2f95cd6b3601483fb362629c825e334bfe7807",
+          "after": "38277430b9cfb6547d61670d1e2f95cd6b3601483fb362629c825e334bfe7807",
+          "unchanged": true
+        },
+        "ablation_step0": {
+          "before": "5a5047c1f7f4d8f9670194f7eb42f824a18ab83a9f16c9098ae208d70eb3204e",
+          "after": "5a5047c1f7f4d8f9670194f7eb42f824a18ab83a9f16c9098ae208d70eb3204e",
+          "unchanged": true
+        },
+        "ablation_step200": {
+          "before": "7fb80c03b4e2d179c609bcd993079d0ee2c0691bc8e3e54d911257ef3ed1f6c4",
+          "after": "7fb80c03b4e2d179c609bcd993079d0ee2c0691bc8e3e54d911257ef3ed1f6c4",
+          "unchanged": true
+        },
+        "ablation_step500": {
+          "before": "0b40cd5e2ddd724152eea6a9404ff04b1989ae84ae8aba6698f256779359913c",
+          "after": "0b40cd5e2ddd724152eea6a9404ff04b1989ae84ae8aba6698f256779359913c",
+          "unchanged": true
+        },
+        "ablation_step1000": {
+          "before": "9eb255eefcaf56d1957eac488bc12d2e41ddc2a7079f80f0cf7bc90fd1788c55",
+          "after": "9eb255eefcaf56d1957eac488bc12d2e41ddc2a7079f80f0cf7bc90fd1788c55",
+          "unchanged": true
+        }
+      }
+    },
+    {
+      "id": "SF-C14 checkpoint immutability",
+      "pass": true,
+      "detail": {
+        "sha_before_after_equal": true
+      }
+    },
+    {
+      "id": "SF-C15 scientific files unchanged",
+      "pass": true,
+      "detail": {
+        "unstaged_diff_empty": true,
+        "staged_diff_empty": true
+      }
+    }
+  ],
+  "passed": 15,
+  "total": 15,
+  "status": "pass"
+}
