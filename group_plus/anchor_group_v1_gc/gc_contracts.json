@@ -1,0 +1,1109 @@
+{
+  "experiment": "ANCHOR_GROUP_V1_GC_ALPHA001",
+  "architecture": "LOCUSGS_ANCHOR_GROUP_V1",
+  "shared_understanding_grad_scale": 0.01,
+  "passed": 15,
+  "total": 15,
+  "checks": {
+    "GC-C1_forward_parity": {
+      "C1a_forward_tensor_parity": {
+        "model_state_equal": true,
+        "tensor_count": 509,
+        "missing_keys": [],
+        "extra_keys": [],
+        "mismatched_keys": [],
+        "same_batch_object_reused": true,
+        "tensor_field_count": 23,
+        "tensor_manifest": {
+          "input": {
+            "shape": [
+              1,
+              4,
+              9,
+              256,
+              256
+            ],
+            "dtype": "torch.float32",
+            "device": "cuda:0",
+            "sha256": "d84cecc3a55b240586f5f2d664da3c0fb6533a6c5efe999b5eb2246f82164e57",
+            "sum": 378517.52787733485
+          },
+          "rays_os": {
+            "shape": [
+              1,
+              4,
+              3,
+              256,
+              256
+            ],
+            "dtype": "torch.float32",
+            "device": "cuda:0",
+            "sha256": "e5b4695df2305f7f5665797a5afb670cbe1c2e64b1d9df6c88c6f2e5c59693e9",
+            "sum": 1863.196992492769
+          },
+          "rays_ds": {
+            "shape": [
+              1,
+              4,
+              3,
+              256,
+              256
+            ],
+            "dtype": "torch.float32",
+            "device": "cuda:0",
+            "sha256": "bd24ed908db9633f2dcb8eddc53842048c98dfa35bca471b4da5c9c814957bc4",
+            "sum": 246404.28764961753
+          },
+          "images_all": {
+            "shape": [
+              1,
+              4,
+              3,
+              256,
+              256
+            ],
+            "dtype": "torch.float32",
+            "device": "cuda:0",
+            "sha256": "99ee2b34326498591af593bc743a6d9e36e15a51efa68ca3ed3d7bc1a1dcb532",
+            "sum": 383731.3140855003
+          },
+          "images_input": {
+            "shape": [
+              1,
+              2,
+              3,
+              256,
+              256
+            ],
+            "dtype": "torch.float32",
+            "device": "cuda:0",
+            "sha256": "af1d51a7adf92ce9e1ac35619a52c4a7d3707bc868bb7dee89f5d6c1be14a5af",
+            "sum": 190138.55702462932
+          },
+          "images_output": {
+            "shape": [
+              1,
+              2,
+              3,
+              256,
+              256
+            ],
+            "dtype": "torch.float32",
+            "device": "cuda:0",
+            "sha256": "3c3ff942f858ea14ecdbab55a9f965293bfdb7b08a7a85e0db9da6cb4396b01f",
+            "sum": 193592.757060871
+          },
+          "intrinsics_all": {
+            "shape": [
+              1,
+              4,
+              4
+            ],
+            "dtype": "torch.float32",
+            "device": "cuda:0",
+            "sha256": "6edb66e62e782a310095343187580ae6ccf4b2ebaa6bc25f073d2c1f933b128d",
+            "sum": 3567.5595092773438
+          },
+          "intrinsics": {
+            "shape": [
+              1,
+              2,
+              4
+            ],
+            "dtype": "torch.float32",
+            "device": "cuda:0",
+            "sha256": "4cdf4ca9676f0e269739d8984b1f2198dc9c044e7f7b6de3b98e8715d90dae86",
+            "sum": 1783.7797546386719
+          },
+          "intrinsics_input": {
+            "shape": [
+              1,
+              2,
+              4
+            ],
+            "dtype": "torch.float32",
+            "device": "cuda:0",
+            "sha256": "4cdf4ca9676f0e269739d8984b1f2198dc9c044e7f7b6de3b98e8715d90dae86",
+            "sum": 1783.7797546386719
+          },
+          "cam_view_all": {
+            "shape": [
+              1,
+              4,
+              4,
+              4
+            ],
+            "dtype": "torch.float32",
+            "device": "cuda:0",
+            "sha256": "e1e58d9a488aa4226e1dd8e5cd6dfc0c482ff3acfb27cf5fd124ba7ff9b8bef6",
+            "sum": 15.964023629117536
+          },
+          "cam_view": {
+            "shape": [
+              1,
+              2,
+              4,
+              4
+            ],
+            "dtype": "torch.float32",
+            "device": "cuda:0",
+            "sha256": "833a647ab7c7655faad3992231cb3a304fa3d6a15996ae0aac8b208cdec43584",
+            "sum": 7.982060135281771
+          },
+          "masks_all": {
+            "shape": [
+              1,
+              4,
+              1,
+              256,
+              256
+            ],
+            "dtype": "torch.float32",
+            "device": "cuda:0",
+            "sha256": "5e2290c3b28be730f9ee062994f940650073dacff8de973325c2de6486c74107",
+            "sum": 262144.0
+          },
+          "masks_output": {
+            "shape": [
+              1,
+              2,
+              1,
+              256,
+              256
+            ],
+            "dtype": "torch.float32",
+            "device": "cuda:0",
+            "sha256": "0219b822835868ed48934af7511d4e5866f2e60480eb2a026f2331a071b1a3ae",
+            "sum": 131072.0
+          },
+          "has_mask": {
+            "shape": [
+              1
+            ],
+            "dtype": "torch.bool",
+            "device": "cuda:0",
+            "sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a",
+            "sum": 1.0
+          },
+          "cam_to_world_input": {
+            "shape": [
+              1,
+              2,
+              4,
+              4
+            ],
+            "dtype": "torch.float32",
+            "device": "cuda:0",
+            "sha256": "ae711d5c27ba17e271478e9c54d3fb4d319dc4039e780e48e7a869277243eaa0",
+            "sum": 8.012484651111063
+          },
+          "cam_view_input": {
+            "shape": [
+              1,
+              2,
+              4,
+              4
+            ],
+            "dtype": "torch.float32",
+            "device": "cuda:0",
+            "sha256": "113efaa8b3b2ce6cead115699d4def93228f2a8c5fef534db6c5105846b65578",
+            "sum": 7.981963493835766
+          },
+          "semantic_label_all": {
+            "shape": [
+              1,
+              4,
+              256,
+              256
+            ],
+            "dtype": "torch.int64",
+            "device": "cuda:0",
+            "sha256": "7054569aea52c581b2de96e60de31c299e9134cba1dfdebbf44919b56430a1ce",
+            "sum": 29078526.0
+          },
+          "semantic_label_input": {
+            "shape": [
+              1,
+              2,
+              256,
+              256
+            ],
+            "dtype": "torch.int64",
+            "device": "cuda:0",
+            "sha256": "deabbc7e0ddf76185e849c78f9a402029a0a532bec443fd5ad0ee87b511e7a24",
+            "sum": 14550281.0
+          },
+          "semantic_label_output": {
+            "shape": [
+              1,
+              2,
+              256,
+              256
+            ],
+            "dtype": "torch.int64",
+            "device": "cuda:0",
+            "sha256": "5b097dc10c946caf2ade0cf288bc07276dad01e03fef8514676687ac042d7b45",
+            "sum": 14528245.0
+          },
+          "instance_label_all": {
+            "shape": [
+              1,
+              4,
+              256,
+              256
+            ],
+            "dtype": "torch.int64",
+            "device": "cuda:0",
+            "sha256": "899803b298f44acfdf5d46eddadd8b9f7f31d69421e2f62008b37bc95e23c09b",
+            "sum": 4102507.0
+          },
+          "instance_label_input": {
+            "shape": [
+              1,
+              2,
+              256,
+              256
+            ],
+            "dtype": "torch.int64",
+            "device": "cuda:0",
+            "sha256": "b23cfe318ba3f51d49f5e8e7d816cada0d06874a30e12ccf5c2aaa840c66f83a",
+            "sum": 2045701.0
+          },
+          "instance_label_output": {
+            "shape": [
+              1,
+              2,
+              256,
+              256
+            ],
+            "dtype": "torch.int64",
+            "device": "cuda:0",
+            "sha256": "91f7d02c0ab7cda7111e660dc495c415ef8a4ce415770692c66d5677f5540654",
+            "sum": 2056806.0
+          },
+          "frame_ids": {
+            "shape": [
+              1,
+              4
+            ],
+            "dtype": "torch.int64",
+            "device": "cuda:0",
+            "sha256": "d0112f1cc2d3725b8af8e208288f1aed458ff0ea129e0fe2d26957206ad80a3b",
+            "sum": 6048.0
+          }
+        },
+        "max_abs_diff_by_tensor": {
+          "gaussians": 0.0,
+          "rgb": 0.0,
+          "A_post": 0.0,
+          "region_mass": 0.0,
+          "semantic_scores": 0.0,
+          "thing_class_logits": 0.0
+        },
+        "all_exact": true,
+        "passed": true
+      },
+      "C1b_empirical_loss_parity": {
+        "metrics": {
+          "loss": {
+            "v1": {
+              "min": 3.7653253078460693,
+              "max": 3.7660937309265137,
+              "mean": 3.766016888618469,
+              "median": 3.7660937309265137,
+              "std": 0.00023052692413330075,
+              "range": 0.0007684230804443359,
+              "max_pairwise_abs_diff": 0.0007684230804443359
+            },
+            "gc": {
+              "min": 3.7660937309265137,
+              "max": 3.7660937309265137,
+              "mean": 3.7660937309265137,
+              "median": 3.7660937309265137,
+              "std": 0.0,
+              "range": 0.0,
+              "max_pairwise_abs_diff": 0.0
+            },
+            "median_abs_diff": 0.0,
+            "cross_arm_10x10_abs_diff": {
+              "min": 0.0,
+              "median": 0.0,
+              "max": 0.0007684230804443359
+            },
+            "noise_envelope": 0.0007685230804443359,
+            "distributions_overlap": true,
+            "corrected_parity_pass": true
+          },
+          "loss_anchor_group": {
+            "v1": {
+              "min": 5.1167778968811035,
+              "max": 5.1167778968811035,
+              "mean": 5.1167778968811035,
+              "median": 5.1167778968811035,
+              "std": 0.0,
+              "range": 0.0,
+              "max_pairwise_abs_diff": 0.0
+            },
+            "gc": {
+              "min": 5.1167778968811035,
+              "max": 5.1167778968811035,
+              "mean": 5.1167778968811035,
+              "median": 5.1167778968811035,
+              "std": 0.0,
+              "range": 0.0,
+              "max_pairwise_abs_diff": 0.0
+            },
+            "median_abs_diff": 0.0,
+            "cross_arm_10x10_abs_diff": {
+              "min": 0.0,
+              "median": 0.0,
+              "max": 0.0
+            },
+            "noise_envelope": 1e-07,
+            "distributions_overlap": true,
+            "corrected_parity_pass": true
+          },
+          "loss_anchor_visibility_layer12": {
+            "v1": {
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "std": 0.0,
+              "range": 0.0,
+              "max_pairwise_abs_diff": 0.0
+            },
+            "gc": {
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "std": 0.0,
+              "range": 0.0,
+              "max_pairwise_abs_diff": 0.0
+            },
+            "median_abs_diff": 0.0,
+            "cross_arm_10x10_abs_diff": {
+              "min": 0.0,
+              "median": 0.0,
+              "max": 0.0
+            },
+            "noise_envelope": 1e-07,
+            "distributions_overlap": true,
+            "corrected_parity_pass": true
+          },
+          "loss_anchor_visibility_layer6": {
+            "v1": {
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "std": 0.0,
+              "range": 0.0,
+              "max_pairwise_abs_diff": 0.0
+            },
+            "gc": {
+              "min": 0.0,
+              "max": 0.0,
+              "mean": 0.0,
+              "median": 0.0,
+              "std": 0.0,
+              "range": 0.0,
+              "max_pairwise_abs_diff": 0.0
+            },
+            "median_abs_diff": 0.0,
+            "cross_arm_10x10_abs_diff": {
+              "min": 0.0,
+              "median": 0.0,
+              "max": 0.0
+            },
+            "noise_envelope": 1e-07,
+            "distributions_overlap": true,
+            "corrected_parity_pass": true
+          },
+          "loss_gaussian_visibility_layer12": {
+            "v1": {
+              "min": 5.517396130017005e-05,
+              "max": 0.00013932584261056036,
+              "mean": 6.358914943120908e-05,
+              "median": 5.517396130017005e-05,
+              "std": 2.5245564393117097e-05,
+              "range": 8.415188131039031e-05,
+              "max_pairwise_abs_diff": 8.415188131039031e-05
+            },
+            "gc": {
+              "min": 5.517396130017005e-05,
+              "max": 5.517396130017005e-05,
+              "mean": 5.517396130017005e-05,
+              "median": 5.517396130017005e-05,
+              "std": 0.0,
+              "range": 0.0,
+              "max_pairwise_abs_diff": 0.0
+            },
+            "median_abs_diff": 0.0,
+            "cross_arm_10x10_abs_diff": {
+              "min": 0.0,
+              "median": 0.0,
+              "max": 8.415188131039031e-05
+            },
+            "noise_envelope": 8.425188131039031e-05,
+            "distributions_overlap": true,
+            "corrected_parity_pass": true
+          },
+          "loss_gaussian_visibility_layer6": {
+            "v1": {
+              "min": 3.807451139437035e-05,
+              "max": 0.0025121085345745087,
+              "mean": 0.002264705132256495,
+              "median": 0.0025121085345745087,
+              "std": 0.0007422102069540416,
+              "range": 0.0024740340231801383,
+              "max_pairwise_abs_diff": 0.0024740340231801383
+            },
+            "gc": {
+              "min": 0.0025121085345745087,
+              "max": 0.0025121085345745087,
+              "mean": 0.0025121085345745087,
+              "median": 0.0025121085345745087,
+              "std": 0.0,
+              "range": 0.0,
+              "max_pairwise_abs_diff": 0.0
+            },
+            "median_abs_diff": 0.0,
+            "cross_arm_10x10_abs_diff": {
+              "min": 0.0,
+              "median": 0.0,
+              "max": 0.0024740340231801383
+            },
+            "noise_envelope": 0.002474134023180138,
+            "distributions_overlap": true,
+            "corrected_parity_pass": true
+          },
+          "loss_identity": {
+            "v1": {
+              "min": 0.43609532713890076,
+              "max": 0.43609532713890076,
+              "mean": 0.43609532713890076,
+              "median": 0.43609532713890076,
+              "std": 0.0,
+              "range": 0.0,
+              "max_pairwise_abs_diff": 0.0
+            },
+            "gc": {
+              "min": 0.43609532713890076,
+              "max": 0.43609532713890076,
+              "mean": 0.43609532713890076,
+              "median": 0.43609532713890076,
+              "std": 0.0,
+              "range": 0.0,
+              "max_pairwise_abs_diff": 0.0
+            },
+            "median_abs_diff": 0.0,
+            "cross_arm_10x10_abs_diff": {
+              "min": 0.0,
+              "median": 0.0,
+              "max": 0.0
+            },
+            "noise_envelope": 1e-07,
+            "distributions_overlap": true,
+            "corrected_parity_pass": true
+          },
+          "loss_recon": {
+            "v1": {
+              "min": 0.020812444388866425,
+              "max": 0.021581020206212997,
+              "mean": 0.02150416262447834,
+              "median": 0.021581020206212997,
+              "std": 0.00023057274520397187,
+              "range": 0.0007685758173465729,
+              "max_pairwise_abs_diff": 0.0007685758173465729
+            },
+            "gc": {
+              "min": 0.021581020206212997,
+              "max": 0.021581020206212997,
+              "mean": 0.021581020206212997,
+              "median": 0.021581020206212997,
+              "std": 0.0,
+              "range": 0.0,
+              "max_pairwise_abs_diff": 0.0
+            },
+            "median_abs_diff": 0.0,
+            "cross_arm_10x10_abs_diff": {
+              "min": 0.0,
+              "median": 0.0,
+              "max": 0.0007685758173465729
+            },
+            "noise_envelope": 0.0007686758173465728,
+            "distributions_overlap": true,
+            "corrected_parity_pass": true
+          },
+          "loss_rgb_layer12": {
+            "v1": {
+              "min": 0.002089463174343109,
+              "max": 0.002089463174343109,
+              "mean": 0.002089463174343109,
+              "median": 0.002089463174343109,
+              "std": 0.0,
+              "range": 0.0,
+              "max_pairwise_abs_diff": 0.0
+            },
+            "gc": {
+              "min": 0.002089463174343109,
+              "max": 0.002089463174343109,
+              "mean": 0.002089463174343109,
+              "median": 0.002089463174343109,
+              "std": 0.0,
+              "range": 0.0,
+              "max_pairwise_abs_diff": 0.0
+            },
+            "median_abs_diff": 0.0,
+            "cross_arm_10x10_abs_diff": {
+              "min": 0.0,
+              "median": 0.0,
+              "max": 0.0
+            },
+            "noise_envelope": 1e-07,
+            "distributions_overlap": true,
+            "corrected_parity_pass": true
+          },
+          "loss_rgb_layer6": {
+            "v1": {
+              "min": 0.002680182456970215,
+              "max": 0.002680182456970215,
+              "mean": 0.002680182456970215,
+              "median": 0.002680182456970215,
+              "std": 0.0,
+              "range": 0.0,
+              "max_pairwise_abs_diff": 0.0
+            },
+            "gc": {
+              "min": 0.002680182456970215,
+              "max": 0.002680182456970215,
+              "mean": 0.002680182456970215,
+              "median": 0.002680182456970215,
+              "std": 0.0,
+              "range": 0.0,
+              "max_pairwise_abs_diff": 0.0
+            },
+            "median_abs_diff": 0.0,
+            "cross_arm_10x10_abs_diff": {
+              "min": 0.0,
+              "median": 0.0,
+              "max": 0.0
+            },
+            "noise_envelope": 1e-07,
+            "distributions_overlap": true,
+            "corrected_parity_pass": true
+          },
+          "loss_semantic": {
+            "v1": {
+              "min": 4.196320056915283,
+              "max": 4.196320056915283,
+              "mean": 4.196320056915283,
+              "median": 4.196320056915283,
+              "std": 0.0,
+              "range": 0.0,
+              "max_pairwise_abs_diff": 0.0
+            },
+            "gc": {
+              "min": 4.196320056915283,
+              "max": 4.196320056915283,
+              "mean": 4.196320056915283,
+              "median": 4.196320056915283,
+              "std": 0.0,
+              "range": 0.0,
+              "max_pairwise_abs_diff": 0.0
+            },
+            "median_abs_diff": 0.0,
+            "cross_arm_10x10_abs_diff": {
+              "min": 0.0,
+              "median": 0.0,
+              "max": 0.0
+            },
+            "noise_envelope": 1e-07,
+            "distributions_overlap": true,
+            "corrected_parity_pass": true
+          },
+          "loss_ssim_layer12": {
+            "v1": {
+              "min": 0.08519750833511353,
+              "max": 0.08519750833511353,
+              "mean": 0.08519750833511353,
+              "median": 0.08519750833511353,
+              "std": 0.0,
+              "range": 0.0,
+              "max_pairwise_abs_diff": 0.0
+            },
+            "gc": {
+              "min": 0.08519750833511353,
+              "max": 0.08519750833511353,
+              "mean": 0.08519750833511353,
+              "median": 0.08519750833511353,
+              "std": 0.0,
+              "range": 0.0,
+              "max_pairwise_abs_diff": 0.0
+            },
+            "median_abs_diff": 0.0,
+            "cross_arm_10x10_abs_diff": {
+              "min": 0.0,
+              "median": 0.0,
+              "max": 0.0
+            },
+            "noise_envelope": 1e-07,
+            "distributions_overlap": true,
+            "corrected_parity_pass": true
+          },
+          "loss_ssim_layer6": {
+            "v1": {
+              "min": 0.10591244697570801,
+              "max": 0.10591244697570801,
+              "mean": 0.10591244697570801,
+              "median": 0.10591244697570801,
+              "std": 0.0,
+              "range": 0.0,
+              "max_pairwise_abs_diff": 0.0
+            },
+            "gc": {
+              "min": 0.10591244697570801,
+              "max": 0.10591244697570801,
+              "mean": 0.10591244697570801,
+              "median": 0.10591244697570801,
+              "std": 0.0,
+              "range": 0.0,
+              "max_pairwise_abs_diff": 0.0
+            },
+            "median_abs_diff": 0.0,
+            "cross_arm_10x10_abs_diff": {
+              "min": 0.0,
+              "median": 0.0,
+              "max": 0.0
+            },
+            "noise_envelope": 1e-07,
+            "distributions_overlap": true,
+            "corrected_parity_pass": true
+          },
+          "loss_stuff_2d": {
+            "v1": {
+              "min": 14.194035530090332,
+              "max": 14.194035530090332,
+              "mean": 14.194035530090332,
+              "median": 14.194035530090332,
+              "std": 0.0,
+              "range": 0.0,
+              "max_pairwise_abs_diff": 0.0
+            },
+            "gc": {
+              "min": 14.194035530090332,
+              "max": 14.194035530090332,
+              "mean": 14.194035530090332,
+              "median": 14.194035530090332,
+              "std": 0.0,
+              "range": 0.0,
+              "max_pairwise_abs_diff": 0.0
+            },
+            "median_abs_diff": 0.0,
+            "cross_arm_10x10_abs_diff": {
+              "min": 0.0,
+              "median": 0.0,
+              "max": 0.0
+            },
+            "noise_envelope": 1e-07,
+            "distributions_overlap": true,
+            "corrected_parity_pass": true
+          },
+          "loss_thing_2d": {
+            "v1": {
+              "min": 13.894386291503906,
+              "max": 13.894386291503906,
+              "mean": 13.894386291503906,
+              "median": 13.894386291503906,
+              "std": 0.0,
+              "range": 0.0,
+              "max_pairwise_abs_diff": 0.0
+            },
+            "gc": {
+              "min": 13.894386291503906,
+              "max": 13.894386291503906,
+              "mean": 13.894386291503906,
+              "median": 13.894386291503906,
+              "std": 0.0,
+              "range": 0.0,
+              "max_pairwise_abs_diff": 0.0
+            },
+            "median_abs_diff": 0.0,
+            "cross_arm_10x10_abs_diff": {
+              "min": 0.0,
+              "median": 0.0,
+              "max": 0.0
+            },
+            "noise_envelope": 1e-07,
+            "distributions_overlap": true,
+            "corrected_parity_pass": true
+          },
+          "loss_total": {
+            "v1": {
+              "min": 3.7653253078460693,
+              "max": 3.7660937309265137,
+              "mean": 3.766016888618469,
+              "median": 3.7660937309265137,
+              "std": 0.00023052692413330075,
+              "range": 0.0007684230804443359,
+              "max_pairwise_abs_diff": 0.0007684230804443359
+            },
+            "gc": {
+              "min": 3.7660937309265137,
+              "max": 3.7660937309265137,
+              "mean": 3.7660937309265137,
+              "median": 3.7660937309265137,
+              "std": 0.0,
+              "range": 0.0,
+              "max_pairwise_abs_diff": 0.0
+            },
+            "median_abs_diff": 0.0,
+            "cross_arm_10x10_abs_diff": {
+              "min": 0.0,
+              "median": 0.0,
+              "max": 0.0007684230804443359
+            },
+            "noise_envelope": 0.0007685230804443359,
+            "distributions_overlap": true,
+            "corrected_parity_pass": true
+          },
+          "loss_understanding": {
+            "v1": {
+              "min": 3.7445127964019775,
+              "max": 3.7445127964019775,
+              "mean": 3.7445127964019775,
+              "median": 3.7445127964019775,
+              "std": 0.0,
+              "range": 0.0,
+              "max_pairwise_abs_diff": 0.0
+            },
+            "gc": {
+              "min": 3.7445127964019775,
+              "max": 3.7445127964019775,
+              "mean": 3.7445127964019775,
+              "median": 3.7445127964019775,
+              "std": 0.0,
+              "range": 0.0,
+              "max_pairwise_abs_diff": 0.0
+            },
+            "median_abs_diff": 0.0,
+            "cross_arm_10x10_abs_diff": {
+              "min": 0.0,
+              "median": 0.0,
+              "max": 0.0
+            },
+            "noise_envelope": 1e-07,
+            "distributions_overlap": true,
+            "corrected_parity_pass": true
+          }
+        },
+        "passed": true
+      },
+      "passed": true
+    },
+    "GC-C2_raw_gradient_reference": {
+      "passed": true,
+      "loss_recon": 0.020756341516971588,
+      "loss_understanding": 3.7445127964019775,
+      "reconstruction_gradient_tensors": 448,
+      "understanding_gradient_tensors": 489
+    },
+    "GC-C3_reconstruction_formula_step1000": {
+      "max_abs_diff": 0.0,
+      "relative_l2_diff": 0.0,
+      "tensor_count_checked": 450,
+      "tensor_count_total": 450,
+      "gR_nonzero_count": 448,
+      "gU_nonzero_count": 450,
+      "both_nonzero_count": 448,
+      "only_gR_count": 0,
+      "only_gU_count": 2,
+      "group_grad_after_reconstruction_none_or_zero": true,
+      "hooks": {
+        "registered": 509,
+        "removed": 509,
+        "reconstruction_capture": 450,
+        "group_capture": 59
+      },
+      "method": "single_forward_graph_production_backward_with_raw_gradient_capture",
+      "passed": true
+    },
+    "GC-C4_group_unscaled_step1000": {
+      "max_abs_diff": 0.0,
+      "relative_l2_diff": 0.0,
+      "tensor_count_checked": 39,
+      "tensor_count": 59,
+      "nonzero_count": 37,
+      "query_init_max_abs_diff": 0.0,
+      "hooks_registered_removed_equal": true,
+      "passed": true
+    },
+    "GC-C5_warmup_composition_step600": {
+      "understanding_weight": 0.5,
+      "hook_capture_includes_weight": true,
+      "reconstruction": {
+        "max_abs_diff": 0.0,
+        "relative_l2_diff": 0.0,
+        "tensor_count_checked": 450
+      },
+      "group": {
+        "max_abs_diff": 0.0,
+        "relative_l2_diff": 0.0,
+        "tensor_count_checked": 39
+      },
+      "hook_counts": {
+        "registered_hook_count": 509,
+        "reconstruction_hook_count": 450,
+        "removed_hook_count": 509,
+        "reconstruction_capture_hook_count": 450,
+        "group_capture_hook_count": 59,
+        "understanding_backward_skipped": false
+      },
+      "passed": true
+    },
+    "GC-C6_zero_understanding_step200": {
+      "understanding_weight": 0.0,
+      "reconstruction": {
+        "max_abs_diff": 0.0,
+        "relative_l2_diff": 0.0,
+        "tensor_count_checked": 448
+      },
+      "group_none_or_zero": true,
+      "hook_counts": {
+        "registered_hook_count": 0,
+        "removed_hook_count": 0,
+        "reconstruction_capture_hook_count": 0,
+        "group_capture_hook_count": 0,
+        "understanding_backward_skipped": true
+      },
+      "group_grad_is_none_or_zero": true,
+      "temporary_hook_count": 0,
+      "understanding_backward_skipped": true,
+      "passed": true
+    },
+    "GC-C7_hook_cleanup_and_next_recon": {
+      "max_abs_diff": 2.9802322387695312e-08,
+      "relative_l2_diff": 8.772072875520566e-08,
+      "tensor_count_checked": 448,
+      "registered_hook_count": 509,
+      "removed_hook_count": 509,
+      "remaining_parameter_hooks": [],
+      "next_reconstruction_unscaled": true,
+      "passed": true
+    },
+    "GC-C8_no_parameter_mutation": {
+      "parameters_exactly_unchanged": true,
+      "parameter_tensor_count": 509,
+      "passed": true
+    },
+    "GC-C9_optimizer_parity": {
+      "optimizer_groups": [
+        {
+          "name": "anchor_group_decay",
+          "tensor_count": 18,
+          "numel": 2743496,
+          "lr": 0.0001,
+          "weight_decay": 0.05
+        },
+        {
+          "name": "anchor_group_nodecay",
+          "tensor_count": 41,
+          "numel": 41800,
+          "lr": 0.0001,
+          "weight_decay": 0.0
+        },
+        {
+          "name": "reconstruction_decay",
+          "tensor_count": 115,
+          "numel": 218773504,
+          "lr": 1e-05,
+          "weight_decay": 0.05
+        },
+        {
+          "name": "reconstruction_nodecay",
+          "tensor_count": 335,
+          "numel": 1229116,
+          "lr": 1e-05,
+          "weight_decay": 0.0
+        }
+      ],
+      "all_trainable_parameters_exactly_once": true,
+      "registered_four_group_counts_and_numel_match": true,
+      "passed": true
+    },
+    "GC-C10_effective_ratio_0_01x_raw": {
+      "shared_scale": 0.01,
+      "max_effective_ratio_relative_error": 2.773290495626051e-08,
+      "passed": true
+    },
+    "GC-C11_cosine_invariant_positive_scale": {
+      "max_cosine_invariance_abs_error": 1.0654072402083159e-08,
+      "passed": true
+    },
+    "GC-C12_phase_a_18_of_18_regression": {
+      "exit_code": 0,
+      "passed": true,
+      "failed": 0,
+      "total": 18,
+      "failed_contracts": [],
+      "status": "pass"
+    },
+    "GC-C13_reconstruction_parity": {
+      "passed": true,
+      "gpu": "NVIDIA GeForce RTX 3090",
+      "cuda_available": true,
+      "checkpoint_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f",
+      "scene": null,
+      "gaussian_max_abs_diff": 0.0,
+      "rgb_max_abs_diff": 0.0,
+      "psnr_baseline": 22.12148666381836,
+      "psnr_anchor_group_v1_gc": 22.12148666381836,
+      "psnr_abs_diff": 0.0,
+      "status": "pass"
+    },
+    "GC-C14_s0_s1_legacy_regression": {
+      "passed": true,
+      "exit_code": 0,
+      "status": "pass",
+      "gpu": "NVIDIA GeForce RTX 3090",
+      "models": {
+        "S0": {
+          "architecture_name": "LOCUSGS_INSTANCE_STATE_V1",
+          "instance_state_local3d": false,
+          "local3d_k": null,
+          "forward": "pass",
+          "finite": {
+            "gaussians": true,
+            "region_mass": true,
+            "semantic_scores": true,
+            "loss": true
+          },
+          "loss": "pass",
+          "initialization_path": "single-anchor",
+          "loss_value": 0.7415531873703003
+        },
+        "S1": {
+          "architecture_name": "LOCUSGS_INSTANCE_STATE_V1",
+          "instance_state_local3d": true,
+          "local3d_k": 8,
+          "forward": "pass",
+          "finite": {
+            "gaussians": true,
+            "region_mass": true,
+            "semantic_scores": true,
+            "loss": true
+          },
+          "loss": "pass",
+          "initialization_path": "local8",
+          "loss_value": 0.7307737469673157
+        }
+      }
+    },
+    "GC-C15_rtx3090_v1_vs_gc_one_step": {
+      "passed": true,
+      "status": "pass",
+      "losses_exact": false,
+      "empirical_loss_components_pass": true,
+      "forward_tensors_exact": true,
+      "model_state_exact": true,
+      "batch_exact": true,
+      "optimizer_and_lr_exact": true,
+      "query_init_gradient_max_abs_diff_before_clip": 5.960464477539062e-07,
+      "hook_cleanup_pass": true,
+      "peak_memory_allocated_gib": 4.977346897125244,
+      "peak_memory_reserved_gib": 5.451171875
+    }
+  },
+  "optimizer_audit": {
+    "betas": [
+      0.9,
+      0.95
+    ],
+    "groups": [
+      {
+        "name": "anchor_group_decay",
+        "tensor_count": 18,
+        "numel": 2743496,
+        "lr": 0.0001,
+        "weight_decay": 0.05
+      },
+      {
+        "name": "anchor_group_nodecay",
+        "tensor_count": 41,
+        "numel": 41800,
+        "lr": 0.0001,
+        "weight_decay": 0.0
+      },
+      {
+        "name": "reconstruction_decay",
+        "tensor_count": 115,
+        "numel": 218773504,
+        "lr": 1e-05,
+        "weight_decay": 0.05
+      },
+      {
+        "name": "reconstruction_nodecay",
+        "tensor_count": 335,
+        "numel": 1229116,
+        "lr": 1e-05,
+        "weight_decay": 0.0
+      }
+    ],
+    "duplicates": [],
+    "missing": [],
+    "multi_group": [],
+    "unique_trainable_parameter_count": 509,
+    "optimizer_parameter_count": 509,
+    "all_trainable_parameters_exactly_once": true,
+    "registered_v1_group_expectations": {
+      "anchor_group_decay": {
+        "tensor_count": 18,
+        "numel": 2743496
+      },
+      "anchor_group_nodecay": {
+        "tensor_count": 41,
+        "numel": 41800
+      },
+      "reconstruction_decay": {
+        "tensor_count": 115,
+        "numel": 218773504
+      },
+      "reconstruction_nodecay": {
+        "tensor_count": 335,
+        "numel": 1229116
+      }
+    },
+    "optimizer_group_parity": true
+  },
+  "locked_inputs": {
+    "manifest_sha256": "1f37d08c2941920d94a172d62f95dd494b1126374215833999dc9d75ad9fc483",
+    "plan_sha256": "ffd97c5e018fd5075650a5718503b26c3e566f0e3b516e392ebc657aa01c1323",
+    "pretrained_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f",
+    "monitor_sources_byte_identical_to_v1": {
+      "monitor_train16.json": {
+        "source_sha256": "133811557d13dca81864b9843b831f89df9226a899c381bfb79e0131991a5961",
+        "v1_sha256": "133811557d13dca81864b9843b831f89df9226a899c381bfb79e0131991a5961",
+        "equal": true
+      },
+      "monitor_8pairs.json": {
+        "source_sha256": "5dae7077779dd398ba97851f0259aef2df7de083df80f5a6bea4b5f5e731c321",
+        "v1_sha256": "5dae7077779dd398ba97851f0259aef2df7de083df80f5a6bea4b5f5e731c321",
+        "equal": true
+      },
+      "monitor_32pairs.json": {
+        "source_sha256": "af51dfe52d8cf31140f028a5c3b1d1bc5402fd524805d241940f314fad87bd36",
+        "v1_sha256": "af51dfe52d8cf31140f028a5c3b1d1bc5402fd524805d241940f314fad87bd36",
+        "equal": true
+      },
+      "train128_class_coverage.json": {
+        "source_sha256": "9c5914187271016ad75b6cda5a6929ba222b426094f7ef73e47aae60e012c371",
+        "v1_sha256": "9c5914187271016ad75b6cda5a6929ba222b426094f7ef73e47aae60e012c371",
+        "equal": true
+      }
+    }
+  },
+  "status": "pass",
+  "formal_training_started": false
+}

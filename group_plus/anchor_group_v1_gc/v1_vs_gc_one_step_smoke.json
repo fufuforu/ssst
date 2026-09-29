@@ -1,0 +1,613 @@
+{
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "total_memory_gib": 23.68426513671875,
+  "cuda_visible_devices": "0",
+  "torch_version": "2.7.0+cu126",
+  "cuda_version": "12.6",
+  "step": 1000,
+  "understanding_weight": 1.0,
+  "shared_understanding_grad_scale": 0.01,
+  "losses_v1": {
+    "loss_rgb_layer6": 0.002680182456970215,
+    "loss_ssim_layer6": 0.10591244697570801,
+    "loss_gaussian_visibility_layer6": 3.807451139437035e-05,
+    "loss_anchor_visibility_layer6": 0.0,
+    "loss_rgb_layer12": 0.002089463174343109,
+    "loss_ssim_layer12": 0.08519750833511353,
+    "loss_gaussian_visibility_layer12": 5.517397221410647e-05,
+    "loss_anchor_visibility_layer12": 0.0,
+    "loss_anchor_group": 5.1167778968811035,
+    "loss_thing_2d": 13.894386291503906,
+    "loss_stuff_2d": 14.194035530090332,
+    "loss_semantic": 4.196320056915283,
+    "loss_identity": 0.43609532713890076,
+    "loss_understanding": 3.7445127964019775,
+    "loss_recon": 0.020756341516971588,
+    "loss": 3.7652690410614014,
+    "loss_total": 3.7652690410614014
+  },
+  "losses_gc": {
+    "loss_rgb_layer6": 0.002680182456970215,
+    "loss_ssim_layer6": 0.10591244697570801,
+    "loss_gaussian_visibility_layer6": 3.807451139437035e-05,
+    "loss_anchor_visibility_layer6": 0.0,
+    "loss_rgb_layer12": 0.002089463174343109,
+    "loss_ssim_layer12": 0.08519750833511353,
+    "loss_gaussian_visibility_layer12": 0.00013932584261056036,
+    "loss_anchor_visibility_layer12": 0.0,
+    "loss_anchor_group": 5.1167778968811035,
+    "loss_thing_2d": 13.894386291503906,
+    "loss_stuff_2d": 14.194035530090332,
+    "loss_semantic": 4.196320056915283,
+    "loss_identity": 0.43609532713890076,
+    "loss_understanding": 3.7445127964019775,
+    "loss_recon": 0.020812444388866425,
+    "loss": 3.7653253078460693,
+    "loss_total": 3.7653253078460693
+  },
+  "all_scalar_loss_components_v1": {
+    "loss_rgb_layer6": 0.002680182456970215,
+    "loss_ssim_layer6": 0.10591244697570801,
+    "loss_gaussian_visibility_layer6": 3.807451139437035e-05,
+    "loss_anchor_visibility_layer6": 0.0,
+    "loss_rgb_layer12": 0.002089463174343109,
+    "loss_ssim_layer12": 0.08519750833511353,
+    "loss_gaussian_visibility_layer12": 5.517397221410647e-05,
+    "loss_anchor_visibility_layer12": 0.0,
+    "loss_anchor_group": 5.1167778968811035,
+    "loss_thing_2d": 13.894386291503906,
+    "loss_stuff_2d": 14.194035530090332,
+    "loss_semantic": 4.196320056915283,
+    "loss_identity": 0.43609532713890076,
+    "loss_understanding": 3.7445127964019775,
+    "loss_recon": 0.020756341516971588,
+    "loss": 3.7652690410614014,
+    "loss_total": 3.7652690410614014
+  },
+  "all_scalar_loss_components_gc": {
+    "loss_rgb_layer6": 0.002680182456970215,
+    "loss_ssim_layer6": 0.10591244697570801,
+    "loss_gaussian_visibility_layer6": 3.807451139437035e-05,
+    "loss_anchor_visibility_layer6": 0.0,
+    "loss_rgb_layer12": 0.002089463174343109,
+    "loss_ssim_layer12": 0.08519750833511353,
+    "loss_gaussian_visibility_layer12": 0.00013932584261056036,
+    "loss_anchor_visibility_layer12": 0.0,
+    "loss_anchor_group": 5.1167778968811035,
+    "loss_thing_2d": 13.894386291503906,
+    "loss_stuff_2d": 14.194035530090332,
+    "loss_semantic": 4.196320056915283,
+    "loss_identity": 0.43609532713890076,
+    "loss_understanding": 3.7445127964019775,
+    "loss_recon": 0.020812444388866425,
+    "loss": 3.7653253078460693,
+    "loss_total": 3.7653253078460693
+  },
+  "loss_abs_diff": {
+    "loss": 5.626678466796875e-05,
+    "loss_anchor_group": 0.0,
+    "loss_anchor_visibility_layer12": 0.0,
+    "loss_anchor_visibility_layer6": 0.0,
+    "loss_gaussian_visibility_layer12": 8.415187039645389e-05,
+    "loss_gaussian_visibility_layer6": 0.0,
+    "loss_identity": 0.0,
+    "loss_recon": 5.6102871894836426e-05,
+    "loss_rgb_layer12": 0.0,
+    "loss_rgb_layer6": 0.0,
+    "loss_semantic": 0.0,
+    "loss_ssim_layer12": 0.0,
+    "loss_ssim_layer6": 0.0,
+    "loss_stuff_2d": 0.0,
+    "loss_thing_2d": 0.0,
+    "loss_total": 5.626678466796875e-05,
+    "loss_understanding": 0.0
+  },
+  "losses_exact": false,
+  "empirical_loss_parity": {
+    "metric_gates": {
+      "loss": {
+        "v1": 3.7652690410614014,
+        "gc": 3.7653253078460693,
+        "abs_diff": 5.626678466796875e-05,
+        "noise_envelope": 0.0007685230804443359,
+        "passed": true
+      },
+      "loss_anchor_group": {
+        "v1": 5.1167778968811035,
+        "gc": 5.1167778968811035,
+        "abs_diff": 0.0,
+        "noise_envelope": 1e-07,
+        "passed": true
+      },
+      "loss_anchor_visibility_layer12": {
+        "v1": 0.0,
+        "gc": 0.0,
+        "abs_diff": 0.0,
+        "noise_envelope": 1e-07,
+        "passed": true
+      },
+      "loss_anchor_visibility_layer6": {
+        "v1": 0.0,
+        "gc": 0.0,
+        "abs_diff": 0.0,
+        "noise_envelope": 1e-07,
+        "passed": true
+      },
+      "loss_gaussian_visibility_layer12": {
+        "v1": 5.517397221410647e-05,
+        "gc": 0.00013932584261056036,
+        "abs_diff": 8.415187039645389e-05,
+        "noise_envelope": 8.425188131039031e-05,
+        "passed": true
+      },
+      "loss_gaussian_visibility_layer6": {
+        "v1": 3.807451139437035e-05,
+        "gc": 3.807451139437035e-05,
+        "abs_diff": 0.0,
+        "noise_envelope": 0.002474134023180138,
+        "passed": true
+      },
+      "loss_identity": {
+        "v1": 0.43609532713890076,
+        "gc": 0.43609532713890076,
+        "abs_diff": 0.0,
+        "noise_envelope": 1e-07,
+        "passed": true
+      },
+      "loss_recon": {
+        "v1": 0.020756341516971588,
+        "gc": 0.020812444388866425,
+        "abs_diff": 5.6102871894836426e-05,
+        "noise_envelope": 0.0007686758173465728,
+        "passed": true
+      },
+      "loss_rgb_layer12": {
+        "v1": 0.002089463174343109,
+        "gc": 0.002089463174343109,
+        "abs_diff": 0.0,
+        "noise_envelope": 1e-07,
+        "passed": true
+      },
+      "loss_rgb_layer6": {
+        "v1": 0.002680182456970215,
+        "gc": 0.002680182456970215,
+        "abs_diff": 0.0,
+        "noise_envelope": 1e-07,
+        "passed": true
+      },
+      "loss_semantic": {
+        "v1": 4.196320056915283,
+        "gc": 4.196320056915283,
+        "abs_diff": 0.0,
+        "noise_envelope": 1e-07,
+        "passed": true
+      },
+      "loss_ssim_layer12": {
+        "v1": 0.08519750833511353,
+        "gc": 0.08519750833511353,
+        "abs_diff": 0.0,
+        "noise_envelope": 1e-07,
+        "passed": true
+      },
+      "loss_ssim_layer6": {
+        "v1": 0.10591244697570801,
+        "gc": 0.10591244697570801,
+        "abs_diff": 0.0,
+        "noise_envelope": 1e-07,
+        "passed": true
+      },
+      "loss_stuff_2d": {
+        "v1": 14.194035530090332,
+        "gc": 14.194035530090332,
+        "abs_diff": 0.0,
+        "noise_envelope": 1e-07,
+        "passed": true
+      },
+      "loss_thing_2d": {
+        "v1": 13.894386291503906,
+        "gc": 13.894386291503906,
+        "abs_diff": 0.0,
+        "noise_envelope": 1e-07,
+        "passed": true
+      },
+      "loss_total": {
+        "v1": 3.7652690410614014,
+        "gc": 3.7653253078460693,
+        "abs_diff": 5.626678466796875e-05,
+        "noise_envelope": 0.0007685230804443359,
+        "passed": true
+      },
+      "loss_understanding": {
+        "v1": 3.7445127964019775,
+        "gc": 3.7445127964019775,
+        "abs_diff": 0.0,
+        "noise_envelope": 1e-07,
+        "passed": true
+      }
+    },
+    "all_components_pass": true
+  },
+  "model_state_exact_before_forward": {
+    "model_state_equal": true,
+    "tensor_count": 509,
+    "missing_keys": [],
+    "extra_keys": [],
+    "mismatched_keys": []
+  },
+  "batch_exact_and_shared": {
+    "same_batch_object": true,
+    "tensor_manifest_before": {
+      "input": {
+        "shape": [
+          1,
+          4,
+          9,
+          256,
+          256
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "d84cecc3a55b240586f5f2d664da3c0fb6533a6c5efe999b5eb2246f82164e57",
+        "sum": 378517.52787733485
+      },
+      "rays_os": {
+        "shape": [
+          1,
+          4,
+          3,
+          256,
+          256
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "e5b4695df2305f7f5665797a5afb670cbe1c2e64b1d9df6c88c6f2e5c59693e9",
+        "sum": 1863.196992492769
+      },
+      "rays_ds": {
+        "shape": [
+          1,
+          4,
+          3,
+          256,
+          256
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "bd24ed908db9633f2dcb8eddc53842048c98dfa35bca471b4da5c9c814957bc4",
+        "sum": 246404.28764961753
+      },
+      "images_all": {
+        "shape": [
+          1,
+          4,
+          3,
+          256,
+          256
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "99ee2b34326498591af593bc743a6d9e36e15a51efa68ca3ed3d7bc1a1dcb532",
+        "sum": 383731.3140855003
+      },
+      "images_input": {
+        "shape": [
+          1,
+          2,
+          3,
+          256,
+          256
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "af1d51a7adf92ce9e1ac35619a52c4a7d3707bc868bb7dee89f5d6c1be14a5af",
+        "sum": 190138.55702462932
+      },
+      "images_output": {
+        "shape": [
+          1,
+          2,
+          3,
+          256,
+          256
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "3c3ff942f858ea14ecdbab55a9f965293bfdb7b08a7a85e0db9da6cb4396b01f",
+        "sum": 193592.757060871
+      },
+      "intrinsics_all": {
+        "shape": [
+          1,
+          4,
+          4
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "6edb66e62e782a310095343187580ae6ccf4b2ebaa6bc25f073d2c1f933b128d",
+        "sum": 3567.5595092773438
+      },
+      "intrinsics": {
+        "shape": [
+          1,
+          2,
+          4
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "4cdf4ca9676f0e269739d8984b1f2198dc9c044e7f7b6de3b98e8715d90dae86",
+        "sum": 1783.7797546386719
+      },
+      "intrinsics_input": {
+        "shape": [
+          1,
+          2,
+          4
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "4cdf4ca9676f0e269739d8984b1f2198dc9c044e7f7b6de3b98e8715d90dae86",
+        "sum": 1783.7797546386719
+      },
+      "cam_view_all": {
+        "shape": [
+          1,
+          4,
+          4,
+          4
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "e1e58d9a488aa4226e1dd8e5cd6dfc0c482ff3acfb27cf5fd124ba7ff9b8bef6",
+        "sum": 15.964023629117536
+      },
+      "cam_view": {
+        "shape": [
+          1,
+          2,
+          4,
+          4
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "833a647ab7c7655faad3992231cb3a304fa3d6a15996ae0aac8b208cdec43584",
+        "sum": 7.982060135281771
+      },
+      "masks_all": {
+        "shape": [
+          1,
+          4,
+          1,
+          256,
+          256
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "5e2290c3b28be730f9ee062994f940650073dacff8de973325c2de6486c74107",
+        "sum": 262144.0
+      },
+      "masks_output": {
+        "shape": [
+          1,
+          2,
+          1,
+          256,
+          256
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "0219b822835868ed48934af7511d4e5866f2e60480eb2a026f2331a071b1a3ae",
+        "sum": 131072.0
+      },
+      "has_mask": {
+        "shape": [
+          1
+        ],
+        "dtype": "torch.bool",
+        "device": "cuda:0",
+        "sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a",
+        "sum": 1.0
+      },
+      "cam_to_world_input": {
+        "shape": [
+          1,
+          2,
+          4,
+          4
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "ae711d5c27ba17e271478e9c54d3fb4d319dc4039e780e48e7a869277243eaa0",
+        "sum": 8.012484651111063
+      },
+      "cam_view_input": {
+        "shape": [
+          1,
+          2,
+          4,
+          4
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "113efaa8b3b2ce6cead115699d4def93228f2a8c5fef534db6c5105846b65578",
+        "sum": 7.981963493835766
+      },
+      "semantic_label_all": {
+        "shape": [
+          1,
+          4,
+          256,
+          256
+        ],
+        "dtype": "torch.int64",
+        "device": "cuda:0",
+        "sha256": "7054569aea52c581b2de96e60de31c299e9134cba1dfdebbf44919b56430a1ce",
+        "sum": 29078526.0
+      },
+      "semantic_label_input": {
+        "shape": [
+          1,
+          2,
+          256,
+          256
+        ],
+        "dtype": "torch.int64",
+        "device": "cuda:0",
+        "sha256": "deabbc7e0ddf76185e849c78f9a402029a0a532bec443fd5ad0ee87b511e7a24",
+        "sum": 14550281.0
+      },
+      "semantic_label_output": {
+        "shape": [
+          1,
+          2,
+          256,
+          256
+        ],
+        "dtype": "torch.int64",
+        "device": "cuda:0",
+        "sha256": "5b097dc10c946caf2ade0cf288bc07276dad01e03fef8514676687ac042d7b45",
+        "sum": 14528245.0
+      },
+      "instance_label_all": {
+        "shape": [
+          1,
+          4,
+          256,
+          256
+        ],
+        "dtype": "torch.int64",
+        "device": "cuda:0",
+        "sha256": "899803b298f44acfdf5d46eddadd8b9f7f31d69421e2f62008b37bc95e23c09b",
+        "sum": 4102507.0
+      },
+      "instance_label_input": {
+        "shape": [
+          1,
+          2,
+          256,
+          256
+        ],
+        "dtype": "torch.int64",
+        "device": "cuda:0",
+        "sha256": "b23cfe318ba3f51d49f5e8e7d816cada0d06874a30e12ccf5c2aaa840c66f83a",
+        "sum": 2045701.0
+      },
+      "instance_label_output": {
+        "shape": [
+          1,
+          2,
+          256,
+          256
+        ],
+        "dtype": "torch.int64",
+        "device": "cuda:0",
+        "sha256": "91f7d02c0ab7cda7111e660dc495c415ef8a4ce415770692c66d5677f5540654",
+        "sum": 2056806.0
+      },
+      "frame_ids": {
+        "shape": [
+          1,
+          4
+        ],
+        "dtype": "torch.int64",
+        "device": "cuda:0",
+        "sha256": "d0112f1cc2d3725b8af8e208288f1aed458ff0ea129e0fe2d26957206ad80a3b",
+        "sum": 6048.0
+      }
+    },
+    "tensor_manifest_after_equal": true
+  },
+  "forward_tensor_parity": {
+    "max_abs_diff_by_tensor": {
+      "gaussians": 0.0,
+      "rgb": 0.0,
+      "A_post": 0.0,
+      "region_mass": 0.0,
+      "semantic_scores": 0.0,
+      "thing_class_logits": 0.0
+    },
+    "all_exact": true
+  },
+  "baseline_v1": {
+    "preclip_gradient_norms": {
+      "global": 63.611526302597746,
+      "reconstruction": 59.995039102963865,
+      "anchor_group": 21.142884419584817,
+      "decoder": 58.557526533978,
+      "activation_head": 0.1883497272830384,
+      "anchor_geometry": 12.201278115365
+    },
+    "pre_clip_global_norm": 63.61152648925781,
+    "clip_coefficient": 0.015720421363711053,
+    "post_clip_global_norm": 1.0000000026656868,
+    "query_init_delta": 9.343773126602173e-05,
+    "selected_parameter_deltas": {
+      "decoder": 9.298324584960938e-06,
+      "anchor_mu": 9.566545486450195e-06,
+      "activation_head": 9.34302806854248e-06
+    }
+  },
+  "gc": {
+    "preclip_gradient_norms": {
+      "global": 21.279291300868703,
+      "reconstruction": 2.4055602402417775,
+      "anchor_group": 21.14288339365741,
+      "decoder": 0.592880317567616,
+      "activation_head": 0.08688965280563317,
+      "anchor_geometry": 2.3286721914306128
+    },
+    "postclip_gradient_norms": {
+      "global": 0.9999999030329718,
+      "reconstruction": 0.11304699802078343,
+      "anchor_group": 0.993589544180313,
+      "decoder": 0.027861842346153423,
+      "activation_head": 0.004083295958358694,
+      "anchor_geometry": 0.10943371784713853
+    },
+    "pre_clip_global_norm": 21.2792911529541,
+    "clip_coefficient": 0.04699404659732638,
+    "post_clip_global_norm": 0.9999999030329718,
+    "query_init_delta": 9.343773126602173e-05,
+    "selected_parameter_deltas": {
+      "decoder": 9.298324584960938e-06,
+      "anchor_mu": 9.5367431640625e-06,
+      "activation_head": 9.34302806854248e-06
+    },
+    "allocated_before_gib": 0.8761215209960938,
+    "reserved_before_gib": 0.890625,
+    "peak_memory_allocated_gib": 4.977346897125244,
+    "peak_memory_reserved_gib": 5.451171875
+  },
+  "query_init_gradient_max_abs_diff_before_clip": 5.960464477539062e-07,
+  "selected_parameter_gradient_comparison": {
+    "decoder": {
+      "parameter_name": "enc_dec_backbone.decoder_blocks.11.gs_self_attn.norm.weight",
+      "v1_grad_norm": 0.0022728934833428386,
+      "gc_grad_norm": 0.0001198907937374335,
+      "v1_vs_gc_cosine": -0.0343692962087935,
+      "max_abs_diff": 0.00040451352833770216
+    },
+    "anchor_mu": {
+      "parameter_name": "anchor_decoder.mu",
+      "v1_grad_norm": 2.112045085822064,
+      "gc_grad_norm": 0.06773315363336184,
+      "v1_vs_gc_cosine": 0.26353000526466963,
+      "max_abs_diff": 0.42971736192703247
+    },
+    "activation_head": {
+      "parameter_name": "activation_head.deconv.weight",
+      "v1_grad_norm": 0.180196183291257,
+      "gc_grad_norm": 0.08312972962767629,
+      "v1_vs_gc_cosine": 0.4204665012039626,
+      "max_abs_diff": 0.009775613434612751
+    }
+  },
+  "optimizer_groups_identical": true,
+  "learning_rates_identical": true,
+  "pretrained_transfer_audits_equal": true,
+  "hook_registered_removed_equal": true,
+  "query_parameter_updated_both_arms": true,
+  "selected_reconstruction_parameters_updated_both_arms": true,
+  "finite": true,
+  "optimizer_step_count": 1,
+  "status": "pass"
+}

@@ -1,0 +1,2412 @@
+{
+  "gpu": "NVIDIA GeForce RTX 3090",
+  "cuda_visible_devices": "0",
+  "torch_version": "2.7.0+cu126",
+  "cuda_version": "12.6",
+  "dtype": "FP32",
+  "seed": 42,
+  "anchor_group_init_seed": 31415,
+  "step": 1000,
+  "repeat_count_per_arm": 10,
+  "backend_settings": {
+    "deterministic_algorithms": false,
+    "cudnn_deterministic": false,
+    "cudnn_benchmark": false,
+    "tf32_matmul": false,
+    "tf32_cudnn": true
+  },
+  "model_state": {
+    "model_state_equal": true,
+    "tensor_count": 509,
+    "missing_keys": [],
+    "extra_keys": [],
+    "mismatched_keys": []
+  },
+  "batch": {
+    "same_batch_object_reused": true,
+    "tensor_field_count": 23,
+    "tensor_manifest": {
+      "input": {
+        "shape": [
+          1,
+          4,
+          9,
+          256,
+          256
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "d84cecc3a55b240586f5f2d664da3c0fb6533a6c5efe999b5eb2246f82164e57",
+        "sum": 378517.52787733485
+      },
+      "rays_os": {
+        "shape": [
+          1,
+          4,
+          3,
+          256,
+          256
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "e5b4695df2305f7f5665797a5afb670cbe1c2e64b1d9df6c88c6f2e5c59693e9",
+        "sum": 1863.196992492769
+      },
+      "rays_ds": {
+        "shape": [
+          1,
+          4,
+          3,
+          256,
+          256
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "bd24ed908db9633f2dcb8eddc53842048c98dfa35bca471b4da5c9c814957bc4",
+        "sum": 246404.28764961753
+      },
+      "images_all": {
+        "shape": [
+          1,
+          4,
+          3,
+          256,
+          256
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "99ee2b34326498591af593bc743a6d9e36e15a51efa68ca3ed3d7bc1a1dcb532",
+        "sum": 383731.3140855003
+      },
+      "images_input": {
+        "shape": [
+          1,
+          2,
+          3,
+          256,
+          256
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "af1d51a7adf92ce9e1ac35619a52c4a7d3707bc868bb7dee89f5d6c1be14a5af",
+        "sum": 190138.55702462932
+      },
+      "images_output": {
+        "shape": [
+          1,
+          2,
+          3,
+          256,
+          256
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "3c3ff942f858ea14ecdbab55a9f965293bfdb7b08a7a85e0db9da6cb4396b01f",
+        "sum": 193592.757060871
+      },
+      "intrinsics_all": {
+        "shape": [
+          1,
+          4,
+          4
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "6edb66e62e782a310095343187580ae6ccf4b2ebaa6bc25f073d2c1f933b128d",
+        "sum": 3567.5595092773438
+      },
+      "intrinsics": {
+        "shape": [
+          1,
+          2,
+          4
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "4cdf4ca9676f0e269739d8984b1f2198dc9c044e7f7b6de3b98e8715d90dae86",
+        "sum": 1783.7797546386719
+      },
+      "intrinsics_input": {
+        "shape": [
+          1,
+          2,
+          4
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "4cdf4ca9676f0e269739d8984b1f2198dc9c044e7f7b6de3b98e8715d90dae86",
+        "sum": 1783.7797546386719
+      },
+      "cam_view_all": {
+        "shape": [
+          1,
+          4,
+          4,
+          4
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "e1e58d9a488aa4226e1dd8e5cd6dfc0c482ff3acfb27cf5fd124ba7ff9b8bef6",
+        "sum": 15.964023629117536
+      },
+      "cam_view": {
+        "shape": [
+          1,
+          2,
+          4,
+          4
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "833a647ab7c7655faad3992231cb3a304fa3d6a15996ae0aac8b208cdec43584",
+        "sum": 7.982060135281771
+      },
+      "masks_all": {
+        "shape": [
+          1,
+          4,
+          1,
+          256,
+          256
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "5e2290c3b28be730f9ee062994f940650073dacff8de973325c2de6486c74107",
+        "sum": 262144.0
+      },
+      "masks_output": {
+        "shape": [
+          1,
+          2,
+          1,
+          256,
+          256
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "0219b822835868ed48934af7511d4e5866f2e60480eb2a026f2331a071b1a3ae",
+        "sum": 131072.0
+      },
+      "has_mask": {
+        "shape": [
+          1
+        ],
+        "dtype": "torch.bool",
+        "device": "cuda:0",
+        "sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a",
+        "sum": 1.0
+      },
+      "cam_to_world_input": {
+        "shape": [
+          1,
+          2,
+          4,
+          4
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "ae711d5c27ba17e271478e9c54d3fb4d319dc4039e780e48e7a869277243eaa0",
+        "sum": 8.012484651111063
+      },
+      "cam_view_input": {
+        "shape": [
+          1,
+          2,
+          4,
+          4
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "113efaa8b3b2ce6cead115699d4def93228f2a8c5fef534db6c5105846b65578",
+        "sum": 7.981963493835766
+      },
+      "semantic_label_all": {
+        "shape": [
+          1,
+          4,
+          256,
+          256
+        ],
+        "dtype": "torch.int64",
+        "device": "cuda:0",
+        "sha256": "7054569aea52c581b2de96e60de31c299e9134cba1dfdebbf44919b56430a1ce",
+        "sum": 29078526.0
+      },
+      "semantic_label_input": {
+        "shape": [
+          1,
+          2,
+          256,
+          256
+        ],
+        "dtype": "torch.int64",
+        "device": "cuda:0",
+        "sha256": "deabbc7e0ddf76185e849c78f9a402029a0a532bec443fd5ad0ee87b511e7a24",
+        "sum": 14550281.0
+      },
+      "semantic_label_output": {
+        "shape": [
+          1,
+          2,
+          256,
+          256
+        ],
+        "dtype": "torch.int64",
+        "device": "cuda:0",
+        "sha256": "5b097dc10c946caf2ade0cf288bc07276dad01e03fef8514676687ac042d7b45",
+        "sum": 14528245.0
+      },
+      "instance_label_all": {
+        "shape": [
+          1,
+          4,
+          256,
+          256
+        ],
+        "dtype": "torch.int64",
+        "device": "cuda:0",
+        "sha256": "899803b298f44acfdf5d46eddadd8b9f7f31d69421e2f62008b37bc95e23c09b",
+        "sum": 4102507.0
+      },
+      "instance_label_input": {
+        "shape": [
+          1,
+          2,
+          256,
+          256
+        ],
+        "dtype": "torch.int64",
+        "device": "cuda:0",
+        "sha256": "b23cfe318ba3f51d49f5e8e7d816cada0d06874a30e12ccf5c2aaa840c66f83a",
+        "sum": 2045701.0
+      },
+      "instance_label_output": {
+        "shape": [
+          1,
+          2,
+          256,
+          256
+        ],
+        "dtype": "torch.int64",
+        "device": "cuda:0",
+        "sha256": "91f7d02c0ab7cda7111e660dc495c415ef8a4ce415770692c66d5677f5540654",
+        "sum": 2056806.0
+      },
+      "frame_ids": {
+        "shape": [
+          1,
+          4
+        ],
+        "dtype": "torch.int64",
+        "device": "cuda:0",
+        "sha256": "d0112f1cc2d3725b8af8e208288f1aed458ff0ea129e0fe2d26957206ad80a3b",
+        "sum": 6048.0
+      }
+    }
+  },
+  "same_rng_state_restored_before_every_repeat": true,
+  "metric_statistics": {
+    "loss": {
+      "v1": {
+        "min": 3.7653253078460693,
+        "max": 3.7660937309265137,
+        "mean": 3.766016888618469,
+        "median": 3.7660937309265137,
+        "std": 0.00023052692413330075,
+        "range": 0.0007684230804443359,
+        "max_pairwise_abs_diff": 0.0007684230804443359
+      },
+      "gc": {
+        "min": 3.7660937309265137,
+        "max": 3.7660937309265137,
+        "mean": 3.7660937309265137,
+        "median": 3.7660937309265137,
+        "std": 0.0,
+        "range": 0.0,
+        "max_pairwise_abs_diff": 0.0
+      },
+      "median_abs_diff": 0.0,
+      "cross_arm_10x10_abs_diff": {
+        "min": 0.0,
+        "median": 0.0,
+        "max": 0.0007684230804443359
+      },
+      "noise_envelope": 0.0007685230804443359,
+      "distributions_overlap": true,
+      "corrected_parity_pass": true
+    },
+    "loss_anchor_group": {
+      "v1": {
+        "min": 5.1167778968811035,
+        "max": 5.1167778968811035,
+        "mean": 5.1167778968811035,
+        "median": 5.1167778968811035,
+        "std": 0.0,
+        "range": 0.0,
+        "max_pairwise_abs_diff": 0.0
+      },
+      "gc": {
+        "min": 5.1167778968811035,
+        "max": 5.1167778968811035,
+        "mean": 5.1167778968811035,
+        "median": 5.1167778968811035,
+        "std": 0.0,
+        "range": 0.0,
+        "max_pairwise_abs_diff": 0.0
+      },
+      "median_abs_diff": 0.0,
+      "cross_arm_10x10_abs_diff": {
+        "min": 0.0,
+        "median": 0.0,
+        "max": 0.0
+      },
+      "noise_envelope": 1e-07,
+      "distributions_overlap": true,
+      "corrected_parity_pass": true
+    },
+    "loss_anchor_visibility_layer12": {
+      "v1": {
+        "min": 0.0,
+        "max": 0.0,
+        "mean": 0.0,
+        "median": 0.0,
+        "std": 0.0,
+        "range": 0.0,
+        "max_pairwise_abs_diff": 0.0
+      },
+      "gc": {
+        "min": 0.0,
+        "max": 0.0,
+        "mean": 0.0,
+        "median": 0.0,
+        "std": 0.0,
+        "range": 0.0,
+        "max_pairwise_abs_diff": 0.0
+      },
+      "median_abs_diff": 0.0,
+      "cross_arm_10x10_abs_diff": {
+        "min": 0.0,
+        "median": 0.0,
+        "max": 0.0
+      },
+      "noise_envelope": 1e-07,
+      "distributions_overlap": true,
+      "corrected_parity_pass": true
+    },
+    "loss_anchor_visibility_layer6": {
+      "v1": {
+        "min": 0.0,
+        "max": 0.0,
+        "mean": 0.0,
+        "median": 0.0,
+        "std": 0.0,
+        "range": 0.0,
+        "max_pairwise_abs_diff": 0.0
+      },
+      "gc": {
+        "min": 0.0,
+        "max": 0.0,
+        "mean": 0.0,
+        "median": 0.0,
+        "std": 0.0,
+        "range": 0.0,
+        "max_pairwise_abs_diff": 0.0
+      },
+      "median_abs_diff": 0.0,
+      "cross_arm_10x10_abs_diff": {
+        "min": 0.0,
+        "median": 0.0,
+        "max": 0.0
+      },
+      "noise_envelope": 1e-07,
+      "distributions_overlap": true,
+      "corrected_parity_pass": true
+    },
+    "loss_gaussian_visibility_layer12": {
+      "v1": {
+        "min": 5.517396130017005e-05,
+        "max": 0.00013932584261056036,
+        "mean": 6.358914943120908e-05,
+        "median": 5.517396130017005e-05,
+        "std": 2.5245564393117097e-05,
+        "range": 8.415188131039031e-05,
+        "max_pairwise_abs_diff": 8.415188131039031e-05
+      },
+      "gc": {
+        "min": 5.517396130017005e-05,
+        "max": 5.517396130017005e-05,
+        "mean": 5.517396130017005e-05,
+        "median": 5.517396130017005e-05,
+        "std": 0.0,
+        "range": 0.0,
+        "max_pairwise_abs_diff": 0.0
+      },
+      "median_abs_diff": 0.0,
+      "cross_arm_10x10_abs_diff": {
+        "min": 0.0,
+        "median": 0.0,
+        "max": 8.415188131039031e-05
+      },
+      "noise_envelope": 8.425188131039031e-05,
+      "distributions_overlap": true,
+      "corrected_parity_pass": true
+    },
+    "loss_gaussian_visibility_layer6": {
+      "v1": {
+        "min": 3.807451139437035e-05,
+        "max": 0.0025121085345745087,
+        "mean": 0.002264705132256495,
+        "median": 0.0025121085345745087,
+        "std": 0.0007422102069540416,
+        "range": 0.0024740340231801383,
+        "max_pairwise_abs_diff": 0.0024740340231801383
+      },
+      "gc": {
+        "min": 0.0025121085345745087,
+        "max": 0.0025121085345745087,
+        "mean": 0.0025121085345745087,
+        "median": 0.0025121085345745087,
+        "std": 0.0,
+        "range": 0.0,
+        "max_pairwise_abs_diff": 0.0
+      },
+      "median_abs_diff": 0.0,
+      "cross_arm_10x10_abs_diff": {
+        "min": 0.0,
+        "median": 0.0,
+        "max": 0.0024740340231801383
+      },
+      "noise_envelope": 0.002474134023180138,
+      "distributions_overlap": true,
+      "corrected_parity_pass": true
+    },
+    "loss_identity": {
+      "v1": {
+        "min": 0.43609532713890076,
+        "max": 0.43609532713890076,
+        "mean": 0.43609532713890076,
+        "median": 0.43609532713890076,
+        "std": 0.0,
+        "range": 0.0,
+        "max_pairwise_abs_diff": 0.0
+      },
+      "gc": {
+        "min": 0.43609532713890076,
+        "max": 0.43609532713890076,
+        "mean": 0.43609532713890076,
+        "median": 0.43609532713890076,
+        "std": 0.0,
+        "range": 0.0,
+        "max_pairwise_abs_diff": 0.0
+      },
+      "median_abs_diff": 0.0,
+      "cross_arm_10x10_abs_diff": {
+        "min": 0.0,
+        "median": 0.0,
+        "max": 0.0
+      },
+      "noise_envelope": 1e-07,
+      "distributions_overlap": true,
+      "corrected_parity_pass": true
+    },
+    "loss_recon": {
+      "v1": {
+        "min": 0.020812444388866425,
+        "max": 0.021581020206212997,
+        "mean": 0.02150416262447834,
+        "median": 0.021581020206212997,
+        "std": 0.00023057274520397187,
+        "range": 0.0007685758173465729,
+        "max_pairwise_abs_diff": 0.0007685758173465729
+      },
+      "gc": {
+        "min": 0.021581020206212997,
+        "max": 0.021581020206212997,
+        "mean": 0.021581020206212997,
+        "median": 0.021581020206212997,
+        "std": 0.0,
+        "range": 0.0,
+        "max_pairwise_abs_diff": 0.0
+      },
+      "median_abs_diff": 0.0,
+      "cross_arm_10x10_abs_diff": {
+        "min": 0.0,
+        "median": 0.0,
+        "max": 0.0007685758173465729
+      },
+      "noise_envelope": 0.0007686758173465728,
+      "distributions_overlap": true,
+      "corrected_parity_pass": true
+    },
+    "loss_rgb_layer12": {
+      "v1": {
+        "min": 0.002089463174343109,
+        "max": 0.002089463174343109,
+        "mean": 0.002089463174343109,
+        "median": 0.002089463174343109,
+        "std": 0.0,
+        "range": 0.0,
+        "max_pairwise_abs_diff": 0.0
+      },
+      "gc": {
+        "min": 0.002089463174343109,
+        "max": 0.002089463174343109,
+        "mean": 0.002089463174343109,
+        "median": 0.002089463174343109,
+        "std": 0.0,
+        "range": 0.0,
+        "max_pairwise_abs_diff": 0.0
+      },
+      "median_abs_diff": 0.0,
+      "cross_arm_10x10_abs_diff": {
+        "min": 0.0,
+        "median": 0.0,
+        "max": 0.0
+      },
+      "noise_envelope": 1e-07,
+      "distributions_overlap": true,
+      "corrected_parity_pass": true
+    },
+    "loss_rgb_layer6": {
+      "v1": {
+        "min": 0.002680182456970215,
+        "max": 0.002680182456970215,
+        "mean": 0.002680182456970215,
+        "median": 0.002680182456970215,
+        "std": 0.0,
+        "range": 0.0,
+        "max_pairwise_abs_diff": 0.0
+      },
+      "gc": {
+        "min": 0.002680182456970215,
+        "max": 0.002680182456970215,
+        "mean": 0.002680182456970215,
+        "median": 0.002680182456970215,
+        "std": 0.0,
+        "range": 0.0,
+        "max_pairwise_abs_diff": 0.0
+      },
+      "median_abs_diff": 0.0,
+      "cross_arm_10x10_abs_diff": {
+        "min": 0.0,
+        "median": 0.0,
+        "max": 0.0
+      },
+      "noise_envelope": 1e-07,
+      "distributions_overlap": true,
+      "corrected_parity_pass": true
+    },
+    "loss_semantic": {
+      "v1": {
+        "min": 4.196320056915283,
+        "max": 4.196320056915283,
+        "mean": 4.196320056915283,
+        "median": 4.196320056915283,
+        "std": 0.0,
+        "range": 0.0,
+        "max_pairwise_abs_diff": 0.0
+      },
+      "gc": {
+        "min": 4.196320056915283,
+        "max": 4.196320056915283,
+        "mean": 4.196320056915283,
+        "median": 4.196320056915283,
+        "std": 0.0,
+        "range": 0.0,
+        "max_pairwise_abs_diff": 0.0
+      },
+      "median_abs_diff": 0.0,
+      "cross_arm_10x10_abs_diff": {
+        "min": 0.0,
+        "median": 0.0,
+        "max": 0.0
+      },
+      "noise_envelope": 1e-07,
+      "distributions_overlap": true,
+      "corrected_parity_pass": true
+    },
+    "loss_ssim_layer12": {
+      "v1": {
+        "min": 0.08519750833511353,
+        "max": 0.08519750833511353,
+        "mean": 0.08519750833511353,
+        "median": 0.08519750833511353,
+        "std": 0.0,
+        "range": 0.0,
+        "max_pairwise_abs_diff": 0.0
+      },
+      "gc": {
+        "min": 0.08519750833511353,
+        "max": 0.08519750833511353,
+        "mean": 0.08519750833511353,
+        "median": 0.08519750833511353,
+        "std": 0.0,
+        "range": 0.0,
+        "max_pairwise_abs_diff": 0.0
+      },
+      "median_abs_diff": 0.0,
+      "cross_arm_10x10_abs_diff": {
+        "min": 0.0,
+        "median": 0.0,
+        "max": 0.0
+      },
+      "noise_envelope": 1e-07,
+      "distributions_overlap": true,
+      "corrected_parity_pass": true
+    },
+    "loss_ssim_layer6": {
+      "v1": {
+        "min": 0.10591244697570801,
+        "max": 0.10591244697570801,
+        "mean": 0.10591244697570801,
+        "median": 0.10591244697570801,
+        "std": 0.0,
+        "range": 0.0,
+        "max_pairwise_abs_diff": 0.0
+      },
+      "gc": {
+        "min": 0.10591244697570801,
+        "max": 0.10591244697570801,
+        "mean": 0.10591244697570801,
+        "median": 0.10591244697570801,
+        "std": 0.0,
+        "range": 0.0,
+        "max_pairwise_abs_diff": 0.0
+      },
+      "median_abs_diff": 0.0,
+      "cross_arm_10x10_abs_diff": {
+        "min": 0.0,
+        "median": 0.0,
+        "max": 0.0
+      },
+      "noise_envelope": 1e-07,
+      "distributions_overlap": true,
+      "corrected_parity_pass": true
+    },
+    "loss_stuff_2d": {
+      "v1": {
+        "min": 14.194035530090332,
+        "max": 14.194035530090332,
+        "mean": 14.194035530090332,
+        "median": 14.194035530090332,
+        "std": 0.0,
+        "range": 0.0,
+        "max_pairwise_abs_diff": 0.0
+      },
+      "gc": {
+        "min": 14.194035530090332,
+        "max": 14.194035530090332,
+        "mean": 14.194035530090332,
+        "median": 14.194035530090332,
+        "std": 0.0,
+        "range": 0.0,
+        "max_pairwise_abs_diff": 0.0
+      },
+      "median_abs_diff": 0.0,
+      "cross_arm_10x10_abs_diff": {
+        "min": 0.0,
+        "median": 0.0,
+        "max": 0.0
+      },
+      "noise_envelope": 1e-07,
+      "distributions_overlap": true,
+      "corrected_parity_pass": true
+    },
+    "loss_thing_2d": {
+      "v1": {
+        "min": 13.894386291503906,
+        "max": 13.894386291503906,
+        "mean": 13.894386291503906,
+        "median": 13.894386291503906,
+        "std": 0.0,
+        "range": 0.0,
+        "max_pairwise_abs_diff": 0.0
+      },
+      "gc": {
+        "min": 13.894386291503906,
+        "max": 13.894386291503906,
+        "mean": 13.894386291503906,
+        "median": 13.894386291503906,
+        "std": 0.0,
+        "range": 0.0,
+        "max_pairwise_abs_diff": 0.0
+      },
+      "median_abs_diff": 0.0,
+      "cross_arm_10x10_abs_diff": {
+        "min": 0.0,
+        "median": 0.0,
+        "max": 0.0
+      },
+      "noise_envelope": 1e-07,
+      "distributions_overlap": true,
+      "corrected_parity_pass": true
+    },
+    "loss_total": {
+      "v1": {
+        "min": 3.7653253078460693,
+        "max": 3.7660937309265137,
+        "mean": 3.766016888618469,
+        "median": 3.7660937309265137,
+        "std": 0.00023052692413330075,
+        "range": 0.0007684230804443359,
+        "max_pairwise_abs_diff": 0.0007684230804443359
+      },
+      "gc": {
+        "min": 3.7660937309265137,
+        "max": 3.7660937309265137,
+        "mean": 3.7660937309265137,
+        "median": 3.7660937309265137,
+        "std": 0.0,
+        "range": 0.0,
+        "max_pairwise_abs_diff": 0.0
+      },
+      "median_abs_diff": 0.0,
+      "cross_arm_10x10_abs_diff": {
+        "min": 0.0,
+        "median": 0.0,
+        "max": 0.0007684230804443359
+      },
+      "noise_envelope": 0.0007685230804443359,
+      "distributions_overlap": true,
+      "corrected_parity_pass": true
+    },
+    "loss_understanding": {
+      "v1": {
+        "min": 3.7445127964019775,
+        "max": 3.7445127964019775,
+        "mean": 3.7445127964019775,
+        "median": 3.7445127964019775,
+        "std": 0.0,
+        "range": 0.0,
+        "max_pairwise_abs_diff": 0.0
+      },
+      "gc": {
+        "min": 3.7445127964019775,
+        "max": 3.7445127964019775,
+        "mean": 3.7445127964019775,
+        "median": 3.7445127964019775,
+        "std": 0.0,
+        "range": 0.0,
+        "max_pairwise_abs_diff": 0.0
+      },
+      "median_abs_diff": 0.0,
+      "cross_arm_10x10_abs_diff": {
+        "min": 0.0,
+        "median": 0.0,
+        "max": 0.0
+      },
+      "noise_envelope": 1e-07,
+      "distributions_overlap": true,
+      "corrected_parity_pass": true
+    }
+  },
+  "noise_envelopes": {
+    "loss": 0.0007685230804443359,
+    "loss_anchor_group": 1e-07,
+    "loss_anchor_visibility_layer12": 1e-07,
+    "loss_anchor_visibility_layer6": 1e-07,
+    "loss_gaussian_visibility_layer12": 8.425188131039031e-05,
+    "loss_gaussian_visibility_layer6": 0.002474134023180138,
+    "loss_identity": 1e-07,
+    "loss_recon": 0.0007686758173465728,
+    "loss_rgb_layer12": 1e-07,
+    "loss_rgb_layer6": 1e-07,
+    "loss_semantic": 1e-07,
+    "loss_ssim_layer12": 1e-07,
+    "loss_ssim_layer6": 1e-07,
+    "loss_stuff_2d": 1e-07,
+    "loss_thing_2d": 1e-07,
+    "loss_total": 0.0007685230804443359,
+    "loss_understanding": 1e-07
+  },
+  "layer_render_repeat_diagnostics": {
+    "12": {
+      "alphas_pred": {
+        "v1_max_pairwise_repeat_diff": 0.0,
+        "gc_max_pairwise_repeat_diff": 0.0,
+        "exact_within_both_arms": true
+      },
+      "component:loss": {
+        "v1": {
+          "min": 0.019184138625860214,
+          "max": 0.01926829107105732,
+          "mean": 0.019192553870379925,
+          "median": 0.019184138625860214,
+          "std": 2.5245733559131624e-05,
+          "range": 8.415244519710541e-05,
+          "max_pairwise_abs_diff": 8.415244519710541e-05
+        },
+        "gc": {
+          "min": 0.019184138625860214,
+          "max": 0.019184138625860214,
+          "mean": 0.019184138625860214,
+          "median": 0.019184138625860214,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "exact_within_v1": false,
+        "exact_within_gc": true
+      },
+      "component:loss_anchor_visibility": {
+        "v1": {
+          "min": 0.0,
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "gc": {
+          "min": 0.0,
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "exact_within_v1": true,
+        "exact_within_gc": true
+      },
+      "component:loss_gaussian_visibility": {
+        "v1": {
+          "min": 5.517396130017005e-05,
+          "max": 0.00013932584261056036,
+          "mean": 6.358914943120908e-05,
+          "median": 5.517396130017005e-05,
+          "std": 2.5245564393117097e-05,
+          "range": 8.415188131039031e-05,
+          "max_pairwise_abs_diff": 8.415188131039031e-05
+        },
+        "gc": {
+          "min": 5.517396130017005e-05,
+          "max": 5.517396130017005e-05,
+          "mean": 5.517396130017005e-05,
+          "median": 5.517396130017005e-05,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "exact_within_v1": false,
+        "exact_within_gc": true
+      },
+      "component:loss_rgb": {
+        "v1": {
+          "min": 0.002089463174343109,
+          "max": 0.002089463174343109,
+          "mean": 0.002089463174343109,
+          "median": 0.002089463174343109,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "gc": {
+          "min": 0.002089463174343109,
+          "max": 0.002089463174343109,
+          "mean": 0.002089463174343109,
+          "median": 0.002089463174343109,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "exact_within_v1": true,
+        "exact_within_gc": true
+      },
+      "component:loss_ssim": {
+        "v1": {
+          "min": 0.08519750833511353,
+          "max": 0.08519750833511353,
+          "mean": 0.08519750833511353,
+          "median": 0.08519750833511353,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "gc": {
+          "min": 0.08519750833511353,
+          "max": 0.08519750833511353,
+          "mean": 0.08519750833511353,
+          "median": 0.08519750833511353,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "exact_within_v1": true,
+        "exact_within_gc": true
+      },
+      "component:psnr": {
+        "v1": {
+          "min": 26.979652404785156,
+          "max": 26.979652404785156,
+          "mean": 26.979652404785156,
+          "median": 26.979652404785156,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "gc": {
+          "min": 26.979652404785156,
+          "max": 26.979652404785156,
+          "mean": 26.979652404785156,
+          "median": 26.979652404785156,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "exact_within_v1": true,
+        "exact_within_gc": true
+      },
+      "gaussians": {
+        "v1_max_pairwise_repeat_diff": 0.0,
+        "gc_max_pairwise_repeat_diff": 0.0,
+        "exact_within_both_arms": true
+      },
+      "images_pred": {
+        "v1_max_pairwise_repeat_diff": 0.0,
+        "gc_max_pairwise_repeat_diff": 0.0,
+        "exact_within_both_arms": true
+      },
+      "means2d_pred": {
+        "v1_max_pairwise_repeat_diff": 1.1856176853179932,
+        "gc_max_pairwise_repeat_diff": 0.0,
+        "exact_within_both_arms": false
+      },
+      "objective_loss": {
+        "v1": {
+          "min": 0.019184138625860214,
+          "max": 0.01926829107105732,
+          "mean": 0.019192553870379925,
+          "median": 0.019184138625860214,
+          "std": 2.5245733559131624e-05,
+          "range": 8.415244519710541e-05,
+          "max_pairwise_abs_diff": 8.415244519710541e-05
+        },
+        "gc": {
+          "min": 0.019184138625860214,
+          "max": 0.019184138625860214,
+          "mean": 0.019184138625860214,
+          "median": 0.019184138625860214,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        }
+      }
+    },
+    "6": {
+      "alphas_pred": {
+        "v1_max_pairwise_repeat_diff": 0.0,
+        "gc_max_pairwise_repeat_diff": 0.0,
+        "exact_within_both_arms": true
+      },
+      "component:loss": {
+        "v1": {
+          "min": 0.023900747299194336,
+          "max": 0.026374781504273415,
+          "mean": 0.026127378083765508,
+          "median": 0.026374781504273415,
+          "std": 0.0007422102615237236,
+          "range": 0.0024740342050790787,
+          "max_pairwise_abs_diff": 0.0024740342050790787
+        },
+        "gc": {
+          "min": 0.026374781504273415,
+          "max": 0.026374781504273415,
+          "mean": 0.026374781504273415,
+          "median": 0.026374781504273415,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "exact_within_v1": false,
+        "exact_within_gc": true
+      },
+      "component:loss_anchor_visibility": {
+        "v1": {
+          "min": 0.0,
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "gc": {
+          "min": 0.0,
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "exact_within_v1": true,
+        "exact_within_gc": true
+      },
+      "component:loss_gaussian_visibility": {
+        "v1": {
+          "min": 3.807451139437035e-05,
+          "max": 0.0025121085345745087,
+          "mean": 0.002264705132256495,
+          "median": 0.0025121085345745087,
+          "std": 0.0007422102069540416,
+          "range": 0.0024740340231801383,
+          "max_pairwise_abs_diff": 0.0024740340231801383
+        },
+        "gc": {
+          "min": 0.0025121085345745087,
+          "max": 0.0025121085345745087,
+          "mean": 0.0025121085345745087,
+          "median": 0.0025121085345745087,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "exact_within_v1": false,
+        "exact_within_gc": true
+      },
+      "component:loss_rgb": {
+        "v1": {
+          "min": 0.002680182456970215,
+          "max": 0.002680182456970215,
+          "mean": 0.002680182456970215,
+          "median": 0.002680182456970215,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "gc": {
+          "min": 0.002680182456970215,
+          "max": 0.002680182456970215,
+          "mean": 0.002680182456970215,
+          "median": 0.002680182456970215,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "exact_within_v1": true,
+        "exact_within_gc": true
+      },
+      "component:loss_ssim": {
+        "v1": {
+          "min": 0.10591244697570801,
+          "max": 0.10591244697570801,
+          "mean": 0.10591244697570801,
+          "median": 0.10591244697570801,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "gc": {
+          "min": 0.10591244697570801,
+          "max": 0.10591244697570801,
+          "mean": 0.10591244697570801,
+          "median": 0.10591244697570801,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "exact_within_v1": true,
+        "exact_within_gc": true
+      },
+      "component:psnr": {
+        "v1": {
+          "min": 25.896650314331055,
+          "max": 25.896650314331055,
+          "mean": 25.896650314331055,
+          "median": 25.896650314331055,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "gc": {
+          "min": 25.896650314331055,
+          "max": 25.896650314331055,
+          "mean": 25.896650314331055,
+          "median": 25.896650314331055,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "exact_within_v1": true,
+        "exact_within_gc": true
+      },
+      "gaussians": {
+        "v1_max_pairwise_repeat_diff": 0.0,
+        "gc_max_pairwise_repeat_diff": 0.0,
+        "exact_within_both_arms": true
+      },
+      "images_pred": {
+        "v1_max_pairwise_repeat_diff": 0.0,
+        "gc_max_pairwise_repeat_diff": 0.0,
+        "exact_within_both_arms": true
+      },
+      "means2d_pred": {
+        "v1_max_pairwise_repeat_diff": 20.0,
+        "gc_max_pairwise_repeat_diff": 0.0,
+        "exact_within_both_arms": false
+      },
+      "objective_loss": {
+        "v1": {
+          "min": 0.023900747299194336,
+          "max": 0.026374781504273415,
+          "mean": 0.026127378083765508,
+          "median": 0.026374781504273415,
+          "std": 0.0007422102615237236,
+          "range": 0.0024740342050790787,
+          "max_pairwise_abs_diff": 0.0024740342050790787
+        },
+        "gc": {
+          "min": 0.026374781504273415,
+          "max": 0.026374781504273415,
+          "mean": 0.026374781504273415,
+          "median": 0.026374781504273415,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        }
+      }
+    }
+  },
+  "root_cause": {
+    "noisy_reconstruction_components_ranked": [
+      "loss_gaussian_visibility_layer6",
+      "loss_gaussian_visibility_layer12",
+      "loss_anchor_visibility_layer12",
+      "loss_anchor_visibility_layer6",
+      "loss_rgb_layer12",
+      "loss_rgb_layer6",
+      "loss_ssim_layer12",
+      "loss_ssim_layer6"
+    ],
+    "first_nonexact_reconstruction_component": "loss_gaussian_visibility_layer6",
+    "source": "render_level_numerical_nondeterminism"
+  },
+  "C1a_forward_tensor_parity": {
+    "model_state_equal": true,
+    "tensor_count": 509,
+    "missing_keys": [],
+    "extra_keys": [],
+    "mismatched_keys": [],
+    "same_batch_object_reused": true,
+    "tensor_field_count": 23,
+    "tensor_manifest": {
+      "input": {
+        "shape": [
+          1,
+          4,
+          9,
+          256,
+          256
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "d84cecc3a55b240586f5f2d664da3c0fb6533a6c5efe999b5eb2246f82164e57",
+        "sum": 378517.52787733485
+      },
+      "rays_os": {
+        "shape": [
+          1,
+          4,
+          3,
+          256,
+          256
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "e5b4695df2305f7f5665797a5afb670cbe1c2e64b1d9df6c88c6f2e5c59693e9",
+        "sum": 1863.196992492769
+      },
+      "rays_ds": {
+        "shape": [
+          1,
+          4,
+          3,
+          256,
+          256
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "bd24ed908db9633f2dcb8eddc53842048c98dfa35bca471b4da5c9c814957bc4",
+        "sum": 246404.28764961753
+      },
+      "images_all": {
+        "shape": [
+          1,
+          4,
+          3,
+          256,
+          256
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "99ee2b34326498591af593bc743a6d9e36e15a51efa68ca3ed3d7bc1a1dcb532",
+        "sum": 383731.3140855003
+      },
+      "images_input": {
+        "shape": [
+          1,
+          2,
+          3,
+          256,
+          256
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "af1d51a7adf92ce9e1ac35619a52c4a7d3707bc868bb7dee89f5d6c1be14a5af",
+        "sum": 190138.55702462932
+      },
+      "images_output": {
+        "shape": [
+          1,
+          2,
+          3,
+          256,
+          256
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "3c3ff942f858ea14ecdbab55a9f965293bfdb7b08a7a85e0db9da6cb4396b01f",
+        "sum": 193592.757060871
+      },
+      "intrinsics_all": {
+        "shape": [
+          1,
+          4,
+          4
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "6edb66e62e782a310095343187580ae6ccf4b2ebaa6bc25f073d2c1f933b128d",
+        "sum": 3567.5595092773438
+      },
+      "intrinsics": {
+        "shape": [
+          1,
+          2,
+          4
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "4cdf4ca9676f0e269739d8984b1f2198dc9c044e7f7b6de3b98e8715d90dae86",
+        "sum": 1783.7797546386719
+      },
+      "intrinsics_input": {
+        "shape": [
+          1,
+          2,
+          4
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "4cdf4ca9676f0e269739d8984b1f2198dc9c044e7f7b6de3b98e8715d90dae86",
+        "sum": 1783.7797546386719
+      },
+      "cam_view_all": {
+        "shape": [
+          1,
+          4,
+          4,
+          4
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "e1e58d9a488aa4226e1dd8e5cd6dfc0c482ff3acfb27cf5fd124ba7ff9b8bef6",
+        "sum": 15.964023629117536
+      },
+      "cam_view": {
+        "shape": [
+          1,
+          2,
+          4,
+          4
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "833a647ab7c7655faad3992231cb3a304fa3d6a15996ae0aac8b208cdec43584",
+        "sum": 7.982060135281771
+      },
+      "masks_all": {
+        "shape": [
+          1,
+          4,
+          1,
+          256,
+          256
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "5e2290c3b28be730f9ee062994f940650073dacff8de973325c2de6486c74107",
+        "sum": 262144.0
+      },
+      "masks_output": {
+        "shape": [
+          1,
+          2,
+          1,
+          256,
+          256
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "0219b822835868ed48934af7511d4e5866f2e60480eb2a026f2331a071b1a3ae",
+        "sum": 131072.0
+      },
+      "has_mask": {
+        "shape": [
+          1
+        ],
+        "dtype": "torch.bool",
+        "device": "cuda:0",
+        "sha256": "4bf5122f344554c53bde2ebb8cd2b7e3d1600ad631c385a5d7cce23c7785459a",
+        "sum": 1.0
+      },
+      "cam_to_world_input": {
+        "shape": [
+          1,
+          2,
+          4,
+          4
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "ae711d5c27ba17e271478e9c54d3fb4d319dc4039e780e48e7a869277243eaa0",
+        "sum": 8.012484651111063
+      },
+      "cam_view_input": {
+        "shape": [
+          1,
+          2,
+          4,
+          4
+        ],
+        "dtype": "torch.float32",
+        "device": "cuda:0",
+        "sha256": "113efaa8b3b2ce6cead115699d4def93228f2a8c5fef534db6c5105846b65578",
+        "sum": 7.981963493835766
+      },
+      "semantic_label_all": {
+        "shape": [
+          1,
+          4,
+          256,
+          256
+        ],
+        "dtype": "torch.int64",
+        "device": "cuda:0",
+        "sha256": "7054569aea52c581b2de96e60de31c299e9134cba1dfdebbf44919b56430a1ce",
+        "sum": 29078526.0
+      },
+      "semantic_label_input": {
+        "shape": [
+          1,
+          2,
+          256,
+          256
+        ],
+        "dtype": "torch.int64",
+        "device": "cuda:0",
+        "sha256": "deabbc7e0ddf76185e849c78f9a402029a0a532bec443fd5ad0ee87b511e7a24",
+        "sum": 14550281.0
+      },
+      "semantic_label_output": {
+        "shape": [
+          1,
+          2,
+          256,
+          256
+        ],
+        "dtype": "torch.int64",
+        "device": "cuda:0",
+        "sha256": "5b097dc10c946caf2ade0cf288bc07276dad01e03fef8514676687ac042d7b45",
+        "sum": 14528245.0
+      },
+      "instance_label_all": {
+        "shape": [
+          1,
+          4,
+          256,
+          256
+        ],
+        "dtype": "torch.int64",
+        "device": "cuda:0",
+        "sha256": "899803b298f44acfdf5d46eddadd8b9f7f31d69421e2f62008b37bc95e23c09b",
+        "sum": 4102507.0
+      },
+      "instance_label_input": {
+        "shape": [
+          1,
+          2,
+          256,
+          256
+        ],
+        "dtype": "torch.int64",
+        "device": "cuda:0",
+        "sha256": "b23cfe318ba3f51d49f5e8e7d816cada0d06874a30e12ccf5c2aaa840c66f83a",
+        "sum": 2045701.0
+      },
+      "instance_label_output": {
+        "shape": [
+          1,
+          2,
+          256,
+          256
+        ],
+        "dtype": "torch.int64",
+        "device": "cuda:0",
+        "sha256": "91f7d02c0ab7cda7111e660dc495c415ef8a4ce415770692c66d5677f5540654",
+        "sum": 2056806.0
+      },
+      "frame_ids": {
+        "shape": [
+          1,
+          4
+        ],
+        "dtype": "torch.int64",
+        "device": "cuda:0",
+        "sha256": "d0112f1cc2d3725b8af8e208288f1aed458ff0ea129e0fe2d26957206ad80a3b",
+        "sum": 6048.0
+      }
+    },
+    "max_abs_diff_by_tensor": {
+      "gaussians": 0.0,
+      "rgb": 0.0,
+      "A_post": 0.0,
+      "region_mass": 0.0,
+      "semantic_scores": 0.0,
+      "thing_class_logits": 0.0
+    },
+    "all_exact": true,
+    "passed": true
+  },
+  "C1b_empirical_loss_parity": {
+    "metrics": {
+      "loss": {
+        "v1": {
+          "min": 3.7653253078460693,
+          "max": 3.7660937309265137,
+          "mean": 3.766016888618469,
+          "median": 3.7660937309265137,
+          "std": 0.00023052692413330075,
+          "range": 0.0007684230804443359,
+          "max_pairwise_abs_diff": 0.0007684230804443359
+        },
+        "gc": {
+          "min": 3.7660937309265137,
+          "max": 3.7660937309265137,
+          "mean": 3.7660937309265137,
+          "median": 3.7660937309265137,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "median_abs_diff": 0.0,
+        "cross_arm_10x10_abs_diff": {
+          "min": 0.0,
+          "median": 0.0,
+          "max": 0.0007684230804443359
+        },
+        "noise_envelope": 0.0007685230804443359,
+        "distributions_overlap": true,
+        "corrected_parity_pass": true
+      },
+      "loss_anchor_group": {
+        "v1": {
+          "min": 5.1167778968811035,
+          "max": 5.1167778968811035,
+          "mean": 5.1167778968811035,
+          "median": 5.1167778968811035,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "gc": {
+          "min": 5.1167778968811035,
+          "max": 5.1167778968811035,
+          "mean": 5.1167778968811035,
+          "median": 5.1167778968811035,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "median_abs_diff": 0.0,
+        "cross_arm_10x10_abs_diff": {
+          "min": 0.0,
+          "median": 0.0,
+          "max": 0.0
+        },
+        "noise_envelope": 1e-07,
+        "distributions_overlap": true,
+        "corrected_parity_pass": true
+      },
+      "loss_anchor_visibility_layer12": {
+        "v1": {
+          "min": 0.0,
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "gc": {
+          "min": 0.0,
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "median_abs_diff": 0.0,
+        "cross_arm_10x10_abs_diff": {
+          "min": 0.0,
+          "median": 0.0,
+          "max": 0.0
+        },
+        "noise_envelope": 1e-07,
+        "distributions_overlap": true,
+        "corrected_parity_pass": true
+      },
+      "loss_anchor_visibility_layer6": {
+        "v1": {
+          "min": 0.0,
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "gc": {
+          "min": 0.0,
+          "max": 0.0,
+          "mean": 0.0,
+          "median": 0.0,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "median_abs_diff": 0.0,
+        "cross_arm_10x10_abs_diff": {
+          "min": 0.0,
+          "median": 0.0,
+          "max": 0.0
+        },
+        "noise_envelope": 1e-07,
+        "distributions_overlap": true,
+        "corrected_parity_pass": true
+      },
+      "loss_gaussian_visibility_layer12": {
+        "v1": {
+          "min": 5.517396130017005e-05,
+          "max": 0.00013932584261056036,
+          "mean": 6.358914943120908e-05,
+          "median": 5.517396130017005e-05,
+          "std": 2.5245564393117097e-05,
+          "range": 8.415188131039031e-05,
+          "max_pairwise_abs_diff": 8.415188131039031e-05
+        },
+        "gc": {
+          "min": 5.517396130017005e-05,
+          "max": 5.517396130017005e-05,
+          "mean": 5.517396130017005e-05,
+          "median": 5.517396130017005e-05,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "median_abs_diff": 0.0,
+        "cross_arm_10x10_abs_diff": {
+          "min": 0.0,
+          "median": 0.0,
+          "max": 8.415188131039031e-05
+        },
+        "noise_envelope": 8.425188131039031e-05,
+        "distributions_overlap": true,
+        "corrected_parity_pass": true
+      },
+      "loss_gaussian_visibility_layer6": {
+        "v1": {
+          "min": 3.807451139437035e-05,
+          "max": 0.0025121085345745087,
+          "mean": 0.002264705132256495,
+          "median": 0.0025121085345745087,
+          "std": 0.0007422102069540416,
+          "range": 0.0024740340231801383,
+          "max_pairwise_abs_diff": 0.0024740340231801383
+        },
+        "gc": {
+          "min": 0.0025121085345745087,
+          "max": 0.0025121085345745087,
+          "mean": 0.0025121085345745087,
+          "median": 0.0025121085345745087,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "median_abs_diff": 0.0,
+        "cross_arm_10x10_abs_diff": {
+          "min": 0.0,
+          "median": 0.0,
+          "max": 0.0024740340231801383
+        },
+        "noise_envelope": 0.002474134023180138,
+        "distributions_overlap": true,
+        "corrected_parity_pass": true
+      },
+      "loss_identity": {
+        "v1": {
+          "min": 0.43609532713890076,
+          "max": 0.43609532713890076,
+          "mean": 0.43609532713890076,
+          "median": 0.43609532713890076,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "gc": {
+          "min": 0.43609532713890076,
+          "max": 0.43609532713890076,
+          "mean": 0.43609532713890076,
+          "median": 0.43609532713890076,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "median_abs_diff": 0.0,
+        "cross_arm_10x10_abs_diff": {
+          "min": 0.0,
+          "median": 0.0,
+          "max": 0.0
+        },
+        "noise_envelope": 1e-07,
+        "distributions_overlap": true,
+        "corrected_parity_pass": true
+      },
+      "loss_recon": {
+        "v1": {
+          "min": 0.020812444388866425,
+          "max": 0.021581020206212997,
+          "mean": 0.02150416262447834,
+          "median": 0.021581020206212997,
+          "std": 0.00023057274520397187,
+          "range": 0.0007685758173465729,
+          "max_pairwise_abs_diff": 0.0007685758173465729
+        },
+        "gc": {
+          "min": 0.021581020206212997,
+          "max": 0.021581020206212997,
+          "mean": 0.021581020206212997,
+          "median": 0.021581020206212997,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "median_abs_diff": 0.0,
+        "cross_arm_10x10_abs_diff": {
+          "min": 0.0,
+          "median": 0.0,
+          "max": 0.0007685758173465729
+        },
+        "noise_envelope": 0.0007686758173465728,
+        "distributions_overlap": true,
+        "corrected_parity_pass": true
+      },
+      "loss_rgb_layer12": {
+        "v1": {
+          "min": 0.002089463174343109,
+          "max": 0.002089463174343109,
+          "mean": 0.002089463174343109,
+          "median": 0.002089463174343109,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "gc": {
+          "min": 0.002089463174343109,
+          "max": 0.002089463174343109,
+          "mean": 0.002089463174343109,
+          "median": 0.002089463174343109,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "median_abs_diff": 0.0,
+        "cross_arm_10x10_abs_diff": {
+          "min": 0.0,
+          "median": 0.0,
+          "max": 0.0
+        },
+        "noise_envelope": 1e-07,
+        "distributions_overlap": true,
+        "corrected_parity_pass": true
+      },
+      "loss_rgb_layer6": {
+        "v1": {
+          "min": 0.002680182456970215,
+          "max": 0.002680182456970215,
+          "mean": 0.002680182456970215,
+          "median": 0.002680182456970215,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "gc": {
+          "min": 0.002680182456970215,
+          "max": 0.002680182456970215,
+          "mean": 0.002680182456970215,
+          "median": 0.002680182456970215,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "median_abs_diff": 0.0,
+        "cross_arm_10x10_abs_diff": {
+          "min": 0.0,
+          "median": 0.0,
+          "max": 0.0
+        },
+        "noise_envelope": 1e-07,
+        "distributions_overlap": true,
+        "corrected_parity_pass": true
+      },
+      "loss_semantic": {
+        "v1": {
+          "min": 4.196320056915283,
+          "max": 4.196320056915283,
+          "mean": 4.196320056915283,
+          "median": 4.196320056915283,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "gc": {
+          "min": 4.196320056915283,
+          "max": 4.196320056915283,
+          "mean": 4.196320056915283,
+          "median": 4.196320056915283,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "median_abs_diff": 0.0,
+        "cross_arm_10x10_abs_diff": {
+          "min": 0.0,
+          "median": 0.0,
+          "max": 0.0
+        },
+        "noise_envelope": 1e-07,
+        "distributions_overlap": true,
+        "corrected_parity_pass": true
+      },
+      "loss_ssim_layer12": {
+        "v1": {
+          "min": 0.08519750833511353,
+          "max": 0.08519750833511353,
+          "mean": 0.08519750833511353,
+          "median": 0.08519750833511353,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "gc": {
+          "min": 0.08519750833511353,
+          "max": 0.08519750833511353,
+          "mean": 0.08519750833511353,
+          "median": 0.08519750833511353,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "median_abs_diff": 0.0,
+        "cross_arm_10x10_abs_diff": {
+          "min": 0.0,
+          "median": 0.0,
+          "max": 0.0
+        },
+        "noise_envelope": 1e-07,
+        "distributions_overlap": true,
+        "corrected_parity_pass": true
+      },
+      "loss_ssim_layer6": {
+        "v1": {
+          "min": 0.10591244697570801,
+          "max": 0.10591244697570801,
+          "mean": 0.10591244697570801,
+          "median": 0.10591244697570801,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "gc": {
+          "min": 0.10591244697570801,
+          "max": 0.10591244697570801,
+          "mean": 0.10591244697570801,
+          "median": 0.10591244697570801,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "median_abs_diff": 0.0,
+        "cross_arm_10x10_abs_diff": {
+          "min": 0.0,
+          "median": 0.0,
+          "max": 0.0
+        },
+        "noise_envelope": 1e-07,
+        "distributions_overlap": true,
+        "corrected_parity_pass": true
+      },
+      "loss_stuff_2d": {
+        "v1": {
+          "min": 14.194035530090332,
+          "max": 14.194035530090332,
+          "mean": 14.194035530090332,
+          "median": 14.194035530090332,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "gc": {
+          "min": 14.194035530090332,
+          "max": 14.194035530090332,
+          "mean": 14.194035530090332,
+          "median": 14.194035530090332,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "median_abs_diff": 0.0,
+        "cross_arm_10x10_abs_diff": {
+          "min": 0.0,
+          "median": 0.0,
+          "max": 0.0
+        },
+        "noise_envelope": 1e-07,
+        "distributions_overlap": true,
+        "corrected_parity_pass": true
+      },
+      "loss_thing_2d": {
+        "v1": {
+          "min": 13.894386291503906,
+          "max": 13.894386291503906,
+          "mean": 13.894386291503906,
+          "median": 13.894386291503906,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "gc": {
+          "min": 13.894386291503906,
+          "max": 13.894386291503906,
+          "mean": 13.894386291503906,
+          "median": 13.894386291503906,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "median_abs_diff": 0.0,
+        "cross_arm_10x10_abs_diff": {
+          "min": 0.0,
+          "median": 0.0,
+          "max": 0.0
+        },
+        "noise_envelope": 1e-07,
+        "distributions_overlap": true,
+        "corrected_parity_pass": true
+      },
+      "loss_total": {
+        "v1": {
+          "min": 3.7653253078460693,
+          "max": 3.7660937309265137,
+          "mean": 3.766016888618469,
+          "median": 3.7660937309265137,
+          "std": 0.00023052692413330075,
+          "range": 0.0007684230804443359,
+          "max_pairwise_abs_diff": 0.0007684230804443359
+        },
+        "gc": {
+          "min": 3.7660937309265137,
+          "max": 3.7660937309265137,
+          "mean": 3.7660937309265137,
+          "median": 3.7660937309265137,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "median_abs_diff": 0.0,
+        "cross_arm_10x10_abs_diff": {
+          "min": 0.0,
+          "median": 0.0,
+          "max": 0.0007684230804443359
+        },
+        "noise_envelope": 0.0007685230804443359,
+        "distributions_overlap": true,
+        "corrected_parity_pass": true
+      },
+      "loss_understanding": {
+        "v1": {
+          "min": 3.7445127964019775,
+          "max": 3.7445127964019775,
+          "mean": 3.7445127964019775,
+          "median": 3.7445127964019775,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "gc": {
+          "min": 3.7445127964019775,
+          "max": 3.7445127964019775,
+          "mean": 3.7445127964019775,
+          "median": 3.7445127964019775,
+          "std": 0.0,
+          "range": 0.0,
+          "max_pairwise_abs_diff": 0.0
+        },
+        "median_abs_diff": 0.0,
+        "cross_arm_10x10_abs_diff": {
+          "min": 0.0,
+          "median": 0.0,
+          "max": 0.0
+        },
+        "noise_envelope": 1e-07,
+        "distributions_overlap": true,
+        "corrected_parity_pass": true
+      }
+    },
+    "passed": true
+  },
+  "historical_independent_bit_exact_gate": {
+    "prior_status": "failed",
+    "interpretation": "independent CUDA reduction/rasterization executions are evaluated against measured same-arm repeat noise; forward tensors remain exact-gated"
+  },
+  "status": "pass",
+  "repeats": {
+    "v1": [
+      {
+        "scalars": {
+          "loss_rgb_layer6": 0.002680182456970215,
+          "loss_ssim_layer6": 0.10591244697570801,
+          "loss_gaussian_visibility_layer6": 3.807451139437035e-05,
+          "loss_anchor_visibility_layer6": 0.0,
+          "loss_rgb_layer12": 0.002089463174343109,
+          "loss_ssim_layer12": 0.08519750833511353,
+          "loss_gaussian_visibility_layer12": 0.00013932584261056036,
+          "loss_anchor_visibility_layer12": 0.0,
+          "loss_anchor_group": 5.1167778968811035,
+          "loss_thing_2d": 13.894386291503906,
+          "loss_stuff_2d": 14.194035530090332,
+          "loss_semantic": 4.196320056915283,
+          "loss_identity": 0.43609532713890076,
+          "loss_understanding": 3.7445127964019775,
+          "loss_recon": 0.020812444388866425,
+          "loss": 3.7653253078460693,
+          "loss_total": 3.7653253078460693
+        }
+      },
+      {
+        "scalars": {
+          "loss_rgb_layer6": 0.002680182456970215,
+          "loss_ssim_layer6": 0.10591244697570801,
+          "loss_gaussian_visibility_layer6": 0.0025121085345745087,
+          "loss_anchor_visibility_layer6": 0.0,
+          "loss_rgb_layer12": 0.002089463174343109,
+          "loss_ssim_layer12": 0.08519750833511353,
+          "loss_gaussian_visibility_layer12": 5.517396130017005e-05,
+          "loss_anchor_visibility_layer12": 0.0,
+          "loss_anchor_group": 5.1167778968811035,
+          "loss_thing_2d": 13.894386291503906,
+          "loss_stuff_2d": 14.194035530090332,
+          "loss_semantic": 4.196320056915283,
+          "loss_identity": 0.43609532713890076,
+          "loss_understanding": 3.7445127964019775,
+          "loss_recon": 0.021581020206212997,
+          "loss": 3.7660937309265137,
+          "loss_total": 3.7660937309265137
+        }
+      },
+      {
+        "scalars": {
+          "loss_rgb_layer6": 0.002680182456970215,
+          "loss_ssim_layer6": 0.10591244697570801,
+          "loss_gaussian_visibility_layer6": 0.0025121085345745087,
+          "loss_anchor_visibility_layer6": 0.0,
+          "loss_rgb_layer12": 0.002089463174343109,
+          "loss_ssim_layer12": 0.08519750833511353,
+          "loss_gaussian_visibility_layer12": 5.517396130017005e-05,
+          "loss_anchor_visibility_layer12": 0.0,
+          "loss_anchor_group": 5.1167778968811035,
+          "loss_thing_2d": 13.894386291503906,
+          "loss_stuff_2d": 14.194035530090332,
+          "loss_semantic": 4.196320056915283,
+          "loss_identity": 0.43609532713890076,
+          "loss_understanding": 3.7445127964019775,
+          "loss_recon": 0.021581020206212997,
+          "loss": 3.7660937309265137,
+          "loss_total": 3.7660937309265137
+        }
+      },
+      {
+        "scalars": {
+          "loss_rgb_layer6": 0.002680182456970215,
+          "loss_ssim_layer6": 0.10591244697570801,
+          "loss_gaussian_visibility_layer6": 0.0025121085345745087,
+          "loss_anchor_visibility_layer6": 0.0,
+          "loss_rgb_layer12": 0.002089463174343109,
+          "loss_ssim_layer12": 0.08519750833511353,
+          "loss_gaussian_visibility_layer12": 5.517396130017005e-05,
+          "loss_anchor_visibility_layer12": 0.0,
+          "loss_anchor_group": 5.1167778968811035,
+          "loss_thing_2d": 13.894386291503906,
+          "loss_stuff_2d": 14.194035530090332,
+          "loss_semantic": 4.196320056915283,
+          "loss_identity": 0.43609532713890076,
+          "loss_understanding": 3.7445127964019775,
+          "loss_recon": 0.021581020206212997,
+          "loss": 3.7660937309265137,
+          "loss_total": 3.7660937309265137
+        }
+      },
+      {
+        "scalars": {
+          "loss_rgb_layer6": 0.002680182456970215,
+          "loss_ssim_layer6": 0.10591244697570801,
+          "loss_gaussian_visibility_layer6": 0.0025121085345745087,
+          "loss_anchor_visibility_layer6": 0.0,
+          "loss_rgb_layer12": 0.002089463174343109,
+          "loss_ssim_layer12": 0.08519750833511353,
+          "loss_gaussian_visibility_layer12": 5.517396130017005e-05,
+          "loss_anchor_visibility_layer12": 0.0,
+          "loss_anchor_group": 5.1167778968811035,
+          "loss_thing_2d": 13.894386291503906,
+          "loss_stuff_2d": 14.194035530090332,
+          "loss_semantic": 4.196320056915283,
+          "loss_identity": 0.43609532713890076,
+          "loss_understanding": 3.7445127964019775,
+          "loss_recon": 0.021581020206212997,
+          "loss": 3.7660937309265137,
+          "loss_total": 3.7660937309265137
+        }
+      },
+      {
+        "scalars": {
+          "loss_rgb_layer6": 0.002680182456970215,
+          "loss_ssim_layer6": 0.10591244697570801,
+          "loss_gaussian_visibility_layer6": 0.0025121085345745087,
+          "loss_anchor_visibility_layer6": 0.0,
+          "loss_rgb_layer12": 0.002089463174343109,
+          "loss_ssim_layer12": 0.08519750833511353,
+          "loss_gaussian_visibility_layer12": 5.517396130017005e-05,
+          "loss_anchor_visibility_layer12": 0.0,
+          "loss_anchor_group": 5.1167778968811035,
+          "loss_thing_2d": 13.894386291503906,
+          "loss_stuff_2d": 14.194035530090332,
+          "loss_semantic": 4.196320056915283,
+          "loss_identity": 0.43609532713890076,
+          "loss_understanding": 3.7445127964019775,
+          "loss_recon": 0.021581020206212997,
+          "loss": 3.7660937309265137,
+          "loss_total": 3.7660937309265137
+        }
+      },
+      {
+        "scalars": {
+          "loss_rgb_layer6": 0.002680182456970215,
+          "loss_ssim_layer6": 0.10591244697570801,
+          "loss_gaussian_visibility_layer6": 0.0025121085345745087,
+          "loss_anchor_visibility_layer6": 0.0,
+          "loss_rgb_layer12": 0.002089463174343109,
+          "loss_ssim_layer12": 0.08519750833511353,
+          "loss_gaussian_visibility_layer12": 5.517396130017005e-05,
+          "loss_anchor_visibility_layer12": 0.0,
+          "loss_anchor_group": 5.1167778968811035,
+          "loss_thing_2d": 13.894386291503906,
+          "loss_stuff_2d": 14.194035530090332,
+          "loss_semantic": 4.196320056915283,
+          "loss_identity": 0.43609532713890076,
+          "loss_understanding": 3.7445127964019775,
+          "loss_recon": 0.021581020206212997,
+          "loss": 3.7660937309265137,
+          "loss_total": 3.7660937309265137
+        }
+      },
+      {
+        "scalars": {
+          "loss_rgb_layer6": 0.002680182456970215,
+          "loss_ssim_layer6": 0.10591244697570801,
+          "loss_gaussian_visibility_layer6": 0.0025121085345745087,
+          "loss_anchor_visibility_layer6": 0.0,
+          "loss_rgb_layer12": 0.002089463174343109,
+          "loss_ssim_layer12": 0.08519750833511353,
+          "loss_gaussian_visibility_layer12": 5.517396130017005e-05,
+          "loss_anchor_visibility_layer12": 0.0,
+          "loss_anchor_group": 5.1167778968811035,
+          "loss_thing_2d": 13.894386291503906,
+          "loss_stuff_2d": 14.194035530090332,
+          "loss_semantic": 4.196320056915283,
+          "loss_identity": 0.43609532713890076,
+          "loss_understanding": 3.7445127964019775,
+          "loss_recon": 0.021581020206212997,
+          "loss": 3.7660937309265137,
+          "loss_total": 3.7660937309265137
+        }
+      },
+      {
+        "scalars": {
+          "loss_rgb_layer6": 0.002680182456970215,
+          "loss_ssim_layer6": 0.10591244697570801,
+          "loss_gaussian_visibility_layer6": 0.0025121085345745087,
+          "loss_anchor_visibility_layer6": 0.0,
+          "loss_rgb_layer12": 0.002089463174343109,
+          "loss_ssim_layer12": 0.08519750833511353,
+          "loss_gaussian_visibility_layer12": 5.517396130017005e-05,
+          "loss_anchor_visibility_layer12": 0.0,
+          "loss_anchor_group": 5.1167778968811035,
+          "loss_thing_2d": 13.894386291503906,
+          "loss_stuff_2d": 14.194035530090332,
+          "loss_semantic": 4.196320056915283,
+          "loss_identity": 0.43609532713890076,
+          "loss_understanding": 3.7445127964019775,
+          "loss_recon": 0.021581020206212997,
+          "loss": 3.7660937309265137,
+          "loss_total": 3.7660937309265137
+        }
+      },
+      {
+        "scalars": {
+          "loss_rgb_layer6": 0.002680182456970215,
+          "loss_ssim_layer6": 0.10591244697570801,
+          "loss_gaussian_visibility_layer6": 0.0025121085345745087,
+          "loss_anchor_visibility_layer6": 0.0,
+          "loss_rgb_layer12": 0.002089463174343109,
+          "loss_ssim_layer12": 0.08519750833511353,
+          "loss_gaussian_visibility_layer12": 5.517396130017005e-05,
+          "loss_anchor_visibility_layer12": 0.0,
+          "loss_anchor_group": 5.1167778968811035,
+          "loss_thing_2d": 13.894386291503906,
+          "loss_stuff_2d": 14.194035530090332,
+          "loss_semantic": 4.196320056915283,
+          "loss_identity": 0.43609532713890076,
+          "loss_understanding": 3.7445127964019775,
+          "loss_recon": 0.021581020206212997,
+          "loss": 3.7660937309265137,
+          "loss_total": 3.7660937309265137
+        }
+      }
+    ],
+    "gc": [
+      {
+        "scalars": {
+          "loss_rgb_layer6": 0.002680182456970215,
+          "loss_ssim_layer6": 0.10591244697570801,
+          "loss_gaussian_visibility_layer6": 0.0025121085345745087,
+          "loss_anchor_visibility_layer6": 0.0,
+          "loss_rgb_layer12": 0.002089463174343109,
+          "loss_ssim_layer12": 0.08519750833511353,
+          "loss_gaussian_visibility_layer12": 5.517396130017005e-05,
+          "loss_anchor_visibility_layer12": 0.0,
+          "loss_anchor_group": 5.1167778968811035,
+          "loss_thing_2d": 13.894386291503906,
+          "loss_stuff_2d": 14.194035530090332,
+          "loss_semantic": 4.196320056915283,
+          "loss_identity": 0.43609532713890076,
+          "loss_understanding": 3.7445127964019775,
+          "loss_recon": 0.021581020206212997,
+          "loss": 3.7660937309265137,
+          "loss_total": 3.7660937309265137
+        }
+      },
+      {
+        "scalars": {
+          "loss_rgb_layer6": 0.002680182456970215,
+          "loss_ssim_layer6": 0.10591244697570801,
+          "loss_gaussian_visibility_layer6": 0.0025121085345745087,
+          "loss_anchor_visibility_layer6": 0.0,
+          "loss_rgb_layer12": 0.002089463174343109,
+          "loss_ssim_layer12": 0.08519750833511353,
+          "loss_gaussian_visibility_layer12": 5.517396130017005e-05,
+          "loss_anchor_visibility_layer12": 0.0,
+          "loss_anchor_group": 5.1167778968811035,
+          "loss_thing_2d": 13.894386291503906,
+          "loss_stuff_2d": 14.194035530090332,
+          "loss_semantic": 4.196320056915283,
+          "loss_identity": 0.43609532713890076,
+          "loss_understanding": 3.7445127964019775,
+          "loss_recon": 0.021581020206212997,
+          "loss": 3.7660937309265137,
+          "loss_total": 3.7660937309265137
+        }
+      },
+      {
+        "scalars": {
+          "loss_rgb_layer6": 0.002680182456970215,
+          "loss_ssim_layer6": 0.10591244697570801,
+          "loss_gaussian_visibility_layer6": 0.0025121085345745087,
+          "loss_anchor_visibility_layer6": 0.0,
+          "loss_rgb_layer12": 0.002089463174343109,
+          "loss_ssim_layer12": 0.08519750833511353,
+          "loss_gaussian_visibility_layer12": 5.517396130017005e-05,
+          "loss_anchor_visibility_layer12": 0.0,
+          "loss_anchor_group": 5.1167778968811035,
+          "loss_thing_2d": 13.894386291503906,
+          "loss_stuff_2d": 14.194035530090332,
+          "loss_semantic": 4.196320056915283,
+          "loss_identity": 0.43609532713890076,
+          "loss_understanding": 3.7445127964019775,
+          "loss_recon": 0.021581020206212997,
+          "loss": 3.7660937309265137,
+          "loss_total": 3.7660937309265137
+        }
+      },
+      {
+        "scalars": {
+          "loss_rgb_layer6": 0.002680182456970215,
+          "loss_ssim_layer6": 0.10591244697570801,
+          "loss_gaussian_visibility_layer6": 0.0025121085345745087,
+          "loss_anchor_visibility_layer6": 0.0,
+          "loss_rgb_layer12": 0.002089463174343109,
+          "loss_ssim_layer12": 0.08519750833511353,
+          "loss_gaussian_visibility_layer12": 5.517396130017005e-05,
+          "loss_anchor_visibility_layer12": 0.0,
+          "loss_anchor_group": 5.1167778968811035,
+          "loss_thing_2d": 13.894386291503906,
+          "loss_stuff_2d": 14.194035530090332,
+          "loss_semantic": 4.196320056915283,
+          "loss_identity": 0.43609532713890076,
+          "loss_understanding": 3.7445127964019775,
+          "loss_recon": 0.021581020206212997,
+          "loss": 3.7660937309265137,
+          "loss_total": 3.7660937309265137
+        }
+      },
+      {
+        "scalars": {
+          "loss_rgb_layer6": 0.002680182456970215,
+          "loss_ssim_layer6": 0.10591244697570801,
+          "loss_gaussian_visibility_layer6": 0.0025121085345745087,
+          "loss_anchor_visibility_layer6": 0.0,
+          "loss_rgb_layer12": 0.002089463174343109,
+          "loss_ssim_layer12": 0.08519750833511353,
+          "loss_gaussian_visibility_layer12": 5.517396130017005e-05,
+          "loss_anchor_visibility_layer12": 0.0,
+          "loss_anchor_group": 5.1167778968811035,
+          "loss_thing_2d": 13.894386291503906,
+          "loss_stuff_2d": 14.194035530090332,
+          "loss_semantic": 4.196320056915283,
+          "loss_identity": 0.43609532713890076,
+          "loss_understanding": 3.7445127964019775,
+          "loss_recon": 0.021581020206212997,
+          "loss": 3.7660937309265137,
+          "loss_total": 3.7660937309265137
+        }
+      },
+      {
+        "scalars": {
+          "loss_rgb_layer6": 0.002680182456970215,
+          "loss_ssim_layer6": 0.10591244697570801,
+          "loss_gaussian_visibility_layer6": 0.0025121085345745087,
+          "loss_anchor_visibility_layer6": 0.0,
+          "loss_rgb_layer12": 0.002089463174343109,
+          "loss_ssim_layer12": 0.08519750833511353,
+          "loss_gaussian_visibility_layer12": 5.517396130017005e-05,
+          "loss_anchor_visibility_layer12": 0.0,
+          "loss_anchor_group": 5.1167778968811035,
+          "loss_thing_2d": 13.894386291503906,
+          "loss_stuff_2d": 14.194035530090332,
+          "loss_semantic": 4.196320056915283,
+          "loss_identity": 0.43609532713890076,
+          "loss_understanding": 3.7445127964019775,
+          "loss_recon": 0.021581020206212997,
+          "loss": 3.7660937309265137,
+          "loss_total": 3.7660937309265137
+        }
+      },
+      {
+        "scalars": {
+          "loss_rgb_layer6": 0.002680182456970215,
+          "loss_ssim_layer6": 0.10591244697570801,
+          "loss_gaussian_visibility_layer6": 0.0025121085345745087,
+          "loss_anchor_visibility_layer6": 0.0,
+          "loss_rgb_layer12": 0.002089463174343109,
+          "loss_ssim_layer12": 0.08519750833511353,
+          "loss_gaussian_visibility_layer12": 5.517396130017005e-05,
+          "loss_anchor_visibility_layer12": 0.0,
+          "loss_anchor_group": 5.1167778968811035,
+          "loss_thing_2d": 13.894386291503906,
+          "loss_stuff_2d": 14.194035530090332,
+          "loss_semantic": 4.196320056915283,
+          "loss_identity": 0.43609532713890076,
+          "loss_understanding": 3.7445127964019775,
+          "loss_recon": 0.021581020206212997,
+          "loss": 3.7660937309265137,
+          "loss_total": 3.7660937309265137
+        }
+      },
+      {
+        "scalars": {
+          "loss_rgb_layer6": 0.002680182456970215,
+          "loss_ssim_layer6": 0.10591244697570801,
+          "loss_gaussian_visibility_layer6": 0.0025121085345745087,
+          "loss_anchor_visibility_layer6": 0.0,
+          "loss_rgb_layer12": 0.002089463174343109,
+          "loss_ssim_layer12": 0.08519750833511353,
+          "loss_gaussian_visibility_layer12": 5.517396130017005e-05,
+          "loss_anchor_visibility_layer12": 0.0,
+          "loss_anchor_group": 5.1167778968811035,
+          "loss_thing_2d": 13.894386291503906,
+          "loss_stuff_2d": 14.194035530090332,
+          "loss_semantic": 4.196320056915283,
+          "loss_identity": 0.43609532713890076,
+          "loss_understanding": 3.7445127964019775,
+          "loss_recon": 0.021581020206212997,
+          "loss": 3.7660937309265137,
+          "loss_total": 3.7660937309265137
+        }
+      },
+      {
+        "scalars": {
+          "loss_rgb_layer6": 0.002680182456970215,
+          "loss_ssim_layer6": 0.10591244697570801,
+          "loss_gaussian_visibility_layer6": 0.0025121085345745087,
+          "loss_anchor_visibility_layer6": 0.0,
+          "loss_rgb_layer12": 0.002089463174343109,
+          "loss_ssim_layer12": 0.08519750833511353,
+          "loss_gaussian_visibility_layer12": 5.517396130017005e-05,
+          "loss_anchor_visibility_layer12": 0.0,
+          "loss_anchor_group": 5.1167778968811035,
+          "loss_thing_2d": 13.894386291503906,
+          "loss_stuff_2d": 14.194035530090332,
+          "loss_semantic": 4.196320056915283,
+          "loss_identity": 0.43609532713890076,
+          "loss_understanding": 3.7445127964019775,
+          "loss_recon": 0.021581020206212997,
+          "loss": 3.7660937309265137,
+          "loss_total": 3.7660937309265137
+        }
+      },
+      {
+        "scalars": {
+          "loss_rgb_layer6": 0.002680182456970215,
+          "loss_ssim_layer6": 0.10591244697570801,
+          "loss_gaussian_visibility_layer6": 0.0025121085345745087,
+          "loss_anchor_visibility_layer6": 0.0,
+          "loss_rgb_layer12": 0.002089463174343109,
+          "loss_ssim_layer12": 0.08519750833511353,
+          "loss_gaussian_visibility_layer12": 5.517396130017005e-05,
+          "loss_anchor_visibility_layer12": 0.0,
+          "loss_anchor_group": 5.1167778968811035,
+          "loss_thing_2d": 13.894386291503906,
+          "loss_stuff_2d": 14.194035530090332,
+          "loss_semantic": 4.196320056915283,
+          "loss_identity": 0.43609532713890076,
+          "loss_understanding": 3.7445127964019775,
+          "loss_recon": 0.021581020206212997,
+          "loss": 3.7660937309265137,
+          "loss_total": 3.7660937309265137
+        }
+      }
+    ]
+  }
+}
