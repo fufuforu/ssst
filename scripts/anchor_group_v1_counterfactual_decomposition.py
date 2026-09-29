@@ -502,9 +502,9 @@ def _write_report(contracts,provenance,projection,local,sequential,geometry,summ
       for layer in LAYERS:
        for stage in ("q_raw","q_ln","u_linear","u_norm"):
         x=projection[st]["layers"][str(layer)][stage]
-        rows.append([st,layer,stage,x["cosine_p90"]["median"],x["pr_rank"]["median"],
+        rows.append([st,str(layer),stage,x["cosine_p90"]["median"],x["pr_rank"]["median"],
                      x["entropy_rank"]["median"],x["feature_variance"]["median"]])
-    table("Table 1 — Projection decomposition (means of per-window metrics)",
+    table("Table 1 — Projection decomposition (medians of per-window metrics)",
           ["State","Layer","Stage","Cos p90","PR rank","Entropy rank","Feature variance"],rows)
     rows=[]
     for st in states:
@@ -530,7 +530,7 @@ def _write_report(contracts,provenance,projection,local,sequential,geometry,summ
       for layer in LAYERS:
        for branch in ("PROD","QUERY_CENTRIC"):
         b=geometry[st]["layers"][str(layer)][branch]
-        rows.append([st,layer,branch,b["weight_vector_pairwise_cosine.p90"]["median"],
+        rows.append([st,str(layer),branch,b["weight_vector_pairwise_cosine.p90"]["median"],
           b["effective_anchor_count.median"]["median"],b["normalized_anchor_weight_entropy.median"]["median"],
           b["normalized_spatial_radius.median"]["median"],b["anchor_embedding_resultant.median"]["median"]])
     table("Table 3 — Evidence-weight geometry",["State","Layer","Weights","Weight cos p90","Eff anchors","Entropy","Radius / ell","e resultant"],rows)
@@ -540,7 +540,7 @@ def _write_report(contracts,provenance,projection,local,sequential,geometry,summ
       for layer in LAYERS:
        for branch in BRANCHES:
         b=local[st]["layers"][str(layer)][branch]
-        rows.append([st,layer,branch,b["q_in.pr_rank"]["median"],b["v_gru.pr_rank"]["median"],
+        rows.append([st,str(layer),branch,b["q_in.pr_rank"]["median"],b["v_gru.pr_rank"]["median"],
           b["q_out.pr_rank"]["median"],b["gru_pr_ratio"]["median"],b["ffn_pr_ratio"]["median"]])
     table("Table 4 — GRU versus FFN contraction",["State","Layer","Branch","q_in PR","GRU PR","FFN/final PR","GRU ratio","FFN ratio"],rows)
 
@@ -549,7 +549,7 @@ def _write_report(contracts,provenance,projection,local,sequential,geometry,summ
       for branch in BRANCHES:
        for layer in LAYERS:
         b=sequential[st]["layers"][str(layer)][branch]
-        rows.append([st,branch,layer,b["q_out.pr_rank"]["median"],b["z.pr_rank"]["median"],
+        rows.append([st,branch,str(layer),b["q_out.pr_rank"]["median"],b["z.pr_rank"]["median"],
           b["A_post.mass_effective_queries"]["median"],b["gt_specialization.best_dice_median"]["median"],
           b["gt_specialization.best_query_effective_count"]["median"]])
     table("Table 5 — Sequential four-layer counterfactual replay",["State","Branch","Layer","q PR","z PR","Apost effQ","GT best Dice","GT bestQ effQ"],rows)
