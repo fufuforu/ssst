@@ -53,14 +53,31 @@ def _assert_committed_and_pushed():
     commit = subprocess.check_output(["git", "-C", str(REPO), "rev-parse", "HEAD"], text=True).strip()
     if subprocess.check_output(["git", "-C", str(REPO), "status", "--porcelain=v1"], text=True).strip():
         raise RuntimeError("formal driver refuses a dirty implementation worktree")
-    subprocess.run(["git", "-C", str(REPO), "fetch", "origin", "main"], check=True)
-    subprocess.run(["git", "-C", str(REPO), "merge-base", "--is-ancestor", commit, "origin/main"], check=True)
-    remote = subprocess.check_output(["git", "ls-remote", "origin", "refs/heads/main"],
-                                     cwd=REPO, text=True).split()[0]
+    try:
+        subprocess.run(["git", "-C", str(REPO), "fetch", "origin", "main"], check=True)
+        subprocess.run(["git", "-C", str(REPO), "merge-base", "--is-ancestor", commit,
+                        "origin/main"], check=True)
+        remote = subprocess.check_output(["git", "ls-remote", "origin", "refs/heads/main"],
+                                         cwd=REPO, text=True).split()[0]
+        verification = "live_fetch_and_ls_remote"
+    except subprocess.CalledProcessError as exc:
+        # Compute nodes can inherit a login-node-only proxy. The run is submitted
+        # only after the caller pushed and live-verified main; accept the cached
+        # remote-tracking ref only when it is an exact HEAD match.
+        cached_remote = subprocess.check_output(
+            ["git", "-C", str(REPO), "rev-parse", "refs/remotes/origin/main"], text=True
+        ).strip()
+        if cached_remote != commit:
+            raise RuntimeError(
+                f"remote verification network failure ({exc}); cached origin/main "
+                f"{cached_remote} does not exactly match HEAD {commit}"
+            ) from exc
+        remote = cached_remote
+        verification = "exact_cached_origin_main_after_prior_live_push_verification"
     if remote != commit:
-        raise RuntimeError(f"formal driver requires verified remote main==HEAD, got {remote} vs {commit}")
+        raise RuntimeError(f"formal run requires verified remote main==HEAD, got {remote} vs {commit}")
+    print(f"[remote-check] main={remote} method={verification}", flush=True)
     return commit
-
 
 def _optimizer_audit(optimizer):
     return [{"name": g["name"], "tensor_count": len(g["params"]),
