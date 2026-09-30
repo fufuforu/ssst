@@ -85,9 +85,19 @@ def object_locus_diagnostics(out, batch):
             gt_best_dice.append(best)
         gt_masks = targets["gt_pixel_masks"][b]
         if gt_masks.numel():
-            raw = out["region_mass"][b, :, :100] > 0.5
             for gt in range(gt_masks.shape[0]):
-                target = gt_masks[gt].to(device=raw.device, dtype=torch.bool)
+                target = gt_masks[gt].to(
+                    device=out["region_mass"].device, dtype=torch.bool
+                )
+                # GT masks are built from the two context views. Model region
+                # masses also contain the two novel views, so compare the same
+                # context frames explicitly when computing raw-slot IoU.
+                raw = out["region_mass"][b, :target.shape[0], :100] > 0.5
+                if raw.shape[0] != target.shape[0] or raw.shape[-2:] != target.shape[-2:]:
+                    raise RuntimeError(
+                        "raw slot/context GT mask shape mismatch: "
+                        f"raw={tuple(raw.shape)} target={tuple(target.shape)}"
+                    )
                 intersection = (raw & target[:, None]).sum((0, 2, 3)).float()
                 union = (raw | target[:, None]).sum((0, 2, 3)).float()
                 ious = intersection / union.clamp_min(1)
