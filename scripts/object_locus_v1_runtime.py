@@ -7,6 +7,7 @@ import math
 import random
 import shutil
 import sys
+import traceback
 from pathlib import Path
 
 import numpy as np
@@ -294,12 +295,113 @@ def _all_finite_tensors(value, path="root"):
     return bad
 
 
-def train_one_step(model, optimizer, batch, step, *, precomputed=None, gradient_audit=None):
+def _failure_json_value(value):
+    if torch.is_tensor(value):
+        if value.ndim == 0:
+            return _failure_json_value(value.detach().item())
+        return {"shape": list(value.shape), "dtype": str(value.dtype), "device": str(value.device)}
+    if isinstance(value, dict):
+        return {str(k): _failure_json_value(v) for k, v in value.items()}
+    if isinstance(value, (list, tuple)):
+        return [_failure_json_value(v) for v in value]
+    if isinstance(value, (float, np.floating)) and not math.isfinite(float(value)):
+        return "NaN" if math.isnan(float(value)) else ("+Inf" if float(value) > 0 else "-Inf")
+    if isinstance(value, np.generic):
+        return value.item()
+    if isinstance(value, (str, int, float, bool)) or value is None:
+        return value
+    return repr(value)
+
+
+def _failure_tensor_stats(tensor):
+    """Summarize a tensor with temporary finite masks but retain no tensor copy."""
+    row = {"shape": list(tensor.shape), "dtype": str(tensor.dtype),
+           "device": str(tensor.device), "numel": int(tensor.numel())}
+    if not (tensor.is_floating_point() or tensor.is_complex()):
+        return row
+    finite = torch.isfinite(tensor)
+    row["nan_count"] = int(torch.isnan(tensor).sum().item())
+    row["posinf_count"] = int(torch.isposinf(tensor).sum().item())
+    row["neginf_count"] = int(torch.isneginf(tensor).sum().item())
+    row["finite_count"] = int(finite.sum().item())
+    bad = torch.nonzero(~finite, as_tuple=False)
+    row["first_nonfinite_index"] = bad[0].detach().cpu().tolist() if bad.numel() else None
+    if row["finite_count"]:
+        values = tensor[finite]
+        row["finite_min"] = float(values.min().item())
+        row["finite_max"] = float(values.max().item())
+        row["finite_mean"] = float(values.float().mean().item())
+    return row
+
+
+def _failure_prediction_stats(output):
+    prediction = (output or {}).get("prediction", {}) if isinstance(output, dict) else {}
+    result = {}
+    for key in ("gaussians", "region_mass", "semantic_scores", "pixel_void_mass", "identity_render",
+                "alpha", "p_class", "thing_class_logits"):
+        value = prediction.get(key)
+        if torch.is_tensor(value): result[key] = _failure_tensor_stats(value.detach())
+    render = prediction.get("render", {})
+    result["render"] = {k: _failure_tensor_stats(v.detach()) for k, v in render.items()
+                        if torch.is_tensor(v)} if isinstance(render, dict) else {}
+    states = []
+    for state in prediction.get("states", []):
+        layer = int(state.get("layer", -1))
+        if layer not in (6, 8, 10, 12): continue
+        selected = {k: _failure_tensor_stats(v.detach()) for k, v in state.items()
+                    if torch.is_tensor(v) and k in (
+                        "tokens", "mu", "radii", "anchor_embedding", "q", "c", "s", "ell",
+                        "scene_origin", "evidence_logits", "R", "R_bar", "ownership_logits",
+                        "anchor_assignment", "thing_logits19", "thing_class_logits",
+                        "c_displacement", "s_displacement")}
+        states.append({"layer": layer, "tensors": selected})
+    result["registered_states"] = states
+    return result
+
+
+def _write_step_failure(path, *, step, stage, error, batch, metrics=None, output=None):
+    if path is None:
+        return
+    identity = {}
+    for key in ("scene_name", "frame_ids"):
+        if key in batch:
+            value = batch[key]
+            identity[key] = (value.detach().cpu().tolist() if key == "frame_ids" and torch.is_tensor(value)
+                             else _failure_json_value(value))
+    batch_stats = {}
+    for key in ("images_all", "semantic_label_all", "instance_label_all", "depth_gt_m_all",
+                "depth_gt_scene_all", "depth_gt_valid_all", "cam_view_all", "intrinsics_all"):
+        value = batch.get(key)
+        if torch.is_tensor(value): batch_stats[key] = _failure_tensor_stats(value.detach())
+    scalar_metrics = {}
+    for key, value in (metrics or {}).items():
+        if torch.is_tensor(value) and value.ndim == 0:
+            scalar_metrics[key] = _failure_json_value(value.detach().item())
+        elif isinstance(value, (int, float, bool, str, np.generic)):
+            scalar_metrics[key] = _failure_json_value(value)
+    target = Path(path) / f"failure_step_{int(step):08d}.json"
+    stack = traceback.format_exc()
+    if stack.strip() == "NoneType: None":
+        stack = "".join(traceback.format_stack()[:-1])
+    payload = {"step": int(step), "stage": stage, "exception": repr(error),
+               "traceback": stack, "batch_identity": identity,
+               "batch_tensor_stats": batch_stats, "scalar_metrics": scalar_metrics,
+               "prediction_tensor_stats": _failure_prediction_stats(output)}
+    write_json(target, payload)
+
+
+def train_one_step(model, optimizer, batch, step, *, precomputed=None, gradient_audit=None,
+                   failure_capture_dir=None):
     model.train()
     set_optimizer_lr(optimizer, step)
     optimizer.zero_grad(set_to_none=True)
-    output, metrics = (model.step_loss(batch, step=step, phase="train", coupled=False)
-                       if precomputed is None else precomputed)
+    try:
+        output, metrics = (model.step_loss(batch, step=step, phase="train", coupled=False)
+                           if precomputed is None else precomputed)
+    except Exception as error:
+        _write_step_failure(failure_capture_dir, step=step, stage="step_loss_forward",
+                            error=error, batch=batch)
+        raise
     prediction = output["prediction"]
     loss_recon = metrics["loss_recon"]
     loss_understanding = metrics["loss_understanding"]
@@ -309,17 +411,31 @@ def train_one_step(model, optimizer, batch, step, *, precomputed=None, gradient_
     for name in scalar_names:
         value = metrics.get(name)
         if torch.is_tensor(value) and not torch.isfinite(value).all():
-            raise FloatingPointError(f"nonfinite {name} at step {step}")
+            error = FloatingPointError(f"nonfinite {name} at step {step}")
+            _write_step_failure(failure_capture_dir, step=step, stage=f"scalar_guard:{name}",
+                                error=error, batch=batch, metrics=metrics, output=output)
+            raise error
     forward_bad = _all_finite_tensors({"prediction": prediction})
     if forward_bad:
-        raise FloatingPointError(f"nonfinite forward tensors at step {step}: {forward_bad[:12]}")
-    hooks = backward_gradient_controlled(model, loss_recon, loss_understanding, weight)
+        error = FloatingPointError(f"nonfinite forward tensors at step {step}: {forward_bad[:12]}")
+        _write_step_failure(failure_capture_dir, step=step, stage="forward_tensor_guard",
+                            error=error, batch=batch, metrics=metrics, output=output)
+        raise error
+    try:
+        hooks = backward_gradient_controlled(model, loss_recon, loss_understanding, weight)
+    except Exception as error:
+        _write_step_failure(failure_capture_dir, step=step, stage="backward",
+                            error=error, batch=batch, metrics=metrics, output=output)
+        raise
     if hooks["registered_hook_count"] != hooks["removed_hook_count"]:
         raise RuntimeError("temporary GC hook cleanup mismatch")
     grad_bad = [n for n, p in model.named_parameters()
                 if p.grad is not None and not torch.isfinite(p.grad).all()]
     if grad_bad:
-        raise FloatingPointError(f"nonfinite gradients at step {step}: {grad_bad[:12]}")
+        error = FloatingPointError(f"nonfinite gradients at step {step}: {grad_bad[:12]}")
+        _write_step_failure(failure_capture_dir, step=step, stage="gradient_guard",
+                            error=error, batch=batch, metrics=metrics, output=output)
+        raise error
     named_parameters = dict(model.named_parameters())
     watched = ("object_locus.W_Q.weight", "object_locus.W_own_e.weight",
                "object_locus.thing_classifier.weight", "object_locus.W_c.weight",

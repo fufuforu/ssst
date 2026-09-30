@@ -521,7 +521,7 @@ def _write_formal_report(reports, drift, summary, online_matches):
     return str(path)
 
 
-def run_train(device, reports, run_root, until_step):
+def run_train(device, reports, run_root, until_step, failure_capture_dir=None):
     if until_step != TOTAL_STEPS:
         raise RuntimeError("the registered first-run endpoint is fixed at 5000 steps")
     if not torch.cuda.is_available() or torch.device(device).type != "cuda":
@@ -715,7 +715,10 @@ def run_train(device, reports, run_root, until_step):
             entry = plan["entries"][step - 1]
             batch = build_batch(opt, entry, device)
             t0 = time.time()
-            output, metrics = train_one_step(model, optimizer, batch, step)
+            output, metrics = train_one_step(
+                model, optimizer, batch, step,
+                failure_capture_dir=failure_capture_dir,
+            )
             for qi, _ki in output["prediction"].get("final_pairs", []):
                 for query in qi.detach().cpu().tolist():
                     online_matches[int(query)] += 1
@@ -788,10 +791,13 @@ def main():
     parser.add_argument("--reports", type=Path, default=REPORTS_DEFAULT)
     parser.add_argument("--run-root", type=Path, default=RUN_ROOT_DEFAULT)
     parser.add_argument("--until-step", type=int, default=TOTAL_STEPS)
+    parser.add_argument("--failure-capture-dir", type=Path, default=None,
+                        help="optional directory for one JSON failure snapshot; no training behavior changes")
     args = parser.parse_args()
     if args.until_step != TOTAL_STEPS:
         raise SystemExit("--until-step is fixed at 5000 for the registered first run")
-    result = run_train(args.device, args.reports, args.run_root, args.until_step)
+    result = run_train(args.device, args.reports, args.run_root, args.until_step,
+                       failure_capture_dir=args.failure_capture_dir)
     print(json.dumps(jsonable(result), indent=2, allow_nan=False))
 
 

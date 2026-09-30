@@ -141,6 +141,12 @@ class ObjectLocusV1Controller(nn.Module):
 
         self._initialize()
 
+    def _diagnostic_observe(self, stage: str, **values):
+        """Opt-in, read-only observation hook used only by failure diagnostics."""
+        callback = getattr(self, "_failure_diagnostic_callback", None)
+        if callback is not None:
+            callback(stage, values)
+
     def _initialize(self):
         for module in self.modules():
             if isinstance(module, nn.Linear):
@@ -219,6 +225,7 @@ class ObjectLocusV1Controller(nn.Module):
         geo = self._geometry_bias(mu, c, s)
         geo = torch.cat((geo[:, :NUM_THING], geo.new_zeros((b, NUM_STUFF, t))), dim=1)
         logits = torch.matmul(qh, kh.transpose(-1, -2)) / math.sqrt(HEAD_DIM) + geo[:, None]
+        self._diagnostic_observe("evidence", logits=logits, R_inputs=(qh, kh, vh, geo))
         if not torch.isfinite(logits).all():
             raise RuntimeError("nonfinite evidence logits")
         R = torch.softmax(logits, dim=-1)
@@ -250,6 +257,10 @@ class ObjectLocusV1Controller(nn.Module):
             + 0.1 * torch.tanh(self.W_s(self.ln_geom(q_new_thing)))
         v_new = (v + delta_v).clamp(math.log(0.05), math.log(2.0))
         s_new = ell[:, None, None] * torch.exp(v_new)
+        self._diagnostic_observe("geometry", c=c, s=s, c_ev=c_ev, s_ev=s_ev,
+                                 residual_c=residual_c, residual_norm=norm,
+                                 residual_scale=scale, c_new=c_new, v=v,
+                                 delta_v=delta_v, v_new=v_new, s_new=s_new)
         return c_new, s_new
 
     def ownership(self, a, q_new, mu, c, s):
@@ -260,6 +271,8 @@ class ObjectLocusV1Controller(nn.Module):
         geo = torch.cat((geo[:, :, :NUM_THING], geo.new_zeros((*geo.shape[:2], NUM_STUFF))), -1)
         void = self.W_void(a)
         logits = torch.cat((feature_logits + geo, void), dim=-1)
+        self._diagnostic_observe("ownership", feature_logits=feature_logits,
+                                 geometry_logits=geo, void_logit=void, logits=logits)
         if not torch.isfinite(logits).all():
             raise RuntimeError("nonfinite ownership logits")
         return torch.softmax(logits, dim=-1), e, u, void
@@ -271,11 +284,18 @@ class ObjectLocusV1Controller(nn.Module):
 
     def forward_registered_layer(self, tokens, mu, radii, ell, q, c, s, anchor_embedding=None):
         a = self.encode_token(tokens, mu, radii, ell) if anchor_embedding is None else anchor_embedding
+        self._diagnostic_observe("registered_layer_input", tokens=tokens, mu=mu,
+                                 radii=radii, ell=ell, q=q, c=c, s=s,
+                                 anchor_embedding=a)
         evidence, evidence_mean, z = self.read_evidence(a, mu, q, c, s)
         q_new = self.decode_queries(q, z)
         c_new, s_new = self.update_geometry(evidence_mean, mu, q_new[:, :NUM_THING], c, s, ell)
         A, own_e, own_u, void = self.ownership(a, q_new, mu, c_new, s_new)
         logits19, logits21 = self.classify(q_new)
+        self._diagnostic_observe("registered_layer_output", q_new=q_new,
+                                 evidence_mean=evidence_mean, ownership=A,
+                                 thing_logits19=logits19, thing_logits21=logits21,
+                                 c_new=c_new, s_new=s_new)
         return {"q": q_new, "c": c_new, "s": s_new, "anchor_embedding": a,
                 "evidence_attention": evidence, "evidence_attention_mean": evidence_mean,
                 "anchor_assignment": A, "thing_logits19": logits19,
