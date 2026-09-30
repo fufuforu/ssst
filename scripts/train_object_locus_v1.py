@@ -142,17 +142,53 @@ def _save_checkpoint(run_root, payload, step):
     return final / "train_state.pt"
 
 
-def _verify_resume(payload, commit, source_hashes):
+def _eval_only_transition(old_commit, old_hashes, commit, source_hashes, step):
+    """Whitelist an evaluator/infrastructure-only transition for a step-0 resume."""
+    if int(step) != 0 or not old_commit or not isinstance(old_hashes, dict):
+        return False, []
+    allowed = {"scripts/eval_object_locus_v1.py", "scripts/train_object_locus_v1.py",
+               "docs/object_locus_v1_codex_spec.md"}
+    changed = sorted(name for name in set(old_hashes) | set(source_hashes)
+                     if old_hashes.get(name) != source_hashes.get(name))
+    if not changed or not set(changed).issubset(allowed):
+        return False, changed
+    try:
+        subprocess.run(["git", "-C", str(REPO), "merge-base", "--is-ancestor",
+                        old_commit, commit], check=True, stdout=subprocess.DEVNULL,
+                       stderr=subprocess.DEVNULL)
+        paths = subprocess.check_output(["git", "-C", str(REPO), "diff", "--name-only",
+                                         f"{old_commit}..{commit}"], text=True).splitlines()
+    except subprocess.CalledProcessError:
+        return False, changed
+    return bool(paths) and set(paths).issubset(allowed), changed
+
+
+def _verify_resume(payload, commit, source_hashes, run_manifest=None):
     expected = {
         "total_steps": TOTAL_STEPS, "warmup_steps": WARMUP_STEPS,
         "architecture_name": "LOCUSGS_OBJECT_LOCUS_V1", "spec_sha256": SPEC_SHA,
-        "git_commit": commit, "source_file_hashes": source_hashes,
         "pretrained_sha256": PRETRAINED_SHA, "manifest_sha256": MANIFEST_SHA,
         "plan_sha256": PLAN_SHA, "monitor_sha256": MONITOR_SHA,
         "shared_understanding_grad_scale": GC_ALPHA, "joint": True, "beta": 0.0,
     }
     differences = {key: (payload.get(key), value) for key, value in expected.items()
                    if payload.get(key) != value}
+    exact_source = (payload.get("git_commit") == commit and
+                    payload.get("source_file_hashes") == source_hashes)
+    if not exact_source:
+        override = (run_manifest or {}).get("evaluation_only_resume_override", {})
+        allowed, changed = _eval_only_transition(
+            payload.get("git_commit"), payload.get("source_file_hashes"),
+            commit, source_hashes, payload.get("step", -1))
+        exact_source = (allowed and int(payload.get("plan_position", -1)) == 0 and
+                        override.get("from_git_commit") == payload.get("git_commit") and
+                        override.get("to_git_commit") == commit and
+                        override.get("changed_source_files") == changed and
+                        override.get("reason") == "step0 evaluation infrastructure failure; no training step executed")
+    if not exact_source:
+        differences["git_commit/source_file_hashes"] = (
+            (payload.get("git_commit"), payload.get("source_file_hashes")),
+            (commit, source_hashes))
     required = ("model", "optimizer", "step", "plan_position", "config", "rng", "optimizer_groups")
     missing = [key for key in required if key not in payload]
     if differences or missing:
@@ -520,13 +556,29 @@ def run_train(device, reports, run_root, until_step):
     if run_manifest_path.exists():
         run_manifest = json.loads(run_manifest_path.read_text())
         if run_manifest.get("git_commit") != commit or run_manifest.get("source_file_hashes") != source_hashes:
-            # Startup-only code fixes can happen before a single optimizer step.
-            # Permit provenance refresh only while there is no checkpoint, curve,
-            # or training metric; a progressed run remains bound to its exact source.
-            has_progress = (_latest_checkpoint(run_root) is not None or
-                            any(Path(reports).glob("curves_*.json")) or
-                            any(Path(reports).glob("training_log_metrics.jsonl")) or
-                            any(Path(reports).glob("online_match_log.jsonl")))
+            checkpoint = _latest_checkpoint(run_root)
+            checkpoint_state = (torch.load(checkpoint, map_location="cpu", weights_only=False)
+                                if checkpoint is not None else None)
+            checkpoint_step = int(checkpoint_state.get("step", -1)) if checkpoint_state else -1
+            has_training_records = any(Path(reports).glob("curves_*.json")) or any(
+                path.exists() and path.stat().st_size > 0 for path in (
+                    Path(reports) / "training_log_metrics.jsonl",
+                    Path(reports) / "online_match_log.jsonl"))
+            eval_recovery, changed_sources = _eval_only_transition(
+                run_manifest.get("git_commit"), run_manifest.get("source_file_hashes"),
+                commit, source_hashes, checkpoint_step)
+            failed_step0_eval = (
+                checkpoint_state is not None and checkpoint_step == 0 and
+                int(checkpoint_state.get("plan_position", -1)) == 0 and
+                not has_training_records and
+                not (Path(reports) / "curves_0.json").is_file() and
+                checkpoint_state.get("git_commit") == run_manifest.get("git_commit") and
+                checkpoint_state.get("source_file_hashes") == run_manifest.get("source_file_hashes") and
+                eval_recovery
+            )
+            # A failed step-0 evaluation is the only checkpoint whose source can
+            # advance, and only for the explicit evaluator/infrastructure repair.
+            has_progress = (_latest_checkpoint(run_root) is not None or has_training_records)
             locked_provenance = {
                 "task": "Object-Locus V1", "spec_sha256": SPEC_SHA,
                 "manifest_sha256": MANIFEST_SHA, "plan_sha256": PLAN_SHA,
@@ -535,16 +587,29 @@ def run_train(device, reports, run_root, until_step):
             changed_locked = {key: (run_manifest.get(key), value)
                               for key, value in locked_provenance.items()
                               if run_manifest.get(key) != value}
-            if has_progress or changed_locked:
+            if changed_locked or (has_progress and not failed_step0_eval):
+                if checkpoint_state is not None:
+                    del checkpoint_state
                 raise RuntimeError(
                     f"run manifest belongs to different source/commit; refusing resume; "
                     f"progress={has_progress}, locked_provenance={changed_locked}"
                 )
+            previous_commit = run_manifest.get("git_commit")
+            previous_hashes = run_manifest.get("source_file_hashes")
             run_manifest.update({"git_commit": commit, "source_file_hashes": source_hashes,
-                                 "startup_only_provenance_refresh": True,
-                                 "previous_git_commit": run_manifest.get("git_commit"),
-                                 "previous_source_file_hashes": run_manifest.get("source_file_hashes")})
+                                 "previous_git_commit": previous_commit,
+                                 "previous_source_file_hashes": previous_hashes})
+            if failed_step0_eval:
+                run_manifest["evaluation_only_resume_override"] = {
+                    "from_git_commit": previous_commit, "to_git_commit": commit,
+                    "changed_source_files": changed_sources,
+                    "reason": "step0 evaluation infrastructure failure; no training step executed",
+                }
+            else:
+                run_manifest["startup_only_provenance_refresh"] = True
             write_json(run_manifest_path, run_manifest)
+            if checkpoint_state is not None:
+                del checkpoint_state
     else:
         run_manifest = {"task": "Object-Locus V1", "git_commit": commit,
                         "source_file_hashes": source_hashes, "spec_sha256": SPEC_SHA,
@@ -583,7 +648,7 @@ def run_train(device, reports, run_root, until_step):
     checkpoint = _latest_checkpoint(run_root)
     if checkpoint is not None:
         state = torch.load(checkpoint, map_location="cpu", weights_only=False)
-        _verify_resume(state, commit, source_hashes)
+        _verify_resume(state, commit, source_hashes, run_manifest)
         saved_groups = [{k: row[k] for k in ("name", "tensor_count", "numel", "weight_decay")}
                         for row in state["optimizer_groups"]]
         current_groups = [{k: row[k] for k in ("name", "tensor_count", "numel", "weight_decay")}
@@ -642,7 +707,7 @@ def run_train(device, reports, run_root, until_step):
                     raise RuntimeError("step0 evaluation mutated optimizer state")
             else:
                 existing = torch.load(path0, map_location="cpu", weights_only=False)
-                _verify_resume(existing, commit, source_hashes)
+                _verify_resume(existing, commit, source_hashes, run_manifest)
                 if int(existing["step"]) != 0 or int(existing["plan_position"]) != 0:
                     raise RuntimeError("step0 curve exists but latest checkpoint is not the initial state")
                 del existing

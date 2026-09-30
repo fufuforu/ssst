@@ -35,7 +35,7 @@ def _gini(values):
     if x.numel() == 0 or float(x.sum()) == 0:
         return 0.0
     n = x.numel()
-    ranks = torch.arange(1, n + 1, dtype=torch.float64)
+    ranks = torch.arange(1, n + 1, dtype=torch.float64, device=x.device)
     return float((2 * (ranks * x).sum() / (n * x.sum())) - (n + 1) / n)
 
 
