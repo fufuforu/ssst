@@ -520,7 +520,31 @@ def run_train(device, reports, run_root, until_step):
     if run_manifest_path.exists():
         run_manifest = json.loads(run_manifest_path.read_text())
         if run_manifest.get("git_commit") != commit or run_manifest.get("source_file_hashes") != source_hashes:
-            raise RuntimeError("run manifest belongs to different source/commit; refusing resume")
+            # Startup-only code fixes can happen before a single optimizer step.
+            # Permit provenance refresh only while there is no checkpoint, curve,
+            # or training metric; a progressed run remains bound to its exact source.
+            has_progress = (_latest_checkpoint(run_root) is not None or
+                            any(Path(reports).glob("curves_*.json")) or
+                            any(Path(reports).glob("training_log_metrics.jsonl")) or
+                            any(Path(reports).glob("online_match_log.jsonl")))
+            locked_provenance = {
+                "task": "Object-Locus V1", "spec_sha256": SPEC_SHA,
+                "manifest_sha256": MANIFEST_SHA, "plan_sha256": PLAN_SHA,
+                "pretrained_sha256": PRETRAINED_SHA,
+            }
+            changed_locked = {key: (run_manifest.get(key), value)
+                              for key, value in locked_provenance.items()
+                              if run_manifest.get(key) != value}
+            if has_progress or changed_locked:
+                raise RuntimeError(
+                    f"run manifest belongs to different source/commit; refusing resume; "
+                    f"progress={has_progress}, locked_provenance={changed_locked}"
+                )
+            run_manifest.update({"git_commit": commit, "source_file_hashes": source_hashes,
+                                 "startup_only_provenance_refresh": True,
+                                 "previous_git_commit": run_manifest.get("git_commit"),
+                                 "previous_source_file_hashes": run_manifest.get("source_file_hashes")})
+            write_json(run_manifest_path, run_manifest)
     else:
         run_manifest = {"task": "Object-Locus V1", "git_commit": commit,
                         "source_file_hashes": source_hashes, "spec_sha256": SPEC_SHA,
@@ -542,7 +566,7 @@ def run_train(device, reports, run_root, until_step):
         raise RuntimeError("canonical pretrained model unexpectedly has frozen parameters")
     write_json(reports / "pretrained_transfer_audit.json", transfer)
     write_json(reports / "optimizer_audit.json", optimizer_audit)
-    plan_windows = json.loads(MANIFEST.read_text())["windows"]
+    plan_windows = manifest["windows"]
     monitors = {
         "train16": json.loads((reports / "monitor_train16.json").read_text())["windows"],
         "val8": json.loads((reports / "monitor_8pairs.json").read_text())["pairs"],
