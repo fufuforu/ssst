@@ -66,6 +66,7 @@ def test_c1_state_evidence_ownership_and_class_shapes_dtype_and_gaussian_inherit
     assert state["c"].shape == state["s"].shape == (1, 100, 3)
     assert state["evidence_attention"].shape == (1, 8, 102, 1024)
     assert state["anchor_assignment"].shape == (1, 1024, 103)
+    assert state["ownership_logits"].shape == (1, 1024, 103)
     assert state["thing_class_logits"].shape == (1, 100, 21)
     for value in (a, state["q"], state["c"], state["s"], state["evidence_attention"],
                   state["anchor_assignment"], state["thing_class_logits"]):
@@ -114,11 +115,17 @@ def test_c3_initialization_uses_sixteen_neighbors_but_evidence_keeps_all_1024():
     assert result["anchor_assignment"].shape[1] == 1024
 
 
-def test_c4_evidence_and_ownership_probabilities_are_separately_normalized():
+def test_c4_evidence_and_raw_ownership_logits_are_separately_normalized():
     ctrl, mu, tokens, radii, _origin, ell, a, q, c, s, *_ = _controller_inputs()
     result = ctrl.forward_registered_layer(tokens, mu, radii, ell, q, c, s, anchor_embedding=a)
     assert torch.allclose(result["evidence_attention"].sum(-1), torch.ones((1, 8, 102)), atol=1e-5)
     assert torch.allclose(result["anchor_assignment"].sum(-1), torch.ones((1, 1024)), atol=1e-5)
+    e = torch.nn.functional.normalize(ctrl.W_own_e(ctrl.ln_own_a(a)), dim=-1, eps=1e-6)
+    u = torch.nn.functional.normalize(ctrl.W_own_u(ctrl.ln_own_q(result["q"])), dim=-1, eps=1e-6)
+    feature = torch.einsum("btd,bqd->btq", e, u) / 0.1
+    expected = torch.cat((feature, ctrl.W_void(a)), dim=-1)
+    assert torch.equal(result["ownership_logits"], expected)
+    assert torch.equal(result["anchor_assignment"], expected.softmax(-1))
 
 
 def test_c5_evidence_and_ownership_parameters_are_independent():
@@ -130,11 +137,20 @@ def test_c5_evidence_and_ownership_parameters_are_independent():
     assert torch.equal(evidence_before, evidence_after)
     result = ctrl.forward_registered_layer(tokens, mu, radii, ell, q, c, s, anchor_embedding=a)
     ownership_before = result["anchor_assignment"].detach().clone()
+    logits_before = result["ownership_logits"].detach().clone()
     with torch.no_grad():
         ctrl.W_Q.weight.add_(0.1)
-    ownership_after = ctrl.ownership(a, result["q"], mu, result["c"], result["s"])[0]
-    # The ownership formula consumes only its own projections and geometric state.
+    logits_after, ownership_after, *_ = ctrl.ownership(
+        a, result["q"], mu, result["c"], result["s"]
+    )
+    assert torch.equal(logits_after, logits_before)
     assert torch.equal(ownership_after, ownership_before)
+    # c/s are deliberately absent from the ownership calculation.
+    logits_other_geometry, ownership_other_geometry, *_ = ctrl.ownership(
+        a, result["q"], mu, result["c"] + 7.0, result["s"] * 0.25
+    )
+    assert torch.equal(logits_other_geometry, logits_before)
+    assert torch.equal(ownership_other_geometry, ownership_before)
     assert ownership_before.shape == (1, 1024, 103)
     ev_parameters = {id(p) for name, p in ctrl.named_parameters() if name.startswith(("ln_ev_", "W_Q", "W_K", "W_V", "W_O"))}
     own_parameters = {id(p) for name, p in ctrl.named_parameters() if name.startswith(("ln_own_", "W_own_", "W_void"))}
@@ -227,6 +243,7 @@ def _mini_prediction_and_batch():
                        "c": torch.randn((1, 100, 3), requires_grad=True),
                        "s": torch.ones((1, 100, 3), requires_grad=True),
                        "thing_logits19": logits if layer == 12 else torch.randn((1, 100, 19), requires_grad=True),
+                       "ownership_logits": ownership_logits if layer == 12 else torch.randn((1, 1024, 103), requires_grad=True),
                        "anchor_assignment": ownership if layer == 12 else torch.softmax(torch.randn((1, 1024, 103), requires_grad=True), -1)})
     prediction = {"gaussians": torch.randn((1, 65536, 14), requires_grad=True),
                   "states": states, "region_mass": region,

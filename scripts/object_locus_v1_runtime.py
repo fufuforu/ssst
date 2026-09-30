@@ -1,4 +1,4 @@
-"""Locked data, transfer, optimizer, GC and utility runtime for Object-Locus V1."""
+"""Locked data, transfer, optimizer, GC and utility runtime for Object-Locus V1.1."""
 from __future__ import annotations
 
 import hashlib
@@ -32,8 +32,8 @@ PRETRAINED = Path("/space/mawb/ssst/workspace_recon_diag/full_train/run_lrcap2e5
 PRETRAINED_SHA = "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f"
 PRETRAINED_STEP = 47500
 ASSET_ROOT = Path("/space/mawb/ssst/group_plus/instance_state_v1_generalization")
-REPORTS_DEFAULT = Path("/space/mawb/ssst/group_plus/object_locus_v1")
-RUN_ROOT_DEFAULT = Path("/space/mawb/ssst/workspace_group_plus/object_locus_v1")
+REPORTS_DEFAULT = Path("/space/mawb/ssst/group_plus/object_locus_v1_1")
+RUN_ROOT_DEFAULT = Path("/space/mawb/ssst/workspace_group_plus/object_locus_v1_1")
 MANIFEST = ASSET_ROOT / "train128_windows1024.json"
 PLAN = ASSET_ROOT / "plan_C_frozen_5000.json"
 MANIFEST_SHA = "1f37d08c2941920d94a172d62f95dd494b1126374215833999dc9d75ad9fc483"
@@ -359,7 +359,21 @@ def _failure_prediction_stats(output):
     return result
 
 
-def _write_step_failure(path, *, step, stage, error, batch, metrics=None, output=None):
+def _cpu_tree(value):
+    if torch.is_tensor(value):
+        return value.detach().cpu().clone()
+    if isinstance(value, dict):
+        return {key: _cpu_tree(item) for key, item in value.items()}
+    if isinstance(value, list):
+        return [_cpu_tree(item) for item in value]
+    if isinstance(value, tuple):
+        return tuple(_cpu_tree(item) for item in value)
+    return value
+
+
+def _write_step_failure(path, *, step, stage, error, batch, metrics=None, output=None,
+                        model=None, optimizer=None, failure_context=None,
+                        optimizer_updated=False):
     if path is None:
         return
     identity = {}
@@ -388,10 +402,19 @@ def _write_step_failure(path, *, step, stage, error, batch, metrics=None, output
                "batch_tensor_stats": batch_stats, "scalar_metrics": scalar_metrics,
                "prediction_tensor_stats": _failure_prediction_stats(output)}
     write_json(target, payload)
+    if model is not None:
+        state = {
+            "model": _cpu_tree(model.state_dict()),
+            "optimizer": _cpu_tree(optimizer.state_dict()) if optimizer is not None else None,
+            "rng": capture_rng(), "step": int(step),
+            "failure_context": _failure_json_value(failure_context or {}),
+            "optimizer_updated": bool(optimizer_updated),
+        }
+        torch.save(state, target.with_name(target.stem + "_state.pt"))
 
 
 def train_one_step(model, optimizer, batch, step, *, precomputed=None, gradient_audit=None,
-                   failure_capture_dir=None):
+                   failure_capture_dir=None, failure_context=None):
     model.train()
     set_optimizer_lr(optimizer, step)
     optimizer.zero_grad(set_to_none=True)
@@ -400,7 +423,8 @@ def train_one_step(model, optimizer, batch, step, *, precomputed=None, gradient_
                            if precomputed is None else precomputed)
     except Exception as error:
         _write_step_failure(failure_capture_dir, step=step, stage="step_loss_forward",
-                            error=error, batch=batch)
+                            error=error, batch=batch, model=model, optimizer=optimizer,
+                            failure_context=failure_context)
         raise
     prediction = output["prediction"]
     loss_recon = metrics["loss_recon"]
@@ -413,19 +437,22 @@ def train_one_step(model, optimizer, batch, step, *, precomputed=None, gradient_
         if torch.is_tensor(value) and not torch.isfinite(value).all():
             error = FloatingPointError(f"nonfinite {name} at step {step}")
             _write_step_failure(failure_capture_dir, step=step, stage=f"scalar_guard:{name}",
-                                error=error, batch=batch, metrics=metrics, output=output)
+                                error=error, batch=batch, metrics=metrics, output=output,
+                                model=model, optimizer=optimizer, failure_context=failure_context)
             raise error
     forward_bad = _all_finite_tensors({"prediction": prediction})
     if forward_bad:
         error = FloatingPointError(f"nonfinite forward tensors at step {step}: {forward_bad[:12]}")
         _write_step_failure(failure_capture_dir, step=step, stage="forward_tensor_guard",
-                            error=error, batch=batch, metrics=metrics, output=output)
+                            error=error, batch=batch, metrics=metrics, output=output,
+                            model=model, optimizer=optimizer, failure_context=failure_context)
         raise error
     try:
         hooks = backward_gradient_controlled(model, loss_recon, loss_understanding, weight)
     except Exception as error:
         _write_step_failure(failure_capture_dir, step=step, stage="backward",
-                            error=error, batch=batch, metrics=metrics, output=output)
+                            error=error, batch=batch, metrics=metrics, output=output,
+                            model=model, optimizer=optimizer, failure_context=failure_context)
         raise
     if hooks["registered_hook_count"] != hooks["removed_hook_count"]:
         raise RuntimeError("temporary GC hook cleanup mismatch")
@@ -434,7 +461,8 @@ def train_one_step(model, optimizer, batch, step, *, precomputed=None, gradient_
     if grad_bad:
         error = FloatingPointError(f"nonfinite gradients at step {step}: {grad_bad[:12]}")
         _write_step_failure(failure_capture_dir, step=step, stage="gradient_guard",
-                            error=error, batch=batch, metrics=metrics, output=output)
+                            error=error, batch=batch, metrics=metrics, output=output,
+                            model=model, optimizer=optimizer, failure_context=failure_context)
         raise error
     named_parameters = dict(model.named_parameters())
     watched = ("object_locus.W_Q.weight", "object_locus.W_own_e.weight",

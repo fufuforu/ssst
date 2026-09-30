@@ -23,7 +23,7 @@ def inherit_gaussian_ownership(anchor_assignment, children_per_anchor=64):
 
 
 class LocusGSObjectLocusV1Recon(LocusGSRecon):
-    architecture_name = "LOCUSGS_OBJECT_LOCUS_V1"
+    architecture_name = "LOCUSGS_OBJECT_LOCUS_V1_1"
     reconstruction_only = False
     state_layers = (6, 8, 10, 12)
 

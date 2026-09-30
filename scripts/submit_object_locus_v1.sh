@@ -6,9 +6,8 @@
 #SBATCH --cpus-per-task=8
 #SBATCH --mem=64G
 #SBATCH --time=24:00:00
-#SBATCH --exclude=3dimage-13
-#SBATCH --output=/space/mawb/ssst/group_plus/object_locus_v1/slurm-%j.out
-#SBATCH --error=/space/mawb/ssst/group_plus/object_locus_v1/slurm-%j.err
+#SBATCH --output=/space/mawb/ssst/group_plus/object_locus_v1_1/slurm-%j.out
+#SBATCH --error=/space/mawb/ssst/group_plus/object_locus_v1_1/slurm-%j.err
 
 set -euo pipefail
 
@@ -20,8 +19,8 @@ fi
 PHASE="$1"
 REPO=/space/mawb/ssst_object_locus_v1
 PYTHON=/space/mawb/anaconda3/envs/tokengs/bin/python
-REPORTS=/space/mawb/ssst/group_plus/object_locus_v1
-RUN_ROOT=/space/mawb/ssst/workspace_group_plus/object_locus_v1
+REPORTS=/space/mawb/ssst/group_plus/object_locus_v1_1
+RUN_ROOT=/space/mawb/ssst/workspace_group_plus/object_locus_v1_1
 
 cd "$REPO"
 if [[ "$PHASE" == "smoke" ]]; then
@@ -33,4 +32,5 @@ mkdir -p "$RUN_ROOT"
   --device cuda \
   --reports "$REPORTS" \
   --run-root "$RUN_ROOT" \
-  --until-step 5000 2>&1 | tee -a "$RUN_ROOT/train.log"
+  --until-step 5000 \
+  --failure-capture-dir "$RUN_ROOT/failures" 2>&1 | tee -a "$RUN_ROOT/train.log"

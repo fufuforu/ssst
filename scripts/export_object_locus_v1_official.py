@@ -1,4 +1,4 @@
-"""GT-free SIU3R official segmentation export for Object-Locus V1."""
+"""GT-free SIU3R official segmentation export path for Object-Locus V1.1."""
 from __future__ import annotations
 
 import json

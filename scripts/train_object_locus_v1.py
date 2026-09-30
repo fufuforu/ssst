@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Fresh-start or exact-resume the registered Object-Locus V1 5000-step run."""
+"""Fresh-start or exact-resume the registered Object-Locus V1.1 5000-step run."""
 from __future__ import annotations
 
 import argparse
@@ -31,9 +31,8 @@ from scripts.object_locus_v1_runtime import (
 )
 from scripts.eval_object_locus_v1 import evaluate_dataset
 
-EVAL_STEPS = (0, 200, 500, 1000, 2000, 3500, 5000)
+EVAL_STEPS = (0, 1000, 2000, 3500, 5000)
 TRAIN_LOG_STEPS = 100
-SPEC_SHA = "1bf3dc7c0affceaff9f6fac3299004f33f1eca33e1efb5b2a1c0fd0d18a1d395"
 SOURCE_FILES = (
     "tokengs/models/__init__.py", "tokengs/options.py",
     "tokengs/models/object_locus_v1_controller.py",
@@ -41,8 +40,11 @@ SOURCE_FILES = (
     "scripts/object_locus_v1_runtime.py", "scripts/train_object_locus_v1.py",
     "scripts/eval_object_locus_v1.py", "scripts/export_object_locus_v1_official.py",
     "scripts/smoke_object_locus_v1.py", "scripts/submit_object_locus_v1.sh",
-    "tests/test_object_locus_v1_contracts.py", "docs/object_locus_v1_codex_spec.md",
+    "tests/test_object_locus_v1_contracts.py", "tests/test_object_locus_v1_1_gradients.py",
+    "docs/Object_Locus_V1_1.md",
 )
+
+SPEC_SHA = sha256_file(REPO / "docs/Object_Locus_V1_1.md")
 
 
 def _source_hashes():
@@ -104,7 +106,8 @@ def _checkpoint_payload(model, optimizer, step, plan_position, opt, commit, sour
         "step": int(step), "plan_position": int(plan_position),
         "total_steps": TOTAL_STEPS, "warmup_steps": WARMUP_STEPS,
         "architecture_name": model.architecture_name,
-        "config": {"model_type": opt.model_type, "seed": 42,
+        "recipe": "OBJECT_LOCUS_V1_1",
+        "config": {"version": "Object-Locus V1.1", "model_type": opt.model_type, "seed": 42,
                    "instance_state_layers": list(model.state_layers),
                    "state_dim": 256, "num_thing": 100, "num_stuff": 2,
                    "void_index": 102, "num_region_channels": 103,
@@ -121,9 +124,24 @@ def _checkpoint_payload(model, optimizer, step, plan_position, opt, commit, sour
     }
 
 
-def _save_checkpoint(run_root, payload, step):
+def _save_checkpoint(run_root, payload, step, *, permanent=True):
     root = Path(run_root) / "checkpoints"
     root.mkdir(parents=True, exist_ok=True)
+    if not permanent:
+        final = root / f"rolling_latest_step_{step:08d}.pt"
+        temp = root / f".rolling_latest_step_{step:08d}.tmp"
+        try:
+            torch.save(payload, temp)
+            with temp.open("rb") as f:
+                os.fsync(f.fileno())
+            os.replace(temp, final)
+            for old in root.glob("rolling_latest_step_*.pt"):
+                if old != final:
+                    old.unlink()
+        except Exception:
+            temp.unlink(missing_ok=True)
+            raise
+        return final
     final = root / f"step_{step:08d}"
     if final.exists():
         if (final / "COMPLETE").is_file():
@@ -166,7 +184,8 @@ def _eval_only_transition(old_commit, old_hashes, commit, source_hashes, step):
 def _verify_resume(payload, commit, source_hashes, run_manifest=None):
     expected = {
         "total_steps": TOTAL_STEPS, "warmup_steps": WARMUP_STEPS,
-        "architecture_name": "LOCUSGS_OBJECT_LOCUS_V1", "spec_sha256": SPEC_SHA,
+        "architecture_name": "LOCUSGS_OBJECT_LOCUS_V1_1", "spec_sha256": SPEC_SHA,
+        "recipe": "OBJECT_LOCUS_V1_1",
         "pretrained_sha256": PRETRAINED_SHA, "manifest_sha256": MANIFEST_SHA,
         "plan_sha256": PLAN_SHA, "monitor_sha256": MONITOR_SHA,
         "shared_understanding_grad_scale": GC_ALPHA, "joint": True, "beta": 0.0,
@@ -199,8 +218,14 @@ def _latest_checkpoint(run_root):
     root = Path(run_root) / "checkpoints"
     if not root.exists():
         return None
-    complete = sorted(p for p in root.glob("step_*") if (p / "COMPLETE").is_file())
-    return complete[-1] / "train_state.pt" if complete else None
+    complete = [p / "train_state.pt" for p in root.glob("step_*")
+                if (p / "COMPLETE").is_file()]
+    rolling = list(root.glob("rolling_latest_step_*.pt"))
+    candidates = complete + rolling
+    if not candidates:
+        return None
+    return max(candidates, key=lambda p: int(p.parent.name[5:] if p.name == "train_state.pt"
+                                                  else p.stem.rsplit("_", 1)[-1]))
 
 
 def _eval_node(model, opt, step, reports, device, windows, run_root, checkpoint_path):
@@ -228,6 +253,21 @@ def _eval_node(model, opt, step, reports, device, windows, run_root, checkpoint_
         "benchmark_scope_note": "128-scene monitor structural validation, not the complete SIU3R 1860-pair benchmark",
     }
     write_json(Path(reports) / f"curves_{step}.json", row)
+    print(f"[eval-table] Object-Locus V1.1 step={step}", flush=True)
+    print("split scope | mIoU all/thing/stuff | local PQ | ca TP/FP/FN/GT | class-aware R50 | PSNR dB | official mIoU/PQ/mAP/AP50", flush=True)
+    for split, data in split_results.items():
+        for scope, official_scope in (("context", "context_from_official_all"),
+                                      ("target", "novel_from_novel_only_subset")):
+            local = data["local"][scope]
+            off = (data.get("official") or {}).get(official_scope, {})
+            psnr_key = "context" if scope == "context" else "target_all"
+            print(f"{split} {scope} | {local.get('mIoU_all_nonempty')}/{local.get('mIoU_thing')}/{local.get('mIoU_stuff')} | "
+                  f"{local.get('local_pq')} | {local.get('tp_class_agnostic')}/{local.get('fp_class_agnostic')}/{local.get('fn_class_agnostic')}/{local.get('n_gt_instances')} | "
+                  f"{local.get('class_aware_recall50')} | {data['float_psnr_db'].get(psnr_key)} | "
+                  f"{off.get('context_miou' if scope == 'context' else 'target_miou')}/"
+                  f"{off.get('context_pq' if scope == 'context' else 'target_pq')}/"
+                  f"{off.get('context_map' if scope == 'context' else 'target_map')}/"
+                  f"{off.get('context_map_50' if scope == 'context' else 'target_map_50')}", flush=True)
     return row
 
 
@@ -251,7 +291,8 @@ def _write_endpoint_audits(model, opt, optimizer, reports, run_root, step0_state
     state = payload
     requirements = {
         "step": state["step"] == 5000,
-        "architecture": state["architecture_name"] == "LOCUSGS_OBJECT_LOCUS_V1",
+        "architecture": state["architecture_name"] == "LOCUSGS_OBJECT_LOCUS_V1_1",
+        "recipe": state.get("recipe") == "OBJECT_LOCUS_V1_1",
         "joint": state["joint"] is True, "beta": state["beta"] == 0.0,
         "shared_scale": state["shared_understanding_grad_scale"] == GC_ALPHA,
         "manifest": state["manifest_sha256"] == MANIFEST_SHA,
@@ -271,7 +312,7 @@ def _write_endpoint_audits(model, opt, optimizer, reports, run_root, step0_state
     requirements["optimizer_finite"] = not bad_optimizer
     audit = {"status": "PASS" if all(requirements.values()) else "FAIL",
              "step": state["step"], "architecture": state["architecture_name"],
-             "recipe": "OBJECT_LOCUS_V1_GC_ALPHA001", "joint": state["joint"],
+        "recipe": "OBJECT_LOCUS_V1_1", "joint": state["joint"],
              "beta": state["beta"], "shared_scale": GC_ALPHA,
              "manifest_sha256": MANIFEST_SHA, "plan_sha256": PLAN_SHA,
              "pretrained_sha256": PRETRAINED_SHA,
@@ -363,24 +404,18 @@ def _curves_psnr(curves, split, scope):
 
 def _write_formal_report(reports, drift, summary, online_matches):
     reports = Path(reports)
-    steps = (0, 200, 500, 1000, 2000, 3500, 5000)
+    steps = (0, 1000, 2000, 3500, 5000)
     current = {step: _read_json(reports / f"curves_{step}.json") for step in steps}
-    v1_root = Path("/space/mawb/ssst/group_plus/anchor_group_v1")
-    s0_root = Path("/space/mawb/ssst/group_plus/instance_state_v1_generalization")
-    s1_root = Path("/space/mawb/ssst/group_plus/instance_state_v2_s1_local3d")
-    baselines = {
-        "S0@5k": _read_json(s0_root / "curves_5000.json"),
-        "S1@5k": _read_json(s1_root / "curves_5000.json"),
-        "Anchor-Group V1@5k": _read_json(v1_root / "curves_5000.json"),
-    }
+    v1_root = Path("/space/mawb/ssst/group_plus/object_locus_v1")
+    baselines = {"Object-Locus V1@3500": _read_json(v1_root / "curves_3500.json")}
     v1_drift = _read_json(v1_root / "formal_reconstruction_drift_audit.json")
-    rows = ["# Object-Locus V1 Formal 5k Report", "", "## Completion and provenance", "",
+    rows = ["# Object-Locus V1.1 Formal 5k Report", "", "## Completion and provenance", "",
             "- Completed steps: 5000/5000; endpoint audit: PASS.",
-            "- Architecture: `LOCUSGS_OBJECT_LOCUS_V1`; recipe: `OBJECT_LOCUS_V1_GC_ALPHA001`.",
+            "- Version: `Object-Locus V1.1`; architecture registry remains `siu3r_object_locus_v1`; recipe: `OBJECT_LOCUS_V1_1`.",
             "- Fresh initialization uses the locked pretrained reconstruction checkpoint and fresh object-locus seed; no smoke checkpoint was used.",
             f"- Manifest SHA256: `{MANIFEST_SHA}`; plan SHA256: `{PLAN_SHA}`; pretrained SHA256: `{PRETRAINED_SHA}`.",
             "- Model was fully trainable, FP32, batch 1, AdamW; GC coefficient 0.01; no AMP or accumulation.",
-            "- Evaluation nodes: 0, 200, 500, 1000, 2000, 3500, 5000 on locked train16/val8/val32 monitors.",
+            "- Evaluation nodes: 0, 1000, 2000, 3500, 5000 on locked train16/val8/val32 monitors.",
             "- SSST evaluation inputs use GT camera poses; SIU3R is unposed. This 128-scene monitor is structural validation, not the complete 1860-pair benchmark.", "",
             "## Registered curves", "",
              "Metrics below are local evaluator values in [0,1] (not percentages); PSNR is dB. Target means target-all views.", ""]
@@ -417,7 +452,7 @@ def _write_formal_report(reports, drift, summary, online_matches):
                     f"{_fmt(_curves_psnr(data, split, scope), 3)} | {official_text} |"
                 )
         rows.append("")
-    rows += ["## Same-endpoint local comparison on val32", "",
+    rows += ["## Same-step local comparison on val32 at step 3500", "",
              "| Model | Scope | thing mIoU | ca-R50 TP/FP/FN (GT) | class-aware R50 | local PQ | PSNR dB |", "|:---|:---|---:|:---|---:|---:|---:|"]
     for model_name, curves in baselines.items():
         for scope in ("context", "target"):
@@ -430,7 +465,7 @@ def _write_formal_report(reports, drift, summary, online_matches):
                         f"{local.get('fn_class_agnostic')} ({local.get('n_gt_instances')}) | "
                         f"{_fmt(local.get('class_aware_recall50'))} | {_fmt(local.get('local_pq'))} | "
                         f"{_fmt(_curves_psnr(curves, 'val32', scope), 3)} |")
-    rows += ["", "Historical S0/S1 curve artifacts expose local evaluator metrics; archived official all/novel metrics are not present in those curve JSONs, so their official comparison is N/A rather than reconstructed.", "",
+    rows += ["",
              "## Anchor and slot diagnostics", "",
              "Per-window query/anchor diagnostics, including centered covariance participation ratio, query cosine, evidence overlap, ownership concentration, best visible-anchor Dice, matched query IDs and active query count, are retained in each `eval_<split>/step_*/evaluation_summary.json` and per-window files.",
              "The local class-agnostic/class-aware instance TP counts use GT-free predicted query masks and one-to-one IoU>=0.5 matching; `n_gt_instances` is the matched GT denominator.",
@@ -443,7 +478,7 @@ def _write_formal_report(reports, drift, summary, online_matches):
         old = (v1_drift or {}).get(category, {})
         rows.append(f"| {category} | {_fmt(item['l2_delta'], 6)} | {_fmt(item['relative_l2_delta'], 6)} | {_fmt(item['max_abs_delta'], 6)} | "
                     f"{_fmt(old.get('relative_l2_delta'), 6)} |")
-    # Amend the header with the historical V1 comparison column.
+    # Include the archived V1 reconstruction drift when available.
     header_at = rows.index("| Reconstruction category | L2 delta | Relative L2 | Max absolute delta |")
     rows[header_at] = "| Reconstruction category | L2 delta | Relative L2 | Max absolute delta | V1 relative L2 |"
     rows[header_at + 1] = "|:---|---:|---:|---:|---:|"
@@ -458,28 +493,26 @@ def _write_formal_report(reports, drift, summary, online_matches):
         rows.append(f"- Val32 {label}: step0={_fmt(p0, 3)} dB, step5000={_fmt(p5, 3)} dB, delta={_fmt(delta, 3)} dB; {verdict}.")
     train_psnr0 = _curves_psnr(current[0], "train16", "context") if current[0] else None
     train_psnr5 = _curves_psnr(current[5000], "train16", "context") if current[5000] else None
-    rows += ["", "## Effective object masks and endpoint deltas", "",
+    rows += ["", "## Effective object masks and registered comparisons", "",
              "The local evaluator forms predictions from GT-free thing-query ownership masks and applies its registered score/IoU thresholds; TP is one-to-one matched predicted masks at IoU>=0.5. These counts are diagnostic and are not an official mAP/PQ substitute.", "",
-             "| Comparison | Scope | thing mIoU delta | ca-R50 delta | class-aware R50 delta | PSNR delta dB |", "|:---|:---|---:|---:|---:|---:|"]
+             "| Model | Scope | thing mIoU | ca-R50 TP/FP/FN/GT | class-aware R50 | local PQ | PSNR dB |", "|:---|:---|---:|:---|---:|---:|---:|"]
     current_end = current[5000]
-    for baseline_name in ("S0@5k", "S1@5k", "Anchor-Group V1@5k"):
-        base = baselines.get(baseline_name)
-        for scope in ("context", "target"):
-            now = _curves_local(current_end, "val32", scope) if current_end else None
-            before = _curves_local(base, "val32", scope)
-            if not now or not before:
-                rows.append(f"| Object-Locus V1 vs {baseline_name} | {scope} | N/A | N/A | N/A | N/A |")
+    current_3500 = current[3500]
+    baseline_name = "Object-Locus V1@3500"
+    base = baselines[baseline_name]
+    for scope in ("context", "target"):
+        for model_name, curves in (("Object-Locus V1@3500", base),
+                                   ("Object-Locus V1.1@3500", current_3500)):
+            local = _curves_local(curves, "val32", scope)
+            if not local:
+                rows.append(f"| {model_name} | {scope} | N/A | N/A | N/A | N/A | N/A |")
                 continue
-            def delta(key):
-                left, right = now.get(key), before.get(key)
-                return left - right if left is not None and right is not None else None
-            now_psnr, before_psnr = (_curves_psnr(current_end, "val32", scope),
-                                     _curves_psnr(base, "val32", scope))
-            psnr_delta = now_psnr - before_psnr if now_psnr is not None and before_psnr is not None else None
-            rows.append(f"| Object-Locus V1 vs {baseline_name} | {scope} | "
-                        f"{_fmt(delta('mIoU_thing'), 5)} | "
-                        f"{_fmt(delta('class_agnostic_recall50'), 5)} | "
-                        f"{_fmt(delta('class_aware_recall50'), 5)} | {_fmt(psnr_delta, 3)} |")
+            rows.append(f"| {model_name} | {scope} | {_fmt(local.get('mIoU_thing'))} | "
+                        f"{local.get('tp_class_agnostic')}/{local.get('fp_class_agnostic')}/"
+                        f"{local.get('fn_class_agnostic')} ({local.get('n_gt_instances')}) | "
+                        f"{_fmt(local.get('class_aware_recall50'))} | {_fmt(local.get('local_pq'))} | "
+                        f"{_fmt(_curves_psnr(curves, 'val32', scope), 3)} |")
+    rows += ["", "There is no Object-Locus V1 step-5000 checkpoint/result because the registered V1 run stopped at step4090; no V1@5000 value is inferred."]
     rows += ["", "### Val32 step-5000 GT-free mask matches", "",
              "| Scope | Class-agnostic TP/GT | Class-aware TP/GT | Active thing queries |", "|:---|:---|:---|---:|"]
     for scope in ("context", "target"):
@@ -513,6 +546,7 @@ def _write_formal_report(reports, drift, summary, online_matches):
                     f"{matched:.2f} | {sum(d.get('supported_gt_count',0) for d in diags)} | {_fmt(mean('gt_best_anchor_dice_mean'),4)} |")
     rows += ["", "## Interpretation", "",
              "Interpretation is limited to the registered monitor metrics. Direct anchor diagnostics and per-query output should be read alongside 2D mask matching; low utilization is diagnostic, not a training stop condition.",
+             "V1 has no step-5000 result because its formal run stopped at step4090; no equal-step V1@5000 comparison is claimed.",
              "No unregistered model, loss, threshold or training changes were introduced. No next experiment was started.", "",
              "## Artifact paths", "",
              f"- Reports: `{reports}`", f"- Run/checkpoints/log: `{RUN_ROOT_DEFAULT}`", "- Per-window evaluations and panels are stored under `eval_train16`, `eval_val8`, and `eval_val32`."]
@@ -525,7 +559,7 @@ def run_train(device, reports, run_root, until_step, failure_capture_dir=None):
     if until_step != TOTAL_STEPS:
         raise RuntimeError("the registered first-run endpoint is fixed at 5000 steps")
     if not torch.cuda.is_available() or torch.device(device).type != "cuda":
-        raise RuntimeError("formal Object-Locus V1 training requires CUDA")
+        raise RuntimeError("formal Object-Locus V1.1 training requires CUDA")
     if torch.cuda.device_count() != 1:
         raise RuntimeError(f"formal run requires one GPU, found {torch.cuda.device_count()}")
     gpu = torch.cuda.get_device_name()
@@ -535,6 +569,12 @@ def run_train(device, reports, run_root, until_step, failure_capture_dir=None):
     if reports != REPORTS_DEFAULT or run_root != RUN_ROOT_DEFAULT:
         raise RuntimeError("formal artifact roots are fixed by the registered recipe")
     commit = _assert_committed_and_pushed()
+    node = os.uname().nodename
+    if node not in ("3dimage-13", "3dimage-11"):
+        raise RuntimeError(f"Object-Locus V1.1 run is restricted to the registered 3090 nodes, got {node}")
+    if failure_capture_dir is None:
+        failure_capture_dir = run_root / "failures"
+    failure_capture_dir = Path(failure_capture_dir)
     manifest, plan = locked_assets(reports)
     source_hashes = _source_hashes()
     if (run_root.exists() and not (run_root / "run_manifest.json").is_file()):
@@ -580,7 +620,8 @@ def run_train(device, reports, run_root, until_step, failure_capture_dir=None):
             # advance, and only for the explicit evaluator/infrastructure repair.
             has_progress = (_latest_checkpoint(run_root) is not None or has_training_records)
             locked_provenance = {
-                "task": "Object-Locus V1", "spec_sha256": SPEC_SHA,
+                "task": "Object-Locus V1.1", "recipe": "OBJECT_LOCUS_V1_1",
+                "spec_sha256": SPEC_SHA,
                 "manifest_sha256": MANIFEST_SHA, "plan_sha256": PLAN_SHA,
                 "pretrained_sha256": PRETRAINED_SHA,
             }
@@ -611,12 +652,23 @@ def run_train(device, reports, run_root, until_step, failure_capture_dir=None):
             if checkpoint_state is not None:
                 del checkpoint_state
     else:
-        run_manifest = {"task": "Object-Locus V1", "git_commit": commit,
+        run_manifest = {"task": "Object-Locus V1.1", "recipe": "OBJECT_LOCUS_V1_1",
+                        "architecture_name": "LOCUSGS_OBJECT_LOCUS_V1_1",
+                        "git_commit": commit,
                         "source_file_hashes": source_hashes, "spec_sha256": SPEC_SHA,
                         "gpu": gpu, "CUDA_VISIBLE_DEVICES": os.environ.get("CUDA_VISIBLE_DEVICES"),
                         "torch": torch.__version__, "cuda": torch.version.cuda,
                         "manifest_sha256": MANIFEST_SHA, "plan_sha256": PLAN_SHA,
                         "pretrained_sha256": PRETRAINED_SHA,
+                        "evaluation_steps": list(EVAL_STEPS),
+                        "seed": 42, "object_branch_init_seed": 31415,
+                        "precision": "fp32", "batch_size": 1,
+                        "amp": False, "gradient_accumulation_steps": 1,
+                        "cudnn_deterministic": torch.backends.cudnn.deterministic,
+                        "cudnn_benchmark": torch.backends.cudnn.benchmark,
+                        "cudnn_allow_tf32": torch.backends.cudnn.allow_tf32,
+                        "cuda_matmul_allow_tf32": torch.backends.cuda.matmul.allow_tf32,
+                        "deterministic_algorithms": torch.are_deterministic_algorithms_enabled(),
                         "created_at_unix": time.time()}
         write_json(run_manifest_path, run_manifest)
     write_json(reports / "formal_run_provenance.json", run_manifest)
@@ -679,7 +731,8 @@ def run_train(device, reports, run_root, until_step, failure_capture_dir=None):
     log_path = run_root / "train_events.log"
     log_file = log_path.open("a", buffering=1)
     start_message = (f"[start] commit={commit} GPU={gpu} CUDA_VISIBLE_DEVICES={os.environ.get('CUDA_VISIBLE_DEVICES')} "
-                     f"torch={torch.__version__} CUDA={torch.version.cuda} start={start_step}")
+                     f"torch={torch.__version__} CUDA={torch.version.cuda} node={node} "
+                     f"recipe=OBJECT_LOCUS_V1_1 start={start_step}")
     print(start_message, flush=True)
     print(start_message, file=log_file, flush=True)
     evaluations = {}
@@ -718,6 +771,8 @@ def run_train(device, reports, run_root, until_step, failure_capture_dir=None):
             output, metrics = train_one_step(
                 model, optimizer, batch, step,
                 failure_capture_dir=failure_capture_dir,
+                failure_context={"entry": entry, "plan_position": step - 1,
+                                 "git_commit": commit, "optimizer_updated": False},
             )
             for qi, _ki in output["prediction"].get("final_pairs", []):
                 for query in qi.detach().cpu().tolist():
@@ -745,13 +800,15 @@ def run_train(device, reports, run_root, until_step, failure_capture_dir=None):
                                         "query_counts": online_matches}, allow_nan=False) + "\n")
             # Release the just-backpropagated graph before a registered evaluation node.
             del output, metrics, batch
-            if step in EVAL_STEPS:
+            if step in EVAL_STEPS or step % 500 == 0:
                 payload = _checkpoint_payload(model, optimizer, step, step, opt, commit,
                                               source_hashes, transfer, trainability,
                                               _optimizer_audit(optimizer), online_matches)
-                path = _save_checkpoint(run_root, payload, step)
-                evaluations[step] = _eval_node(model, opt, step, reports, device,
-                                               monitors, run_root, path)
+                permanent = step in EVAL_STEPS
+                path = _save_checkpoint(run_root, payload, step, permanent=permanent)
+                if step in EVAL_STEPS:
+                    evaluations[step] = _eval_node(model, opt, step, reports, device,
+                                                   monitors, run_root, path)
                 del payload
         torch.cuda.synchronize()
     finally:

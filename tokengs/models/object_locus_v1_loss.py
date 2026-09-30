@@ -11,9 +11,72 @@ from tokengs.models.anchor_group_loss import (
 )
 from tokengs.models.instance_state_loss import (
     CLASS_CE_WEIGHT, MASK_BCE_WEIGHT, MASK_DICE_WEIGHT, NO_OBJECT_INDEX,
-    UNMATCHED_CLASS_WEIGHT, _check_labels, _flat_regions, _linspace_indices,
-    _matching_cost, identity_loss, semantic_loss, stuff_loss,
+    UNMATCHED_CLASS_WEIGHT, SEMANTIC_CLASSES, STUFF_CLASS_COUNT,
+    _check_labels, _flat_regions, _linspace_indices,
+    _matching_cost, identity_loss, semantic_loss,
 )
+
+
+def _physical_probability(prob, *, name):
+    if not bool(torch.isfinite(prob).all()):
+        bad = torch.nonzero(~torch.isfinite(prob), as_tuple=False)
+        raise FloatingPointError(
+            f"{name} contains nonfinite probability values; shape={tuple(prob.shape)} "
+            f"nan={int(torch.isnan(prob).sum())} +inf={int(torch.isposinf(prob).sum())} "
+            f"-inf={int(torch.isneginf(prob).sum())} "
+            f"first_bad={bad[0].detach().cpu().tolist() if bad.numel() else None}"
+        )
+    lo = float(prob.detach().min()) if prob.numel() else 0.0
+    hi = float(prob.detach().max()) if prob.numel() else 0.0
+    if lo < -1e-5 or hi > 1.0 + 1e-5:
+        raise FloatingPointError(
+            f"{name} outside probability range beyond float tolerance: "
+            f"shape={tuple(prob.shape)} min={lo:.9g} max={hi:.9g}"
+        )
+    return prob.clamp(0.0, 1.0)
+
+
+def _probability_mask_losses(p_raw, target, *, name):
+    p = _physical_probability(p_raw, name=name)
+    target = target.float()
+    bce = F.binary_cross_entropy(p, target, reduction="none").mean()
+    intersection = (p * target).sum(-1)
+    dice = (1.0 - (2.0 * intersection + 1.0) /
+            (p.sum(-1) + target.sum(-1) + 1.0)).mean()
+    return bce, dice, p
+
+
+def object_locus_stuff_loss(prediction, batch):
+    """Object-Locus wall/floor BCE and Dice on raw probability mass."""
+    device = prediction["gaussians"].device
+    sem, ins = batch["semantic_label_all"][:, :2], batch["instance_label_all"][:, :2]
+    stuff = _flat_regions(prediction["region_mass"][:, :, 100:102], 2)
+    zero = prediction["gaussians"].sum() * 0.0
+    bce_terms, dice_terms = [], []
+    for b in range(sem.shape[0]):
+        valid = ((sem[b] >= 0) & (sem[b] <= SEMANTIC_CLASSES - 1)
+                 & ((sem[b] < STUFF_CLASS_COUNT) | (ins[b] > 0)))
+        keep = valid.reshape(-1)
+        if int(keep.sum()) == 0:
+            continue
+        target = torch.stack(((sem[b] == 0).float(), (sem[b] == 1).float()), dim=0)
+        target = target.reshape(2, -1)[:, keep]
+        p_raw = stuff[b][:, keep].float()
+        p = _physical_probability(p_raw, name=f"stuff region_mass batch={b}")
+        bce_terms.append(torch.stack([
+            F.binary_cross_entropy(p[c], target[c], reduction="mean") for c in range(2)
+        ]).mean())
+        dice_terms.append(torch.stack([
+            1.0 - (2.0 * (p[c] * target[c]).sum() + 1.0)
+            / (p[c].sum() + target[c].sum() + 1.0)
+            for c in range(2)
+        ]).mean())
+    if not bce_terms:
+        return zero, {"stuff_bce": 0.0, "stuff_dice": 0.0}
+    bce, dice = torch.stack(bce_terms).mean(), torch.stack(dice_terms).mean()
+    return MASK_BCE_WEIGHT * bce + MASK_DICE_WEIGHT * dice, {
+        "stuff_bce": float(bce.detach()), "stuff_dice": float(dice.detach())
+    }
 
 
 def build_visible_anchor_targets(mu, batch):
@@ -177,7 +240,8 @@ def pairwise_visible_anchor_cost(pa, ya, support):
     return bce * keep, dice * keep
 
 
-def _targets_for_pairs(targets, batch_index, qi, ki, logits, ownership):
+def _targets_for_pairs(targets, batch_index, qi, ki, logits,
+                       ownership_logits, ownership):
     device = logits.device
     target = torch.full((100,), NO_OBJECT_INDEX, device=device, dtype=torch.long)
     if qi.numel():
@@ -202,9 +266,10 @@ def _targets_for_pairs(targets, batch_index, qi, ki, logits, ownership):
     valid_anchor = targets["anchor_valid"][batch_index] & (anchor_target >= 0)
     if bool(valid_anchor.any()):
         rows = torch.nonzero(valid_anchor, as_tuple=False).flatten()
-        anchor_ce = -torch.log(ownership[rows, anchor_target[rows]].clamp_min(1e-6)).mean()
+        anchor_ce = F.cross_entropy(ownership_logits[rows].float(), anchor_target[rows],
+                                    reduction="mean")
     else:
-        anchor_ce = ownership.sum() * 0.0
+        anchor_ce = ownership_logits.sum() * 0.0
     dice_terms = []
     for query, gt in zip(qi.tolist(), ki.tolist()):
         y = targets["Y_anchor"][batch_index, gt]
@@ -224,25 +289,25 @@ def loss_with_pairs(prediction, batch, targets, pairs):
     regions = _flat_regions(prediction["region_mass"][:, :, :100], 100)
     logits = prediction["states"][-1]["thing_logits19"]
     ownership = prediction["states"][-1]["anchor_assignment"]
+    ownership_logits = prediction["states"][-1]["ownership_logits"]
     zero = prediction["gaussians"].sum() * 0.0
     ce_rows, bce_rows, dice_rows, anchor_ce_rows, anchor_dice_rows = [], [], [], [], []
     class_correct, class_total, class_margin = [], [], []
     for b, (qi, ki) in enumerate(pairs):
         ce, ace, adice, class_target = _targets_for_pairs(
-            targets, b, qi, ki, logits[b], ownership[b]
+            targets, b, qi, ki, logits[b], ownership_logits[b], ownership[b]
         )
         ce_rows.append(ce); anchor_ce_rows.append(ace); anchor_dice_rows.append(adice)
         valid = (sem[b] >= 0) & (sem[b] <= 19) & ((sem[b] < 2) | (ins[b] > 0))
         if qi.numel() and bool(valid.any()):
             valid_flat = valid.reshape(-1)
-            p = regions[b, qi][:, valid_flat].clamp(1e-6, 1.0 - 1e-6)
-            z = torch.logit(p)
+            p_raw = regions[b, qi][:, valid_flat].float()
             y = targets["gt_pixel_masks"][b][ki].reshape(ki.numel(), -1)[:, valid_flat].float()
-            bce_rows.append(F.binary_cross_entropy_with_logits(z, y, reduction="none").mean())
-            prob = torch.sigmoid(z)
-            intersection = (prob * y).sum(-1)
-            dice_rows.append((1.0 - (2.0 * intersection + 1.0) /
-                              (prob.sum(-1) + y.sum(-1) + 1.0)).mean())
+            bce, dice, _p = _probability_mask_losses(
+                p_raw, y, name=f"thing region_mass batch={b}"
+            )
+            bce_rows.append(bce)
+            dice_rows.append(dice)
             pred_cls = logits[b, qi].argmax(-1)
             true_cls = class_target[qi]
             class_correct.append((pred_cls == true_cls).float().sum())
@@ -258,7 +323,7 @@ def loss_with_pairs(prediction, batch, targets, pairs):
     pixel_bce = torch.stack(bce_rows).mean() if bce_rows else zero
     pixel_dice = torch.stack(dice_rows).mean() if dice_rows else zero
     thing_2d = CLASS_CE_WEIGHT * ce + MASK_BCE_WEIGHT * pixel_bce + MASK_DICE_WEIGHT * pixel_dice
-    stuff, stuff_metrics = stuff_loss(prediction, batch)
+    stuff, stuff_metrics = object_locus_stuff_loss(prediction, batch)
     semantic, semantic_metrics = semantic_loss(prediction, batch)
     identity, identity_metrics = identity_loss(prediction, batch, max_points=64)
     anchor_ce = torch.stack(anchor_ce_rows).mean() if anchor_ce_rows else zero
@@ -305,7 +370,8 @@ def aux_with_pairs(prediction, batch, layer_targets, pairs):
             if not torch.equal(targets["gt_instance_ids"][b], layer_targets[-1]["gt_instance_ids"][b]):
                 raise RuntimeError("auxiliary GT identity ordering differs across layers")
             ce, ace, adice, _ = _targets_for_pairs(
-                targets, b, qi, ki, state["thing_logits19"][b], state["anchor_assignment"][b]
+                targets, b, qi, ki, state["thing_logits19"][b],
+                state["ownership_logits"][b], state["anchor_assignment"][b]
             )
             ce_terms.append(ce); ace_terms.append(ace); adice_terms.append(adice)
         zero = state["q"].sum() * 0.0

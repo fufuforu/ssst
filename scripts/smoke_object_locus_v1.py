@@ -32,8 +32,9 @@ SOURCES = (
     "scripts/train_object_locus_v1.py", "scripts/eval_object_locus_v1.py",
     "scripts/export_object_locus_v1_official.py", "scripts/smoke_object_locus_v1.py",
     "scripts/submit_object_locus_v1.sh", "tests/test_object_locus_v1_contracts.py",
+    "tests/test_object_locus_v1_1_gradients.py", "docs/Object_Locus_V1_1.md",
 )
-SPEC_SHA = "1bf3dc7c0affceaff9f6fac3299004f33f1eca33e1efb5b2a1c0fd0d18a1d395"
+SPEC_SHA = sha256_file(REPO / "docs/Object_Locus_V1_1.md")
 EXPECTED_ENTRY = {
     "step": 1000, "window_index": 241, "scene": "scene0016_00",
     "context": [1506, 1517], "novel": [1509, 1516],
@@ -111,7 +112,12 @@ def run(device="cuda"):
     allocated_before = torch.cuda.memory_allocated()
     reserved_before = torch.cuda.memory_reserved()
     payload = {
-        "status": "RUNNING", "gpu": gpu, "gpu_total_memory_bytes": props.total_memory,
+        "status": "RUNNING", "version": "Object-Locus V1.1",
+        "git_head_before_smoke": subprocess.check_output(
+            ["git", "-C", str(REPO), "rev-parse", "HEAD"], text=True).strip(),
+        "git_status_before_smoke": subprocess.check_output(
+            ["git", "-C", str(REPO), "status", "--short"], text=True),
+        "gpu": gpu, "gpu_total_memory_bytes": props.total_memory,
         "gpu_total_memory_gib": props.total_memory / 1024**3,
         "cuda_visible_devices": os.environ.get("CUDA_VISIBLE_DEVICES"),
         "torch": torch.__version__, "cuda": torch.version.cuda,
@@ -124,7 +130,8 @@ def run(device="cuda"):
     }
     stage = "startup"
     REPORTS.mkdir(parents=True, exist_ok=True)
-    write_json(REPORTS / "smoke_object_locus_v1.json", payload)
+    payload["version"] = "Object-Locus V1.1"
+    write_json(REPORTS / "smoke_object_locus_v1_1.json", payload)
     try:
         stage = "assets_and_model_initialization"
         seed_everything(42)
@@ -282,7 +289,7 @@ def run(device="cuda"):
             "training_peak_reserved_gib": torch.cuda.max_memory_reserved() / 1024**3,
         })
         payload["status"] = "TRAIN_SMOKE_PASS"
-        write_json(REPORTS / "smoke_object_locus_v1.json", payload)
+        write_json(REPORTS / "smoke_object_locus_v1_1.json", payload)
 
         stage = "val32_evaluator_interface"
         # Keep this same post-step model only for the required single val32 pair interface smoke.
@@ -329,7 +336,7 @@ def run(device="cuda"):
                                   "overall_peak_reserved_gib": overall_reserved / 1024**3})
         payload["elapsed_seconds"] = time.time() - start
         payload["status"] = "PASS"
-        write_json(REPORTS / "smoke_object_locus_v1.json", payload)
+        write_json(REPORTS / "smoke_object_locus_v1_1.json", payload)
         return payload
     except torch.cuda.OutOfMemoryError as exc:
         payload["status"] = "FAIL_OOM"
@@ -339,7 +346,7 @@ def run(device="cuda"):
         payload["traceback"] = traceback.format_exc()
         payload["memory"].update({"failure_peak_allocated_bytes": torch.cuda.max_memory_allocated(),
                                   "failure_peak_reserved_bytes": torch.cuda.max_memory_reserved()})
-        write_json(REPORTS / "smoke_object_locus_v1.json", payload)
+        write_json(REPORTS / "smoke_object_locus_v1_1.json", payload)
         raise
     except Exception as exc:
         payload["status"] = "FAIL"
@@ -352,7 +359,7 @@ def run(device="cuda"):
                                       "failure_peak_reserved_bytes": torch.cuda.max_memory_reserved()})
         except Exception:
             pass
-        write_json(REPORTS / "smoke_object_locus_v1.json", payload)
+        write_json(REPORTS / "smoke_object_locus_v1_1.json", payload)
         raise
 
 

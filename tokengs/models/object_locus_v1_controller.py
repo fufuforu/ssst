@@ -263,19 +263,17 @@ class ObjectLocusV1Controller(nn.Module):
                                  delta_v=delta_v, v_new=v_new, s_new=s_new)
         return c_new, s_new
 
-    def ownership(self, a, q_new, mu, c, s):
+    def ownership(self, a, q_new, mu=None, c=None, s=None):
         e = F.normalize(self.W_own_e(self.ln_own_a(a)), dim=-1, eps=1e-6)
         u = F.normalize(self.W_own_u(self.ln_own_q(q_new)), dim=-1, eps=1e-6)
         feature_logits = torch.einsum("btd,bqd->btq", e, u) / GROUP_TEMPERATURE
-        geo = self._geometry_bias(mu, c, s).transpose(1, 2)
-        geo = torch.cat((geo[:, :, :NUM_THING], geo.new_zeros((*geo.shape[:2], NUM_STUFF))), -1)
         void = self.W_void(a)
-        logits = torch.cat((feature_logits + geo, void), dim=-1)
+        logits = torch.cat((feature_logits, void), dim=-1)
         self._diagnostic_observe("ownership", feature_logits=feature_logits,
-                                 geometry_logits=geo, void_logit=void, logits=logits)
+                                 void_logit=void, logits=logits)
         if not torch.isfinite(logits).all():
             raise RuntimeError("nonfinite ownership logits")
-        return torch.softmax(logits, dim=-1), e, u, void
+        return logits, torch.softmax(logits, dim=-1), e, u, void
 
     def classify(self, q_new):
         logits19 = self.thing_classifier(self.ln_cls(q_new[:, :NUM_THING]))
@@ -290,15 +288,17 @@ class ObjectLocusV1Controller(nn.Module):
         evidence, evidence_mean, z = self.read_evidence(a, mu, q, c, s)
         q_new = self.decode_queries(q, z)
         c_new, s_new = self.update_geometry(evidence_mean, mu, q_new[:, :NUM_THING], c, s, ell)
-        A, own_e, own_u, void = self.ownership(a, q_new, mu, c_new, s_new)
+        ownership_logits, A, own_e, own_u, void = self.ownership(a, q_new, mu, c_new, s_new)
         logits19, logits21 = self.classify(q_new)
         self._diagnostic_observe("registered_layer_output", q_new=q_new,
                                  evidence_mean=evidence_mean, ownership=A,
+                                 ownership_logits=ownership_logits,
                                  thing_logits19=logits19, thing_logits21=logits21,
                                  c_new=c_new, s_new=s_new)
         return {"q": q_new, "c": c_new, "s": s_new, "anchor_embedding": a,
                 "evidence_attention": evidence, "evidence_attention_mean": evidence_mean,
-                "anchor_assignment": A, "thing_logits19": logits19,
+                "anchor_assignment": A, "ownership_logits": ownership_logits,
+                "thing_logits19": logits19,
                 "thing_class_logits": logits21, "ell": ell,
                 "ownership_e": own_e, "ownership_u": own_u, "void_logit": void,
                 "c_displacement": c_new-c, "seed_indices": None}

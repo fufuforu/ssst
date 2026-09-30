@@ -1,4 +1,4 @@
-"""Registered local evaluation, panels, diagnostics and official segmentation runs."""
+"""Registered evaluation outputs for Object-Locus V1.1."""
 from __future__ import annotations
 
 import importlib
@@ -13,7 +13,7 @@ import torch.nn.functional as F
 from PIL import Image, ImageDraw
 
 REPO = Path(__file__).resolve().parents[1]
-REPORTS_DEFAULT = Path("/space/mawb/ssst/group_plus/object_locus_v1")
+REPORTS_DEFAULT = Path("/space/mawb/ssst/group_plus/object_locus_v1_1")
 SIU3R_ROOT = Path("/space/mawb/SIU3R")
 SIU3R_COMMIT = "8ea80166be76854f938e90521f1a5b688b755c87"
 SIU3R_PYTHON = SIU3R_ROOT / ".venv_gpu_v4/bin/python"
@@ -66,6 +66,7 @@ def object_locus_diagnostics(out, batch):
     ev_off = ev_overlap[~torch.eye(100, dtype=torch.bool, device=q.device)]
     targets, pairs = final_hungarian(out, batch)
     gt_best_dice = []
+    raw_slot_iou_rows = []
     supported_gt, matched_queries = 0, set()
     for b, (qi, _ki) in enumerate(pairs):
         matched_queries.update(qi.tolist())
@@ -82,6 +83,22 @@ def object_locus_diagnostics(out, batch):
                 dice = float((2 * (p * yy).sum() + 1) / (p.sum() + yy.sum() + 1))
                 best = max(best, dice)
             gt_best_dice.append(best)
+        gt_masks = targets["gt_pixel_masks"][b]
+        if gt_masks.numel():
+            raw = out["region_mass"][b, :, :100] > 0.5
+            for gt in range(gt_masks.shape[0]):
+                target = gt_masks[gt].to(device=raw.device, dtype=torch.bool)
+                intersection = (raw & target[:, None]).sum((0, 2, 3)).float()
+                union = (raw | target[:, None]).sum((0, 2, 3)).float()
+                ious = intersection / union.clamp_min(1)
+                raw_slot_iou_rows.append({
+                    "gt_index": gt,
+                    "instance_id": int(targets["gt_instance_ids"][b][gt]),
+                    "class_id": int(targets["gt_classes"][b][gt]),
+                    "has_anchor_support": bool(targets["Y_anchor"][b, gt].sum() > 0),
+                    "best_raw_slot_iou": float(ious.max()),
+                    "best_raw_slot": int(ious.argmax()),
+                })
     thing_probs = out["p_class"][0, :, :18]
     masks = out["region_mass"][0, :, :100] > 0.5
     class_id = thing_probs.argmax(-1) + 2
@@ -101,6 +118,11 @@ def object_locus_diagnostics(out, batch):
         "evidence_overlap": {"offdiag_mean": float(ev_off.mean()), "p90": float(ev_off.quantile(.9)), "max": float(ev_off.max())},
         "supported_gt_count": supported_gt,
         "gt_best_anchor_dice_mean": float(np.mean(gt_best_dice)) if gt_best_dice else None,
+        "gt_raw_slot_mask_iou": raw_slot_iou_rows,
+        "gt_raw_slot_iou_ge_0_5_count": sum(row["best_raw_slot_iou"] >= 0.5
+                                               for row in raw_slot_iou_rows),
+        "gt_anchor_support_count": sum(row["has_anchor_support"] for row in raw_slot_iou_rows),
+        "gt_anchor_support_total": len(raw_slot_iou_rows),
         "matched_queries": sorted(matched_queries), "matched_query_count": len(matched_queries),
         "query_rows": query_rows, "active_thing_queries": int((scores >= .5).sum()),
     }
@@ -264,8 +286,8 @@ def evaluate_dataset(model, opt, windows, split, step, reports, device, batch_bu
         }
     panel_rows = []
     if panels:
-        positions = ([0, 5, 10, 15] if split == "train16"
-                     else [0, 5, 10, 15, 20, 25, 30, 31] if split == "val32" else [])
+        positions = ([0] if split == "train16"
+                     else [0, 1, 2] if split == "val32" else [])
         for position in positions:
             if position >= len(windows):
                 continue
