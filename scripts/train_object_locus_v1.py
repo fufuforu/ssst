@@ -502,7 +502,18 @@ def run_train(device, reports, run_root, until_step):
     manifest, plan = locked_assets(reports)
     source_hashes = _source_hashes()
     if (run_root.exists() and not (run_root / "run_manifest.json").is_file()):
-        if any(run_root.iterdir()):
+        leftovers = list(run_root.iterdir())
+        # Failed preflight attempts may leave only the tee'd stdout log before
+        # the run manifest is created. Preserve it, but never infer a resumable
+        # training state from a log: any training marker or other file fails.
+        unexpected = [path for path in leftovers if path.name != "train.log"]
+        startup_log = run_root / "train.log"
+        has_training_marker = False
+        if startup_log.is_file():
+            text = startup_log.read_text(errors="replace")
+            has_training_marker = ("[start]" in text or "[resume]" in text or
+                                  any('"step"' in line for line in text.splitlines()))
+        if unexpected or has_training_marker:
             raise RuntimeError(f"run root exists without this task manifest: {run_root}")
     run_root.mkdir(parents=True, exist_ok=True)
     run_manifest_path = run_root / "run_manifest.json"
