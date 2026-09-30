@@ -921,4 +921,31 @@ config_defaults["train_siu3r_anchor_group_v1"] = config_defaults[
     instance_state_local3d=False,
 )
 
+config_doc["train_siu3r_object_locus_v1"] = (
+    "LOCUSGS_OBJECT_LOCUS_V1: scene-conditioned 100 thing + 2 stuff states, "
+    "independent spatially guided evidence and ownership heads, residual object "
+    "decoder, and no object-to-anchor feedback."
+)
+config_defaults["train_siu3r_object_locus_v1"] = config_defaults[
+    "train_siu3r_anchor_group_v1"
+].evolve(
+    model_type="siu3r_object_locus_v1",
+    workspace="/space/mawb/ssst/workspace_group_plus/object_locus_v1",
+    experiment_name="siu3r_object_locus_v1",
+    batch_size=1,
+    gradient_accumulation_steps=1,
+    num_workers=0,
+    seed=42,
+    num_input_views=2,
+    num_views=4,
+    mixed_precision="no",
+    random_reflect=False,
+    reconstruction_only=False,
+    instance_state_coupled=False,
+    instance_state_local3d=False,
+    instance_state_layers=(6, 8, 10, 12),
+    init_checkpoint=None,
+    dataset_kwargs={"data_root": "/space/mawb/SIU3R/data/scannet"},
+)
+
 AllConfigs = tyro.extras.subcommand_type_from_defaults(config_defaults, config_doc)
