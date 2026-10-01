@@ -130,6 +130,7 @@ def test_c14_split_identity_and_holdout_are_deterministic():
     mons=[{"scene":"dev"+str(i),"context":[0,1],"novel":[2,3]} for i in range(8)]
     a=build_v2_1_splits(manifest,legacy,mons,mons); b=build_v2_1_splits(manifest,legacy,mons,mons)
     assert a==b and len(a["train_probe16"])==2
+    assert a["val8"]==mons and a["val32"]==mons
     for hold in a["same_scene_holdout16"]:
         hf=set(hold["context"]+hold["novel"])
         assert all(hf.isdisjoint(set(w["context"]+w["novel"])) for w in a["small_train_windows"] if w["scene"]==hold["scene"])

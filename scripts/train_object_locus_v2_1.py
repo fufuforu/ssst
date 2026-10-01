@@ -542,6 +542,7 @@ def main():
       "small_stage_scenes":splits["small_stage_scenes"],"same_scene_holdout16":splits["same_scene_holdout16"],
       "small_train_windows":splits["small_train_windows"],"train_probe16":splits["train_probe16"],
       "legacy_train16":splits["legacy_train16"],"dev8":splits["dev8"],"dev8_source":splits["dev8_source"],
+      "fixed_val8":splits["val8"],"fixed_val32":splits["val32"],
       "expanded_train_windows":splits["expanded_train_windows"],"expanded_excluded_windows":splits["expanded_excluded_windows"],
       "holdout_selection":splits["holdout_selection"],"legacy_train16_exposure":splits["legacy_train16_exposure"],
       "window_exposure_contract":{"small_train_each_window":16,"expanded_train_each_window_if_stage_e":16,

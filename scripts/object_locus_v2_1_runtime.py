@@ -709,7 +709,8 @@ def build_v2_1_splits(manifest, legacy_train16, monitor8, monitor32):
                                 "stage_s_exposures":16 if in_s else 0,"stage_e_exposures":16 if in_e else 0})
     return {"small_stage_scenes":sorted(small_scenes),"same_scene_holdout16":holds,
             "small_train_windows":small_train,"train_probe16":train_probe,"legacy_train16":legacy_train16,
-            "dev8":dev8,"dev8_source":dev_source,"expanded_train_windows":expanded,
+            "dev8":dev8,"dev8_source":dev_source,"val8":monitor8,"val32":monitor32,
+            "expanded_train_windows":expanded,
             "expanded_excluded_windows":excluded,"holdout_selection":hold_exposure,
             "legacy_train16_exposure":legacy_exposure,
             "stage_s_updates":16*len(small_train),"stage_e_updates":16*len(expanded),
