@@ -99,7 +99,10 @@ def _check_cuda():
 def stage_a(device="cuda"):
     gpu,node=_check_cuda()
     reports=REPORTS_DEFAULT/"stage_a"; run=RUN_ROOT_DEFAULT
-    if reports.exists() and any(reports.iterdir()) and not (reports/"stage_a_manifest.json").exists():
+    report_unregistered = ([p for p in reports.iterdir()
+                            if p.name not in ("stage_a_dev8.json", "stage_a_manifest.json")]
+                           if reports.exists() else [])
+    if report_unregistered and not (reports/"stage_a_manifest.json").exists():
         raise RuntimeError(f"Stage A report directory already contains unregistered files: {reports}")
     if run.exists() and any(run.iterdir()) and not (run/"stage_a_manifest.json").exists():
         raise RuntimeError(f"Stage A run directory already contains unregistered files: {run}")
@@ -118,7 +121,7 @@ def stage_a(device="cuda"):
     module_file=Path(controller_module.__file__).resolve()
     if not module_file.is_relative_to(REPO.resolve()): raise RuntimeError(f"V2 controller outside execution worktree: {module_file}")
     print(json.dumps({"execution_worktree":str(REPO.resolve()),"git_sha":commit,
-                      "controller_module_file":str(module_file)},flush=True),flush=True)
+                      "controller_module_file":str(module_file)}),flush=True)
     seed_everything(42)
     model,opt,transfer=build_model(device); optimizer,opt_audit=build_optimizer(model)
     trainability=trainability_counts(model)
