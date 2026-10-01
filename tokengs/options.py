@@ -960,4 +960,16 @@ config_defaults["train_siu3r_object_locus_v2"] = config_defaults[
     experiment_name="siu3r_object_locus_v2",
 )
 
+config_doc["train_siu3r_object_locus_v2_1"] = (
+    "LOCUSGS_OBJECT_LOCUS_V2_1: mask-conditioned category and separate objectness "
+    "on independent anchor/Gaussian memberships."
+)
+config_defaults["train_siu3r_object_locus_v2_1"] = config_defaults[
+    "train_siu3r_object_locus_v2"
+].evolve(
+    model_type="siu3r_object_locus_v2_1",
+    workspace="/space/mawb/ssst/workspace_group_plus/object_locus_v2_1",
+    experiment_name="siu3r_object_locus_v2_1",
+)
+
 AllConfigs = tyro.extras.subcommand_type_from_defaults(config_defaults, config_doc)
