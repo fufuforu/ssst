@@ -24,7 +24,7 @@ from scripts.object_locus_v2_1_runtime import (
     REPORTS_DEFAULT, RUN_ROOT_DEFAULT, RECON_PEAK_LR, SEED, TRAIN_ROOT, VAL_ROOT,
     build_batch, build_model, build_optimizer, build_v2_1_splits, capture_rng,
     load_v2_1_assets, restore_rng, seed_everything, train_one_step, trainability_counts,
-    write_json,
+    write_json, jsonable,
 )
 from scripts.object_locus_v2_1_runtime import sha256_file
 
