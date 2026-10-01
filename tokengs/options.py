@@ -948,4 +948,16 @@ config_defaults["train_siu3r_object_locus_v1"] = config_defaults[
     dataset_kwargs={"data_root": "/space/mawb/SIU3R/data/scannet"},
 )
 
+config_doc["train_siu3r_object_locus_v2"] = (
+    "LOCUSGS_OBJECT_LOCUS_V2: scene-conditioned object states with independent "
+    "anchor/Gaussian memberships and child feature residuals."
+)
+config_defaults["train_siu3r_object_locus_v2"] = config_defaults[
+    "train_siu3r_object_locus_v1"
+].evolve(
+    model_type="siu3r_object_locus_v2",
+    workspace="/space/mawb/ssst/workspace_group_plus/object_locus_v2",
+    experiment_name="siu3r_object_locus_v2",
+)
+
 AllConfigs = tyro.extras.subcommand_type_from_defaults(config_defaults, config_doc)

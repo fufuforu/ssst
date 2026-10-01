@@ -30,6 +30,7 @@ from .group_locusgs import LocusGSGroupRecon
 from .instance_state_locusgs import LocusGSInstanceStateRecon
 from .anchor_group_locusgs import LocusGSAnchorGroupRecon
 from .object_locus_v1 import LocusGSObjectLocusV1Recon
+from .object_locus_v2 import LocusGSObjectLocusV2Recon
 
 # Model registry
 model_registry = {
@@ -41,6 +42,7 @@ model_registry = {
     'siu3r_instance_state_locusgs': LocusGSInstanceStateRecon,
     'siu3r_anchor_group_locusgs': LocusGSAnchorGroupRecon,
     'siu3r_object_locus_v1': LocusGSObjectLocusV1Recon,
+    'siu3r_object_locus_v2': LocusGSObjectLocusV2Recon,
     'siu3r_plain_tokengs_canonical_recon': PlainTokenGSCanonicalRecon,
 }
 
@@ -61,6 +63,7 @@ __all__ = [
     'LocusGSInstanceStateRecon',
     'LocusGSAnchorGroupRecon',
     'LocusGSObjectLocusV1Recon',
+    'LocusGSObjectLocusV2Recon',
     'PlainTokenGSCanonicalRecon',
     'model_registry',
 ]
