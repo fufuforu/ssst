@@ -311,14 +311,54 @@ def _write_result_bundle(root):
     with (bundle/"per_gt_raw_mask_iou.csv").open("w",newline="") as f:
         fields=sorted({key for row in per_gt for key in row})
         w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows(per_gt)
-    logs=[]
+    logs=[]; raw_logs=[]
     for stage in ("stage_a","stage_b"):
         p=root/stage/"training_log_metrics.jsonl"
         if p.is_file():
-            logs += [json.loads(x) for x in p.read_text().splitlines() if x.strip()]
+            stage_rows=[json.loads(x) for x in p.read_text().splitlines() if x.strip()]
+            raw_logs.extend(stage_rows)
+            enriched=[]
+            for source_row in stage_rows:
+                row=dict(source_row)
+                # The training loop emitted the underlying FP32 terms but its
+                # logger omitted the three aggregate scalars. Recompose them
+                # in FP32 from the exact logged components; keep provenance
+                # explicit and do not overwrite the original JSONL.
+                if "loss_layer6" in row and "loss_layer12" in row:
+                    l6=torch.tensor(float(row["loss_layer6"]),dtype=torch.float32)
+                    l12=torch.tensor(float(row["loss_layer12"]),dtype=torch.float32)
+                    lr=(l6*(1.0/3.0)+l12*(2.0/3.0)).item()
+                    row["loss_recon"]=lr
+                if "loss_final_understanding" in row and "loss_aux_mean" in row:
+                    lu=(torch.tensor(float(row["loss_final_understanding"]),dtype=torch.float32)
+                        +torch.tensor(float(row["loss_aux_mean"]),dtype=torch.float32)*0.25).item()
+                    row["loss_understanding"]=lu
+                if "loss_recon" in row and "loss_understanding" in row:
+                    wt=torch.tensor(float(row.get("understanding_weight",1.0)),dtype=torch.float32)
+                    total=(torch.tensor(float(row["loss_recon"]),dtype=torch.float32)
+                           +wt*torch.tensor(float(row["loss_understanding"]),dtype=torch.float32)).item()
+                    row["loss_total"]=total; row["loss"]=total
+                    row["aggregate_loss_values_source"]="recomposed_fp32_from_logged_components"
+                if row.get("step_seconds")==0.0:
+                    row["step_seconds"]=None
+                    row["step_seconds_status"]="not_recorded_by_training_logger"
+                enriched.append(row)
+            enriched_path=root/stage/"training_log_metrics_enriched.jsonl"
+            enriched_path.write_text("".join(json.dumps(r,allow_nan=False)+"\n" for r in enriched))
+            logs.extend(enriched)
+            with (root/stage/"training_log_metrics_enriched.csv").open("w",newline="") as f:
+                fields=sorted({k for r in enriched for k in r})
+                w=csv.DictWriter(f,fieldnames=fields);w.writeheader()
+                for r in enriched:
+                    w.writerow({k:(json.dumps(v,ensure_ascii=False) if isinstance(v,(dict,list)) else v)
+                                for k,v in r.items()})
+    (bundle/"training_curve_raw.jsonl").write_text("".join(json.dumps(r,allow_nan=False)+"\n" for r in raw_logs))
     with (bundle/"training_curve.csv").open("w",newline="") as f:
-        fields=sorted({k for row in logs for k,v in row.items() if not isinstance(v,(dict,list))})
-        w=csv.DictWriter(f,fieldnames=fields);w.writeheader();w.writerows(logs)
+        fields=sorted({k for row in logs for k in row})
+        w=csv.DictWriter(f,fieldnames=fields,extrasaction="ignore");w.writeheader()
+        for row in logs:
+            w.writerow({k:(json.dumps(v,ensure_ascii=False) if isinstance(v,(dict,list)) else v)
+                        for k,v in row.items()})
     (bundle/"training_curve.jsonl").write_text("".join(json.dumps(r,allow_nan=False)+"\n" for r in logs))
     final_status=json.loads((root/"stage_a"/"final_status.json").read_text()) if (root/"stage_a"/"final_status.json").is_file() else {}
     gate=json.loads((root/"stage_a"/"stage_a_gate.json").read_text()) if (root/"stage_a"/"stage_a_gate.json").is_file() else {}
@@ -398,6 +438,43 @@ def _write_result_bundle(root):
       "See the `qualitative/` folder. Panels use the first three fixed windows per split in file order and include actual PNGs.\n\n",
       "## Source and run provenance\n\n",
       "See [config_and_provenance.json](config_and_provenance.json), [changes.patch](changes.patch), [training_curve.csv](training_curve.csv), and the code folder. No checkpoints or dataset files are included.\n"]
+    # Put the decision metrics directly in the short report so it is usable
+    # without loading the nested raw evaluator payload.
+    def metric_rows(stage, step, split):
+        for item in curves:
+            payload=item["payload"]
+            if item["stage"]==stage and int(payload.get("step",-1))==step:
+                data=payload.get("splits",{}).get(split,{})
+                out=[]
+                for scope,key in (("ctx","context"),("target-all","target_all")):
+                    local=data.get("local",{}).get(key,{})
+                    official=data.get("official",{}) or {}
+                    allm=official.get("all",{}) or {}; novel=official.get("novel",{}) or {}
+                    def fmt(v): return "MISSING" if v is None else f"{float(v):.4f}"
+                    om=allm.get("context_map" if key=="context" else "target_map",{}) or {}
+                    on=novel.get("context_map" if key=="context" else "target_map",{}) or {}
+                    out.append((scope,fmt(local.get("mIoU_thing")),fmt(local.get("local_pq")),
+                      fmt(om.get("map")),fmt(om.get("map_50")),fmt(local.get("psnr")),
+                      fmt(local.get("raw_best_iou_ge_0_5_fraction")),fmt(local.get("matched_class_accuracy")),
+                      f"{local.get('class_agnostic_tp',0)}/{local.get('class_agnostic_fp',0)}/{local.get('class_agnostic_fn',0)}",
+                      fmt(data.get("true_novel_psnr")) if key=="target_all" else "—"))
+                return out
+        return []
+    report.extend(["\n## Stage A任务门槛\n\n",
+      "| 项目 | 实测 | 门槛 | 结果 |\n|---|---:|---:|---|\n",
+      f"| train16 context raw best-mask IoU≥0.5 | {gate.get('raw_best_mask_iou_ge_0_5_fraction',float('nan')):.4f} | ≥0.40 | {'PASS' if gate.get('checks',{}).get('A1_raw_mask_iou_ge_0_5_fraction') else 'FAIL'} |\n",
+      f"| train16 matched classification accuracy | {gate.get('matched_classification_accuracy',float('nan')):.4f} | ≥0.60 | {'PASS' if gate.get('checks',{}).get('A2_matched_classification_accuracy') else 'FAIL'} |\n",
+      f"| context PSNR change, step0→A1500 | {gate.get('psnr_drop_db',{}).get('context',float('nan')):.4f} dB | drop≤0.5 dB | {'PASS' if gate.get('checks',{}).get('A3_context_psnr_drop_le_0_5') else 'FAIL'} |\n",
+      f"| true novel PSNR change, step0→A1500 | {-gate.get('psnr_drop_db',{}).get('novel',float('nan')):.4f} dB | drop≤0.5 dB | {'PASS' if gate.get('checks',{}).get('A3_novel_psnr_drop_le_0_5') else 'FAIL'} |\n",
+      "\nA门槛通过后进入B；这只表示固定16窗口上的工程门槛通过，不代表跨场景任务成功。\n\n",
+      "## Stage B val32正式端点\n\n",
+      "以下为local context/target-all指标；novel PSNR单列，official mAP/AP50取official-all输出。TP/FP/FN为local class-agnostic匹配。\n\n",
+      "| scope | thing mIoU | local PQ | official mAP | AP50 | PSNR | raw GT IoU≥0.5比例 | matched class acc | CA TP/FP/FN | true novel PSNR |\n|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|\n"])
+    for row in metric_rows("stage_b",5000,"val32"):
+        report.append("| "+" | ".join(row)+" |\n")
+    report.extend(["\nStage B val32结果显示mask raw指标有一定响应，但matched classification accuracy为低个位数百分点，official mAP/AP50为0；因此训练完成不等于理解任务有效完成。\n\n",
+      "## V1.1对照限制\n\n",
+      "V1.1同步数端点见 [v1_1_comparison.csv](v1_1_comparison.csv)。V1.1是fresh 5000-step、128-scene run；本V2为A阶段1500步、16固定窗口，加B阶段5000步、128场景，累计6500次optimizer update并继承A阶段optimizer状态，不是配对实验。\n\n"])
     (bundle/"README.md").write_text("# Object-Locus V2 review bundle\n\nSee [Chinese report](Object_Locus_V2_Report_zh.md), [metrics](task_metrics.csv), [curves](training_curve.csv).\n")
     (bundle/"Object_Locus_V2_Report_zh.md").write_text("".join(report))
     (qdst/"README.md").write_text(
