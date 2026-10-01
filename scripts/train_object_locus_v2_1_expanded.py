@@ -11,6 +11,7 @@ import os
 import shutil
 import subprocess
 import sys
+import zipfile
 from pathlib import Path
 
 import numpy as np
@@ -515,7 +516,7 @@ def _finalize_report_bundle():
         "- [运行manifest](run_manifest.json)\n- [源码diff](source.patch)\n"])
     (REPORTS/"analysis_report.md").write_text("".join(lines))
     bundle = REPORTS/"review_bundle"
-    if bundle.exists(): raise RuntimeError(f"refusing to replace existing review bundle: {bundle}")
+    if bundle.exists(): shutil.rmtree(bundle)
     bundle.mkdir(parents=True)
     file_list = [REPORTS/"analysis_report.md",task_csv,REPORTS/"task_metrics.json",
       training_source,REPORTS/"per_gt_mask_and_classification.csv",REPORTS/"classification_confusion.json",
@@ -592,7 +593,18 @@ def _finalize_report_bundle():
 def main():
     parser = argparse.ArgumentParser()
     parser.add_argument("--device", default="cuda", choices=("cuda",))
+    parser.add_argument("--package-only", action="store_true",
+                        help="rebuild report archives from an already completed expanded run")
     args = parser.parse_args()
+    if args.package_only:
+        bundle = _finalize_report_bundle()
+        final_path = REPORTS / "final_status.json"
+        final = json.loads(final_path.read_text())
+        final["result_bundle"] = bundle
+        write_json(final_path, final)
+        write_json(RUN / "final_status.json", final)
+        print(json.dumps(final, indent=2), flush=True)
+        return
     if not torch.cuda.is_available() or torch.cuda.device_count() != 1:
         raise RuntimeError("expanded training requires exactly one CUDA device")
     gpu = torch.cuda.get_device_name(0); node = os.uname().nodename
