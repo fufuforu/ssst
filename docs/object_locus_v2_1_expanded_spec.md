@@ -21,6 +21,7 @@ The source Stage S expansion gate remains recorded as failed. This separately au
 - RTX3090 smoke job `57262`, node `3dimage-13`: source model and 540 AdamW state entries restored exactly (all internal steps 1792); the isolated first update used object/reconstruction LR `1e-4 / 1e-6` and understanding weight 1.
 - Smoke losses and required gradients finite; category, objectness, shared fusion, child residual, and reconstruction paths received finite nonzero gradients. Peak allocated/reserved memory: 7.146 / 7.738 GiB.
 - Fixed val32 single-pair local evaluation and official export completed. The smoke ZIP/CSV/JSON schema check passed.
+- Source Stage S evaluation artifacts use a four-digit minimum step suffix (`step0000`, `step1792`); the continuation resolves those exact filenames.
 
 ## Evaluation and recovery
 

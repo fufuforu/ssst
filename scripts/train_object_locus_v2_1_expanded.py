@@ -261,8 +261,12 @@ def _restore_own_checkpoint(path, model, optimizer, *, exec_sha, plan_sha, data_
     return state
 
 
+def _source_eval_path(split_name, global_step):
+    return SOURCE_REPORTS / "stage_s" / f"eval_{split_name}_step{int(global_step):04d}.json"
+
+
 def _stage_s_reference(split_name):
-    path = SOURCE_REPORTS / "stage_s" / f"eval_{split_name}_step01792.json"
+    path = _source_eval_path(split_name, INITIAL_GLOBAL_STEP)
     if not path.is_file(): raise RuntimeError(f"missing registered Stage S endpoint artifact: {path}")
     return json.loads(path.read_text()), {"path": str(path), "sha256": sha256_file(path), "source_step": 1792}
 
@@ -298,7 +302,7 @@ def _eval_split_set(model, opt, splits, reports, global_step, *, official, panel
         if signature in signatures:
             source_name = signatures[signature]
             result = copy.deepcopy(results[source_name]); result["split"] = name
-            write_json(Path(reports) / f"eval_{name}_step{global_step:05d}.json", result)
+            write_json(Path(reports) / f"eval_{name}_step{global_step:04d}.json", result)
             aliases[name] = {"identical_to": source_name, "window_identities_exact": True}
         else:
             result = evaluate_windows(model, opt, windows, global_step, name, reports,
@@ -317,7 +321,7 @@ def _write_e0_reference(model, opt, splits, reports, run, *, source_sha, exec_sh
     split_results = {}
     for name in ("train_probe16", "same_scene_holdout16", "dev8", "legacy_train16", "val8", "val32"):
         split_results[name], references[name] = _stage_s_reference(name)
-        write_json(Path(reports) / "stage_e" / f"eval_{name}_step{INITIAL_GLOBAL_STEP:05d}.json",
+        write_json(Path(reports) / "stage_e" / f"eval_{name}_step{INITIAL_GLOBAL_STEP:04d}.json",
                    split_results[name])
     # This newly registered split has no Stage S counterpart and receives an E0 local + official evaluation.
     probe = evaluate_windows(model, opt, splits["expanded_train_probe32"], INITIAL_GLOBAL_STEP,
@@ -365,7 +369,18 @@ def _write_run_manifest(reports, run, *, exec_sha, source_sha, plan_sha,
         root.mkdir(parents=True, exist_ok=True)
         target = root / "run_manifest.json"
         if target.exists() and json.loads(target.read_text()) != jsonable(payload):
-            raise RuntimeError(f"expanded run manifest conflicts with existing run: {target}")
+            prior = json.loads(target.read_text()); current = jsonable(payload)
+            prior_comparable = dict(prior); current_comparable = dict(current)
+            prior_comparable.pop("execution_git_sha", None); current_comparable.pop("execution_git_sha", None)
+            has_expanded_state = (any(Path(run).glob("checkpoint_E_epoch_*.pt")) or
+                                  (Path(run)/"latest_recovery.pt").exists() or
+                                  ((Path(reports)/"training_metrics.jsonl").exists() and
+                                   (Path(reports)/"training_metrics.jsonl").stat().st_size > 0))
+            if prior_comparable != current_comparable or prior.get("execution_git_sha") == current.get("execution_git_sha") or has_expanded_state:
+                raise RuntimeError(f"expanded run manifest conflicts with existing run: {target}")
+            # A prior startup failed before E0 or any optimizer update. Rebind only
+            # the code SHA after the zero-update implementation fix; all recipe/assets are exact.
+            write_json(target, payload)
         if not target.exists(): write_json(target, payload)
     return payload
 
@@ -480,7 +495,7 @@ def _finalize_report_bundle():
         if split: eval_index[(split,int(data.get("step",-1)))]=data
     for split in EVAL_SPLITS:
         e0=eval_index.get((split,INITIAL_GLOBAL_STEP)); e16=eval_index.get((split,FINAL_GLOBAL_STEP))
-        s0_path=SOURCE_REPORTS/"stage_s"/f"eval_{split}_step00000.json"
+        s0_path=_source_eval_path(split, 0)
         s0=json.loads(s0_path.read_text()) if s0_path.is_file() else None
         if e0 is None or e16 is None: continue
         for scope in ("context","target_all"):

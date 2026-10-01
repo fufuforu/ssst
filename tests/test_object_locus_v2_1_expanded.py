@@ -10,6 +10,7 @@ from scripts.train_object_locus_v2_1_expanded import (
     EPOCHS, FINAL_GLOBAL_STEP, INITIAL_GLOBAL_STEP, TOTAL_NEW_UPDATES,
     _probe32, build_expanded_plan, expanded_epoch_order, expanded_lr_multiplier,
     expanded_lrs, window_identity, _restore_own_checkpoint,
+    _source_eval_path, _write_run_manifest,
 )
 
 
@@ -69,6 +70,27 @@ def test_optimizer_state_restore_comparison_allows_only_lr_change():
 
 def test_window_identity_uses_scene_context_novel():
     assert window_identity(_window("scene000", [1, 2], [3], 0)) == ("scene000", (1, 2), (3,))
+
+
+def test_stage_s_source_evaluation_paths_use_existing_four_digit_names():
+    assert _source_eval_path("train_probe16", 1792).name == "eval_train_probe16_step1792.json"
+    assert _source_eval_path("val32", 0).name == "eval_val32_step0000.json"
+    assert _source_eval_path("train_probe16", 1792).is_file()
+    assert _source_eval_path("val32", 0).is_file()
+
+
+def test_run_manifest_rebind_allowed_only_before_any_expanded_update(tmp_path):
+    reports=tmp_path/"reports"; run=tmp_path/"run"
+    common={"source_sha":"source","plan_sha":"plan","data_manifest_sha":"data",
+        "split_manifest":{"expanded_train":1008},"optimizer_info":{"groups":[]},
+        "trainability":{"frozen_numel":0},"gpu":"RTX3090","node":"3dimage-13"}
+    _write_run_manifest(reports,run,exec_sha="code-a",**common)
+    _write_run_manifest(reports,run,exec_sha="code-b",**common)
+    assert json.loads((reports/"run_manifest.json").read_text())["execution_git_sha"] == "code-b"
+    (reports/"training_metrics.jsonl").write_text('{"expanded_step":20}\n')
+    import pytest
+    with pytest.raises(RuntimeError, match="conflicts"):
+        _write_run_manifest(reports,run,exec_sha="code-c",**common)
 
 
 def test_locked_splits_keep_holdout_frames_out_and_dev_scenes_disjoint():
