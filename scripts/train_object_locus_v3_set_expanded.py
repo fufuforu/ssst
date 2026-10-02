@@ -10,6 +10,7 @@ import os
 import subprocess
 import time
 import zipfile
+import zlib
 from pathlib import Path
 import sys
 
@@ -478,32 +479,77 @@ def _final_report(reports, nodes, parity, run_manifest):
 
 
 def _package(reports):
+    execution_sha = subprocess.check_output(["git", "-C", str(REPO), "rev-parse", "HEAD"], text=True).strip()
     identity = {"architecture": "LOCUSGS_OBJECT_LOCUS_V3_SET", "recipe": RECIPE,
                 "source_checkpoint": str(SOURCE_CKPT), "source_checkpoint_sha256": SOURCE_CKPT_SHA,
-                "source_git_sha": SOURCE_GIT_SHA, "execution_git_sha": subprocess.check_output(["git", "-C", str(REPO), "rev-parse", "HEAD"], text=True).strip(),
+                "source_git_sha": SOURCE_GIT_SHA, "execution_git_sha": execution_sha,
                 "source_manifest_sha256": SOURCE_MANIFEST_SHA, "source_v3_manifest_sha256": V3_MANIFEST_SHA,
-                "new_updates": NEW_UPDATES, "global_start": INITIAL_GLOBAL_STEP, "global_end": FINAL_GLOBAL_STEP}
+                "new_updates": NEW_UPDATES, "global_start": INITIAL_GLOBAL_STEP, "global_end": FINAL_GLOBAL_STEP,
+                "slurm_job_id": os.environ.get("SLURM_JOB_ID", "58063"),
+                "training_scenes": 128, "training_windows": WINDOWS_PER_EPOCH, "training_epochs": EPOCHS}
     write_json(reports / "bundle_identity.json", identity)
-    readme = """# Object-Locus V3-Set Expanded result bundle\n\n- [Analysis report](analysis_report.md)\n- [Task metrics CSV](task_metrics.csv)\n- [Task metrics JSON](task_metrics.json)\n- [Training metrics](training_metrics.jsonl)\n- [Run manifest](run_manifest.json)\n- [Data manifest](data_manifest.json)\n- [Training plan](training_plan.json)\n- [Assessment](expanded_training_assessment.json)\n- Fixed qualitative images are in `object_locus_v3_set_expanded_qualitative.zip` alongside this archive.\n\nThis run continues the V3-Set epoch-64 checkpoint; it is not a fresh or equal-exposure paired run. The archive excludes checkpoints, datasets and full official PNG exports.\n"""
-    (reports / "README.md").write_text(readme)
-    # Main evidence ZIP excludes rendered PNGs; a separate image ZIP is emitted when needed.
     main_zip = reports / "object_locus_v3_set_expanded_result_bundle.zip"
-    files = [p for p in reports.rglob("*") if p.is_file() and p not in (main_zip, reports / "object_locus_v3_set_expanded_qualitative.zip")
-             and "qualitative" not in p.parts and "official" not in p.parts
-             and p.suffix not in (".pt", ".pth", ".ckpt")]
-    with zipfile.ZipFile(main_zip, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as z:
-        for p in files: z.write(p, p.relative_to(reports))
-    if main_zip.stat().st_size >= 28 * 1024 * 1024:
-        raise RuntimeError(f"main result ZIP exceeds 28 MiB: {main_zip.stat().st_size}")
+    qzip = reports / "object_locus_v3_set_expanded_qualitative.zip"
+    for old in reports.glob("object_locus_v3_set_expanded_result_bundle_part*.zip"):
+        old.unlink()
+    main_zip.unlink(missing_ok=True)
+    qzip.unlink(missing_ok=True)
+
+    # Include all report artifacts and official JSON metrics, but no model, data,
+    # rendered export PNG, or qualitative panel in the evidence archives.
+    excluded_suffixes = {".pt", ".pth", ".ckpt", ".png", ".jpg", ".jpeg", ".webp", ".zip"}
+    files = [p for p in reports.rglob("*") if p.is_file()
+             and "qualitative" not in p.relative_to(reports).parts
+             and p.suffix.lower() not in excluded_suffixes]
+    weighed = []
+    for p in sorted(files, key=lambda x: str(x.relative_to(reports))):
+        compressor = zlib.compressobj(level=6, wbits=-15)
+        compressed_bytes = 0
+        with p.open("rb") as f:
+            while True:
+                block = f.read(1024 * 1024)
+                if not block: break
+                compressed_bytes += len(compressor.compress(block))
+        compressed_bytes += len(compressor.flush())
+        weighed.append((p, compressed_bytes + 128))
+    budget = 25 * 1024 * 1024
+    groups, group, used = [], [], 0
+    for p, cost in weighed:
+        if group and used + cost > budget:
+            groups.append(group); group, used = [], 0
+        group.append(p); used += cost
+    if group: groups.append(group)
+    part_paths = [main_zip] + [reports / f"object_locus_v3_set_expanded_result_bundle_part{i:02d}.zip"
+                               for i in range(2, len(groups) + 1)]
+    identity["bundle_parts"] = [p.name for p in part_paths]
+    write_json(reports / "bundle_identity.json", identity)
+    readme_lines = ["# Object-Locus V3-Set Expanded result bundle", "",
+                    "该交付由多个 ZIP 组成，请将所有列出的证据包放在同一目录并一并上传。", "",
+                    "- [分析报告](analysis_report.md)", "- [任务指标 CSV](task_metrics.csv)",
+                    "- [任务指标 JSON](task_metrics.json)", "- [训练指标](training_metrics.jsonl)",
+                    "- [运行清单](run_manifest.json)", "- [数据清单](data_manifest.json)",
+                    "- [训练计划](training_plan.json)", "- [验收评估](expanded_training_assessment.json)", "",
+                    "## Evidence ZIP parts", ""]
+    readme_lines.extend(f"- `{p.name}`" for p in part_paths)
+    readme_lines += ["- `object_locus_v3_set_expanded_qualitative.zip`：固定窗口可视化。", "",
+                     "本实验从 V3-Set epoch64 checkpoint 继续，不是 fresh 或等曝光配对实验；输入沿用 GT camera poses，不等同于完整 unposed SIU3R benchmark。ZIP 不含 checkpoint、数据集或官方 PNG 导出。"]
+    (reports / "README.md").write_text("\n".join(readme_lines) + "\n")
+    core = [reports / "README.md", reports / "bundle_identity.json"]
+    groups[0] = [p for p in groups[0] if p not in core]
+    groups[0] = core + groups[0]
+    for zp, entries in zip(part_paths, groups):
+        with zipfile.ZipFile(zp, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as z:
+            for p in entries: z.write(p, p.relative_to(reports))
+        if zp.stat().st_size >= 28 * 1024 * 1024:
+            raise RuntimeError(f"result ZIP part exceeds 28 MiB: {zp} ({zp.stat().st_size} bytes)")
     qfiles = [p for p in (reports / "qualitative").rglob("*") if p.is_file()]
     if qfiles:
-        qzip = reports / "object_locus_v3_set_expanded_qualitative.zip"
         with zipfile.ZipFile(qzip, "w", zipfile.ZIP_DEFLATED, compresslevel=6) as z:
             for p in qfiles: z.write(p, p.relative_to(reports))
             z.writestr("README.md", "Fixed panels at registered E0/E8/E32 nodes for the deterministic selected windows.\n")
         if qzip.stat().st_size >= 28 * 1024 * 1024:
             raise RuntimeError("qualitative result ZIP exceeds 28 MiB")
-    for zp in (main_zip, reports / "object_locus_v3_set_expanded_qualitative.zip"):
+    for zp in (*part_paths, qzip):
         if zp.exists():
             with zipfile.ZipFile(zp) as z:
                 if z.testzip(): raise RuntimeError(f"invalid ZIP {zp}")
