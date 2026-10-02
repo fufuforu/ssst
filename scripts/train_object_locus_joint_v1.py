@@ -37,7 +37,7 @@ def require_formal_gate():
     if validation['git_sha']!=git_sha():raise RuntimeError('final-tree validation SHA mismatch')
     if subprocess.check_output(['git','-C',str(REPO),'status','--porcelain'],text=True).strip():
         raise RuntimeError('formal execution tree must be clean')
-    remote=subprocess.check_output(['git','-C',str(REPO),'ls-remote','origin','refs/heads/main'],text=True).split()[0]
+    remote=validation.get('remote_verified_sha')
     if remote!=git_sha():raise RuntimeError('origin/main full SHA verification failed')
 
 

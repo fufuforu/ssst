@@ -671,3 +671,10 @@ python -u scripts/train_object_locus_joint_v1.py --arm joint
 ### 续接修复验证 PASS（2026-10-02）
 
 额外白名单仅 canonical_recon.py 与 rendering/gs.py；固定共同解析投影正确性修复已登记SHA/diff。7项CPU测试通过。11号单张3090验证job58069完成：三个窗口×两臂M1全PASS，所有包络及差异均0；RGB/alpha/depth独立原rasterization对照exact；完整一步smoke通过；M2固定40updates、四层所有活动性判据与object-mean均通过，peak allocated/reserved=7.222070693969727/7.60546875 GiB。reference名称为V3 control + common analytic visibility correctness fix，不声称等价于历史错误visibility loss。旧58067/58068证据保存于validation/historical_attempt_58067_58068。未重训、重评旧实验。后续按合同commit、合并远端、CPU/M1最终树验证、push verify后正式两臂。
+
+
+### 正式启动的基础设施修复
+
+实现SHA308c069b5795ae4327fcce8080ae2ae2e3d631bc；第一次最终SHA5ff1c0adfba28d6f06eeeaf88a336520cf145076已push并在登录节点ls-remote核验。最终树CPU7项与M1+完整smoke job58070通过。正式启动58071/58072/58073均在Git远端请求前向前失败（localhost代理），58074清除代理后直连阻塞，未建立模型、未执行任何更新，取消释放自己的资源。修正正式gate：使用已经由登录节点真实ls-remote生成、与验证tree及HEAD绑定的remote_verified_sha；仍要求clean worktree、M1/M2通过、实现hash及完整SHA一致。不在计算节点重复联网，不更改任何模型、loss、优化器、schedule、GPU或数据。该实现修复按原顺序重新验证同一个fresh40步探针、提交推送、验证，再正式启动；不作为调参或新实验。
+
+启动入口修复验证job58075：CPU7项、3窗M1 exact、完整smoke与同一个fresh40步M2全部PASS。模型、共同两项修复和所有科学配方未改变。临时状态全部丢弃，正式更新仍0/0。
