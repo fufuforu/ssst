@@ -69,6 +69,40 @@ def _eval(model,opt,splits,reports,step,names,official_names,panels):
         x,g,q=evaluate_windows(model,opt,splits[name],step,name,reports,'cuda',build_batch,official=name in official_names,panels=panels);result['splits'][name]=x;pergt+=g;queryrows+=q
     write_json(reports/f'curves_step_{step:04d}.json',result);return result,pergt,queryrows
 
+def _scope_official_metrics(official, scope):
+    """Select the registered official result for one explicit evaluation scope."""
+    arm = 'novel' if scope == 'novel' else 'all'
+    view = 'context' if scope == 'context' else 'target'
+    block = official.get(arm, {}) if isinstance(official, dict) else {}
+    if not isinstance(block, dict):
+        block = {}
+    map_block = block.get(f'{view}_map', {})
+    if not isinstance(map_block, dict):
+        map_block = {}
+    source = (f'official["{arm}"]["{view}_map"], '
+              f'official["{arm}"]["{view}_miou"], '
+              f'official["{arm}"]["{view}_pq"]')
+    provenance = official.get('_provenance', {}).get(arm, {}) if isinstance(official, dict) else {}
+    if isinstance(provenance, dict) and provenance.get('path'):
+        source = f"{provenance['path']} sha256={provenance.get('sha256', 'MISSING')} ({source})"
+
+    def value(obj, key):
+        if key not in obj or obj[key] is None:
+            return 'MISSING'
+        v = obj[key]
+        if isinstance(v, (int, float)) and float(v) == -1.0:
+            return 'UNDEFINED'
+        return v
+
+    # The selected arm is all for context/target_all and novel for novel-only.
+    return {
+        'scope_official_miou': value(block, f'{view}_miou'),
+        'scope_official_pq': value(block, f'{view}_pq'),
+        'scope_official_map': value(map_block, 'map'),
+        'scope_official_ap50': value(map_block, 'map_50'),
+        'scope_official_source': source if block else 'MISSING',
+    }
+
 def _write_outputs(reports,nodes,pergt,queryrows,summary):
     rows=[]
     for node in nodes:
@@ -80,6 +114,7 @@ def _write_outputs(reports,nodes,pergt,queryrows,summary):
          elif k in ('candidate_ca','candidate_cw','panoptic_ca','panoptic_cw','candidate_ap'):
           for a,b in v.items():row[f'{k}_{a}']=b
         official=x.get('official',{})
+        row.update(_scope_official_metrics(official, scope))
         for arm in ('all','novel'):
          metrics=official.get(arm,{}) if isinstance(official,dict) else {}
          for mk,mv in metrics.items():
@@ -119,12 +154,17 @@ def _write_outputs(reports,nodes,pergt,queryrows,summary):
     gate={'passed':all(checks.values()),'checks':checks,'measured':{'train_all56_context':e64c,'train_all56_true_novel_psnr_E0':e0n['psnr'],'train_all56_true_novel_psnr_E64':e64n['psnr'],'official_context_ap50':official_ap50}}
     write_json(reports/'train_set_acceptance.json',gate)
     write_json(reports/'training_summary.json',summary)
-    lines=['# Object-Locus V3-Set：小规模完整实例任务验证','','完成3584/3584 optimizer updates。固定8场景训练集验证，不代表跨场景泛化或完整SIU3R benchmark。',f"\ntrain_all56 context endpoint gate: **{'PASS' if gate['passed'] else 'FAIL'}**。",'','| step | split | scope | thing mIoU | candidate AP50 | candidate CW P/R | panoptic CW TP/FP/FN | PSNR | official AP50 |','|---:|---|---|---:|---:|---:|---:|---:|---:|']
+    lines=['# Object-Locus V3-Set：小规模完整实例任务验证','','完成3584/3584 optimizer updates。固定8场景训练集验证，不代表跨场景泛化或完整SIU3R benchmark。',f"\ntrain_all56 context endpoint gate: **{'PASS' if gate['passed'] else 'FAIL'}**。",'',
+      '表中 local semantic、local candidate、local panoptic 与 official packed-panoptic 是不同口径。官方 scope 映射固定为 context→official[all][context_*]、target_all→official[all][target_*]、novel→official[novel][target_*]。','',
+      '| step | split | scope | local semantic mIoU | candidate AP50 | candidate CW P/R | local panoptic mIoU/PQ | panoptic CW TP/FP/FN | official packed mIoU/PQ/mAP/AP50 | PSNR | official source |',
+      '|---:|---|---|---:|---:|---:|---:|---:|---:|---:|---|']
     for node in nodes:
       for split,x in node['splits'].items():
        for scope,m in x['local'].items():
-        ap=m.get('candidate_ap',{}).get('map_50');cw=m['candidate_cw'];pan=m['panoptic_cw'];off=x.get('official',{}).get('all',{});o=off.get('context_map',{}).get('map_50') if isinstance(off,dict) else None
-        lines.append(f"| {node['step']} | {split} | {scope} | {m['mIoU_thing']:.4f} | {ap if ap is not None else 'MISSING'} | {cw['precision']:.3f}/{cw['recall']:.3f} | {pan['tp']}/{pan['fp']}/{pan['fn']} | {m['psnr']:.3f} | {o if o is not None else 'MISSING'} |")
+        ap=m.get('candidate_ap',{}).get('map_50');cw=m['candidate_cw'];pan=m['panoptic_cw'];offscope=_scope_official_metrics(x.get('official',{}),scope)
+        local_pan=f"{m['panoptic_semantic_miou']:.4f}/{m['panoptic_pq']:.4f}"
+        official_values='/'.join(str(offscope[k]) for k in ('scope_official_miou','scope_official_pq','scope_official_map','scope_official_ap50'))
+        lines.append(f"| {node['step']} | {split} | {scope} | {m['semantic_miou']:.4f} | {ap if ap is not None else 'MISSING'} | {cw['precision']:.3f}/{cw['recall']:.3f} | {local_pan} | {pan['tp']}/{pan['fp']}/{pan['fn']} | {official_values} | {m['psnr']:.3f} | {offscope['scope_official_source']} |")
     (reports/'analysis_report.md').write_text('\n'.join(lines)+'\n')
 
 def _write_package_metadata(reports):

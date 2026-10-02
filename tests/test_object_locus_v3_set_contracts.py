@@ -5,6 +5,9 @@ import torch
 from tokengs.models.object_locus_v3_set_controller import ObjectLocusV3SetController
 from tokengs.models.object_locus_v3_set_loss import build_context_instance_targets, final_hungarian, v3_set_losses
 from scripts.train_object_locus_v3_set import build_manifest, build_plan, lr_mult
+from scripts.train_object_locus_v3_set import _scope_official_metrics
+from scripts.eval_object_locus_v3_set import _candidate_stats, _prediction_candidate_data
+from unittest.mock import patch
 
 
 def tiny_batch():
@@ -18,6 +21,71 @@ def tiny_batch():
 
 
 class V3SetContracts(unittest.TestCase):
+    def test_official_scope_mapping_is_explicit(self):
+        official={
+          'all':{'context_miou':.11,'context_pq':.12,'context_map':{'map':.13,'map_50':.14},
+                 'target_miou':.21,'target_pq':.22,'target_map':{'map':.23,'map_50':.24}},
+          'novel':{'context_miou':.31,'context_pq':.32,'context_map':{'map':.33,'map_50':.34},
+                   'target_miou':.41,'target_pq':.42,'target_map':{'map':.43,'map_50':.44}},
+        }
+        ctx=_scope_official_metrics(official,'context')
+        tgt=_scope_official_metrics(official,'target_all')
+        nov=_scope_official_metrics(official,'novel')
+        self.assertEqual([ctx['scope_official_miou'],ctx['scope_official_pq'],ctx['scope_official_map'],ctx['scope_official_ap50']], [.11,.12,.13,.14])
+        self.assertEqual([tgt['scope_official_miou'],tgt['scope_official_pq'],tgt['scope_official_map'],tgt['scope_official_ap50']], [.21,.22,.23,.24])
+        self.assertEqual([nov['scope_official_miou'],nov['scope_official_pq'],nov['scope_official_map'],nov['scope_official_ap50']], [.41,.42,.43,.44])
+        missing=_scope_official_metrics({},'context')
+        self.assertTrue(all(missing[k]=='MISSING' for k in ('scope_official_miou','scope_official_pq','scope_official_map','scope_official_ap50','scope_official_source')))
+        undef=_scope_official_metrics({'all':{'context_miou':-1,'context_pq':0,'context_map':{'map':-1,'map_50':0}}},'context')
+        self.assertEqual(undef['scope_official_miou'],'UNDEFINED');self.assertEqual(undef['scope_official_map'],'UNDEFINED')
+        self.assertEqual(undef['scope_official_pq'],0);self.assertEqual(undef['scope_official_ap50'],0)
+
+    def test_candidate_decisions_ignore_gt_valid(self):
+        masks=torch.tensor([[[[.9,.9],[0.,0.]],[[.9,.9],[0.,0.]]]])
+        alpha=torch.ones((1,2,2))
+        p=torch.zeros((2,19));p[:,18]=1.;p[1,18]=.1;p[1,0]=.9
+        first=_prediction_candidate_data(masks,alpha,p)
+        valid_a=torch.ones((1,2,2),dtype=torch.bool)
+        valid_b=torch.zeros_like(valid_a);valid_b[0,1,1]=True
+        eval_a=first[0]&valid_a[:,None];eval_b=first[0]&valid_b[:,None]
+        second=_prediction_candidate_data(masks,alpha,p)
+        self.assertEqual([x['query'] for x in first[4]],[x['query'] for x in second[4]])
+        self.assertEqual([x['score'] for x in first[4]],[x['score'] for x in second[4]])
+        self.assertEqual(first[0].sum().item(),second[0].sum().item())
+        self.assertNotEqual(eval_a.sum().item(),eval_b.sum().item())
+        self.assertTrue(first[4][0]['pred_mask'].any())
+        self.assertFalse((first[4][0]['pred_mask']&valid_b[0]).any())
+
+    def test_raw_best_and_eligible_candidate_fields_refer_to_their_own_queries(self):
+        h,w=1,4
+        sem=torch.tensor([[[[2,2,0,0]] for _ in range(4)]])
+        ins=torch.tensor([[[[7,7,0,0]] for _ in range(4)]])
+        # Only frame zero is selected by this test, shape is [B,V,H,W].
+        regions=torch.zeros((1,4,102,h,w));regions[0,0,0,0,:2]=.9;regions[0,0,1,0,:]=.9
+        alpha=torch.ones((1,4,1,h,w))
+        p=torch.zeros((1,100,19));p[...,18]=1.;p[0,0,0]=.05;p[0,0,18]=.95;p[0,1,0]=.8;p[0,1,18]=.1;p[0,1,1]=.1
+        logits=torch.log(p.clamp_min(1e-8))
+        out={'region_mass':regions,'alpha':alpha,'p_class':p,'states':[{'thing_logits19':logits}],
+             'semantic_scores':torch.zeros((1,4,20,h,w))}
+        pansem=torch.zeros((4,h,w),dtype=torch.long);panins=torch.zeros_like(pansem);panins[0,0,:2]=1
+        targets={'gt_classes':[torch.tensor([2])],'gt_instance_ids':[torch.tensor([7])]}
+        pairs=[(torch.tensor([0]),torch.tensor([0]))]
+        with patch('scripts.export_object_locus_v3_set_official.assemble_panoptic',return_value=(pansem,panins,pansem)), \
+             patch('tokengs.models.object_locus_v3_set_loss.final_hungarian',return_value=(targets,pairs)), \
+             patch('scripts.eval_object_locus_v2_1._panoptic_pq',return_value={'mean_pq':0.0}):
+            result=_candidate_stats(out,{'semantic_label_all':sem,'instance_label_all':ins},[0])
+        row=result['per_gt'][0]
+        self.assertEqual(row['best_query'],0);self.assertEqual(row['best_raw_iou'],1.)
+        self.assertEqual(row['best_query_class_argmax19'],18);self.assertIsNone(row['best_query_class'])
+        self.assertFalse(row['best_query_eligible']);self.assertAlmostEqual(row['best_query_score'],.045)
+        self.assertEqual(row['best_eligible_candidate_query'],1)
+        self.assertEqual(row['best_eligible_candidate_class'],2)
+        self.assertAlmostEqual(row['best_eligible_candidate_iou'],.5)
+        self.assertEqual(row['matched_query'],0)
+        qrow=next(q for q in result['query_rows'] if q['query_id']==1)
+        self.assertEqual(qrow['prediction_raw_area'],4);self.assertEqual(qrow['evaluation_raw_area'],4)
+        self.assertEqual(qrow['prediction_candidate_area'],4);self.assertEqual(qrow['evaluation_candidate_area'],4)
+
     def test_class_head_has_19_way_distribution(self):
         c=ObjectLocusV3SetController(32)
         q=torch.randn(1,102,256);u=torch.randn(1,100,256)

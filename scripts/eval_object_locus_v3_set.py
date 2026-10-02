@@ -21,23 +21,38 @@ def _targets(sem, ins):
         rows.append((cls,int(iid),m))
     return valid,rows
 
+def _prediction_candidate_data(masks, alpha, pclass):
+    """Return prediction-only masks and scores; GT validity is deliberately absent."""
+    bestprob, cls0 = pclass[..., :18].max(-1)
+    eligible = (pclass.argmax(-1) != 18) & (bestprob >= .05)
+    pred_binary = (masks >= .5) & (alpha[:, None] > .05)
+    rows = []
+    for q in range(masks.shape[1]):
+        pred_mask = pred_binary[:, q]
+        if bool(eligible[q]) and bool(pred_mask.any()):
+            score = float(bestprob[q] * masks[:, q][pred_mask].mean())
+            rows.append({
+                'query': q,
+                'class': int(cls0[q]) + 2,
+                'score': score,
+                'pred_mask': pred_mask,
+            })
+    return pred_binary, eligible, bestprob, cls0, rows
+
 def _candidate_stats(out,batch,view_ids):
     from scripts.export_object_locus_v3_set_official import assemble_panoptic
     v=list(view_ids); sem=batch['semantic_label_all'][0,v].long(); ins=batch['instance_label_all'][0,v].long()
     valid,gtrows=_targets(sem,ins); masks=out['region_mass'][0,v,:100].float(); alpha=out['alpha'][0,v,0]
-    pclass=out['p_class'][0]; bestprob,cls0=pclass[:,:18].max(-1); eligible=(pclass.argmax(-1)!=18)&(bestprob>=.05)
-    raw_all=(masks>=.5)&(alpha[:,None]>.05)&valid[:,None]
-    raw=raw_all & eligible[None,:,None,None]
+    pclass=out['p_class'][0]; pred_all,eligible,bestprob,cls0,candidate_rows=_prediction_candidate_data(masks,alpha,pclass)
+    eval_all=pred_all & valid[:,None]
     predictions=[]
-    for q in range(100):
-        if bool(eligible[q]) and bool(raw[:,q].any()):
-            mean_membership=float(masks[:,q][raw[:,q]].mean())
-            predictions.append((q,int(cls0[q])+2,float(bestprob[q])*mean_membership,raw[:,q]))
+    for item in candidate_rows:
+        predictions.append((item['query'],item['class'],item['score'],item['pred_mask'],item['pred_mask'] & valid))
     gt_masks=[x[2] for x in gtrows]; gtc=[x[0] for x in gtrows]
     iou=np.zeros((len(predictions),len(gtrows)),np.float64)
-    for i,(_,_,_,pm) in enumerate(predictions):
+    for i,(_,_,_,_,eval_pm) in enumerate(predictions):
         for j,gm in enumerate(gt_masks):
-            inter=int((pm&gm).sum()); union=int((pm|gm).sum()); iou[i,j]=inter/union if union else 0.
+            inter=int((eval_pm&gm).sum()); union=int((eval_pm|gm).sum()); iou[i,j]=inter/union if union else 0.
     tp=fp=fn=0; ctp=cfp=cfn=0
     if iou.size:
         ri,ci=linear_sum_assignment(-iou)
@@ -49,7 +64,7 @@ def _candidate_stats(out,batch,view_ids):
         fp=len(predictions)-len(usedp);fn=len(gtrows)-len(usedg)
         # CW uses its own class-constrained one-to-one assignment.
         cw_cost=np.full_like(iou,1e6)
-        for pi,(_,pcls,_,_) in enumerate(predictions):
+        for pi,(_,pcls,_,_,_) in enumerate(predictions):
             for gj,gcls in enumerate(gtc):
                 if pcls==gcls and iou[pi,gj]>=.5:cw_cost[pi,gj]=-iou[pi,gj]
         if cw_cost.size:
@@ -62,19 +77,34 @@ def _candidate_stats(out,batch,view_ids):
     for j,(cls,gid,gm) in enumerate(gtrows):
         all_ious=[]
         for q in range(100):
-            pm=raw_all[:,q]; inter=int((pm&gm).sum()); union=int((pm|gm).sum())
+            pm=eval_all[:,q]; inter=int((pm&gm).sum()); union=int((pm|gm).sum())
             all_ious.append(inter/union if union else 0.)
         rawq=int(np.argmax(all_ious)); best=float(all_ious[rawq]); raw_best.append(best)
-        bi=int(iou[:,j].argmax()) if len(predictions) else -1
+        raw_argmax19=int(pclass[rawq].argmax())
+        raw_pred_mask=pred_all[:,rawq]
+        raw_score=float(bestprob[rawq]*masks[:,rawq][raw_pred_mask].mean()) if bool(raw_pred_mask.any()) else 0.0
+        eligible_indices=[i for i,row in enumerate(predictions)]
+        if eligible_indices:
+            bi=min(eligible_indices,key=lambda i:(-float(iou[i,j]),predictions[i][0]))
+            best_eligible=predictions[bi]
+            best_eligible_iou=float(iou[bi,j])
+            eligible_query=best_eligible[0];eligible_class=best_eligible[1];eligible_score=best_eligible[2]
+        else:
+            best_eligible_iou=0.;eligible_query=None;eligible_class=None;eligible_score=0.
         per_gt.append({'class':cls,'instance_id':gid,'best_raw_iou':best,'best_query':rawq,
-                       'best_query_class':predictions[bi][1] if bi>=0 else None,
-                       'best_query_score':predictions[bi][2] if bi>=0 else None,
-                       'best_eligible_candidate_iou':float(iou[bi,j]) if bi>=0 else 0.})
+                       'best_query_class_argmax19':raw_argmax19,
+                       'best_query_class':raw_argmax19+2 if raw_argmax19<18 else None,
+                       'best_query_score':raw_score,
+                       'best_query_eligible':bool(eligible[rawq]),
+                       'best_eligible_candidate_query':eligible_query,
+                       'best_eligible_candidate_class':eligible_class,
+                       'best_eligible_candidate_score':eligible_score,
+                       'best_eligible_candidate_iou':best_eligible_iou})
         gt_query_rows.append({'gt_class':cls,'gt_instance_id':gid,'raw_iou':best,
-                              'candidate_iou':float(iou[bi,j]) if bi>=0 else 0.,
+                              'candidate_iou':best_eligible_iou,
                               'panoptic_iou':None})
     # TorchMetrics consumes one scene/window as one image; views are stacked vertically.
-    pm=torch.stack([x[3] for x in predictions]) if predictions else torch.zeros((0,*sem.shape),dtype=torch.bool,device=sem.device)
+    pm=torch.stack([x[4] for x in predictions]) if predictions else torch.zeros((0,*sem.shape),dtype=torch.bool,device=sem.device)
     gt_masks_tensor=torch.stack(gt_masks) if gt_masks else torch.zeros((0,*sem.shape),dtype=torch.bool,device=sem.device)
     pan_sem,pan_ins,_=assemble_panoptic(out); pan_sem=pan_sem[v];pan_ins=pan_ins[v]
     pgt=[]; pcls=[]
@@ -132,26 +162,27 @@ def _candidate_stats(out,batch,view_ids):
                 matched_by_id[gtid]={'matched_query':qidx,'matched_class':pr+2 if pr<18 else None,'matched_class_correct':bool(pr==g)}
     for j,row in enumerate(per_gt):
         row.update(matched_by_id.get(row['instance_id'],{'matched_query':None,'matched_class':None,'matched_class_correct':None}))
-        row['best_eligible_candidate_iou']=float(iou[:,j].max()) if len(predictions) else 0.
         row['best_panoptic_iou']=float(pious[:,j].max()) if pious.shape[0] else 0.
         row['best_panoptic_query']=int(pious[:,j].argmax()) if pious.shape[0] else None
         gt_query_rows[j]['panoptic_iou']=row['best_panoptic_iou']
     raw_query_iou=np.zeros((100,len(gtrows)),float)
     for q in range(100):
         for j,gmask in enumerate(gt_masks):
-            pmask=raw_all[:,q]
+            pmask=eval_all[:,q]
             inter=int((pmask&gmask).sum());union=int((pmask|gmask).sum())
             raw_query_iou[q,j]=inter/union if union else 0.
     query_rows=[]
     for q in range(100):
-        raw_area=int(raw_all[:,q].sum());eligible_q=bool(eligible[q]);candidate_area=int(raw[:,q].sum())
+        prediction_raw_area=int(pred_all[:,q].sum());evaluation_raw_area=int(eval_all[:,q].sum());eligible_q=bool(eligible[q])
+        prediction_candidate_area=int((pred_all[:,q]&eligible_q).sum());evaluation_candidate_area=int((eval_all[:,q]&eligible_q).sum())
         pan_area=int((pan_ins==(q+1)).sum());class_idx=int(cls0[q]);matched_gt=next((r for r in per_gt if r.get('matched_query')==q),None)
         raw_iou=float(raw_query_iou[q].max()) if len(gtrows) else 0.
         pan_iou=max((float(pious[q,j]) for j in range(len(gtrows))),default=0.)
-        reason=None if pan_area else ('ineligible' if not eligible_q else ('empty_raw_mask' if raw_area==0 else 'lost_or_removed_by_panoptic_competition'))
-        query_rows.append({'query_id':q,'predicted_class':class_idx+2,'joint_class_probability':float(bestprob[q]),
-          'raw_mask_area':raw_area,'candidate_mask_area':candidate_area,'won_area':pan_area,
-          'joint_eligible':eligible_q,'independent_candidate':candidate_area>0,'panoptic_retained':pan_area>0,
+        reason=None if pan_area else ('ineligible' if not eligible_q else ('empty_raw_mask' if prediction_raw_area==0 else 'lost_or_removed_by_panoptic_competition'))
+        query_rows.append({'query_id':q,'predicted_class':class_idx+2 if int(pclass[q].argmax())<18 else None,'joint_class_probability':float(bestprob[q]),
+          'prediction_raw_area':prediction_raw_area,'evaluation_raw_area':evaluation_raw_area,
+          'prediction_candidate_area':prediction_candidate_area,'evaluation_candidate_area':evaluation_candidate_area,'won_area':pan_area,
+          'joint_eligible':eligible_q,'independent_candidate':prediction_candidate_area>0,'panoptic_retained':pan_area>0,
           'removed_reason':reason,'matched_gt_id':matched_gt['instance_id'] if matched_gt else None,
           'raw_iou':raw_iou,'panoptic_iou':pan_iou})
     from scripts.eval_object_locus_v2_1 import _panoptic_pq
@@ -174,7 +205,7 @@ def _candidate_stats(out,batch,view_ids):
       'thing_miou':float(np.mean([conf[c,c]/max(1,conf[c,:].sum()+conf[:,c].sum()-conf[c,c]) for c in range(2,20)])),
       'stuff_miou':float(np.mean([conf[c,c]/max(1,conf[c,:].sum()+conf[:,c].sum()-conf[c,c]) for c in (0,1)])),
       'panoptic_semantic':pan_sem.detach().cpu().numpy(),'panoptic_instance':pan_ins.detach().cpu().numpy(),
-      'raw_masks':raw.detach().cpu().numpy(),'gt_semantic':sem.detach().cpu().numpy(),
+      'raw_masks':(pred_all & eligible[None,:,None,None]).detach().cpu().numpy(),'gt_semantic':sem.detach().cpu().numpy(),
       'gt_instance':ins.detach().cpu().numpy(),'predictions':predictions,'query_rows':query_rows}
 
 def _run(model,opt,window,batch_builder,device):
