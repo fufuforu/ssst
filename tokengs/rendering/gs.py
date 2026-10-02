@@ -220,7 +220,7 @@ class GaussianRenderer:
         B, V = Ks.shape[:2]
 
         # loop of loop...
-        images, alphas, depths, means2ds = [], [], [], []
+        images, alphas, depths = [], [], []
         for b in range(B):
             rendered_image_all, rendered_alpha_all, info = rasterization(
                 means=means3D[b],
@@ -238,14 +238,20 @@ class GaussianRenderer:
                 backgrounds=backgrounds[b],
                 render_mode="RGB+ED",
             )
-            for rendered_image, rendered_alpha, means2d in zip(rendered_image_all, rendered_alpha_all, info['means2d']):
+            for rendered_image, rendered_alpha in zip(rendered_image_all, rendered_alpha_all):
                 depths.append(rendered_image[...,3:].permute(2, 0, 1))
                 rendered_image = rendered_image[...,:3].permute(2, 0, 1)
                 images.append(rendered_image)
                 alphas.append(rendered_alpha.permute(2, 0, 1))
-                means2ds.append(means2d) # [N, 2]
-        images, alphas, depths, means2ds = torch.stack(images), torch.stack(alphas), torch.stack(depths), torch.stack(means2ds)
-        images, alphas, depths, means2ds = images.view(B, V, *images.shape[1:]), alphas.view(B, V, *alphas.shape[1:]), depths.view(B, V, *depths.shape[1:]), means2ds.view(B, V, *means2ds.shape[1:])
+        images, alphas, depths = torch.stack(images), torch.stack(alphas), torch.stack(depths)
+        images, alphas, depths = images.view(B, V, *images.shape[1:]), alphas.view(B, V, *alphas.shape[1:]), depths.view(B, V, *depths.shape[1:])
+        from tokengs.models.canonical_recon import project_points_means2d
+        analytic_intrinsics = torch.stack(
+            (Ks[..., 0, 0], Ks[..., 1, 1], Ks[..., 0, 2], Ks[..., 1, 2]), dim=-1
+        )
+        means2ds = project_points_means2d(
+            means3D, viewmat.transpose(-1, -2), analytic_intrinsics,
+        )
 
         return {
             "images_pred": images, # [B, V, 3, H, W]

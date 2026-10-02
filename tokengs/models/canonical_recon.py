@@ -183,16 +183,11 @@ def canonical_layer_loss(
     # the clip is what keeps points behind the camera bounded.
     visibility_clip = float(getattr(opt, "visibility_distance_threshold", 0.0))
     if opt.canonical_gaussian_visibility_weight > 0 and camera is not None:
-        means2d = render_results["means2d_pred"]
-        height, width = int(img_size[0]), int(img_size[1])
-        uv = torch.stack(
-            [means2d[..., 0] / width * 2 - 1, means2d[..., 1] / height * 2 - 1], dim=-1
+        gaussian_visibility = visibility_loss_from_points(
+            gaussians[..., 0:3], camera, intrinsics, img_size,
+            clamp_max=visibility_clip,
+            znear=float(getattr(opt, 'znear', 0.0)),
         )
-        out_of_bounds = F.relu(uv.abs() - 1.0).sum(-1)
-        gaussian_visibility = out_of_bounds.min(dim=1).values
-        if visibility_clip > 0:
-            gaussian_visibility = gaussian_visibility.clamp(max=visibility_clip)
-        gaussian_visibility = gaussian_visibility.mean()
     anchor_visibility = None
     if anchor_centers is not None and anchor_weight > 0 and camera is not None:
         anchor_visibility = visibility_loss_from_points(

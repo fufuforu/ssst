@@ -984,4 +984,11 @@ config_defaults["train_siu3r_object_locus_v3_set"] = config_defaults[
     experiment_name="siu3r_object_locus_v3_set",
 )
 
+config_doc["train_siu3r_object_locus_joint_v1"] = "Fixed Object-Locus Joint V1 paired coupling experiment."
+config_defaults["train_siu3r_object_locus_joint_v1"] = config_defaults[
+    "train_siu3r_object_locus_v3_set"
+].evolve(model_type="siu3r_object_locus_joint_v1",
+         workspace="/space/mawb/ssst/workspace_group_plus/object_locus_joint_v1",
+         experiment_name="siu3r_object_locus_joint_v1")
+
 AllConfigs = tyro.extras.subcommand_type_from_defaults(config_defaults, config_doc)
