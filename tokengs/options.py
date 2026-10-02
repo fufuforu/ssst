@@ -972,4 +972,16 @@ config_defaults["train_siu3r_object_locus_v2_1"] = config_defaults[
     experiment_name="siu3r_object_locus_v2_1",
 )
 
+config_doc["train_siu3r_object_locus_v3_set"] = (
+    "LOCUSGS_OBJECT_LOCUS_V3_SET: context-rendered set prediction with a single "
+    "18-class plus no-object head and independent Gaussian instance masks."
+)
+config_defaults["train_siu3r_object_locus_v3_set"] = config_defaults[
+    "train_siu3r_object_locus_v2_1"
+].evolve(
+    model_type="siu3r_object_locus_v3_set",
+    workspace="/space/mawb/ssst/workspace_group_plus/object_locus_v3_set",
+    experiment_name="siu3r_object_locus_v3_set",
+)
+
 AllConfigs = tyro.extras.subcommand_type_from_defaults(config_defaults, config_doc)
