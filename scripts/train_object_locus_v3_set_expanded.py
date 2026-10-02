@@ -283,6 +283,21 @@ def _official_scope(official, scope):
             "scope_official_source": source}) | raw
 
 
+def _attach_official_provenance(row, reports, step, split):
+    official = row.get("official")
+    if not isinstance(official, dict):
+        return row
+    # Iterate over a stable snapshot because provenance is stored in the same dictionary.
+    for arm in tuple(official.keys()):
+        if arm not in ("all", "novel"):
+            continue
+        filename = "official_all.json" if arm == "all" else "official_novel.json"
+        json_path = Path(reports) / "official" / f"step_{step:04d}" / split / filename
+        official.setdefault("_provenance", {})[arm] = {
+            "path": str(json_path), "sha256": sha256_file(json_path) if json_path.exists() else "MISSING"}
+    return row
+
+
 def _eval_node(model, opt, manifest, epoch, reports, *, official, panels=False):
     step = INITIAL_GLOBAL_STEP + epoch * WINDOWS_PER_EPOCH
     split_map = {
@@ -301,12 +316,7 @@ def _eval_node(model, opt, manifest, epoch, reports, *, official, panels=False):
         for split, windows in split_map.items():
             row, gt, queries = evaluate_windows(model, opt, windows, step, split, reports,
                 "cuda", build_batch, official=official, panels=panels)
-            for arm in (row.get("official") or {}):
-                if arm not in ("all", "novel"): continue
-                folder = reports / "official" / f"step_{step:04d}" / split
-                json_path = folder / ("official_all.json" if arm == "all" else "official_novel.json")
-                row["official"].setdefault("_provenance", {})[arm] = {
-                    "path": str(json_path), "sha256": sha256_file(json_path) if json_path.exists() else "MISSING"}
+            _attach_official_provenance(row, reports, step, split)
             write_json(reports / f"eval_{split}_step{step:05d}.json", row)
             node["splits"][split] = row
             per_gt.extend(gt)

@@ -35,7 +35,7 @@ def main():
     gpu = _gpu_assert()
     if science_module_hashes()!=SCIENCE_SHA256: raise RuntimeError("protected V3-Set scientific modules differ")
     if sha256_file(SOURCE_CKPT) != SOURCE_CKPT_SHA: raise RuntimeError("source checkpoint hash mismatch")
-    audit_path=REPORTS/"smoke"/"expanded_smoke_audit_precommit.json"
+    audit_path=REPORTS/"smoke"/"expanded_smoke_audit_fix.json"
     if audit_path.exists(): raise RuntimeError(f"refusing to overwrite prior smoke {audit_path}")
     manifest, _ = build_manifest_and_plan()
     window = manifest["expanded_train_windows"][0]
@@ -68,7 +68,7 @@ def main():
     if any(not torch.isfinite(p).all() for p in model.parameters()): raise RuntimeError("smoke model parameters became nonfinite")
     if any(torch.is_tensor(v) and v.is_floating_point() and not torch.isfinite(v).all()
            for state in optimizer.state.values() for v in state.values()): raise RuntimeError("smoke optimizer state became nonfinite")
-    eval_dir=REPORTS/"smoke"/"eval_precommit"
+    eval_dir=REPORTS/"smoke"/"eval_fix"
     result,pergt,queries=evaluate_windows(model,opt,[window],1,"expanded_first_window",eval_dir,
         "cuda",build_batch,official=True,panels=True)
     if len(result["windows"])!=1: raise RuntimeError("single-window evaluator output malformed")

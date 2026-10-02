@@ -7,7 +7,7 @@ import numpy as np
 
 from scripts.train_object_locus_v3_set_expanded import (
     build_manifest_and_plan, expanded_lr, validate_assets, science_module_hashes, SCIENCE_SHA256,
-    _official_scope,
+    _official_scope, _attach_official_provenance,
 )
 
 
@@ -56,3 +56,16 @@ def test_official_scope_uses_explicit_context_target_and_novel_paths():
     metrics["novel"]["target_map"]["map_50"] = -1
     row = _official_scope(metrics, "novel")
     assert row["scope_official_ap50"] == "UNDEFINED" and row["scope_official_ap50_raw"] == -1
+
+
+def test_official_provenance_attachment_uses_stable_arm_snapshot(tmp_path):
+    root = tmp_path / "official" / "step_003584" / "probe"
+    root.mkdir(parents=True)
+    (root / "official_all.json").write_text('{"result": "all"}')
+    (root / "official_novel.json").write_text('{"result": "novel"}')
+    row = {"official": {"all": {"ap50": 0.2}, "novel": {"ap50": 0.1}}}
+    returned = _attach_official_provenance(row, tmp_path, 3584, "probe")
+    assert returned is row
+    assert set(row["official"]) == {"all", "novel", "_provenance"}
+    assert row["official"]["_provenance"]["all"]["sha256"]
+    assert row["official"]["_provenance"]["novel"]["path"].endswith("official_novel.json")
