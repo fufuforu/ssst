@@ -84,6 +84,8 @@ def build_optimizer(model):
         if isinstance(module,(torch.nn.LayerNorm,torch.nn.modules.batchnorm._BatchNorm,torch.nn.Embedding)):
             no_decay.update(name+'.'+n for n,_ in module.named_parameters(recurse=False))
     no_decay.add('panoptic.stuff_seed')
+    # SIU3R adapter/pixel-decoder level embeddings are bare Parameters.
+    no_decay.update(n for n,p in model.named_parameters() if n.endswith('.level_embed') or getattr(p,'_no_weight_decay',False))
     peaks=dict(reconstruction=1e-6,pretrained=1e-5,new=1e-4)
     groups=[]
     for fam in ('reconstruction','pretrained','new'):
@@ -93,6 +95,8 @@ def build_optimizer(model):
             if selected: groups.append(dict(name=f'{fam}_{"decay" if decay else "nodecay"}',params=[p for _,p in selected],param_names=[n for n,_ in selected],lr=peaks[fam],peak_lr=peaks[fam],weight_decay=0.05 if decay else 0.0))
     ids=[id(p) for g in groups for p in g['params']]
     if len(ids)!=len(set(ids)) or set(ids)!={id(p) for p in model.parameters()}: raise RuntimeError('optimizer coverage mismatch')
+    if rank_world()[0]==0:
+        write_json(REPORTS/'optimizer_groups.json',dict(groups=[{k:v for k,v in g.items() if k!='params'} | dict(tensor_count=len(g['params']),numel=sum(p.numel() for p in g['params'])) for g in groups],all_trainable_once=True,no_decay_embeddings=sorted(no_decay)))
     return torch.optim.AdamW(groups,betas=(0.9,0.95),eps=1e-8)
 
 

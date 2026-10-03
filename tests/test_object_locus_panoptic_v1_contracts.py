@@ -32,10 +32,55 @@ class PanopticContracts(unittest.TestCase):
         optimizer=build_optimizer(model)
         for g in optimizer.param_groups:
             if g['name'].startswith('reconstruction'):self.assertEqual(g['weight_decay'],0)
+        for group in optimizer.param_groups:
+            for name in group['param_names']:
+                if name.endswith('.level_embed') or 'child_index_embedding' in name or name=='panoptic.stuff_seed':
+                    self.assertEqual(group['weight_decay'],0)
         names=[n for g in optimizer.param_groups for n in g['param_names']]
         self.assertEqual(len(names),len(set(names)))
         self.assertEqual(set(names),set(dict(model.named_parameters())))
         self.assertTrue(all(n in next(g['param_names'] for g in optimizer.param_groups if g['name']=='new_decay') for n in names if n.endswith('W_inject.weight')))
+
+    def test_adapter_receives_raw_twenty_fourth_block(self):
+        from unittest.mock import patch
+        from tokengs.models.object_locus_panoptic_v1_pretrained import ImageOnlyMASt3R
+        # Exercise the actual wrapper and encoder forward with lightweight
+        # blocks; enc_norm deliberately changes values if incorrectly called.
+        raw=[];received=[]
+        class Patch(torch.nn.Module):
+            def forward(self,image):
+                return torch.zeros(image.shape[0],1024,1024),torch.zeros(image.shape[0],1024,2,dtype=torch.long)
+        class Block(torch.nn.Module):
+            def forward(self,x,pos):
+                y=x+1;raw.append(y);return y
+        class Adapter(torch.nn.Module):
+            def forward(self,image,states):
+                received.extend(states)
+                raise StopIteration('stop after verifying adapter input')
+        encoder=ImageOnlyMASt3R.__new__(ImageOnlyMASt3R);torch.nn.Module.__init__(encoder)
+        encoder.patch_embed=Patch();encoder.enc_blocks=torch.nn.ModuleList([Block() for _ in range(24)])
+        encoder.enc_norm=torch.nn.LayerNorm(1024)
+        encoder.eval()
+        wrapper=self.model.understanding
+        with patch.object(wrapper,'encoder',encoder),patch.object(wrapper,'adapter',Adapter()):
+            with self.assertRaises(StopIteration):
+                wrapper(torch.zeros(1,2,3,256,256))
+        self.assertEqual(len(received),24)
+        self.assertIs(received[23],raw[23])
+        torch.testing.assert_close(received[23],torch.full_like(received[23],24))
+        self.assertFalse(torch.equal(received[23],encoder.enc_norm(raw[23])))
+        self.assertIn('enc_norm.weight',self.model.understanding.encoder.state_dict())
+
+    def test_bare_level_embeddings_pretrained_lr_and_zero_decay(self):
+        optimizer=build_optimizer(self.model)
+        for name in ('understanding.adapter.level_embed','understanding.mask2former.pixel_decoder.level_embed'):
+            found=[group for group in optimizer.param_groups if name in group['param_names']]
+            self.assertEqual(len(found),1)
+            self.assertEqual(found[0]['name'],'pretrained_nodecay')
+            self.assertEqual(found[0]['lr'],1e-5)
+            self.assertEqual(found[0]['peak_lr'],1e-5)
+            self.assertEqual(found[0]['weight_decay'],0)
+            self.assertTrue(dict(self.model.named_parameters())[name].requires_grad)
 
     def test_tensor_axes_geometry_and_zero_injection(self):
         controller=self.model.panoptic

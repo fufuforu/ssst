@@ -1,6 +1,44 @@
 """Unchanged evalfix eligibility/IoU protocol applied to the panoptic model."""
 from scripts.object_locus_panoptic_v1_runtime import *
-from scripts.eval_object_locus_v3_set import _run,_candidate_stats,write_panel
+from scripts.eval_object_locus_v3_set import _run,_candidate_stats
+
+
+def write_panel(batch,out,window,path,title):
+    """Actual fixed-window context/novel RGB, GT and instance predictions."""
+    from PIL import Image,ImageDraw
+    from scripts.export_object_locus_panoptic_v1_official import assemble_panoptic
+    sem,ins,_=assemble_panoptic(out)
+    p=out['p_class'][0]
+    eligible=(p.argmax(-1)!=18)&(p[:,:18].max(-1).values>=.05)
+    views=batch['images_all'].shape[1]
+    size=160;canvas=Image.new('RGB',(6*size,50+views*(size+20)),'white');draw=ImageDraw.Draw(canvas)
+    draw.text((4,4),title+' | context0/1; true novel2/3',fill='black')
+    def color_sem(value):
+        value=value.detach().cpu().numpy();rgb=np.zeros((*value.shape,3),np.uint8)
+        for c in range(20):rgb[value==c]=((37*c+53)%255,(97*c+31)%255,(173*c+71)%255)
+        return rgb
+    def color_instances(labels,identities):
+        rgb=color_sem(labels);ids=identities.detach().cpu().numpy()
+        for iid in np.unique(ids):
+            if iid>0:rgb[ids==iid]=((31*int(iid)+71)%255,(67*int(iid)+137)%255,(131*int(iid)+29)%255)
+        return rgb
+    for v in range(views):
+        gt_rgb=(batch['images_all'][0,v].detach().cpu().permute(1,2,0).clamp(0,1).numpy()*255).astype(np.uint8)
+        rec=(out['render']['images_pred'][0,v].detach().cpu().permute(1,2,0).clamp(0,1).numpy()*255).astype(np.uint8)
+        gtsem=batch['semantic_label_all'][0,v];gtins=batch['instance_label_all'][0,v]
+        candidates=np.zeros_like(gt_rgb)
+        # Independent masks overlay, including overlaps; packed competition is
+        # displayed separately in the final column.
+        for q in range(100):
+            if not bool(eligible[q]):continue
+            mask=((out['region_mass'][0,v,q]>=.5)&(out['alpha'][0,v,0]>.05)).detach().cpu().numpy()
+            candidates[mask]=((31*(q+1)+71)%255,(67*(q+1)+137)%255,(131*(q+1)+29)%255)
+        imgs=[gt_rgb,rec,color_sem(gtsem),color_instances(gtsem,gtins),candidates,color_instances(sem[v],ins[v])]
+        labels=['RGB GT','RGB reconstruction','GT semantic','GT instances','independent masks overlay','packed panoptic']
+        for col,(im,label) in enumerate(zip(imgs,labels)):
+            y=50+v*(size+20);canvas.paste(Image.fromarray(im).resize((size,size)),(col*size,y))
+            draw.text((col*size+2,y-17),label,fill='black')
+    Path(path).parent.mkdir(parents=True,exist_ok=True);canvas.save(path)
 
 
 def local_ap_metric():

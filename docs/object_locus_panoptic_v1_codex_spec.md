@@ -496,3 +496,7 @@ epoch0/2/4/8/16/32/64对全部固定splits完成local评估；epoch0/8/16/32/64�
 ## 授权勘误（2026-10-03）
 
 MASt3R model 1017 tensors，encoder严格加载292个，其余725个全部排除，包括 `dec_norm.weight [768]` / `dec_norm.bias [768]`。本勘误不构成科学配方变更。复用已核验SHA与Fresh-128资产，smoke全部丢弃，正式fresh训练8064updates。
+
+## 已授权接口修复（2026-10-03）
+
+adapter收到24个encoder block的原始逐层输出，`states[23]`不由最终`enc_norm`覆盖。`enc_norm`模块和其严格权重加载保留，不添加loss强迫其产生梯度。adapter与pixel decoder的裸`level_embed`明确使用pretrained peak LR=1e-5、WD=0，保持可训练。合并修复后一次完成contracts和必要smoke，状态全部丢弃，commit/push核验后重新从三份指定权重fresh训练；旧epoch0 checkpoint仅作为旧启动记录，不作为初始化。其余结构/loss/LR/采样/训练量不变。

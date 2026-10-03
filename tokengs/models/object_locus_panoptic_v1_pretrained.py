@@ -71,7 +71,6 @@ class ImageOnlyMASt3R(nn.Module):
         for block in self.enc_blocks:
             tokens = checkpoint(block, tokens, pos, use_reentrant=False, preserve_rng_state=True) if self.training and torch.is_grad_enabled() else block(tokens,pos)
             states.append(tokens)
-        states[-1] = self.enc_norm(states[-1])
         return states
 
 
