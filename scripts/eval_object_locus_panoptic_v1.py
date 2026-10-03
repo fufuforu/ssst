@@ -43,6 +43,29 @@ def endpoint_report():
     new=json.loads((REPORTS/'eval_epoch64.json').read_text())
     old_path=FRESH/'eval_node_epoch_64.json'
     old=json.loads(old_path.read_text())['splits'] if old_path.is_file() else None
+    # Fresh128 registered 16-window holdout contains the required original eight.
+    # Reaggregate the existing raw predictions; never load an old checkpoint.
+    if old and 'same_scene_holdout8' not in old and 'same_scene_holdout16' in old:
+        manifest=json.loads((REPORTS/'data_manifest.json').read_text())
+        subset=manifest['same_scene_holdout8']
+        source=old['same_scene_holdout16']
+        selected=[r for r in source['windows'] if any(r['scene']==w['scene'] and r['context']==w['context'] and r['novel']==w['novel'] for w in subset)]
+        if len(selected)==8:
+            from scripts.eval_object_locus_v1 import _official_run
+            base=REPORTS/'comparison/fresh128_same_scene_holdout8'
+            official={}
+            complete=True
+            for arm in ('all','novel'):
+                root=base/arm;root.mkdir(parents=True,exist_ok=True)
+                for w in subset:
+                    name=w['scene']+'_context'+'_'.join(map(str,w['context']))
+                    target=FRESH/'official/step_64512/same_scene_holdout16'/arm/name
+                    if not target.is_dir():complete=False;break
+                    link=root/name
+                    if not link.exists():link.symlink_to(target,target_is_directory=True)
+                if complete:official[arm]=_official_run(root,base/f'official_{arm}.json')['result']
+            if complete:
+                old['same_scene_holdout8']=dict(official=official,local={scope:dict(psnr=float(np.mean([r['scopes'][scope]['psnr'] for r in selected]))) for scope in ('context','target_all','novel')})
     rows=[];comparison=[]
     for split,result in new['results'].items():
         old_name='original_train_all56' if split=='train_all56' else split

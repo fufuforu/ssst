@@ -50,8 +50,12 @@ def main():
     status=subprocess.check_output(['git','status','--porcelain'],cwd=REPO,text=True)
     if status.strip(): raise RuntimeError('formal training requires a clean pushed checkout')
     sha=subprocess.check_output(['git','rev-parse','HEAD'],cwd=REPO,text=True).strip()
-    remote=subprocess.check_output(['git','ls-remote','origin','refs/heads/object-locus-panoptic-v1-8gpu'],cwd=REPO,text=True)
-    if not remote.startswith(sha): raise RuntimeError('training SHA not verified on remote branch')
+    receipt=json.loads((REPORTS/'git_provenance.json').read_text())
+    if receipt['training_sha']!=sha or not receipt['clean']:
+        raise RuntimeError('training SHA does not match submit-host remote verification')
+    lines=receipt['remote_verification'].strip().splitlines()
+    if not any(line.split()==[sha,'refs/heads/object-locus-panoptic-v1-8gpu'] for line in lines):
+        raise RuntimeError('remote branch verification absent')
     if not (REPORTS/'single_smoke.json').is_file() or not (REPORTS/'eight_smoke.json').is_file(): raise RuntimeError('required smoke reports absent')
     for f in ('single_smoke.json','eight_smoke.json'):
         if json.loads((REPORTS/f).read_text())['status']!='PASS': raise RuntimeError(f'failed gate {f}')
@@ -74,7 +78,7 @@ def main():
         write_json(REPORTS/'data_manifest.json',manifest)
         entries=[dict(update=u,epoch=u//126,rank_windows=[sample_index(u//126,u%126,r) for r in range(8)]) for u in range(8064)]
         write_json(REPORTS/'training_plan.json',dict(seed=42,epochs=64,global_updates=8064,exposures=64512,entries=entries))
-        write_json(REPORTS/'run_manifest.json',dict(git_sha=sha,main_sha=subprocess.check_output(['git','ls-remote','origin','refs/heads/main'],cwd=REPO,text=True).split()[0],
+        write_json(REPORTS/'run_manifest.json',dict(git_sha=sha,main_sha=receipt['main_sha'],
             job_id=os.environ.get('SLURM_JOB_ID'),node=os.uname().nodename,global_batch=8,per_rank_batch=1,
             audit=audit,checkpoint_epochs=REGISTERED,official_epochs=OFFICIAL,optimizer_updates=8064,
             exposure_count=64512,checkpoint_budget_bytes=required,scientific_changes=[],erratum='723→725 excluded MASt3R states',
