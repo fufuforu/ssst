@@ -34,8 +34,11 @@ from .object_locus_v2 import LocusGSObjectLocusV2Recon
 from .object_locus_v2_1 import LocusGSObjectLocusV2_1Recon
 from .object_locus_v3_set import LocusGSObjectLocusV3SetRecon
 
+from .official_locusgs_recon import OfficialLocusGSRecon
+
 # Model registry
 model_registry = {
+    'siu3r_official_locusgs_recon': OfficialLocusGSRecon,
     'tokengs': TokenGS,
     'siu3r_joint_ssst': SIU3RJointSSST,
     'siu3r_locusgs_recon': LocusGSRecon,

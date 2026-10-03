@@ -984,4 +984,14 @@ config_defaults["train_siu3r_object_locus_v3_set"] = config_defaults[
     experiment_name="siu3r_object_locus_v3_set",
 )
 
+config_doc["train_siu3r_official_locusgs_recon"] = "Pinned official LocusGS; one fresh full ScanNet reconstruction run."
+config_defaults["train_siu3r_official_locusgs_recon"] = config_defaults["train_siu3r_locusgs_recon"].evolve(
+    model_type="siu3r_official_locusgs_recon", seed=42, batch_size=1,
+    num_workers=0, num_input_views=2, num_views=4, random_reflect=False,
+    mixed_precision="no", deferred_bp=False, reconstruction_only=True,
+    init_checkpoint=None, use_input_supervision=False,
+    workspace="/space/mawb/ssst/workspace_recon_diag/official_source_scannet_v1/run",
+    experiment_name="official_source_scannet_v1",
+)
+
 AllConfigs = tyro.extras.subcommand_type_from_defaults(config_defaults, config_doc)
