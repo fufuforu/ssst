@@ -1,298 +1,311 @@
-# MASt3R + 配套 panoptic 预训练理解路径：接入规格（待评审）
+# MASt3R + 配套 panoptic 预训练理解路径：接入规格 **Rev 2**（按评审决定修订）
 
-> 面向：GPT（设计评审）。状态：**仅设计，不启动正式训练**。
-> 本文件的所有"现状"陈述都来自**实测或代码**，已标注出处；所有"待确认"都显式标出。
+> 面向：GPT（评审）→ Codex（实现）。
+> **Rev 2 变更摘要**：(1) 五个开放问题按评审决定收敛（§0.2）；(2) **§4.5 梯度边界重写为真正的端到端联合训练**（原写法自相矛盾，已废）；(3) **两处 adapter 接口事实纠正**（`all_feat[indexes]` 与 `add_vit_feature` 直加路径，§1.2/§2）；(4) 权重收敛为两份并区分"实际加载"与"重新初始化"（§5）；(5) 验证计划按评审简化（§6）；(6) 权重获取受集群出网白名单限制，改由用户侧下载（§5.4）。
+> 状态：仅设计。**不启动正式训练。**
 
 ---
 
-## 0. 固定方向（本次设计范围）
+## 0. 范围与已定决策
+
+### 0.1 固定方向
 
 | 部分 | 固定方向 |
 |---|---|
 | 现有重建路径 | **保留** LocusGS reconstruction pretrained、GS/anchor tokens、Gaussian 生成 |
-| 新图像理解路径 | 接入 **MASt3R 图像特征 + 与之配套的 panoptic 预训练 adapter／mask decoder** |
-| Object／mask tokens | 从预训练理解路径读取图像证据，**保留其可复用的预训练能力** |
-| 两组 token 的联系 | 设计 reconstruction tokens 与 object tokens 的**双向交互**，参与生成过程 |
+| 新图像理解路径 | 接入 **MASt3R 图像特征 + 配套 panoptic 预训练 adapter / mask decoder** |
+| Object／mask tokens | 从预训练理解路径读取图像证据，**保留其可复用预训练能力** |
+| 两组 token 联系 | reconstruction tokens 与 object tokens 的**双向交互，参与生成过程** |
 | 最终输出 | 几何、外观与实例 membership **落在同一组 3D Gaussians 上** |
-| 初始化边界 | **不使用**已在 ScanNet 上完成任务训练的 `siu3r_epoch100.ckpt`，避免把现成任务能力混入结构验证 |
-| 当前工作范围 | 完成**接入规格 + 权重映射**；**暂不启动新的正式训练** |
+| 初始化边界 | **不使用**已 ScanNet 任务训练的 `siu3r_epoch100.ckpt` |
+| 本次工作范围 | 完成**接入规格 + 权重映射**；**不启动正式训练** |
 
-**核心约束（来自评审）**：不能把理解 adapter 和 mask decoder 拆下来接到任意 encoder 上就宣称保留了 panoptic 预训练能力。设计必须说明**它们原本接收什么特征**，以及**新前向如何保留这套配合**。§2 与 §3 就是对这两问的回答。
+### 0.2 评审已定的五个选择（Rev 2 采纳）
+
+| 决策项 | 固定选择 |
+|---|---|
+| **分辨率** | 理解支路 **512×512**，重建维持 **256×256**；**使用同一 context 图像与同一裁剪范围**（两分支看到相同内容） |
+| **Gaussian membership** | **遮挡感知聚合预训练 pixel decoder 的稠密 mask features**，再与 **object query 的 mask embedding 做点积**、sigmoid（详见 §4.4） |
+| **类别空间** | 使用 **COCO panoptic 预训练**；**保留** adapter、pixel decoder、query decoder、query embeddings、mask embedding；**重新初始化 ScanNet 分类输出** |
+| **Object 写回** | 只写**中间注册层的 anchor tokens**；**不写 encoder 特征、不改 μ/ρ** |
+| **额外理解监督** | 首版**不加** 2D 辅助监督；沿用最终 Gaussian 渲染结果上既有的集合预测分类与 thing/stuff mask 监督 |
+
+**membership 决策的理由（评审原文要点）**：不采用"把 2D mask 概率加权平均作为最终 membership"。
+- 合成贡献负责"**这个 Gaussian 能读取哪些图像证据**"；
+- query 点积负责"**它属于哪个实例**"；
+- 直接反投影 2D mask 概率会把理解任务退化为**搬运已有 2D 预测**，且反投影后再渲染并不天然恢复原 mask。
+- **低可见 / 不可见 Gaussian 必须保留由自身 child features 预测 membership 的路径**，不得因缺少 context 合成贡献而直接赋零或 void。
 
 ---
 
-## 1. 双方接口的实测事实
+## 1. 双方接口的实测事实（含 Rev 2 的两处纠正）
 
 ### 1.1 我们这边（LocusGS / TokenGS，重建路径）
 
-出处：`tokengs/options.py`、`tokengs/models/canonical_recon_models.py`、`tokengs/models/input_types.py`、`tokengs/models/spatial_grounded_tokens.py`
-
 | 事实 | 值 / 出处 |
 |---|---|
-| 图像尺寸 / patch | `img_size=(256,256)`、`patch_size=8` ⇒ **32×32 patch/视图**（`options.py:43-44`） |
-| 上下文视图数 | 2 ⇒ encoder 侧 **2048 token**（2 × 1024） |
-| encoder 输出形式 | `EncoderLatent.keys/values: [B, H_heads, N, C//H_heads]` —— **已经是投影后的 attention K/V**，不是原始 patch 特征（`input_types.py:59-62`） |
-| 实测形状 | `values = (1, 16, 2048, 64)`（即 16 heads × 64 = **d_out 1024**） |
-| 几何对齐 | `patch_plucker_rays(...)` 把稠密逐像素 Plücker ray 池化到 patch 网格，**顺序 = view-major → row-major**（`spatial_grounded_tokens.py:89-99`） |
-| 消费点 | `LocusGSRecon.forward` → `get_gs_tokens(batch_size, encoder_latent, patch_rays)`（`canonical_recon_models.py:146-152`） |
+| 图像尺寸 / patch | `img_size=(256,256)`、`patch_size=8` ⇒ 32×32 patch/视图（`options.py:43-44`） |
+| 上下文视图数 | 2 ⇒ 2048 token |
+| encoder 输出形式 | `EncoderLatent.keys/values: [B, H_heads, N, C//H_heads]` —— **已是投影后的 attention K/V**（`input_types.py:59-62`） |
+| 实测形状 | `values = (1, 16, 2048, 64)` |
+| 几何对齐 | `patch_plucker_rays(...)` 池化稠密 Plücker ray 到 patch 网格，**view-major → row-major**（`spatial_grounded_tokens.py:89-99`） |
+| 消费点 | `LocusGSRecon.forward` → `get_gs_tokens(batch_size, encoder_latent, patch_rays)` |
 
-### 1.2 理解路径（SIU3R）原本接收什么
-
-出处：`/space/mawb/SIU3R/src/models/{model.py, backbone_croco.py, vit_adapter/vit_adapter.py, mask2former/video_seg_decoder.py}`
+### 1.2 理解路径原本接收什么（**Rev 2 纠正两处**）
 
 ```
 model.py:
-  _set_backbone()      → AsymmetricCroCo(CroCoNet)          # patch_size=16, d_out=1024
-  _set_adapter()       → CroCoViTAdapter(num_block=enc_depth, embed_dim=enc_embed_dim,
-                          size=image_size, patchsize=croco.patch_size,
-                          interaction_indexes=[5,11,17,23], with_cffn, deform_ratio,
-                          add_vit_feature=True, use_extra_extractor=True)
-  _set_mask2former()   → VideoMask2FormerForVideoSegmentation(Mask2FormerConfig(
-                          id2label=..., num_queries=..., train_refer_segmentation=False))
+  _set_backbone()    → AsymmetricCroCo(CroCoNet)      # patch_size=16, d_out=1024
+  _set_adapter()     → CroCoViTAdapter(num_block=enc_depth, embed_dim=enc_embed_dim,
+                        size=image_size, patchsize=croco.patch_size,
+                        interaction_indexes=[5,11,17,23], with_cffn=True,
+                        deform_ratio=0.5, add_vit_feature=True, use_extra_extractor=True)
+  _set_mask2former() → VideoMask2FormerForVideoSegmentation(Mask2FormerConfig(id2label, num_queries))
 
 forward:
   feat1, feat2, all_feat1, all_feat2, dec1, dec2, shape1, shape2 = self.backbone(...)
-  multi_scale_feat1 = self.adapter(img1, all_feat1)          # ← 逐视图
+  multi_scale_feat1 = self.adapter(img1, all_feat1)      # 逐视图
   multi_scale_feat  = [stack([f1, f2], dim=1) for f1, f2 in zip(msf1, msf2)]
   context_seg_output = self.mask2former(multi_scale_feat=multi_scale_feat, ...)
 ```
 
-`CroCoViTAdapter.__init__` 里与"配合"直接相关的成员：
+**纠正 ①：adapter 需要完整的层输出列表，不是长度 4 的列表。**
+官方实现里逐个 interaction 按**索引**取用：
+```python
+indexes = self.interaction_indexes[i]      # [5, 11, 17, 23]
+x = all_feat[indexes]
+```
+⇒ 若只传 4 层特征，**必须同时改写索引接口**。**首版选择保留原接口**（传完整层输出列表）。
+（`CroCoViTAdapter.__init__` 另有 `self.H = size[0]//patchsize`、`self.W = size[1]//patchsize`、`level_embed(3, embed_dim)`、`spm = SpatialPriorModule(inplanes=64, embed_dim)`、`up = ConvTranspose2d(embed_dim, embed_dim, 2, 2)`、`norm1..norm4 = SyncBatchNorm(embed_dim)`。）
 
-| 成员 | 含义 |
-|---|---|
-| `self.H = size[0]//patchsize`, `self.W = size[1]//patchsize` | **硬绑定输入分辨率与 patch 大小** |
-| `level_embed = nn.Parameter(torch.zeros(3, embed_dim))` | **3 个尺度**的空间先验层级嵌入 |
-| `spm = SpatialPriorModule(inplanes=64, embed_dim=embed_dim)` | **吃原始图像**的 CNN 空间先验 |
-| `interactions = [InteractionBlock_Efficient(...) for i in range(len(interaction_indexes))]` | **4 个**形变交互块，**一一对应 4 个 ViT 深度** |
-| `up = ConvTranspose2d(embed_dim, embed_dim, 2, 2)`；`norm1..norm4 = SyncBatchNorm(embed_dim)` | 输出 **4 个多尺度特征图** |
+**纠正 ②：存在"ViT 特征 → 输出"的直接融合路径。**
+`add_vit_feature=True` 时，四层 ViT 特征被**插值后直接加到四尺度空间特征上**。
+⇒ 我上一版说的"ViT 特征到输出没有直接通道、全靠交互"**不准确，已删除**。这条**直接融合路径必须一并保留**。
 
-`VideoMask2FormerForVideoSegmentation`：`self.model = VideoMask2FormerModel(config)`、`class_predictor = nn.Linear(hidden_dim, num_labels+1)`；其 pixel decoder 消费 `multi_scale_features`。
+### 1.3 权重现状
 
-### 1.3 权重现状（**阻塞项**）
-
-`/space/mawb/SIU3R/pretrained_weights/` **只有** `siu3r_epoch100.ckpt`（5.46 GB）。代码引用的三个文件**全部不在盘上**：
-
-| 代码引用 | 位置（代码中） | 盘上状态 |
-|---|---|---|
-| `DUSt3R_ViTLarge_BaseDecoder_512_dpt.pth` | `model.py::load_recon_ckpt` | **缺失** |
-| `panoptic_coco_pretrain_vitadapter_maskdecoder_epoch60.ckpt` | `model.py::load_seg_ckpt("coco")` | **缺失** |
-| `panoptic_ade20k_pretrain_vitadapter_maskdecoder_epoch75.ckpt` | `model.py::load_seg_ckpt("ade20k")` | **缺失** |
-| MASt3R 权重 | SIU3R 官方训练说明 | **缺失** |
-| `siu3r_epoch100.ckpt` | 完整 SIU3R（**已 ScanNet 任务训练**） | 存在，但**按初始化边界禁用** |
-
-全盘 `find` 未发现任何 `*mast3r*` / `*dust3r*` / `panoptic` 预训练权重（命中的 `.pth` 属于 sambamotr / MOTR / gaussian-grouping 等无关项目）。
-
-⇒ **设计可以完成，权重需要先获取**。§6 给出获取与校验规程，并把"缺失"作为显式前置条件。
+`/space/mawb/SIU3R/pretrained_weights/` 目前只有 `siu3r_epoch100.ckpt`（5.46 GB，**按边界禁用**）。两份必需资产**缺失**（获取路径见 §5.4）。
 
 ---
 
-## 2. 为什么不能拆：三重耦合的机制论证
+## 2. 为什么这套配合必须整体保留（Rev 2 修订论证）
 
-panoptic 能力不在"adapter"或"mask decoder"单个模块里，而在**三者的配合**上：
+panoptic 能力存在于**四个要素的配合**：
 
 ```
-① ViT 的【四个特定深度】特征  all_feat[l]  for l ∈ {5,11,17,23}
-        ↓   （宽度 = enc_embed_dim，深度由 interaction_indexes 固化）
-② 【原始图像】 → SpatialPriorModule（1/4, 1/8, 1/16 CNN 先验）+ level_embed(3)
-        ↓   （deformable interaction 把 ① 的语义与 ② 的空间细节逐层融合）
-③ 【4 个多尺度特征图】 → Mask2Former 的 pixel decoder（通道/步长布局固定）
-        ↓
-   object/mask queries + per-query mask logits（这套 query 与分类头也是配套预训练的）
+① ViT 的【四个指定深度】特征 all_feat[l], l ∈ {5,11,17,23}
+        （宽度 = enc_embed_dim；由 interaction_indexes 固化，且索引进入完整列表）
+② 【原始图像】 → SpatialPriorModule（1/4,1/8,1/16 CNN 先验）+ level_embed(3)
+        （deformable interaction 在 ② 内逐层融合 ① 的语义与 ② 的空间细节）
+③ 【四尺度输出】 = 交互结果 + 【直接相加】的插值 ViT 特征（add_vit_feature=True）
+        ↓ （通道 / 步长布局固定）
+④ Mask2Former 的 pixel decoder + query decoder + query embeddings + mask embedding
+        → object/mask queries + per-query mask logits（查询与分类头同样是配套预训练的）
 ```
 
-破坏其中任一环都会使"预训练配合"失效：
-- 换掉 ViT（或改用**投影后的 K/V**）⇒ ① 的**深度语义**与**宽度**对不上，且丢失了 4 个深度；
-- 去掉/改动 `SpatialPriorModule` 的输入 ⇒ ② 的统计量与 `norm1..4`、`level_embed` 的训练分布不一致；
-- 改变 patch 网格（`self.H/self.W`）或输入分辨率 ⇒ 形变采样的位置语义整体偏移；
-- 只搬 mask decoder ⇒ 它期望的是 ③ 的**具体多尺度布局**，不是任意特征。
-
-**并且**：① 与 ③ 之间没有直接通道，全靠在 ② 里的逐层交互——所以"保序保形地接回原输入"不是可选项。
+**Rev 2 修正后的表述**：①→③ 既有**交互路径**也有**直接相加路径**（两者都要保留）；破坏任一项都会使预训练配合失效：
+- 换掉 ViT 或改用**投影后的 K/V** ⇒ ① 的深度语义与宽度对不上，且 4 个深度丢失；
+- 去掉/改动 `SpatialPriorModule` 的输入 ⇒ ② 的统计量与 `norm1..4`、`level_embed` 训练分布不一致；
+- 改变 patch 网格（`self.H/self.W`）或输入分辨率 ⇒ 形变采样位置语义整体偏移；
+- 只搬 mask decoder ⇒ 它期望 ③ 的具体多尺度布局。
 
 ---
 
-## 3. 我们与理解路径的不兼容清单（必须正面处理）
+## 3. 不兼容清单
 
 | 维度 | 我们（重建路径） | SIU3R 理解路径 | 后果 |
 |---|---|---|---|
-| patch / 分辨率 | 8 @ 256×256 → 32×32 | 16 @ 512×512 → 32×32 | **token 数相同（1024/视图）纯属网格算术巧合**，每 token 覆盖的空间范围差 2× |
-| encoder 输出形式 | **1 个**投影后 K/V `[B,16,N,64]` | **4 个深度**的未投影 block 特征 `[B,N,1024]` | adapter 需要 4 个深度；我们只暴露 1 个且已投影 |
-| 空间先验 | 无（几何靠 Plücker ray 偏置） | `SpatialPriorModule(原图)` + `level_embed(3)` | ② 环缺失，不能省 |
-| 位置/几何编码 | Plücker patch ray（view-major） | CroCo 位置编码，**无 ray 输入** | 需重建位置对应，不能沿用 |
-| 输出形态 | token → 64 child Gaussians → 渲染 | 2D multi-scale → per-query **2D mask logits** | 需要一层"2D mask → per-Gaussian membership"的**可渲染**归属模块 |
+| patch / 分辨率 | 8 @ 256×256 → 32×32 | 16 @ 512×512 → 32×32 | **token 数相同（1024/视图）纯属网格算术巧合**；每 token 覆盖范围差 2× |
+| encoder 输出形式 | **1 个**投影后 K/V `[B,16,N,64]` | **完整层列表**，adapter 按索引 {5,11,17,23} 取 | 需要完整列表；我们只暴露 1 个且已投影 |
+| 空间先验 | 无（几何靠 Plücker ray 偏置） | `SpatialPriorModule(原图)` + `level_embed(3)` | ② 环不能省 |
+| 输出构成 | — | 交互 + **ViT 特征直接相加** | 直接融合路径需保留 |
+| 位置/几何编码 | Plücker patch ray（view-major） | CroCo 位置编码，无 ray 输入 | 需重建位置对应 |
+| 输出形态 | token → 64 child Gaussians → 渲染 | per-query **2D mask logits** + 稠密 mask features | 需 §4.4 的归属模块（可渲染） |
 
-**结论**：不能把我们的 K/V 当 adapter 的输入，也不能把理解支路压成我们的形状。**理解支路必须自己持有 ①+② 的原始输入**（即 MASt3R/CroCo 的多深度特征 + 原图），并以 **object/mask token 层**与重建 tokens 交互——而不是在特征张量层强行对齐。
+**结论**：理解支路必须**自己持有 ①+② 的原始输入**（完整层列表 + 原图），并以 **object/mask token 层**与重建 tokens 交互；**不能**把我们的 K/V 当 adapter 输入，也**不能**把理解支路压成我们的形状。
 
 ---
 
 ## 4. 接入设计
 
-### 4.1 模块图（新增，全部为新文件；不修改 V3 的四个锁定科学模块）
+### 4.1 模块图
 
 ```
-                       ┌──────────────────────── 新增：理解支路（预训练，保配合） ───────────────────────┐
- 原图 (2 ctx views) ──►│ MASt3R/CroCo encoder ──► all_feat[l], l∈{5,11,17,23}  (每视图)                │
-                       │        │                                                                     │
-                       │        └─► CroCoViTAdapter(img, all_feat) ──► 4×multi-scale maps (每视图)     │
-                       │                                   │                                          │
-                       │                                   ▼                                          │
-                       │                      VideoMask2Former ──► {q_obj, mask_logits_2d}             │
-                       └───────────────────────────────────┬──────────────────────────────────────────┘
-                                                           │  object/mask tokens（携带预训练语义）
-                                                           ▼
-  重建 tokens（anchors, 1024/view, 来自 LocusGS） ◄── 双向交互（§4.3）──► object tokens
-                                                           │
-                                                           ▼
-                     per-Gaussian instance membership（§4.4，可渲染） ──► 同一组 3D Gaussians
+  同一 context 图像（同一裁剪范围）
+        ├─────────────────────────────► 重建支路 256×256 / patch 8（LocusGS，保留）
+        │                                   │  anchors/GS tokens (2048)
+        │                                   ▼
+        │                           reconstruction decoder + Gaussian 生成
+        │
+        └──► 理解支路 512×512 ──► MASt3R encoder ──► 完整层列表 all_feat
+                                     │
+                                     ├─► CroCoViTAdapter(img, all_feat)  ← 原接口 + 直接相加路径
+                                     │        └─► 四尺度 multi-scale maps
+                                     └─► VideoMask2Former
+                                              ├─► object/mask query embeddings {q_obj, q_mask}
+                                              └─► pixel decoder 稠密 mask features
+                                                        │
+                        object tokens ◄── 双向交互 ──► reconstruction anchor tokens
+                                                        │
+                        per-Gaussian membership（§4.4）◄┘
+                                                        ▼
+                        同一组 3D Gaussians → 渲染 → 既有集合预测分类 / thing-stuff mask 监督
 ```
 
-**注意**：重建支路**完全保留**——LocusGS 预训练权重、anchor/GS token 解码、Gaussian 生成、渲染与既有 mask/Hungarian 监督均不变。理解支路是**新增并联**，只在 token 层与重建交互。
+重建支路**完全保留**；理解支路**新增并联**，只在 token 层交互。
 
-### 4.2 理解支路的接口契约
+### 4.2 分辨率与对齐（决策已定）
 
-| 接口 | 契约 | 断言（实现时必须写成代码断言） |
-|---|---|---|
-| 输入图像 | 与理解 backbone 训练时一致的分辨率/归一化（**待确认**：CroCo 训练用的 `image_size` 与 mean/std） | 输入尺寸 == backbone 配置尺寸 |
-| `all_feat` | 4 个深度 `{5,11,17,23}` 的 block 输出，宽度 == `enc_embed_dim` | `len(all_feat)==4`；每个 `[B,N,C]`；`C==enc_embed_dim` |
-| patch 网格 | `H=size[0]//16, W=size[1]//16`，与 `adapter.H/W` 一致 | 网格与 adapter 内部量一致 |
-| 空间先验输入 | **原始图像**（不是特征），尺寸与 `SpatialPriorModule` 期望一致 | 形状断言 |
-| adapter 输出 | 4 个多尺度 map，通道/步长与 mask decoder 期望一致 | 每尺度通道数与 `hidden_dim` 相关断言 |
-| mask decoder 输出 | `class_queries_logits`、`masks_queries_logits` | 形状断言；`num_queries` 与配置一致 |
+- 理解支路 **512×512 / patch 16**，重建支路 **256×256 / patch 8**；
+- **同一 context 图像、同一裁剪范围**（两分支内容一致，只是重采样到各自分辨率）；
+- 断言项：图像内容一致（同一 frame id + 同一 crop 参数）；各支路形状与各自配置一致；
+- 位置对应：理解支路的 patch 网格 → 通过已知的 crop/缩放关系映射回重建支路的 patch 网格（实现时写显式函数 + 单测）。
 
-**未对齐项必须显式记录**：我们现有 pipeline 的 256×256 / patch 8 与理解 backbone 的输入规格不同。**两种可选**（需评审选一）：
-- **(A) 双分辨率前向**：理解支路按 backbone 原生规格（如 512×512 / patch 16）单独前向；重建支路维持 256×256 / patch 8。代价：多一次 encoder 前向；优点是**完全不动预训练配合**。
-- **(B) 统一到 512×512**：重建支路也升到 512×512（patch 8 → 64×64/视图 ⇒ token 数 ×4）。代价：改变重建路径与显存；相当于同时改两个变量。
-**我建议 (A)**：它把"理解路径接入"保持为**单一变量**，符合本项目一贯的预注册纪律。
-
-### 4.3 双向交互（生成过程中，不是末端融合）
-
-沿用 Joint 已验证的**非对称**形式（一侧本来就有，一侧是新增）：
+### 4.3 双向交互
 
 | 方向 | 现状 | 新设计 |
 |---|---|---|
-| reconstruction → object | **已有**：object 读 anchor 特征做 evidence | 改为**同时**读 anchor 特征与理解支路的 object tokens（一路新证据） |
-| object → reconstruction | Joint 已有：token-only 残差写回（4 个零初始化 `Linear(256→1024)`，β 前 200 步 ramp） | 保留该机制；写回内容改为来自**有预训练语义的 object tokens** |
+| reconstruction → object | **已有**：object 读 anchor 特征做 evidence | 改为**同时**读 anchor 特征与理解支路的 object/mask tokens |
+| object → reconstruction | Joint 已有：token-only 残差写回（零初始化 `Linear`，β ramp） | 保留；写回内容来自**有预训练语义的 object tokens** |
 
-约束（与 Joint 一致，避免重蹈覆辙）：
-- 只写 tokens，**不写 μ/ρ**；不加额外 attention bias；
-- 路由归一化轴固定（`softmax` 沿 object 轴）；
-- 写回强度用 β ramp，禁止 detach（"不能只在末端融合、也不能 detach 两条交互路径"）。
+约束：**只写中间注册层的 anchor tokens**；**不写 encoder 特征、不改 μ/ρ**；路由归一化轴固定；β ramp；两条交互路径都**不得 detach**。
 
-### 4.4 从 2D mask 到"同一组 Gaussians 上的 membership"
-
-这是本设计的技术难点，也是"最终输出必须落在同一组 Gaussians 上"的落地处。
+### 4.4 Gaussian membership（按评审决策）
 
 ```
-理解支路给出：mask_logits_2d[q, v, h, w]      （q = object/mask query, v = 视图）
-重建支路给出：gaussians [B, 65536, 14]、每 child 的特征 f_gaussian [B,65536,256]
-                         │
-                         ▼  归属（三种候选，需评审）
- (i) 在【理解支路自己的像素域】算 c_i 合成权重：每个 Gaussian 在视图 v 的 EWA 足迹 × 前向-后向
-     合成权重 → 对 mask_logits_2d 加权求和 → per-Gaussian membership
- (ii) 用理解支路的 mask feature 与 f_gaussian 做 dot-product（Mask2Former 风格）→ sigmoid
- (iii) 学习一个 query-to-Gaussian 交叉注意力
-                         │
-                         ▼
- per-Gaussian membership [B, 65536, Q]（经 alpha 合成器渲染 → 保证遮挡正确）
+输入：
+  理解支路 pixel decoder 的稠密 mask features   F_msd[q?, c, h, w]（或 feature map × mask embedding 形式）
+  object query 的 mask embedding                q_mask[q, c]
+  重建支路每个 child Gaussian 的自身特征        f_child[i, d]   （保留路径）
+  遮挡感知合成贡献（context 视图）              c_i,v  （由 EWA 足迹 + 前向-后向透射率得到，作为【固定几何读取权重】）
+
+聚合：对每个 Gaussian i，用 c_i,v 在 context 视图上聚合 F_msd 的稠密 mask features
+        → 得到该 Gaussian 的"可读取图像证据"表示  F_i
+预测：membership(i, q) = sigmoid( <F_i, q_mask[q]> / sqrt(d) )     （query–Gaussian 点积）
+兜底：当 Gaussian i 在 context 中无合成贡献（低可见/不可见）时，
+        membership 由 i 自身 child features 的预测路径给出（独立小头或与 f_child 的投影点积），
+        **不得赋零、不得赋 void**。
+输出：per-Gaussian membership [B, 65536, Q] → 经既有 alpha 合成器渲染 → 既有实例监督
 ```
 
-**必须满足**（来自仓库的历史教训）：
-- membership **必须可渲染**（经 alpha 合成器），不得退回"投影中心判定"——后者曾产生 62.8% 的跨实例伪影，改用遮挡感知合成权重后 purity p50 = 1.000；
-- 若采用 (i)，需**重新验证**理解支路的 `c_i` 近似与渲染 alpha 的一致性（我们已有该验证脚本 `token_instance_compositing.py`，实测 MAE 0.0050–0.0058；新支路需要重跑同一验证）。
+**待 GPT 写死（评审已声明由其完成）**：具体融合公式、通道维度、零支持处理。
+**实现时必须满足**：membership **可渲染**（经 alpha 合成器），不得退回投影中心判定（历史教训：投影式归属产生 62.8% 跨实例伪影；遮挡感知合成权重下 purity p50 = 1.000）。
+**允许**：把合成权重当作**固定几何读取权重**用于图像特征聚合 —— 但这**不等于**截断理解任务对重建特征与生成过程的梯度（见 §4.5）。
 
-### 4.5 参数级梯度边界（**预先写死，不接受"detach 就算隔离"**）
+### 4.5 梯度边界（**Rev 2 重写：首版为真正的端到端联合训练**）
 
-| 参数组 | 语义损失梯度 | 重建损失梯度 | 理由 |
-|---|---|---|---|
-| 理解支路（MASt3R encoder / adapter / mask decoder） | **允许** | **禁止**（`requires_grad=False` + no_grad 包裹重建损失路径） | 保护预训练配合不被重建目标破坏 |
-| object tokens / 交互模块 | 允许 | 允许 | 它们是两组 token 的接口 |
-| anchor/GS 解码器（重建） | **禁止**（规格要求） | 允许 | 避免再次出现 V3-SM 的 −2 dB 类代价 |
-| `activation_head`（Gaussian 几何） | **禁止** | 允许 | 语义不得通过"挪 Gaussian"走捷径 |
-| 允许集之内的共享参数 | 见上 | 见上 | — |
+> 上一版"理解支路允许语义梯度 + `requires_grad=False`"**自相矛盾，作废**。
+> 也**不再**把历史 V3-SM 的约 −2 dB（成因未证明）转化为永久性结构禁令。
 
-**注意**：仅 `gaussians.detach()` **不等于**隔离——`gaussian_child_features` 读 `μ/ρ`，`anchor_embedding` 也由 `μ/ρ/ell` 构成。因此上表是**逐参数**的，实现时必须用钩子/`requires_grad` 逐项落实，并附一个"梯度只应出现在允许集合内"的自动断言。
+| 参数组 | 理解 loss | 重建 loss |
+|---|---|---|
+| 理解 encoder、adapter、query/mask decoder | **允许** | **允许**（沿 object 回写路径传入） |
+| Object states、双向交互模块 | **允许** | **允许** |
+| 重建 encoder、anchor decoder、geometry 与 activation head | **允许**（继续采用已定义的 **GC α=0.01** 缩放） | **允许** |
+
+- 保留重建侧的温和学习率与 **GC α=0.01**。
+- **新理解预训练参数的学习率单独确定**，不得与"随机新增模块"（零初始化交互模块）沿用同一学习率。
+- 允许将合成权重作为固定几何读取权重使用，但这不是梯度截断。
+
+### 4.6 监督（决策已定）
+
+首版**不增加** 2D 辅助监督；沿用最终 Gaussian 渲染结果上**既有**的集合预测分类与 thing/stuff mask 监督。目的是**先验证预训练能力能否进入统一 3D 任务**，避免再增加一套监督变量。
 
 ---
 
-## 5. 初始化与权重映射
+## 5. 权重：两份资产 + 加载边界
 
-### 5.1 允许与禁止
+### 5.1 固定使用的两份（评审已收敛，不用 DUSt3R / ADE20K 版本）
 
-| | 内容 |
+| 资产 | 官方来源 |
 |---|---|
-| **允许** | MASt3R 图像编码器权重；**配套**的 panoptic 预训练 ViT-Adapter 与 Mask2Former（COCO 或 ADE20K 版）；LocusGS reconstruction pretrained（既有） |
-| **禁止** | `siu3r_epoch100.ckpt`（已 ScanNet 任务训练）作为任何模块的初始化；把上述四类资产混称为一种 |
+| MASt3R 图像编码器 | `https://download.europe.naverlabs.com/ComputerVision/MASt3R/MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric.pth` |
+| panoptic 预训练（adapter + mask decoder） | `https://huggingface.co/datasets/insomnia7/SIU3R/blob/main/panoptic_coco_pretrain_vitadapter_maskdecoder_epoch60.ckpt` |
 
-四类资产**分别标注**（评审要求）：
-1. DUSt3R / **MASt3R** 的几何预训练 —— 提供几何/匹配能力；
-2. DINO 类通用视觉预训练 —— 通用视觉表征；
-3. **encoder + adapter + mask decoder 配套的 panoptic 预训练** —— 提供实例分类/分割能力（**本次要点**）；
-4. 已在 ScanNet 上完成训练的 SIU3R 完整 checkpoint —— **禁用**。
+（来源：SIU3R `README.md` 第 84 行。）
 
-### 5.2 映射表（骨架；具体张量名待权重到位后自动生成）
+### 5.2 加载边界（**必须区分"实际加载"与"重新初始化"**）
 
-| 目标模块 | 源 | 动作 |
+官方 `load_seg_ckpt()` **明确排除** `class_predictor`、`criterion`、`backbone`。因此映射表必须写成三栏：
+
+| 目标 | 动作 | 说明 |
 |---|---|---|
-| understanding backbone | MASt3R 权重 | 全量加载（形状断言） |
-| adapter（`spm` / `level_embed` / `interactions` / `norm1..4` / `up`） | panoptic 预训练 ckpt | 全量加载（**从 backbone 前缀剥离后**，与 `load_seg_ckpt` 同策略） |
-| mask decoder（`model.*` / `class_predictor`） | 同上 | 全量加载；`class_predictor` 依据目标类别数决定是否重建 |
-| object/mask query 初始化 | 同上（`queries_embedder`/`queries_features`） | 加载（保留预训练 query 语义） |
-| LocusGS 重建路径 | `workspace_recon_diag/full_train/run_lrcap2e5/best_monitor/model.pt`（既有，SHA `5fcf71b9…9634f`） | 既有传输逻辑不变 |
-| 交互模块（新增） | 无预训练 | 零初始化（沿用 Joint 的做法） |
+| adapter（`spm` / `level_embed` / `interactions` / `norm1..4` / `up`） | **全量加载**（从 backbone 前缀剥离后） | 预训练能力所在 |
+| mask decoder（`model.*`：pixel decoder、query decoder、query embeddings、mask embedding） | **全量加载** | 预训练能力所在 |
+| **分类输出**（`class_predictor` 等） | **重新初始化**为 ScanNet 目标类别数 | 官方亦排除；COCO 类别无法覆盖 ScanNet |
+| MASt3R backbone | 全量加载 | 与 SIU3R 的 `load_recon_ckpt` 同类 |
+| LocusGS 重建路径 | 既有传输逻辑不变（SHA `5fcf71b9…9634f`） | — |
+| 交互模块（新增） | 零初始化 | 与 Joint 一致 |
 
-### 5.3 获取与校验规程（前置条件）
+禁止 `strict=False` 静默通过；每个加载步骤输出**缺失/多余键清单 + 形状断言**。
 
-1. 从官方发布获取 §5.1 允许的三类权重；记录**来源 URL + SHA256**，落盘 `weights_provenance.json`。
-2. **禁止**从 `siu3r_epoch100.ckpt` 里剥取 adapter/mask decoder 来"凑"——它已见过 ScanNet，会污染结构验证。（如坚持要用，必须单独标注并作为**不同**的实验臂。）
-3. 每个加载步骤写形状断言 + 缺失/多余键清单，禁止 `strict=False` 静默通过。
+### 5.3 授权与禁止
+
+- **允许**：MASt3R 编码器；配套 COCO panoptic 预训练 adapter + mask decoder；既有 LocusGS reconstruction pretrained。
+- **禁止**：用 `siu3r_epoch100.ckpt`（已 ScanNet 任务训练）初始化任何模块；四类资产混称。
+
+### 5.4 获取状态（**集群侧阻塞，已实测**）
+
+实测出网为**白名单制**（登录节点与计算节点一致）：
+
+| 端点 | 结果 |
+|---|---|
+| `pypi.tuna.tsinghua.edu.cn` | **200 ✓** |
+| `mirrors.aliyun.com` | 301 ✓ |
+| `modelscope.cn` | 302 ✓ |
+| `huggingface.co` | **000 ✗** |
+| `hf-mirror.com` | **000 ✗** |
+| `download.europe.naverlabs.com` | **000 ✗** |
+| ModelScope 上的 `AI-ModelScope/MASt3R`、`AI-ModelScope/SIU3R` 等 | **404 record not found** ✗ |
+
+⇒ **两份权重无法从本集群获取**（HF 与 naverlabs 均被封锁）。需要**用户侧**下载后上传。落地后必须记录 `weights_provenance.json`（来源 URL、文件大小、SHA256、加载映射）。
+**这不阻塞规格与接口设计**，只阻塞真实前向的实现与 V1–V5 验证。
 
 ---
 
-## 6. 验证计划（在正式训练之前）
+## 6. 验证计划（Rev 2 按评审简化）
 
-| 阶段 | 内容 | 通过标准 |
+| 阶段 | 内容 | 通过标准（**放宽后**） |
 |---|---|---|
-| V1 接口单测 | 形状/尺度/网格断言；`all_feat` 深度与宽度；adapter 输出 4 尺度 | 全部断言通过 |
-| V2 参数级梯度审计 | 反向一次，列出**实际出现非零梯度的参数集合** | 与 §4.5 允许集**完全一致**，多一个即失败 |
-| V3 控制臂逐位等价（M1 类比） | 理解支路断开（交互置零）时，重建前向与 LocusGS 基线**逐位一致** | `abs_diff == 0` |
-| V4 活动性探针（M2 类比） | 40 步正式前向，检查交互项超出数值噪声包络 | 各注册层 `passed: true`（同 Joint 的 M2 形式） |
-| V5 渲染一致性 | 新支路的合成权重近似 vs 渲染 alpha | MAE 与既有 0.0050–0.0058 同量级 |
-| V6 预注册判据 | **主**：candidate 实例 + 最终 panoptic + 官方 AP/PQ + PSNR（照主协议，含地板值如实报告）；**副**：`raw mask IoU`、`classification accuracy`、`class-agnostic recall`、冻结特征探针 | 探针**只作副指标，不作为启动门槛** |
+| V1 接口单测 | 形状/尺度/网格断言；完整层列表；adapter 四尺度输出；两分支相同 content | 断言全过 |
+| V2 梯度检查 | **禁止路径无梯度**；**关键允许路径有有限且非零梯度** | ✅ **不要求**每个允许参数在一次 backward 中非零（零初始化注入时上游暂时零梯度是正常现象） |
+| V3 控制前向比较 | 与**同臂重复**的数值包络比较 | ✅ **不要求**渲染输出逐位一致 |
+| V4 真实 batch smoke | **3090 单步 smoke + 一次短活动性检查** | 通过即可；**不追加探针链** |
+| V5 归属性质量 | 仅作**诊断**记录 | ⚠️ 历史合成 MAE 0.0050–0.0058 **只是历史结果，不是新分辨率下的天然门槛** |
+| V6 预注册判据 | 主：candidate 实例 + 最终 panoptic + 官方 AP/PQ + PSNR（照主协议，含地板值如实报告）；副：raw mask IoU、classification accuracy、class-agnostic recall、冻结特征探针 | 探针**只作副指标，不作启动门槛** |
 
 ---
 
-## 7. 阻塞项与开放问题
+## 7. 尚未定稿的四项（评审要求补齐后即可形成实施提示词）
 
-**阻塞**
-1. **三类预训练权重缺失**（§1.3）。需要下载与校验；若环境无外网，需要用户侧提供。
-2. 理解 backbone 的训练规格（输入分辨率、mean/std、位置编码实现）**待确认**——它决定 §4.2 的契约与 (A)/(B) 方案的选择。
-
-**开放问题（请评审）**
-1. **4.2 选 (A) 双分辨率前向 还是 (B) 统一 512×512？** 我建议 (A)（单一变量）。
-2. **4.4 的归属机制选 (i)/(ii)/(iii) 哪个？** 我倾向 (i)（复用已验证的合成权重，可渲染、遮挡正确），但成本最高。
-3. **类别空间如何对齐？** Mask2Former 的 `id2label` 是 COCO/ADE20K，ScanNet 是 20 类。是保留 COCO 标签空间并只取可用类，还是替换 `class_predictor`（会丢掉一部分预训练语义）？
-4. **交互写回的目标**：只写 anchor tokens（Joint 的做法），还是也允许写 encoder 特征？
-5. 是否需要一条**只在理解支路上**的辅助监督（ScanNet panoptic）？若是，它必须落在 §4.5 的允许集内。
+| # | 待补 | 责任 |
+|---|---|---|
+| 1 | **精确权重键映射表**（含实际加载 vs 重新初始化的键清单） | 权重到位后由实现侧自动生成并人工核对 |
+| 2 | **前向顺序**（重建支路与理解支路的调用次序、交互发生的层与时机） | 实现侧出草案 → 评审确认 |
+| 3 | **Gaussian 特征融合公式**（§4.4：融合式、通道维度、零支持处理） | **评审（GPT）已声明由其写死** |
+| 4 | **optimizer 分组**（新理解预训练参数单独学习率；交互模块零初始化单独处理） | 实现侧出草案 → 评审确认 |
 
 ---
 
 ## 8. 本次明确不做的事
 
-- ❌ 启动新的正式训练（本次只交付规格与映射）
+- ❌ 启动新的正式训练（只交付规格与映射）
 - ❌ 用 `siu3r_epoch100.ckpt` 初始化
-- ❌ 把 adapter / mask decoder 从原 backbone 上拆下接任意 encoder
-- ❌ 仅替换 DUSt3R encoder 而保留随机初始化的理解分支（评审明确禁止）
-- ❌ 以探针表现作为接入设计的启动门槛（探针只作副指标）
+- ❌ 把 adapter / mask decoder 从原 backbone 拆下接任意 encoder
+- ❌ 仅替换 DUSt3R encoder 而保留随机初始化的理解分支
+- ❌ 以探针表现作为接入设计的启动门槛
+- ❌ 为"防止重建退化"而设置未证明的结构性梯度禁令
 
 ---
 
-## 9. 复现与出处索引
+## 9. 出处索引
 
 | 内容 | 路径 / 出处 |
 |---|---|
 | 我们的 encoder 接口 | `tokengs/options.py:43-44`、`tokengs/models/input_types.py:59-62`、`tokengs/models/spatial_grounded_tokens.py:89-99`、`tokengs/models/canonical_recon_models.py:146-152` |
-| SIU3R 理解路径 | `/space/mawb/SIU3R/src/models/model.py`（`_set_adapter`/`_set_mask2former`/`load_seg_ckpt`）、`vit_adapter/vit_adapter.py:305+`、`mask2former/video_seg_decoder.py:2257+` |
-| SIU3R backbone 返回契约 | `backbone_croco.py::AsymmetricCroCo.forward` → `(feat1, feat2, all_feat1, all_feat2, dec1, dec2, shape1, shape2)` |
-| 权重现状 | `/space/mawb/SIU3R/pretrained_weights/`（仅 `siu3r_epoch100.ckpt`） |
-| 合成权重验证（可复用） | `scripts/token_instance_compositing.py`（alpha MAE 0.0050–0.0058） |
-| Joint 的非对称交互先例 | `docs/object_locus_joint_v1_codex_spec.md` §2、§9.3 |
+| SIU3R 理解路径 | `/space/mawb/SIU3R/src/models/model.py`（`_set_adapter` / `_set_mask2former` / `load_seg_ckpt`）、`vit_adapter/vit_adapter.py:305+`、`mask2former/video_seg_decoder.py:2257+` |
+| adapter 索引接口与直接相加路径 | `vit_adapter/vit_adapter.py`（`all_feat[self.interaction_indexes[i]]`；`add_vit_feature=True`）——Rev 2 纠正依据 |
+| backbone 返回契约 | `backbone_croco.py::AsymmetricCroCo.forward` → `(feat1, feat2, all_feat1, all_feat2, dec1, dec2, shape1, shape2)` |
+| 权重来源 | `SIU3R/README.md:84` |
+| 合成权重验证（历史） | `scripts/token_instance_compositing.py`（MAE 0.0050–0.0058，**仅历史结果**） |
+| Joint 非对称交互先例 | `docs/object_locus_joint_v1_codex_spec.md` §2、§9.3 |
