@@ -1,6 +1,90 @@
 """Unchanged evalfix eligibility/IoU protocol applied to the panoptic model."""
 from scripts.object_locus_panoptic_v1_runtime import *
-from scripts.eval_object_locus_v3_set import evaluate_windows
+from scripts.eval_object_locus_v3_set import _run,_candidate_stats,write_panel
+
+
+def local_ap_metric():
+    from torchmetrics.detection.mean_ap import MeanAveragePrecision
+    return MeanAveragePrecision(iou_type='segm',sync_on_compute=False)
+
+
+def evaluate_windows(model,opt,windows,step,split,reports,device,batch_builder,*,official=False,panels=False):
+    from scripts.object_locus_v3_set_runtime import capture_rng,restore_rng,write_json
+    from scripts.export_object_locus_v3_set_official import export_windows
+    from scripts.eval_object_locus_v1 import _official_run
+    was=model.training;rng=capture_rng();model.eval();rows=[]; per_gt=[];query_rows=[]
+    try:
+      from torchmetrics.detection.mean_ap import MeanAveragePrecision
+      ap_metrics={s:local_ap_metric() for s in ('context','target_all','novel')}
+    except Exception as exc:
+      ap_metrics={};ap_error=f'{type(exc).__name__}: {exc}'
+    try:
+      with torch.no_grad():
+       for wi,win in enumerate(windows):
+        batch,out=_run(model,opt,win,batch_builder,device)
+        frame_ids=[int(x) for x in batch['frame_ids'][0].cpu().tolist()]
+        ctx=[0,1]; target=list(range(len(frame_ids))); novel=[i for i,x in enumerate(frame_ids) if x in set(map(int,win['novel']))]
+        scopes={}
+        for name,idx in [('context',ctx),('target_all',target),('novel',novel)]:
+         row=_candidate_stats(out,batch,idx)
+         if ap_metrics:
+          payload=row.pop('_map_payload')
+          for branch in ('pred','target'):
+           pmask=payload[branch]['masks']
+           payload[branch]['masks']=pmask.reshape(pmask.shape[0],-1,pmask.shape[-1]) if pmask.shape[0] else torch.zeros((0,len(idx)*256,256),dtype=torch.bool,device=pmask.device)
+          ap_metrics[name].update([payload['pred']],[payload['target']])
+         views=len(idx);mse=(out['render']['images_pred'][0,idx]-batch['images_all'][0,idx]).square().mean().clamp_min(1e-12)
+         row['psnr']=float((-10*torch.log10(mse)).cpu());row['scope']=name;scopes[name]=row
+         per_gt.extend({'split':split,'step':step,'scope':name,'scene':win['scene'],**x} for x in row['per_gt'])
+         query_rows.extend({'split':split,'step':step,'scope':name,'scene':win['scene'],**x} for x in row['query_rows'])
+        rows.append({'scene':win['scene'],'context':win['context'],'novel':win['novel'],'scopes':scopes})
+        if panels and wi<2: write_panel(batch,out,win,Path(reports)/f'qualitative/step_{step:04d}/{split}/pair{wi}.png',f'{step} {split}')
+    finally:restore_rng(rng);model.train(was)
+    aggregated={}
+    for scope in ('context','target_all','novel'):
+      rr=[x['scopes'][scope] for x in rows]
+      conf=np.sum([np.asarray(x['semantic_confusion']) for x in rr],axis=0)
+      panconf=np.sum([np.asarray(x['panoptic_semantic_confusion']) for x in rr],axis=0)
+      def _ious(matrix, classes):
+        values=[]
+        for c in classes:
+          tp=matrix[c,c];den=matrix[c,:].sum()+matrix[:,c].sum()-tp
+          if den:values.append(float(tp/den))
+        return values
+      all_iou=_ious(conf,range(20));thing_iou=_ious(conf,range(2,20));stuff_iou=_ious(conf,(0,1))
+      pan_all_iou=_ious(panconf,range(20))
+      agg={'windows':len(rr),'gt_count':sum(x['gt_count'] for x in rr),'semantic_confusion':conf.tolist(),
+        'panoptic_semantic_confusion':panconf.tolist(),
+        'semantic_miou':float(np.mean(all_iou)) if all_iou else 0.,'mIoU_thing':float(np.mean(thing_iou)) if thing_iou else 0.,
+        'mIoU_stuff':float(np.mean(stuff_iou)) if stuff_iou else 0.,'psnr':float(np.mean([x['psnr'] for x in rr])),
+        'candidate_ca':{k:sum(x['candidate_ca'][k] for x in rr) for k in ('tp','fp','fn')},
+        'candidate_cw':{k:sum(x['candidate_cw'][k] for x in rr) for k in ('tp','fp','fn')},
+        'raw_best_iou_ge_0_5_fraction':sum(sum(x['raw_best_iou_ge_0_5_fraction']*len(x['raw_best_ious']) for x in rr) for x in []) if False else sum(sum(v>=.5 for v in x['raw_best_ious']) for x in rr)/max(1,sum(len(x['raw_best_ious']) for x in rr)),
+        'matched_19_class_accuracy':sum(x['matched_19_class_accuracy']*x['matched_gt_count'] for x in rr)/max(1,sum(x['matched_gt_count'] for x in rr)),
+        'panoptic_pq':float(np.mean([x['panoptic_pq'] for x in rr])),
+        'panoptic_semantic_miou':float(np.mean(pan_all_iou)) if pan_all_iou else 0.,
+        'classification_confusion':np.sum([np.asarray(x['classification_confusion']) for x in rr],axis=0).tolist(),
+        'matched_gt_count':sum(x['matched_gt_count'] for x in rr),'candidate_count':sum(x['candidate_count'] for x in rr),
+        'panoptic_ca':{k:sum(x['panoptic_ca'][k] for x in rr) for k in ('tp','fp','fn')},
+        'panoptic_cw':{k:sum(x['panoptic_cw'][k] for x in rr) for k in ('tp','fp','fn')},
+        'per_class_iou':{str(c):float(conf[c,c]/max(1,conf[c,:].sum()+conf[:,c].sum()-conf[c,c])) for c in range(20)}}
+      for k in ('candidate_ca','candidate_cw','panoptic_ca','panoptic_cw'):
+       d=agg[k];d['precision']=d['tp']/max(1,d['tp']+d['fp']);d['recall']=d['tp']/max(1,d['tp']+d['fn'])
+      try:
+       if ap_metrics:
+        m=ap_metrics[scope].compute();agg['candidate_ap']={'map':float(m['map']),'map_50':float(m['map_50'])}
+       else:agg['candidate_ap']={'error':ap_error}
+      except Exception as exc:agg['candidate_ap']={'error':f'{type(exc).__name__}: {exc}'}
+      aggregated[scope]=agg
+    result={'step':step,'split':split,'local':aggregated,'windows':[{k:v for k,v in x.items() if k!='scopes'}|{'scopes':{s:{k:v for k,v in x['scopes'][s].items() if k not in ('semantic_confusion','panoptic_semantic_confusion','panoptic_semantic','panoptic_instance','raw_masks','gt_semantic','gt_instance','predictions','per_gt')} for s in x['scopes']}} for x in rows]}
+    if official:
+      root=Path(reports)/f'official/step_{step:04d}/{split}'
+      allx=export_windows(model,opt,windows,root/'all',device=device,batch_builder=batch_builder,target_frames='all')
+      nov=export_windows(model,opt,windows,root/'novel',device=device,batch_builder=batch_builder,target_frames='novel')
+      all_json=_official_run(root/'all',root/'official_all.json');nov_json=_official_run(root/'novel',root/'official_novel.json')
+      result['official']={'all':all_json.get('result'),'novel':nov_json.get('result')}
+    write_json(Path(reports)/f'eval_{split}_step{step:04d}.json',result)
+    return result,per_gt,query_rows
 
 
 def evaluate_epoch(model,opt,manifest,splits,epoch,device):

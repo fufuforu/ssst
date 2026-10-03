@@ -98,4 +98,18 @@ class PanopticContracts(unittest.TestCase):
         expected=combine_gradients(params,names,gr,gu)
         for i in range(2): torch.testing.assert_close(torch.stack([v[i] for v in local]).mean(0),expected[i],rtol=1e-5,atol=1e-7)
 
+class RankZeroEvalContract(unittest.TestCase):
+    def test_local_ap_never_enters_distributed_collective(self):
+        from scripts.eval_object_locus_panoptic_v1 import local_ap_metric
+        metric=local_ap_metric()
+        metric.distributed_available_fn=lambda: True
+        def forbidden(*args,**kwargs):
+            raise AssertionError('rank0 evaluation entered a distributed collective')
+        metric._sync_dist=forbidden
+        mask=torch.ones((1,4,4),dtype=torch.bool)
+        metric.update([dict(masks=mask,scores=torch.ones(1),labels=torch.zeros(1,dtype=torch.long))],
+                      [dict(masks=mask,labels=torch.zeros(1,dtype=torch.long))])
+        self.assertEqual(float(metric.compute()['map_50']),1.0)
+
+
 if __name__=='__main__':unittest.main()
