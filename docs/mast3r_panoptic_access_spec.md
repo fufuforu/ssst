@@ -224,18 +224,24 @@ panoptic 能力存在于**四个要素的配合**：
 
 （来源：SIU3R `README.md` 第 84 行。）
 
-### 5.2 加载边界（**必须区分"实际加载"与"重新初始化"**）
+### 5.2 加载边界与**精确键映射**（已由两个 checkpoint 实测得出）
 
-官方 `load_seg_ckpt()` **明确排除** `class_predictor`、`criterion`、`backbone`。因此映射表必须写成三栏：
+官方 `load_seg_ckpt()` **明确排除** `class_predictor`、`criterion`、`backbone`。实测张量数与键前缀如下：
 
-| 目标 | 动作 | 说明 |
-|---|---|---|
-| adapter（`spm` / `level_embed` / `interactions` / `norm1..4` / `up`） | **全量加载**（从 backbone 前缀剥离后） | 预训练能力所在 |
-| mask decoder（`model.*`：pixel decoder、query decoder、query embeddings、mask embedding） | **全量加载** | 预训练能力所在 |
-| **分类输出**（`class_predictor` 等） | **重新初始化**为 ScanNet 目标类别数 | 官方亦排除；COCO 类别无法覆盖 ScanNet |
-| MASt3R backbone | 全量加载 | 与 SIU3R 的 `load_recon_ckpt` 同类 |
-| LocusGS 重建路径 | 既有传输逻辑不变（SHA `5fcf71b9…9634f`） | — |
-| 交互模块（新增） | 零初始化 | 与 Joint 一致 |
+| 目标 | 源 | 键前缀 | 张量数 |
+|---|---|---|---|
+| **理解 encoder（backbone）** | **MASt3R** | `patch_embed.*`(2) + `enc_blocks.*`(288) + `enc_norm*`(2) | **292** |
+| **adapter** | panoptic ckpt | `model.adapter.*`（含 `spm` 44、`interactions` 120、`level_embed` 3、`up` 2、`norm1..4`） | **187** |
+| **mask decoder**（pixel decoder + transformer decoder + query/mask embeddings） | panoptic ckpt | `model.mask2former.*` 减去 class head / criterion | **326** |
+| **分类输出** | — | `model.mask2former.class_predictor.*` | **2 → 重新初始化**为 ScanNet 目标类别数 |
+| **丢弃** | panoptic ckpt | `model.backbone.*`(292)、`class_predictor`(2)、`criterion`(1) | 295 |
+| **丢弃** | MASt3R | `dec_blocks.*`(288)、`dec_blocks2.*`(288)、`downstream_head*`(144)、`decoder_embed`/`mask_token`(3) | 723 |
+| LocusGS 重建路径 | 既有 | — | 既有传输逻辑不变（SHA `5fcf71b9…9634f`） |
+| 交互模块（新增） | — | — | 零初始化（与 Joint 一致） |
+
+**实测依据**：MASt3R `model` 容器 1017 张量；panoptic 为 PyTorch-Lightning checkpoint（`epoch=59`、`global_step=73920`、lightning `2.5.0.post0`），`state_dict` 808 张量。
+**注意**：两侧 ViT 骨干张量数一致（**292**），说明架构同源；但**形状仍需逐键断言**，不得假定可直接互换。
+**仍待补**：`num_queries` 与 `id2label` 需从 SIU3R 的 `configs/` 读取并登记（本次未取）。
 
 禁止 `strict=False` 静默通过；每个加载步骤输出**缺失/多余键清单 + 形状断言**。
 
@@ -244,22 +250,23 @@ panoptic 能力存在于**四个要素的配合**：
 - **允许**：MASt3R 编码器；配套 COCO panoptic 预训练 adapter + mask decoder；既有 LocusGS reconstruction pretrained。
 - **禁止**：用 `siu3r_epoch100.ckpt`（已 ScanNet 任务训练）初始化任何模块；四类资产混称。
 
-### 5.4 获取状态（**集群侧阻塞，已实测**）
+### 5.4 获取状态：**已解决**（两份权已就位并通过 SHA 校验）
 
-实测出网为**白名单制**（登录节点与计算节点一致）：
+**实测的集群出网限制**：白名单制，HF 与 naverlabs 均被封锁（`http=000`）。
+**实测的工具链限制**：本机 `curl.exe` 与 `.NET` 走 **Schannel**，报
+`curl: (35) schannel: AcquireCredentialsHandle failed: SEC_E_NO_CREDENTIALS` ⇒ **一切 https 失败**（http 正常，`baidu=200` 为对照）。
+**实际采用的路线**：**在 Windows 侧用 Python（OpenSSL 3.5.8）下载 → scp 到集群**。
+**顺带实测**：Clash 代理对 naverlabs **比直连慢 10 倍**（0.50 vs 5.35 MB/s），故 MASt3R 走直连；HF 两者同速（≈9.9 MB/s）。
 
-| 端点 | 结果 |
-|---|---|
-| `pypi.tuna.tsinghua.edu.cn` | **200 ✓** |
-| `mirrors.aliyun.com` | 301 ✓ |
-| `modelscope.cn` | 302 ✓ |
-| `huggingface.co` | **000 ✗** |
-| `hf-mirror.com` | **000 ✗** |
-| `download.europe.naverlabs.com` | **000 ✗** |
-| ModelScope 上的 `AI-ModelScope/MASt3R`、`AI-ModelScope/SIU3R` 等 | **404 record not found** ✗ |
+**已验证落盘（`/space/mawb/SIU3R/pretrained_weights/`）**：
 
-⇒ **两份权重无法从本集群获取**（HF 与 naverlabs 均被封锁）。需要**用户侧**下载后上传。落地后必须记录 `weights_provenance.json`（来源 URL、文件大小、SHA256、加载映射）。
-**这不阻塞规格与接口设计**，只阻塞真实前向的实现与 V1–V5 验证。
+| 文件 | 字节 | 服务器实测 SHA256 |
+|---|---:|---|
+| `MASt3R_ViTLarge_BaseDecoder_512_catmlpdpt_metric.pth` | 2,754,910,614 | `e28f91b488554653e2b46ddae9c78c1143e0bcb2e27d3e26cdb0b717f1568eb2` |
+| `panoptic_coco_pretrain_vitadapter_maskdecoder_epoch60.ckpt` | 1,735,706,482 | `3f7d5d1a065913bfc0686942d979ba8b28f0230fec9a8eea1d4214d2e603eb20`（**与 HF LFS oid 一致**） |
+
+`weights_provenance.json` 已与两份权重同目录落盘；`siu3r_epoch100.ckpt`（sha256 `0c6b3e6e…46a0`）原样保留但**在禁用清单**。
+⇒ **§5.3 的获取阻塞已解除**，实现侧可以开始 V1 接口单测。
 
 ---
 
@@ -280,7 +287,7 @@ panoptic 能力存在于**四个要素的配合**：
 
 | # | 待补 | 责任 |
 |---|---|---|
-| 1 | **精确权重键映射表**（含实际加载 vs 重新初始化的键清单） | 权重到位后由实现侧自动生成并人工核对 |
+| 1 | ~~精确权重键映射表~~ **已完成主体**（§5.2 实测键前缀与张量数：encoder 292 / adapter 187 / mask decoder 326 / class head 重初始化 2）；残项：`num_queries` 与 `id2label` 从 SIU3R `configs/` 读取登记 | 实现侧 |
 | 2 | **前向顺序**（重建支路与理解支路的调用次序、交互发生的层与时机） | 实现侧出草案 → 评审确认 |
 | 3 | **Gaussian 特征融合公式**（§4.4：融合式、通道维度、零支持处理） | **评审（GPT）已声明由其写死** |
 | 4 | **optimizer 分组**（新理解预训练参数单独学习率；交互模块零初始化单独处理） | 实现侧出草案 → 评审确认 |
