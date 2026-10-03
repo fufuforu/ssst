@@ -34,10 +34,13 @@ from .object_locus_v2 import LocusGSObjectLocusV2Recon
 from .object_locus_v2_1 import LocusGSObjectLocusV2_1Recon
 from .object_locus_v3_set import LocusGSObjectLocusV3SetRecon
 
+from .object_locus_panoptic_v1 import LocusGSObjectLocusPanopticV1Recon
+
 # Model registry
 from .object_locus_joint_v1 import LocusGSObjectLocusJointV1Recon
 
 model_registry = {
+    'siu3r_object_locus_panoptic_v1': LocusGSObjectLocusPanopticV1Recon,
     'siu3r_object_locus_joint_v1': LocusGSObjectLocusJointV1Recon,
     'tokengs': TokenGS,
     'siu3r_joint_ssst': SIU3RJointSSST,
@@ -73,6 +76,7 @@ __all__ = [
     'LocusGSObjectLocusV2Recon',
     'LocusGSObjectLocusV2_1Recon',
     'LocusGSObjectLocusV3SetRecon',
+    'LocusGSObjectLocusPanopticV1Recon',
     'PlainTokenGSCanonicalRecon',
     'model_registry',
 ]

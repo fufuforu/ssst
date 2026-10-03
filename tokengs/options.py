@@ -991,4 +991,9 @@ config_defaults["train_siu3r_object_locus_joint_v1"] = config_defaults[
          workspace="/space/mawb/ssst/workspace_group_plus/object_locus_joint_v1",
          experiment_name="siu3r_object_locus_joint_v1")
 
+config_doc["train_siu3r_object_locus_panoptic_v1"] = "Fixed pretrained panoptic joint FP32 eight-GPU recipe."
+config_defaults["train_siu3r_object_locus_panoptic_v1"] = config_defaults["train_siu3r_object_locus_v3_set"].evolve(
+    model_type="siu3r_object_locus_panoptic_v1", workspace="/space/mawb/ssst/workspace_group_plus/object_locus_panoptic_v1_8gpu",
+    experiment_name="siu3r_object_locus_panoptic_v1", batch_size=1, mixed_precision="no")
+
 AllConfigs = tyro.extras.subcommand_type_from_defaults(config_defaults, config_doc)
