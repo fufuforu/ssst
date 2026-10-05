@@ -125,6 +125,13 @@ def run_split(model,opt,record,windows,split,root,device,basis):
             item.update(raw_prediction_area=pa,gt_area=ga,raw_intersection=intersection,raw_precision=intersection/pa if pa else 'UNDEFINED',raw_recall=intersection/ga if ga else 'UNDEFINED',
                         eligible_queries_iou_ge_0_5=int(((qiou>=.5)&eligible).sum()))
         stats.append({k:row[k] for k in ('semantic_confusion','panoptic_semantic_confusion','classification_confusion','gt_count','matched_gt_count','raw_best_ious','panoptic_pq','candidate_ca','candidate_cw','panoptic_ca','panoptic_cw')})
+        # The registered evaluator excludes these intermediates from its saved
+        # result. Retaining `predictions` until the final reduction holds CUDA
+        # masks for every preceding window, exhausting memory on long splits.
+        # All metric updates use _map_payload; aggregation uses the scalars,
+        # confusion matrices and per-GT rows retained below.
+        for key in ('predictions','raw_masks','panoptic_semantic','panoptic_instance','gt_semantic','gt_instance'):
+            row.pop(key, None)
         return row
     evaluator._run=capture;evaluator._candidate_stats=capture_stats;evaluator.local_ap_metric=metric_factory;evaluator.write_panel=panel
     try:
