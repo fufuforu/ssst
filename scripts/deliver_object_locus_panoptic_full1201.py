@@ -2,6 +2,8 @@
 import collections,csv,hashlib,json,math,re,shutil,subprocess,zipfile
 from pathlib import Path
 import numpy as np
+import torch
+from pycocotools import mask as mask_utils
 from PIL import Image
 import matplotlib
 matplotlib.use('Agg')
@@ -69,10 +71,30 @@ def gt_tables():
         # Original registered evaluator writes GT rows window->scope->GT. Restore
         # exact window identity from its saved scope counts without re-inference.
         offset=0
-        for w in result['windows']:
+        states=torch.load(root/'candidate_ap_states.pt',map_location='cpu',weights_only=False)
+        crossing={s:[0,0] for s in SCOPES}
+        for wi,w in enumerate(result['windows']):
             for scope in SCOPES:
                 count=w['scopes'][scope]['gt_count']
-                for row in gt[offset:offset+count]:row.update(context_frame_ids=json.dumps(w['context']),novel_frame_ids=json.dumps(w['novel']))
+                state=states[scope]
+                decode=lambda r:mask_utils.decode({'size':r[0],'counts':r[1]}).astype(bool)
+                gt_masks=state['groundtruth_mask'][wi]
+                pred_masks=state['detection_mask'][wi]
+                qids=[r['query_id'] for r in w['scopes'][scope]['query_rows'] if r['independent_candidate']]
+                assert len(qids)==len(pred_masks) and len(gt_masks)==count
+                cross={}
+                if gt_masks:
+                    labels=np.zeros(gt_masks[0][0],dtype=np.int32)
+                    for j,rle in enumerate(gt_masks):labels[decode(rle)]=j+1
+                    for q,rle in zip(qids,pred_masks):
+                        hits=np.bincount(labels[decode(rle)],minlength=count+1)
+                        cross[q]=int(np.count_nonzero(hits[1:]))
+                else:cross={q:0 for q in qids}
+                crossing[scope][0]+=sum(v>=2 for v in cross.values());crossing[scope][1]+=len(pred_masks)
+                for row in gt[offset:offset+count]:
+                    query=row.get('best_eligible_candidate_query')
+                    row.update(context_frame_ids=json.dumps(w['context']),novel_frame_ids=json.dumps(w['novel']),
+                               eligible_best_query_GT_overlap_count=cross[int(query)] if query not in ('','None') else 'UNDEFINED')
                 offset+=count
         assert offset==len(gt)
         name=root.parent.name+'_'+root.name;dest=D/'per_gt'/f'{name}.csv';csvout(dest,gt);files.append(dest)
@@ -91,9 +113,11 @@ def gt_tables():
                       duplicate_GT=sum(int(r['eligible_queries_iou_ge_0_5'])>1 for r in rr),
                       raw_GT_not_fully_covered=sum(number(r,'raw_recall') is not None and number(r,'raw_recall')<1 for r in rr),
                       raw_prediction_outside_GT=sum(number(r,'raw_precision') is not None and number(r,'raw_precision')<1 for r in rr),
+                      eligible_queries_overlapping_multiple_GT=crossing[scope][0],
+                      eligible_query_denominator=crossing[scope][1],
                       context_hungarian_matched_no_object=sum(r.get('matched_query') not in ('','None') and r.get('matched_class') in ('','None') for r in rr),
                       matching_source='raw/eligible masks: this render scope; Hungarian: context matching',
-                      mask_analysis='area diagnostics, not a new eligibility threshold: raw recall<1 / precision<1 indicate incomplete/outside GT; visual inspection distinguishes crossing objects')
+                      mask_analysis='raw recall<1 / precision<1: incomplete/outside GT; eligible crossing: positive-area overlap with >=2 GT instance masks in saved metric RLE, report-only, no new eligibility threshold')
             statistics.append(stat)
     for node in sorted({r['node'] for r in statistics if r['node'].startswith('full_epoch')}):
         for scope in SCOPES:
@@ -116,7 +140,7 @@ def build_report(rows,full,refs,errors):
           '', '训练job58248 COMPLETED、ExitCode0:0，8epochs/8344 optimizer updates/66752 exposures，1191实际scene、8337独立两context窗口。原窗口各曝光8次，额外padding56次；六份checkpoint严格加载与参数有限性通过，八rank顺序/计数和代码/manifest SHA正确。',
           '',f'训练SHA `{verification["training_sha"]}`；科学基线 `{verification["science_sha"]}`；评测SHA及push收据见evaluation_git_provenance.json，逐评测来源见evaluation_sources.json。只新增核验、执行和汇总封装；模型、loss、provider、renderer、candidate阈值和官方导出/evaluator未改。本轮optimizer updates=0、backward=0，不续训/重训，不启动后续训练。',
           '',f'val32仅作曲线诊断：注册节点峰值epoch{val_peak["epoch"]}，packed AP50={fmt(val_peak["official_ap50"])}，endpoint相对峰值变化{fmt(row(8,"val32")["official_ap50"]-val_peak["official_ap50"])}。未据此改变dev8选模。',
-          '', '## 口径与选模','', '所有比例、mIoU/PQ/mAP/AP50使用0–1原始单位；PSNR为dB，SSIM为0–1，LPIPS为距离（越低越好）。PSNR复用原窗口MSE定义；SSIM/LPIPS使用官方相同TorchMetrics实现（VGG、normalize=True），按帧均值。context→all/context，target-all→all/target，true novel→novel/target。独立candidate与竞争后的packed-panoptic指标分开。',
+          '', '## 口径与选模','', '所有比例、mIoU/PQ/mAP/AP50使用0–1原始单位；PSNR为dB，SSIM为0–1，LPIPS为距离（越低越好）。PSNR复用原窗口MSE定义；SSIM/LPIPS使用官方相同TorchMetrics实现（VGG、normalize=True），按帧均值，使用clamped FP32图像而非PNG量化图像。context→all/context，target-all→all/target，true novel→novel/target。独立candidate与竞争后的packed-panoptic指标分开。',
           '', 'dev8参与选模，且属于val32；val32不独立于选模。唯一选择指标为dev8 true-novel official packed AP50，完全相同取更早epoch；未用val32、完整验证集或图片改选。epoch8保留。',
           '', '离线understanding_step显式恢复checkpoint.completed_exposures。完整验证1860窗口/312scene，不应用训练thing数量或面积过滤，不丢空预测/无thing GT窗口，false positives保留。AP从所有原始预测重新聚合，不平均scene AP。',
           '', '分类confusion和matched准确率/no-object的matching来源是原context final_hungarian；各render scope中的重复值不是novel-only分类准确率。逐GT表分别保留raw best query、eligible best candidate及context-Hungarian matched query，附匹配来源、分母和精确窗口身份。',
@@ -140,9 +164,9 @@ def build_report(rows,full,refs,errors):
     for e in sorted({best,8}):
         for split in ('expanded_train_probe32','same_scene_holdout8','dev8','val32'):
             r=row(e,split);text.append(f'epoch{e} {split} true-novel：raw覆盖{fmt(r["raw_mask_coverage"])}，candidate CW recall {fmt(r["candidate_cw_recall"])}，packed AP50 {fmt(r["official_ap50"])}；context-Hungarian分类准确率{fmt(r["matched_class_accuracy"])}（不能解读为novel-only matching）。')
-    text+=['','完整验证漏检、eligible错分、重复候选、raw mask面积不足/超出GT及matched no-object统计见error_statistics.csv/json。raw recall<1及precision<1只是完整性/跨GT面积诊断，保持原mask阈值；跨物体最终需结合固定真实图片，未据此调参。注入非零只能证明通路活动，不代替任务成功。',
+    text+=['','完整验证漏检、eligible错分、重复候选、raw mask面积不足/超出GT及matched no-object统计见error_statistics.csv/json。raw recall<1及precision<1只是完整性/跨GT面积诊断，保持原mask阈值；eligible跨GT统计从保存的metric RLE重读，定义为同一候选与至少两个GT实例存在正面积交集（仅报告诊断，不新增资格阈值）；逐GT保留该query的GT交集数量，固定图片辅助判断。未据此调参。注入非零只能证明通路活动，不代替任务成功。',
            '', '重建变化（val32 true-novel，epoch0→所选/endpoint）：'+fmt(row(best,'val32')['psnr']-row(0,'val32')['psnr'])+' / '+fmt(row(8,'val32')['psnr']-row(0,'val32')['psnr'])+' dB。SSIM/LPIPS和所有scope均见指标表；不只凭PSNR判断。',
-           '', '## 固定真实图片与缺失项','', '沿用原128实验dev8/val32前两个固定窗口；六个checkpoint均保留，无按效果挑选。列为GT/pred RGB、GT/pred semantic、GT/pred panoptic、独立candidate overlay，以及类别/分数/资格明确的五个最高类分数query。旧128三节点相同固定面板一并保留，未重新评测旧模型。']
+           '', '## 固定真实图片与缺失项','', '沿用原128实验dev8/val32前两个固定窗口；六个checkpoint均保留，无按效果挑选。列为GT/pred RGB、GT/pred semantic、GT/pred panoptic、独立candidate overlay，以及类别/分数/资格明确的五个最高类分数query。query面板分数s为最高thing类别posterior，不是AP排序用的类别概率×平均mask概率；旧128面板保留原列布局（没有单独预测semantic列）。旧128三节点相同固定面板一并保留，未重新评测旧模型。']
     for e in sorted({best,8}):
         for split in ('dev8','val32'):text.append(f'![epoch{e} {split} fixed pair0](qualitative/full_epoch{e:02}/{split}/pair0.png)')
     text+=['','缺失：旧128/Fresh结果未存的SSIM/LPIPS等标MISSING；Fresh128 holdout8缺独立local汇总时不平均AP补值；尚无GT-pose同条件SIU3R正式结果。注册本模型评测完整性见evaluation_status.json。',
