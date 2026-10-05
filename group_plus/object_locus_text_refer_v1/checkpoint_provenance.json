@@ -1,0 +1,13 @@
+{
+  "checkpoint_path": "/space/mawb/ssst/workspace_group_plus/object_locus_panoptic_full1201_8gpu/checkpoint_epoch_06.pt",
+  "checkpoint_sha256": "68de912a60340f65d675a521c514641845c43822657f07d5851770c96cbf912a",
+  "epoch": 6,
+  "completed_updates": 6258,
+  "git_sha": "b2624d57ea9ad5a73fd6a8375bafbe4e4c263c9c",
+  "science_sha": "7300b6ff6ae963ea7228ae7bc0c7d0e0446eefa3",
+  "model_type": "siu3r_object_locus_panoptic_v1",
+  "num_object_queries": 100,
+  "num_input_views": 2,
+  "precision": "FP32",
+  "strict_checkpoint_loading": true
+}
