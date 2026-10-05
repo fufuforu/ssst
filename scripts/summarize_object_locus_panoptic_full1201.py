@@ -39,7 +39,10 @@ def monitor():
         for split,windows in manifest['monitor_splits'].items():
             root=EVAL/f'epoch{epoch:02}'/split;done=read(root/'complete.json');assert done['status']=='COMPLETE' and done['windows']==len(windows)
             for name,h in done['files'].items():assert rt.sha(root/name)==h
-            result=read(root/'result.json');rows.extend(rows_for(epoch,split,result));inventory.append(dict(epoch=epoch,split=split,source=done['source'],result_sha256=done['files']['result.json']))
+            result=read(root/'result.json')
+            assert all(all(k in result['local'][s]['candidate_ap'] for k in ('map','map_50')) for s in SCOPES),'missing candidate AP execution result'
+            assert all(all(k in result['official'][arm] for k in ('context_miou','context_pq','context_map','target_miou','target_pq','target_map')) for arm in ('all','novel')),'missing official result'
+            rows.extend(rows_for(epoch,split,result));inventory.append(dict(epoch=epoch,split=split,source=done['source'],result_sha256=done['files']['result.json']))
     write(rt.REPORT/'metrics_all_nodes.json',rows);csvout(rt.REPORT/'metrics_all_nodes.csv',rows);write(rt.REPORT/'evaluation_sources.json',inventory)
     candidates=[r for r in rows if r['split']=='dev8' and r['scope']=='novel'];assert len(candidates)==6 and all(isinstance(r['official_ap50'],(float,int)) for r in candidates)
     chosen=min(candidates,key=lambda r:(-r['official_ap50'],r['epoch']))
@@ -66,7 +69,7 @@ def aggregate_local(windows,states,keep):
             setattr(m,key,[x for i,x in enumerate(original) if i in keep] if len(original)==len(windows) else original)
         m._update_count=len(keep)
         ap=m.compute();raw=[v for r in rr for v in r['raw_best_ious']];den=sum(r['matched_gt_count'] for r in rr)
-        l=dict(windows=len(rr),gt_count=sum(r['gt_count'] for r in rr),semantic_confusion=conf.tolist(),panoptic_semantic_confusion=pc.tolist(),
+        l=dict(windows=len(rr),valid_pixels=sum(r['valid_pixels'] for r in rr),windows_without_thing_gt=sum(r['gt_count']==0 for r in rr),gt_count=sum(r['gt_count'] for r in rr),semantic_confusion=conf.tolist(),panoptic_semantic_confusion=pc.tolist(),
                semantic_miou=miou(conf,range(20)),mIoU_thing=miou(conf,range(2,20)),mIoU_stuff=miou(conf,(0,1)),panoptic_semantic_miou=miou(pc,range(20)),
                panoptic_pq=float(np.mean([r['panoptic_pq'] for r in rr])),candidate_ap={k:float(ap[k]) for k in ('map','map_50')},
                raw_best_iou_ge_0_5_fraction=sum(v>=.5 for v in raw)/len(raw) if raw else 'UNDEFINED',matched_gt_count=den,
@@ -95,6 +98,12 @@ def prepare_full(epoch):
                     link=target/scene.name
                     if not link.exists():link.symlink_to(scene.resolve(),target_is_directory=True)
     assert len(allrows)==len(expected) and {(w['scene'],tuple(w['context'])) for w in allrows}==expected_ids
+    original={(w['scene'],tuple(w['context'])):i for i,w in enumerate(allrows)}
+    order=[original[(w['scene'],tuple(w['context']))] for w in expected]
+    allrows=[allrows[i] for i in order]
+    for s in SCOPES:
+        for k,v in states[s].items():
+            if len(v)==len(order):states[s][k]=[v[i] for i in order]
     dev={w['scene'] for w in read(rt.REPORT/'manifest.json')['monitor_splits']['dev8']}
     results={}
     for cohort in ('all','excluding_dev8_scenes'):
