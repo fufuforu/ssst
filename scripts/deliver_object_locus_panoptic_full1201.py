@@ -139,6 +139,7 @@ def build_report(rows,full,refs,errors):
           f'固定选模为epoch{best}：dev8 true-novel official packed AP50={fmt(selection["value"])}。epoch8 endpoint AP50={fmt(row(8,"dev8")["official_ap50"])}。'+('存在endpoint相对所选节点的后期泛化退化。' if lower else 'dev8所选指标未显示endpoint低于最佳节点。'),
           '', '训练job58248 COMPLETED、ExitCode0:0，8epochs/8344 optimizer updates/66752 exposures，1191实际scene、8337独立两context窗口。原窗口各曝光8次，额外padding56次；六份checkpoint严格加载与参数有限性通过，八rank顺序/计数和代码/manifest SHA正确。',
           '',f'训练SHA `{verification["training_sha"]}`；科学基线 `{verification["science_sha"]}`；评测SHA及push收据见evaluation_git_provenance.json，逐评测来源见evaluation_sources.json。只新增核验、执行和汇总封装；模型、loss、provider、renderer、candidate阈值和官方导出/evaluator未改。本轮optimizer updates=0、backward=0，不续训/重训，不启动后续训练。',
+          '', '完整验证首批58314/58315因评测循环累计持有GPU候选mask而OOM，没有完整分片结果；只修评测中间结果释放接口。修复真实窗口smoke58330的local/official全部指标与原smoke完全相同；补跑58331/58332，六节点已完成监测未重算。原失败记录和关键日志保留。',
           '',f'val32仅作曲线诊断：注册节点峰值epoch{val_peak["epoch"]}，packed AP50={fmt(val_peak["official_ap50"])}，endpoint相对峰值变化{fmt(row(8,"val32")["official_ap50"]-val_peak["official_ap50"])}。未据此改变dev8选模。',
           '', '## 口径与选模','', '所有比例、mIoU/PQ/mAP/AP50使用0–1原始单位；PSNR为dB，SSIM为0–1，LPIPS为距离（越低越好）。PSNR复用原窗口MSE定义；SSIM/LPIPS使用官方相同TorchMetrics实现（VGG、normalize=True），按帧均值，使用clamped FP32图像而非PNG量化图像。context→all/context，target-all→all/target，true novel→novel/target。独立candidate与竞争后的packed-panoptic指标分开。',
           '', 'dev8参与选模，且属于val32；val32不独立于选模。唯一选择指标为dev8 true-novel official packed AP50，完全相同取更早epoch；未用val32、完整验证集或图片改选。epoch8保留。',
@@ -159,6 +160,8 @@ def build_report(rows,full,refs,errors):
            '', '|model|epoch|split|packed AP50|candidate AP50|raw覆盖|context-Hungarian分类准确率|PSNR|','|---|---:|---|---:|---:|---:|---:|---:|']
     for r in refs+[row(best,'dev8'),row(8,'dev8'),row(best,'val32'),row(8,'val32')]:
         if r['scope']=='novel' and r['split'] in ('dev8','val32'):text.append('|'+r.get('model','full1191')+'|'+str(r['epoch'])+'|'+r['split']+'|'+'|'.join(fmt(r[k]) for k in ('official_ap50','candidate_ap50','raw_mask_coverage','matched_class_accuracy','psnr'))+'|')
+    text+=['','未见scene结论：固定dev8/val32均产生有效最终实例；所选epoch6及endpoint8的packed AP50均高于复用的128模型epoch8/16/64和Fresh128 epoch64点估计。raw覆盖、candidate AP和context-Hungarian分类同时改善，但不是完整mask已解决：漏检、错误分类、重叠和薄结构不足仍在。没有新置信区间，不宣称统计显著或单模块因果。最佳节点在6/8，较旧128的dev8最佳16/64更靠近endpoint；仍有后期退化，不能称为已消除。',
+           '', '同场景结论：历史holdout整体任务指标有效，但曝光交集污染了整组泛化解释，无法据此确认未曝光窗口泛化。expanded_train_probe32/train_all56包含实际训练与非训练窗口，各窗口身份单列；训练相关窗口实例与分类明显学到，仍有不完整mask和漏检，不能概括为全部实例已学会。']
     text+=['','SIU3R：尚无同条件比较。当前使用GT camera poses；SIU3R README明确unposed。官方验证清单1860/312、2context、256输入及官方聚合协议可追溯，但相机条件不一致，且本模型encoder将256 crop上采样512，不宣称原生512细节。没有运行新SIU3R模型；未把论文unposed数值列入同条件胜负表。',
            '', '## 实例mask、分类、漏检与重建','']
     for e in sorted({best,8}):
@@ -182,6 +185,9 @@ def main():
             for scope in SCOPES:confusions.append(dict(epoch=e,split=split,scope=scope,source='context final_hungarian; not novel-only',matrix=r['local'][scope]['classification_confusion']))
     for e in selection['full_evaluation_epochs']:
         root=EVAL/f'full_epoch{e:02}';full.extend(read(root/'metrics.json'));local={r['scene']:r for r in read(root/'per_scene_local.json')}
+        provenance=D/'evaluation_provenance';provenance.mkdir(exist_ok=True)
+        for name in ('full_sources.json','official_aggregated.json'):
+            shutil.copyfile(root/name,provenance/f'epoch{e:02}_{name}')
         for shard in range(8):
             for r in read(root/f'per_scene_official_shard{shard:02}.json'):per_scene.append(dict(epoch=e,**local[r['scene']],official=r['official']))
         for cohort,r in read(root/'aggregated_local.json').items():
@@ -189,13 +195,13 @@ def main():
     write(D/'classification_confusion.json',confusions)
     write(rt.REPORT/'full_validation_metrics.json',full);csvout(rt.REPORT/'full_validation_metrics.csv',full);write(D/'per_scene_metrics.json',normalized(per_scene))
     comparisons,refs=compare(rows);errors=gt_tables()
-    for name in ('metrics_all_nodes.csv','metrics_all_nodes.json','full_validation_metrics.csv','full_validation_metrics.json','checkpoint_selection.json','comparison_128.csv','comparison_128.json','training_verification.json','evaluation_git_provenance.json','evaluation_sources.json','evaluation_jobs.json','fixed_window_exposure.json','manifest.json','training_plan.json','asset_hashes.json','weights_provenance.json','weights_mapping.json','optimizer_groups.json','run_manifest.json','deferred_evaluation_plan.json','full_validation_manifest.json','single_smoke.json','eight_smoke.json','cleanup_128.json','official_aggregation_contract.json','pruned_official_exports.json'):
+    for name in ('metrics_all_nodes.csv','metrics_all_nodes.json','full_validation_metrics.csv','full_validation_metrics.json','checkpoint_selection.json','comparison_128.csv','comparison_128.json','training_verification.json','evaluation_git_provenance.json','evaluation_sources.json','evaluation_jobs.json','evaluation_environment.json','aggregation_pipeline.json','memoryfix_smoke_contract.json','fixed_window_exposure.json','manifest.json','training_plan.json','asset_hashes.json','weights_provenance.json','weights_mapping.json','optimizer_groups.json','run_manifest.json','deferred_evaluation_plan.json','full_validation_manifest.json','single_smoke.json','eight_smoke.json','cleanup_128.json','official_aggregation_contract.json','pruned_official_exports.json'):
         shutil.copyfile(rt.REPORT/name,D/name)
     fig,axes=plt.subplots(2,3,figsize=(13,7))
     for ax,key in zip(axes.flat,('official_ap50','candidate_ap50','raw_mask_coverage','matched_class_accuracy','psnr','lpips')):
         for split in ('dev8','val32'):
             rr=[r for r in rows if r['split']==split and r['scope']=='novel'];ax.plot([r['epoch'] for r in rr],[r[key] for r in rr],marker='o',label=split)
-        ax.set_title('true novel '+key);ax.set_xlabel('epoch');ax.grid(alpha=.3);ax.legend()
+        ax.set_title('context-Hungarian accuracy (repeated)' if key=='matched_class_accuracy' else 'true novel '+key);ax.set_xlabel('epoch');ax.grid(alpha=.3);ax.legend()
     fig.tight_layout();fig.savefig(D/'curves.png',dpi=150);plt.close(fig)
     for epoch in EPOCHS:
         for split in ('dev8','val32'):
@@ -227,7 +233,7 @@ def main():
     # after extracting all archives into the same directory.
     checks=[]
     for p in sorted(D.rglob('*')):
-        if not p.is_file():continue
+        if not p.is_file() or p.name=='SHA256SUMS':continue
         if p.suffix=='.json':read(p)
         elif p.suffix=='.csv':
             with p.open() as f:list(csv.DictReader(f))
