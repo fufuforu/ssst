@@ -31,7 +31,7 @@ def main():
  initial_encoder_digest=frozen_state_digest(model)
  if rank==0:
   mapping=json.loads((REPORT/'weights_mapping.json').read_text())['mapping']
-  frozen_mapping=[row for row in mapping if row.get('target','').startswith('understanding.encoder.')]
+  frozen_mapping=[row for row in mapping if isinstance(row.get('target'),str) and row['target'].startswith('understanding.encoder.')]
   frozen_names=list(model._frozen_understanding_encoder_names)
   if {row['target'].removeprefix('understanding.encoder.') for row in frozen_mapping}!={n.removeprefix('understanding.encoder.') for n in frozen_names}:
    raise RuntimeError('encoder pretrained mapping and frozen names differ')
