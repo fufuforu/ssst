@@ -90,11 +90,11 @@ def build_optimizer(model):
     groups=[]
     for fam in ('reconstruction','pretrained','new'):
         for decay in (False,True):
-            selected=[(n,p) for n,p in sorted(model.named_parameters()) if family(n)==fam and
+            selected=[(n,p) for n,p in sorted(model.named_parameters()) if p.requires_grad and family(n)==fam and
                 (fam!='reconstruction' and p.ndim>1 and not n.endswith('.bias') and n not in no_decay)==decay]
             if selected: groups.append(dict(name=f'{fam}_{"decay" if decay else "nodecay"}',params=[p for _,p in selected],param_names=[n for n,_ in selected],lr=peaks[fam],peak_lr=peaks[fam],weight_decay=0.05 if decay else 0.0))
     ids=[id(p) for g in groups for p in g['params']]
-    if len(ids)!=len(set(ids)) or set(ids)!={id(p) for p in model.parameters()}: raise RuntimeError('optimizer coverage mismatch')
+    if len(ids)!=len(set(ids)) or set(ids)!={id(p) for p in model.parameters() if p.requires_grad}: raise RuntimeError('optimizer coverage mismatch')
     if rank_world()[0]==0:
         write_json(REPORTS/'optimizer_groups.json',dict(groups=[{k:v for k,v in g.items() if k!='params'} | dict(tensor_count=len(g['params']),numel=sum(p.numel() for p in g['params'])) for g in groups],all_trainable_once=True,no_decay_embeddings=sorted(no_decay)))
     return torch.optim.AdamW(groups,betas=(0.9,0.95),eps=1e-8)
@@ -189,7 +189,7 @@ def train_one_step(model,opt,optimizer,batch,update,*,check_rec_under=False):
         if not torch.isfinite(output['prediction']['gaussians']).all(): raise FloatingPointError('nonfinite Gaussian')
     except Exception as exc: error=exc
     synchronized_check(error,device,'forward',update,batch,metrics)
-    named=sorted(model.named_parameters());names=[n for n,_ in named];params=[p for _,p in named]
+    named=sorted((n,p) for n,p in model.named_parameters() if p.requires_grad);names=[n for n,_ in named];params=[p for _,p in named]
     error=None;grads=None;rec_under={}
     try:
         rec=torch.autograd.grad(metrics['loss_recon'],params,allow_unused=True,retain_graph=weight>0)
