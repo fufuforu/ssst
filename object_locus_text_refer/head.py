@@ -77,6 +77,18 @@ class ObjectLocusTextReferHead(nn.Module):
         return {"scores": scores, "pi": scores.softmax(dim=-1), "text_state": t}
 
 
+def build_head_optimizer(head, lr=1e-4, weight_decay=.05):
+    decay=[]; nodecay=[]
+    for name,parameter in head.named_parameters():
+        (decay if parameter.ndim == 2 and not name.endswith('.bias') else nodecay).append(parameter)
+    optimizer=torch.optim.AdamW([{'params':decay,'weight_decay':weight_decay},
+                                 {'params':nodecay,'weight_decay':0.0}],
+                                lr=lr,betas=(.9,.95),eps=1e-8)
+    if {id(p) for group in optimizer.param_groups for p in group['params']} != {id(p) for p in head.parameters()}:
+        raise RuntimeError('optimizer must contain exactly the new text refer head')
+    return optimizer
+
+
 def soft_gaussian_membership(pi, gaussian_membership):
     if gaussian_membership.ndim != 3 or tuple(gaussian_membership.shape[1:]) != (65536, 100):
         raise ValueError("gaussian_membership must be [B,65536,100]")

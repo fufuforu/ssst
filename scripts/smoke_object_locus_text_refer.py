@@ -1,29 +1,37 @@
 #!/usr/bin/env python3
-"""Real two-step context smoke; fixed to a single RTX3090 on 3dimage-11."""
+"""Fixed two-update train-entry smoke plus one-record actual eval-entry smoke."""
 from __future__ import annotations
 
+import gc
 import hashlib
 import json
 import os
+import random
+import argparse
 from pathlib import Path
+import sys
+
+REPO_ROOT = Path(__file__).resolve().parents[1]
+if str(REPO_ROOT) not in sys.path: sys.path.insert(0, str(REPO_ROOT))
 
 import torch
 from torch.utils.data import default_collate
 
-from object_locus_text_refer.adapter import load_full1201_frozen, validate_visual_outputs
-from object_locus_text_refer.evaluation import evaluate_records
-from object_locus_text_refer.head import ObjectLocusTextReferHead, hard_gaussian_membership, soft_gaussian_membership
-from object_locus_text_refer.loss import refer_loss, resolve_slot_target
-from object_locus_text_refer.text_encoder import encode_text, load_frozen_clip_text
-from scripts import object_locus_v3_set_runtime as data_runtime
+from object_locus_text_refer.adapter import assert_visual_beta, forward_frozen_visual, load_full1201_frozen
+from object_locus_text_refer.data import NoVisibleReferent, sample_context_referent
+from object_locus_text_refer.head import build_head_optimizer
+from object_locus_text_refer.text_encoder import load_frozen_clip_text
+from scripts import object_locus_v3_set_runtime as runtime
+from scripts.train_object_locus_text_refer import (
+    GLOBAL_SEED, HEAD_SEED, initialize_global_seed, run_train_update,
+)
+from scripts.eval_object_locus_text_refer import run_evaluation
 from tokengs.models.input_types import ModelInputDecoder, split_data
-from tokengs.models.object_locus_v3_set_loss import final_hungarian
 
 
-OUT_DIR=Path('/space/mawb/ssst/group_plus/object_locus_text_refer_v1')
-VAL_ROOT=Path('/space/mawb/SIU3R/data/scannet/val')
-REFER=Path('/space/mawb/SIU3R/data/scannet/val_refer_seg_data.json')
-PAIRS=Path('/space/mawb/SIU3R/data/scannet/val_refer_pair.json')
+ROOT=Path('/space/mawb/SIU3R/data/scannet')
+OUTPUT=Path('/space/mawb/ssst/group_plus/object_locus_text_refer_v1')
+VISUAL_CHECKPOINT=Path('/space/mawb/ssst/workspace_group_plus/object_locus_panoptic_full1201_8gpu/checkpoint_epoch_06.pt')
 
 
 def digest(module):
@@ -33,123 +41,136 @@ def digest(module):
     return h.hexdigest()
 
 
-def build_real_batch(opt, pair):
-    scene=pair['scene_name']; context=[int(x) for x in pair['context_views_id']]
-    frame_dir=VAL_ROOT/scene/'depth'
+def scene_names_and_provider(opt,train_refs):
+    provider=runtime.ObjectLocusV1Provider(opt,root=str(ROOT/'train'),subset='all',training=True,rank=0)
+    provider_index={path.name:index for index,path in enumerate(provider.dataset.sample_list)}
+    names=sorted(set(train_refs)&set(provider_index))
+    if not names: raise RuntimeError('official train/provider scene intersection is empty')
+    return provider,provider_index,names
+
+
+def select_first_two(provider,provider_index,scene_names,train_refs,rng):
+    samples=[]; skipped=[]
+    for scene in scene_names:
+        provider.pinned_pair=None
+        raw=default_collate([provider[provider_index[scene]]])
+        try:
+            selected=sample_context_referent(train_refs,scene,raw,rng)
+        except NoVisibleReferent as exc:
+            skipped.append({'scene':scene,'reason':str(exc)}); del raw; continue
+        metadata={k:selected[k] for k in ('scene','context_frame_ids','object_id','text','text_index','candidate_object_ids')}
+        selected['context_frame_ids']=metadata['context_frame_ids']
+        # Pixel masks are recalculated from the pinned provider batch at update time.
+        del selected,raw
+        samples.append({**metadata,'skipped_before_selection':list(skipped)})
+        if len(samples)==2: break
+    if len(samples)!=2: raise RuntimeError(f'found only {len(samples)} fixed smoke samples; skipped={skipped}')
+    return samples,skipped
+
+
+def reload_pinned_sample(provider,provider_index,metadata):
+    scene=metadata['scene']; context=[int(x) for x in metadata['context_frame_ids']]
+    frame_dir=ROOT/'train'/scene/'depth'
     available=sorted(int(p.stem) for p in frame_dir.glob('*.png'))
-    novel=[x for x in available if x not in context][:2]
-    if len(novel)!=2: raise RuntimeError(f'not enough extra provider views for {scene}')
-    provider=data_runtime.ObjectLocusV1Provider(opt,root=str(VAL_ROOT),subset=[scene],training=True,rank=0)
+    novel=[frame for frame in available if frame not in set(context)][:2]
+    if len(novel)!=2: raise RuntimeError(f'{scene} has fewer than two extra provider frames')
     provider.pin_pair(scene_id=scene,context_frame_ids=context,novel_frame_ids=novel)
-    batch=data_runtime.move_to(default_collate([provider[0]]),'cuda:0')
-    if batch['frame_ids'][0].detach().cpu().tolist()!=context+novel:
-        raise RuntimeError('provider changed the requested official context frame order')
-    return batch,novel
+    raw=default_collate([provider[provider_index[scene]]])
+    batch=runtime.move_to(raw,'cuda:0')
+    sem=batch['semantic_label_all'][0,:2].long(); ins=batch['instance_label_all'][0,:2].long()
+    valid=(sem>=0)&(sem<=19)&((sem<2)|(ins>0))
+    gt=valid&(ins==int(metadata['object_id']))
+    if not gt.any(): raise RuntimeError('fixed smoke target disappeared from pinned context batch')
+    return {**metadata,'batch':batch,'context_target_mask':gt,'context_valid_mask':valid,'extra_frame_ids':novel}
 
 
 def main():
     if not torch.cuda.is_available() or not os.uname().nodename.startswith('3dimage-11'):
-        raise RuntimeError('real smoke is fixed to one RTX3090 on 3dimage-11')
+        raise RuntimeError('smoke requires one Slurm RTX3090 on 3dimage-11')
     if torch.cuda.device_count()!=1 or torch.cuda.get_device_name(0)!='NVIDIA GeForce RTX 3090':
-        raise RuntimeError('Slurm job must expose exactly one RTX3090')
+        raise RuntimeError('Slurm must expose exactly one RTX3090')
     torch.cuda.set_device(0); torch.backends.cuda.matmul.allow_tf32=False; torch.backends.cudnn.allow_tf32=False
-    refer=json.loads(REFER.read_text()); pairs=json.loads(PAIRS.read_text())
-    model,opt=load_full1201_frozen('cuda:0')
-    model.eval()
-    visual_sha=digest(model)
-    tokenizer,encoder,text_prov=load_frozen_clip_text(cache_dir=str(OUT_DIR/'hf_cache'),provenance_path=str(OUT_DIR/'text_encoder_provenance.json'))
-    encoder=encoder.to('cuda:0').eval()
-    text_sha=digest(encoder)
-    head=ObjectLocusTextReferHead().cuda().float()
-    wd=[]; no_wd=[]
-    for n,p in head.named_parameters():
-        (wd if p.ndim>1 and not n.endswith('.bias') else no_wd).append(p)
-    optimizer=torch.optim.AdamW([{'params':wd,'weight_decay':.05},{'params':no_wd,'weight_decay':0.0}],lr=1e-4,betas=(.9,.95),eps=1e-8)
-    if {id(p) for g in optimizer.param_groups for p in g['params']}!={id(p) for p in head.parameters()}:
-        raise RuntimeError('optimizer does not contain exactly the new head')
-    skip=[];selected=None
-    for pair_i,pair in enumerate(pairs):
-        scene=pair['scene_name']; oid=int(pair['context_objects']); text=pair['texts']
-        if not isinstance(text,str) or not text.strip(): skip.append({'pair_index':pair_i,'reason':'empty text'});continue
-        try: batch,extra_views=build_real_batch(opt,pair)
-        except Exception as exc: skip.append({'pair_index':pair_i,'reason':f'provider: {exc}'});continue
-        ins=batch['instance_label_all'][:,:2].long();sem=batch['semantic_label_all'][:,:2].long()
-        valid=(sem>=0)&(sem<=19)&((sem<2)|(ins>0))
-        target=valid & (ins==oid)
-        if not target.any(): skip.append({'pair_index':pair_i,'reason':'zero target pixels in context valid domain'});continue
-        selected=(pair_i,pair,batch,extra_views,target,valid);break
-    if selected is None: raise RuntimeError(f'no visible official val pair; skipped={skip}')
-    pair_i,pair,batch,extra_views,gt,valid=selected
-    mi,_=split_data(batch,opt)
-    context_decoder=ModelInputDecoder(cam_view=batch['cam_view_all'][:,:2],intrinsics=batch['intrinsics_all'][:,:2])
+    initialize_global_seed(GLOBAL_SEED)
+    train_refs=json.loads((ROOT/'train_refer_seg_data.json').read_text())
+    model,opt,visual_exposure=load_full1201_frozen('cuda:0',VISUAL_CHECKPOINT)
+    tokenizer,encoder,text_provenance=load_frozen_clip_text(
+        cache_dir=str(OUTPUT/'hf_cache'),provenance_path=str(OUTPUT/'text_encoder_provenance.json'))
+    encoder=encoder.cuda().eval()
+    from object_locus_text_refer.head import ObjectLocusTextReferHead
+    head=ObjectLocusTextReferHead(HEAD_SEED).cuda().float()
+    optimizer=build_head_optimizer(head)
+    visual_before=digest(model); text_before=digest(encoder); head_before=[p.detach().clone() for p in head.parameters()]
+    provider,provider_index,scene_names=scene_names_and_provider(opt,train_refs)
+    samples,scan_skips=select_first_two(provider,provider_index,scene_names,train_refs,random.Random(GLOBAL_SEED))
+
+    # Compare direct source-model forward with the exposure adapter on identical input.
+    first=reload_pinned_sample(provider,provider_index,samples[0])
+    mi,_=split_data(first['batch'],opt)
+    decoder=ModelInputDecoder(cam_view=first['batch']['cam_view_all'][:,:2],intrinsics=first['batch']['intrinsics_all'][:,:2])
     torch.cuda.reset_peak_memory_stats()
     with torch.no_grad():
-        visual=model.forward_object_locus(mi,render_decoder_input=context_decoder,read_context_decoder=context_decoder,context_decoder=context_decoder,step=0)
-        q,P=validate_visual_outputs(visual['states'][-1]['q'],visual['gaussian_membership'])
-        targets,pairs_h=final_hungarian(visual,batch)
-    object_ids=targets['gt_instance_ids'][0].detach().cpu().tolist()
-    visible=bool(gt.any())
-    if visible:
-        matched_slots={int(ki):int(qi) for qi,ki in zip(*[x.tolist() for x in pairs_h[0]])}
-        slot_target=resolve_slot_target(int(pair['context_objects']),object_ids,matched_slots,True)
-    else:
-        frames=refer[pair['scene_name']]['frame2object']
-        listed=any(str(pair['context_objects']) in frames.get(str(frame),[]) for frame in pair['context_views_id'])
-        slot_target=None if listed else 100
-    ids,attn,T=encode_text(tokenizer,encoder,[pair['texts']],'cuda:0')
-    P_render=visual['gaussian_membership'][:,:,:100].detach()
-    gaussians=visual['gaussians'].detach()
-    ctx=ModelInputDecoder(cam_view=batch['cam_view_all'][:,:2],intrinsics=batch['intrinsics_all'][:,:2])
-    logs=[]; head_initial=[p.detach().clone() for p in head.parameters()]
-    frozen_before=(visual_sha,text_sha)
-    for update in range(2):
-        optimizer.zero_grad(set_to_none=True)
-        out=head(T,ids,attn,q,tokenizer.eos_token_id)
-        M=soft_gaussian_membership(out['pi'],P_render)
-        rendered=model.gs.render_feature_channels(gaussians,M.unsqueeze(-1),ctx.cam_view,ctx.intrinsics)
-        probability=model.normalize_membership(rendered['images_pred'],rendered['alphas_pred']) if hasattr(model,'normalize_membership') else None
-        if probability is None:
-            from tokengs.models.object_locus_v3_set import alpha_normalize_membership
-            probability=alpha_normalize_membership(rendered['images_pred'],rendered['alphas_pred'])[:,:,0]
-        loss,parts=refer_loss(out['scores'],probability,gt,valid,slot_target=slot_target,visible=visible,matched=slot_target is not None)
-        values=(loss,out['scores'],out['pi'],M,probability)
-        if not all(torch.isfinite(v).all() for v in values): raise FloatingPointError('nonfinite smoke output')
-        loss.backward(); torch.nn.utils.clip_grad_norm_(head.parameters(),1.0,error_if_nonfinite=True)
-        grads=[p.grad for p in head.parameters() if p.grad is not None]
-        grad_norm=sum(float(g.norm()) for g in grads)
-        if not grads or grad_norm<=0 or any(not torch.isfinite(g).all() for g in grads): raise RuntimeError('new head gradient invalid')
-        optimizer.step()
-        logs.append({'update':update+1,'loss':float(loss.detach()),'grad_norm_sum':grad_norm,'parts':{k:float(v) for k,v in parts.items()},'slot_target':slot_target})
-    # Hard inference selects one 3D slot once for both context cameras.
-    with torch.no_grad():
-        pred=head(T,ids,attn,q,tokenizer.eos_token_id)
-        hard,slot=hard_gaussian_membership(pred['scores'],P_render)
-        hard_render=model.gs.render_feature_channels(gaussians,hard.unsqueeze(-1),ctx.cam_view,ctx.intrinsics)
-        from tokengs.models.object_locus_v3_set import alpha_normalize_membership
-        hard_masks=alpha_normalize_membership(hard_render['images_pred'],hard_render['alphas_pred'])[:,:,0]
-        # Extra explicit camera API check, using one of this same sample's cameras.
-        one_cam=ModelInputDecoder(cam_view=batch['cam_view_all'][:,2:3],intrinsics=batch['intrinsics_all'][:,2:3])
-        novel_render=model.gs.render_feature_channels(gaussians,hard.unsqueeze(-1),one_cam.cam_view,one_cam.intrinsics)
-        novel_mask=alpha_normalize_membership(novel_render['images_pred'],novel_render['alphas_pred'])[:,:,0]
-        eval_rows=[]
-        for view in range(2):
-            eval_rows.append({'text_key':f"{pair['scene_name']}/{pair['context_objects']}/0",
-                'scene':pair['scene_name'],'object_id':int(pair['context_objects']),'text':pair['texts'],
-                'view_id':int(pair['context_views_id'][view]),'pred_mask':hard_masks[0,view]>.5,
-                'gt_mask':gt[0,view],'valid_mask':valid[0,view],'selected_slot':int(slot[0])})
-        eval_summary=evaluate_records(eval_rows)
-    if digest(model)!=frozen_before[0] or digest(encoder)!=frozen_before[1]: raise RuntimeError('frozen state changed')
-    if any(p.grad is not None for p in model.parameters()) or any(p.grad is not None for p in encoder.parameters()): raise RuntimeError('frozen model/text encoder received gradients')
-    if not any(not torch.equal(p.detach(),initial) for p,initial in zip(head.parameters(),head_initial)): raise RuntimeError('head parameters did not update')
+        direct=model.forward_object_locus(mi,render_decoder_input=decoder,read_context_decoder=decoder,
+            context_decoder=decoder,step=visual_exposure)
+    adapted=forward_frozen_visual(model,mi,decoder,visual_exposure)
+    direct_states={int(state['layer']):state for state in direct['states'] if int(state['layer']) in (6,8,10,12)}
+    adapted_states={int(state['layer']):state for state in adapted['states'] if int(state['layer']) in (6,8,10,12)}
+    if set(direct_states)!={6,8,10,12} or set(adapted_states)!={6,8,10,12}:
+        raise RuntimeError('Full1201 output lacks registered L6/L8/L10/L12 states')
+    for layer in (6,8,10,12):
+        layer_a,layer_b=direct_states[layer],adapted_states[layer]
+        if abs(float(layer_a['beta'])-.1)>1e-8 or abs(float(layer_b['beta'])-.1)>1e-8: raise RuntimeError('visual beta is not 0.1')
+        torch.testing.assert_close(layer_a['q'],layer_b['q'],rtol=1e-6,atol=1e-5)
+    for key in ('gaussians','gaussian_membership','region_mass','semantic_scores'):
+        torch.testing.assert_close(direct[key],adapted[key],rtol=1e-6,atol=1e-5)
+    assert_visual_beta(adapted['states'])
+    del direct,adapted,mi,decoder,first
+
+    logs=[]; selected=[]
+    for update,metadata in enumerate(samples,1):
+        sample=reload_pinned_sample(provider,provider_index,metadata)
+        selected.append({k:metadata[k] for k in ('scene','context_frame_ids','object_id','text','text_index','candidate_object_ids')}
+            | {'extra_frame_ids':sample['extra_frame_ids'],'skipped_before_selection':metadata['skipped_before_selection']})
+        log=run_train_update(model,tokenizer,encoder,head,optimizer,sample,update)
+        logs.append(log)
+        del sample,log
+        gc.collect()
+    if digest(model)!=visual_before or digest(encoder)!=text_before:
+        raise RuntimeError('frozen visual/text parameters or buffers changed')
+    if any(p.grad is not None for p in model.parameters()) or any(p.grad is not None for p in encoder.parameters()):
+        raise RuntimeError('frozen visual/text model received gradients')
+    if not any(not torch.equal(p.detach(),start) for p,start in zip(head.parameters(),head_before)):
+        raise RuntimeError('text head parameters did not change')
+    if any(any(abs(beta-.1)>1e-8 for beta in row['visual_beta']) for row in logs):
+        raise RuntimeError('train entry visual beta mismatch')
     torch.cuda.synchronize()
-    report={'status':'PASS','node':os.uname().nodename,'gpu':torch.cuda.get_device_name(0),'pair_index':pair_i,
-      'scene':pair['scene_name'],'object_id':int(pair['context_objects']),'text':pair['texts'],'context_frame_ids':pair['context_views_id'],
-      'extra_camera_frame_id':extra_views[0],'skipped_pairs':skip,'steps':logs,'selected_slot':int(slot[0]),
-      'context_mask_shapes':list(hard_masks.shape),'explicit_extra_view_mask_shape':list(novel_mask.shape),
-      'context_evaluation':eval_summary,
-      'visual_and_text_frozen':True,'peak_allocated_bytes':torch.cuda.max_memory_allocated(),'peak_reserved_bytes':torch.cuda.max_memory_reserved(),
-      'text_revision':text_prov['revision'],'protocol_note':'extra view is an interface smoke, not an official novel benchmark'}
-    out_path=OUT_DIR/'rtx3090_smoke.json';out_path.write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2),flush=True)
+    temp_head=OUTPUT/'temporary_two_update_head.pt'
+    torch.save({'head':{k:v.detach().cpu() for k,v in head.state_dict().items()},
+        'completed_updates':2,'visual_exposure':visual_exposure,'text_revision':text_provenance['revision']},temp_head)
+    train_report={'status':'PASS','job_node':os.uname().nodename,'gpu':torch.cuda.get_device_name(0),
+        'visual_exposure':visual_exposure,'visual_beta':[row['visual_beta'][:4] for row in logs],
+        'selected_samples':selected,'scene_scan_skips':scan_skips,'updates':logs,
+        'head_updated':True,'visual_state_unchanged':True,'text_state_unchanged':True,
+        'peak_allocated_bytes':torch.cuda.max_memory_allocated(),'peak_reserved_bytes':torch.cuda.max_memory_reserved(),
+        'temporary_head_checkpoint':str(temp_head)}
+    train_report_path=OUTPUT/'rtx3090_train_smoke.json'
+    train_report_path.write_text(json.dumps(train_report,indent=2,ensure_ascii=False)+'\n')
+
+    # Drop every parent-process GPU reference before actual eval CLI launches its own model.
+    del provider,provider_index,scene_names,samples,head,optimizer,encoder,model,train_refs
+    gc.collect(); torch.cuda.synchronize()
+    eval_dir=OUTPUT/'rtx3090_eval_smoke'
+    eval_args=argparse.Namespace(visual_checkpoint=str(VISUAL_CHECKPOINT),head_checkpoint=str(temp_head),
+        data_root=str(ROOT),refer_json=None,pair_json=None,output_dir=str(eval_dir),max_records=1)
+    run_evaluation(eval_args)
+    metrics=json.loads((eval_dir/'context_refer_metrics.json').read_text())
+    records=json.loads((eval_dir/'context_refer_records.json').read_text())
+    if metrics['context_refer_expression_count']!=1 or len(records)!=1:
+        raise RuntimeError('actual eval CLI did not process exactly the requested first record')
+    eval_report={'status':'PASS','records':len(records),'metrics':{k:v for k,v in metrics.items() if k!='context_refer_records'},
+        'first_record':records[0]}
+    (OUTPUT/'rtx3090_train_smoke.json').write_text(json.dumps(train_report,indent=2,ensure_ascii=False)+'\n')
+    (OUTPUT/'rtx3090_eval_smoke.json').write_text(json.dumps(eval_report,indent=2,ensure_ascii=False)+'\n')
+    print(json.dumps({'train':train_report,'eval':eval_report},indent=2,ensure_ascii=False),flush=True)
 
 
 if __name__=='__main__': main()

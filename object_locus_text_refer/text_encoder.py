@@ -8,6 +8,7 @@ import torch
 
 
 MODEL_ID = "openai/clip-vit-base-patch32"
+EXPECTED_REVISION = "3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268"
 
 
 def _sha(path):
@@ -24,6 +25,9 @@ def load_frozen_clip_text(cache_dir=None, provenance_path=None, revision=None):
     provenance_file = Path(provenance_path) if provenance_path else None
     prior = json.loads(provenance_file.read_text()) if provenance_file and provenance_file.exists() else None
     pinned = revision or (prior or {}).get("revision")
+    if pinned and pinned != EXPECTED_REVISION:
+        raise RuntimeError(f"CLIP revision mismatch: {pinned} != {EXPECTED_REVISION}")
+    pinned = EXPECTED_REVISION
     cache_snapshot = (Path(cache_dir) / "models--openai--clip-vit-base-patch32" / "snapshots" / pinned
                       if cache_dir and pinned else None)
     offline = bool(cache_snapshot and cache_snapshot.is_dir())
@@ -37,6 +41,9 @@ def load_frozen_clip_text(cache_dir=None, provenance_path=None, revision=None):
         if ref.exists(): resolved = ref.read_text().strip()
     if not resolved:
         raise RuntimeError("Hugging Face did not expose the resolved immutable commit revision")
+    if resolved != EXPECTED_REVISION:
+        raise RuntimeError(f"resolved CLIP revision mismatch: {resolved} != {EXPECTED_REVISION}")
+    model.float()
     model.eval()
     for p in model.parameters(): p.requires_grad_(False)
     model.requires_grad_(False)

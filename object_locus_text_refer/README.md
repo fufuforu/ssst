@@ -13,9 +13,9 @@ This package reads official SIU3R `train_refer_seg_data.json`, `val_refer_seg_da
 
 ## Interfaces
 
-`SIU3RReferDataset` accepts an injected `load_arrays(scene, frame_ids)` that returns `packed_panoptic` and optional provider-valid mask. The target instance mask is `valid & (packed_panoptic % 1000 == object_id)`, with scene scope retained. The renderer adapter must delegate to the existing coverage-normalized mask renderer.
+Training starts from each real two-view provider context, then intersects its normalized `frame2object` IDs with described objects and currently visible valid thing IDs. Valid pixels use `(sem >= 0) & (sem <= 19) & ((sem < 2) | (ins > 0))`; thing instances use `sem >= 2`. The validation-only `SIU3RReferDataset` keeps the official pair order and raw descriptions. IDs stay scene-local, and `packed_panoptic % 1000` is the instance identity.
 
-`scripts/train_object_locus_text_refer.py` is a frozen-visual/head-only training entry and requires explicit `--max-updates`; this branch does not start it. Defaults are batch 1, LR `1e-4`, matrix WD `0.05`, bias/norm WD `0`, AdamW betas `(0.9,0.95)`, eps `1e-8`, FP32, grad clip `1.0`. `scripts/eval_object_locus_text_refer.py` consumes rows from the existing renderer adapter and preserves failed rows.
+`scripts/train_object_locus_text_refer.py` is a frozen-visual/head-only training entry and requires explicit `--max-updates`. It validates and strictly loads Full1201 epoch 6 and always runs the visual model at checkpoint `completed_exposures=50064` (all four injection betas are 0.1). Defaults are batch 1, LR `1e-4`, matrix WD `0.05`, bias/norm WD `0`, AdamW betas `(0.9,0.95)`, eps `1e-8`, FP32, grad clip `1.0`. `scripts/eval_object_locus_text_refer.py` now loads the visual model, strict head checkpoint, fixed CLIP text model and official context pairs, writes `context_refer_records.json` and `context_refer_metrics.json`, and preserves failed expressions as zero-IoU records. Its IoU threshold is probability `> 0.5`; its expression aggregate is context-only, not paper `mIoU_t`.
 
 The CPU contract command is:
 
@@ -23,7 +23,7 @@ The CPU contract command is:
 PYTHONPATH=. python -m unittest tests.test_object_locus_text_refer_contracts -v
 ```
 
-The independent entry points use a new adapter around the registered runtime. No official evaluation or formal training was launched here.
+The independent entry points use a new adapter around the registered runtime. A future head run remains opt-in through explicit `--max-updates`; this repair smoke is limited to two temporary updates and one official validation expression.
 
 Example for a future intentional head run (not executed in this branch):
 

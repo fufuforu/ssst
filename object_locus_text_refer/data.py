@@ -1,10 +1,8 @@
 from __future__ import annotations
 
 import json
-import random
 from pathlib import Path
-
-import numpy as np
+import torch
 
 
 class SIU3RReferDataset:
@@ -15,22 +13,11 @@ class SIU3RReferDataset:
         self.pairs = json.loads(Path(pair_json).read_text()) if pair_json else None
         self.split = split
         self.load_arrays = load_arrays or self._load_context_arrays
-        self.seed = int(seed)
-        self._rng = random.Random(self.seed)
-        self._access_counts = {}
-        if split == "val" and self.pairs is None:
+        if split != "val":
+            raise ValueError("expression dataset is validation-only; training samples must start from provider context")
+        if self.pairs is None:
             raise ValueError("validation requires official val_refer_pair.json")
-        self.items = self._expand_validation() if split == "val" else self._expand_train()
-
-    def _expand_train(self):
-        # Scene/object/text retain source iteration order; text choice is local RNG per item access.
-        rows = []
-        for scene, data in self.records.items():
-            for object_id, obj in data["objects"].items():
-                texts = obj.get("text", [])
-                if isinstance(texts, str): texts = [texts]
-                if texts: rows.append((scene, int(object_id), -1))
-        return rows
+        self.items = self._expand_validation()
 
     def _expand_validation(self):
         rows = []
@@ -53,22 +40,12 @@ class SIU3RReferDataset:
     def __len__(self): return len(self.items)
 
     def __getitem__(self, index):
-        row = self.items[index]
-        if self.split == "val": scene, frame_ids, object_id, text_index, pair_text = row
-        else: scene, object_id, text_index = row; frame_ids = None
+        scene, frame_ids, object_id, text_index, pair_text = self.items[index]
         obj = self.records[scene]["objects"][str(object_id)]
         texts = obj.get("text", [])
         if isinstance(texts, str): texts = [texts]
-        if self.split == "train":
-            # Per-access deterministic local stream; never touches process/global RNG.
-            access = self._access_counts.get(int(index), 0)
-            self._access_counts[int(index)] = access + 1
-            rng = random.Random((self.seed << 40) ^ (int(index) << 16) ^ access ^ len(texts))
-            text_index = rng.randrange(len(texts)) if texts else -1
-        text = pair_text if self.split == "val" else (texts[text_index] if text_index >= 0 else "")
+        text = pair_text
         arrays = self.load_arrays(scene, frame_ids)
-        if self.split == "train":
-            frame_ids = arrays.get("context_frame_ids")
         packed = arrays["packed_panoptic"]
         valid = arrays.get("valid_mask", packed >= 0).astype(bool)
         target = valid & ((packed % 1000) == int(object_id))
@@ -80,3 +57,64 @@ class SIU3RReferDataset:
     @staticmethod
     def _load_context_arrays(scene, frame_ids):
         raise RuntimeError("provide load_arrays(scene, frame_ids) matching the frozen provider")
+
+
+class NoVisibleReferent(ValueError):
+    """A legal context pair has no described, annotated visible thing object."""
+
+
+def normalize_scene_object_ids(values):
+    return {int(value) for value in values}
+
+
+def nonempty_texts(obj):
+    texts = obj.get("text", [])
+    if isinstance(texts, str):
+        texts = [texts]
+    return [(index, text) for index, text in enumerate(texts)
+            if isinstance(text, str) and text.strip()]
+
+
+def sample_context_referent(refer_data, scene, batch, rng):
+    """Select only after a real provider context and its valid GT are available."""
+    if batch["semantic_label_all"].shape[0] != 1:
+        raise ValueError("text refer data interface fixes batch size to one")
+    frames = [int(value) for value in batch["frame_ids"][0, :2].detach().cpu().tolist()]
+    scene_data = refer_data[scene]
+    frame_objects = set()
+    for frame in frames:
+        frame_objects |= normalize_scene_object_ids(scene_data["frame2object"].get(str(frame), []))
+    objects_by_id = {int(key): value for key, value in scene_data["objects"].items()}
+    described = {oid for oid, obj in objects_by_id.items() if nonempty_texts(obj)}
+    sem = batch["semantic_label_all"][0, :2].long()
+    ins = batch["instance_label_all"][0, :2].long()
+    valid = (sem >= 0) & (sem <= 19) & ((sem < 2) | (ins > 0))
+    visible = set(torch.unique(ins[valid & (sem >= 2) & (ins > 0)]).detach().cpu().tolist())
+    candidates = sorted(frame_objects & described & visible)
+    if not candidates:
+        raise NoVisibleReferent(
+            f"scene={scene} context_frames={frames} has no object in frame2object ∩ described objects ∩ valid visible thing IDs"
+        )
+    object_id = int(rng.choice(candidates))
+    texts = nonempty_texts(objects_by_id[object_id])
+    text_index, text = rng.choice(texts)
+    gt = valid & (ins == object_id)
+    return {
+        "scene": str(scene),
+        "context_frame_ids": frames,
+        "object_id": object_id,
+        "text": text,
+        "text_index": int(text_index),
+        "candidate_object_ids": candidates,
+        "context_target_mask": gt,
+        "context_valid_mask": valid,
+        "batch": batch,
+    }
+
+
+def choose_context_candidate(candidates, rng):
+    """Choose scene only after caller has a legal provider context candidate set."""
+    ordered = sorted(set(candidates))
+    if not ordered:
+        raise NoVisibleReferent("no train scenes have a legal provider context")
+    return rng.choice(ordered)
