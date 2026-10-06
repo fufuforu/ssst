@@ -76,7 +76,8 @@ def diag_summary(scope,excluded=()):
  def counts(field):
   tp=sum(int(r[field]['tp']) for r in rows);fp=sum(int(r[field]['fp']) for r in rows);fn=sum(int(r[field]['fn']) for r in rows)
   return {'tp':tp,'fp':fp,'fn':fn,'precision':tp/max(1,tp+fp),'recall':tp/max(1,tp+fn)}
- aps=[r['candidate_ap'] for r in rows if r.get('candidate_ap')]
+ aps=[r['candidate_ap'] for r in rows if r.get('candidate_ap') and
+      all(math.isfinite(float(r['candidate_ap'].get(k,float('nan')))) for k in ('map','map_50'))]
  raw=[v for r in rows for v in r.get('raw_best_ious',[])]
  den=sum(int(r.get('matched_gt_count',0)) for r in rows)
  return {'windows':len(selected),'candidate_mAP_window_macro':mean([x['map'] for x in aps]),
@@ -136,6 +137,13 @@ def run():
   depths=depth_values(depth_rows(OLD/'depth_per_image_val32_best.csv',scope))
   val32[scope]={**depths,**image,**official_values(result,scope),'frame_count':n}
  (OUT/'val32_reused_results.json').write_text(json.dumps(val32,indent=2,allow_nan=False)+'\n')
+ coverage={}
+ for name,path in (('val32',OLD/'aggregate/val32_best/epoch_08/context/scope_manifest.json'),
+                   ('frozen_full',OLD/'aggregate/full_best/epoch_08/context/scope_manifest.json'),
+                   ('frozen_excluding_dev8_scenes',OLD/'aggregate/full_excluding_dev8_best/epoch_08/context/scope_manifest.json')):
+  fr=read_json(path)['frames'];coverage[name]={'windows':len({(r['scene'],tuple(r['context'])) for r in fr}),
+     'frames_by_scope_context':len(fr),'scenes':len({r['scene'] for r in fr}),'source_scope_manifest_sha256':sha(path)}
+ (OUT/'evaluation_coverage.json').write_text(json.dumps(coverage,indent=2)+'\n')
  shutil.copy2(OLD/'dev8_curve.csv',OUT/'dev8_curve.csv');shutil.copy2(OLD/'dev8_selection.json',OUT/'dev8_selection.json')
  shutil.copy2(OLD/'depth_per_image_full_best.csv',OUT/'depth_per_image_full_best.csv')
  shutil.copy2(OLD/'depth_per_image_val32_best.csv',OUT/'depth_per_image_val32_best.csv')
@@ -150,6 +158,7 @@ def run():
    'selected_epoch':epoch,'selected_checkpoint_sha256':selected['selected_checkpoint_sha256'],'training_manifest_sha256':train['hashes']['manifest.json'],
    'training_plan_sha256':train['hashes']['training_plan.json'],'siu3r_commit':'8ea80166be76854f938e90521f1a5b688b755c87',
    'optimizer_updates':0,'old_cancelled_job':'58537','recovery_manifest_sha256':sha(OUT/'recovery_manifest.json'),
+   'full_validation_manifest_sha256':sha(BASE/'delivery_epoch6/full_validation_manifest.json'),
    'accelerator_smoke_sha256':sha(OUT/'smoke/acceleration_smoke.json'),'evaluation_code_git_sha':code_sha,
    'accelerator_script_sha256':sha(repo/'scripts/accelerate_full1201_frozen_encoder_eval.py'),
    'finalizer_script_sha256':sha(Path(__file__)),'evaluation_jobs':jobs.get('jobs',{})}
@@ -191,6 +200,7 @@ def run():
   'GPU was used for image metrics and the semantic/PQ states. Packed AP masks were retained and accumulated on CPU; SIU3R depth alignment remained on CPU. Existing full exports were reused; no model inference was run.',
   '', '## Artifacts','',
   '- frozen_vs_unfrozen_full_and_excluded.csv/json contains both cohorts, all scopes and all required metrics; paper_task_table.csv contains the sourced paper comparison.',
+  '- evaluation_coverage.json records the completed val32, full and excluding-dev8 window/frame/scene coverage; depth_completeness.json records depth coverage by model and scope.',
   '- dev8_curve.csv and dev8_selection.json record checkpoint selection; val32_reused_results.json records the reused fixed val32 results.',
   '- depth_per_image_full_best.csv, frozen and unfrozen per-image exclusion CSVs, per-scope unfrozen depth CSVs, and depth_per_image_unfrozen_epoch06_excluding_dev8_scenes.csv contain per-image scores, scale, shift and valid pixel counts.',
   '- recovery_manifest.json identifies verified completed exports and SHA256 records; qualitative/val32_first2 contains both registered panels.',
@@ -200,7 +210,7 @@ def run():
 
 def package():
  delivery=OUT/'delivery';delivery.mkdir(parents=True,exist_ok=True)
- core=[p for p in OUT.iterdir() if p.is_file() and p.suffix in ('.json','.csv')]+[OUT/'report.md']
+ core=[p for p in OUT.iterdir() if p.is_file() and p.suffix in ('.json','.csv')]+[OUT/'report.md',OUT/'smoke/acceleration_smoke.json']
  core=[p for p in core if p.is_file() and not p.name.startswith('depth_per_image_')]
  depth=[p for p in OUT.glob('depth_per_image_*.csv') if p.is_file()]
  qual=sorted((OUT/'qualitative/val32_first2').glob('*.png'))
