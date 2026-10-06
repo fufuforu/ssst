@@ -11,6 +11,14 @@ SCOPES=['context','target_all','true_novel']
 PAPER={'reconstruction':dict(AbsRel=.07421,RMSE_m=.2081,PSNR=25.96,SSIM=.8220,LPIPS=.1841),
  'context':dict(official_mIoU_s=.5922,official_mAP=.2817,official_PQ=.6612,official_AP50=None,mIoU_t=.5273),
  'true_novel':dict(official_mIoU_s=.5920,official_mAP=.2714,official_PQ=.6495,official_AP50=None,mIoU_t=.5270)}
+# The legacy Full1201 metrics CSV names the full cohort "all"; its excluded
+# cohort is explicitly named "excluding_dev8_scenes". Keep both translations
+# explicit so report labels never silently fall back to another cohort.
+BASELINE_COHORT={'full':'all','excluding_dev8_scenes':'excluding_dev8_scenes'}
+BASELINE_DEPTH_CSV=E/'depth_per_image_full_unfrozen_epoch06_depth.csv'
+def dev8_scenes():
+ manifest=json.loads((R/'manifest.json').read_text())
+ return {str(w['scene']) for w in manifest['monitor_splits']['dev8']}
 def sha(p):
  h=hashlib.sha256()
  with Path(p).open('rb') as f:
@@ -22,14 +30,30 @@ def write_csv(path,rows,fields):
 def load_baseline():
  rows=list(csv.DictReader((B/'full_validation_metrics.csv').open()))
  return {(r['cohort'],r['scope']):r for r in rows if r['epoch']=='6' and r['split']=='full_validation' and r['status']=='COMPLETE'}
+def load_depth_rows(path=BASELINE_DEPTH_CSV):
+ with Path(path).open(newline='') as f:return list(csv.DictReader(f))
+def mean_baseline_depth_excluding(rows,scope,excluded):
+ # window is emitted as <scene>_context<frame>_<frame> by the evaluator.
+ selected=[r for r in rows if r.get('scope')==scope and r.get('window','').rsplit('_context',1)[0] not in excluded]
+ if not selected:raise RuntimeError(f'no baseline per-image depth rows after excluding dev8 scenes for {scope}')
+ if any(not r.get('absrel') or not r.get('rmse') for r in selected):
+  raise RuntimeError(f'incomplete baseline per-image AbsRel/RMSE rows for {scope}')
+ return dict(AbsRel=sum(float(r['absrel']) for r in selected)/len(selected),
+             RMSE_m=sum(float(r['rmse']) for r in selected)/len(selected),
+             depth_image_count=len(selected))
 def normalized_unfrozen(depth,base_row):
  return dict(AbsRel=depth.get('AbsRel'),RMSE_m=depth.get('RMSE_m'),
   PSNR=float(base_row['psnr']),SSIM=float(base_row['ssim']),LPIPS=float(base_row['lpips']),
   official_mIoU_s=float(base_row['official_miou']),official_PQ=float(base_row['official_pq']),
   official_mAP=float(base_row['official_map']),official_AP50=float(base_row['official_ap50']))
-def baseline_scope(rows,depth_obj,cohort,scope):
+def baseline_scope(rows,depth_obj,cohort,scope,depth_rows=None,excluded_scenes=None):
  oldscope={'context':'context','target_all':'target_all','true_novel':'novel'}[scope]
- return normalized_unfrozen(depth_obj['scopes'][scope],rows[(cohort,oldscope)])
+ legacy_cohort=BASELINE_COHORT[cohort]
+ depth=depth_obj['scopes'][scope]
+ if cohort=='excluding_dev8_scenes':
+  if depth_rows is None or excluded_scenes is None:raise RuntimeError('excluding-dev8 baseline depth requires per-image CSV and dev8 scene IDs')
+  depth=mean_baseline_depth_excluding(depth_rows,scope,excluded_scenes)
+ return normalized_unfrozen(depth,rows[(legacy_cohort,oldscope)])
 def fmt(x):
  return '—' if x is None else f'{x:.6f}' if isinstance(x,(float,int)) else str(x)
 def run():
@@ -38,11 +62,12 @@ def run():
  chosen=json.loads((E/'dev8_selection.json').read_text())
  frozen=json.loads((E/'frozen_best_results.json').read_text())
  baseline_depth=json.loads((E/'unfrozen_epoch06_depth_results.json').read_text())
- baseline=load_baseline();epoch=int(chosen['selected_epoch']);summaries={};table_rows=[]
+ baseline=load_baseline();baseline_depth_rows=load_depth_rows();excluded_scenes=dev8_scenes()
+ epoch=int(chosen['selected_epoch']);summaries={};table_rows=[]
  for cohort,entry in (('full','full'),('excluding_dev8_scenes','full_excluding_dev8_scenes')):
   fr=frozen[entry];scopes=[]
   for scope in SCOPES:
-   un=baseline_scope(baseline,baseline_depth,cohort,scope);frozenvals={k:fr['scopes'][scope].get(k) for k in METRICS}
+   un=baseline_scope(baseline,baseline_depth,cohort,scope,baseline_depth_rows,excluded_scenes);frozenvals={k:fr['scopes'][scope].get(k) for k in METRICS}
    row={'scope':scope}
    for metric in METRICS:
     u=un.get(metric);v=frozenvals.get(metric)
@@ -59,7 +84,7 @@ def run():
   p=PAPER.get('context' if scope=='context' else 'true_novel' if scope=='true_novel' else None,{})
   paper_rows.append(dict(method='SIU3R published Ours',scope=scope,**{k:p.get(k) for k in METRICS},mIoU_t=p.get('mIoU_t'),
     source='SIU3R arXiv:2507.02705 Table 1'))
-  paper_rows.append(dict(method='Unfrozen Full1201 epoch6',scope=scope,**baseline_scope(baseline,baseline_depth,'all',scope),
+  paper_rows.append(dict(method='Unfrozen Full1201 epoch6',scope=scope,**baseline_scope(baseline,baseline_depth,'full',scope,baseline_depth_rows,excluded_scenes),
     mIoU_t='NOT_TRAINED',source='this evaluation'))
   paper_rows.append(dict(method=f'Frozen Full1201 epoch{epoch}',scope=scope,
     **{k:frozen['full']['scopes'][scope].get(k) for k in METRICS},mIoU_t='NOT_TRAINED',source='this evaluation'))
@@ -99,6 +124,7 @@ def run():
   '- Scope mapping: context → all/context; target-all → all/target; true novel → novel/target. Local semantic mIoU is not substituted for official mIoUₛ.',
   '- Prediction depth uses the existing renderer depths_pred from RGB+ED at scene scale 0.15 and is converted to meters once. Provider GT depth is in meters; its scene-scale companion is checked against 0.15×GT. SIU3R Visualizer writes the integer-millimeter PNGs.',
   '- SIU3R depth evaluation uses GT PNG depth > 0 only, per-image least-squares scale and shift, and arithmetic mean over images. Per-image CSVs include scale, shift, valid pixels, AbsRel and RMSE. Missing/nonfinite frames and completeness are explicit.',
+  '- Unfrozen baseline report cohort `full` maps explicitly to legacy CSV cohort `all`; its excluding-dev8 semantic/instance values use legacy cohort `excluding_dev8_scenes`, while excluding-dev8 AbsRel/RMSE are recalculated as arithmetic means from the per-image depth CSV after removing every dev8 scene.',
   '- Our depth render is the original gsplat RGB+ED path; metrics use SIU3R official scale-and-shift. We use GT camera poses, unlike the unposed SIU3R setting.',
   '- Text head is NOT_TRAINED; mIoUₜ is not measured. No text smoke or text training was run.',
   '',
@@ -116,10 +142,12 @@ def run():
   f'(mIoUₛ {fmt(understanding[0])}, PQ {fmt(understanding[1])}, mAP {fmt(understanding[2])}). '
   f'Reconstruction deltas are AbsRel {fmt(recon["delta_AbsRel"])}, RMSE {fmt(recon["delta_RMSE_m"])} m, '
   f'PSNR {fmt(recon["delta_PSNR"])} dB, SSIM {fmt(recon["delta_SSIM"])}, LPIPS {fmt(recon["delta_LPIPS"])}. '
-  f'Use frozen epoch {epoch}, selected by the registered dev8 rule, as the visual checkpoint candidate for a later text-training request; mIoUₜ remains unmeasured.')
+  'These deltas are for the full cohort; the table above separately lists frozen-minus-unfrozen deltas after excluding all dev8 scenes. '
+  'No visual checkpoint is automatically recommended for later text training; mIoUₜ remains unmeasured.')
  lines.append(conclusion)
  (E/'report.md').write_text('\n'.join(lines)+'\n')
  (E/'eval_provenance.json').write_text(json.dumps(dict(training_sha=train['git_sha'],training_job_id=train['job_id'],
+  finalizer_sha256=sha(Path(__file__)),
   selected_epoch=epoch,selected_checkpoint_sha256=chosen['selected_checkpoint_sha256'],
   training_manifest_sha256=train['hashes']['manifest.json'],training_plan_sha256=train['hashes']['training_plan.json'],
   validation_manifest_sha256=sha(B/'delivery_epoch6/full_validation_manifest.json'),
