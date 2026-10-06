@@ -250,7 +250,7 @@ def main():
                 }, output / "startup_confirmation.json")
             print(json.dumps({"update": update, "loss": last_loss,
                               "grad_norm": metric["head_grad_norm_before_clip"],
-                              "matched": metric["matched"]}, flush=True))
+                              "matched": metric["matched"]}), flush=True)
         write_progress(output, TOTAL_UPDATES, last_loss, latest_checkpoint, started_at,
                        status="COMPLETE", elapsed_before=elapsed_before)
         marker = output / "COMPLETE"
