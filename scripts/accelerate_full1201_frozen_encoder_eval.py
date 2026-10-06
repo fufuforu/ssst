@@ -171,8 +171,11 @@ def dev8_scenes():
 
 def symlink(src, dst):
     dst.parent.mkdir(parents=True, exist_ok=True)
+    resolved=Path(src).resolve()
+    if dst.is_symlink() and dst.resolve()==resolved:
+        return
     if dst.exists() or dst.is_symlink(): dst.unlink()
-    dst.symlink_to(Path(src).resolve())
+    dst.symlink_to(resolved)
 
 
 def prepare_filtered_seg_scope(scope, excluded):
@@ -250,9 +253,9 @@ def evaluate_baseline_depth():
         for (scene,ctx),(rank,row) in found.items():
             wid=f"{scene}_context{'_'.join(map(str,ctx))}";src=rank/'all'/wid
             ids=row['context'] if scope=='context' else row['target'] if scope=='target_all' else row['novel']
-            dst=root/wid;dst.mkdir()
+            dst=root/wid;dst.mkdir(exist_ok=True)
             for sub in ('depth','depth_gt'):
-                (dst/sub).mkdir()
+                (dst/sub).mkdir(exist_ok=True)
                 for frame in ids:
                     name=f'{scene}_{int(frame)}.png';sp=src/sub/name
                     if not sp.is_file():
