@@ -152,7 +152,21 @@ def main():
         "visual_exposure": 50064, "clip_model": "openai/clip-vit-base-patch32",
         "clip_revision": EXPECTED_REVISION, "train_json": str(root / "train_refer_seg_data.json"),
         "scene_count": len(scene_names), "output_dir": str(output),
-        "checkpoint_dir": str(ckpt_dir),
+        "checkpoint_dir": str(ckpt_dir), "visual_checkpoint": str(args.visual_checkpoint),
+        "visual_checkpoint_sha256": FULL1201_SHA256,
+        "head_architecture": {
+            "text_hidden": 256, "object_hidden": 256, "decoder_blocks": 2,
+            "attention_heads": 8, "ffn_hidden": 1024, "thing_slots": 100,
+            "null_slot": 100, "score_temperature": 0.07,
+        },
+        "text_length": 77, "text_hidden": 512,
+        "sampling": {
+            "max_provider_candidates_per_update": 128,
+            "scene_selection": "uniform from sorted train annotation/provider intersection",
+            "referent_selection": "context frame2object ∩ described ∩ valid visible thing IDs",
+            "effective_valid_expression": "(sem >= 0) & (sem <= 19) & ((sem < 2) | (ins > 0))",
+            "thing_expression": "sem >= 2", "null_negative_sampling": False,
+        },
     }
     commit = code_commit()
     latest_checkpoint = None
