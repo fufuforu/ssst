@@ -1,0 +1,13 @@
+# Object-Locus Multi-Head Feedback V1
+
+This fixed experiment compares MH against the existing completed mask-guided Control (C), using C's epoch-64 results. The only model change is the object-to-anchor feedback route and pooling. Evidence reading, object updates, geometry updates, mask heads, child membership, classification, losses, renderer, and capped anchor-token injection remain unchanged.
+
+For each of L6/L8/L10/L12, normalize anchor embeddings `a` and updated object features `q_new` using `layer_norm(..., eps=1e-5)`. Independent bias-free 256-to-256 Q/K/V/O projections form 8 heads of width 32. Q comes from anchors; K/V come from 102 thing/stuff object states. The existing soft geometry bias for the 100 thing slots and zero bias for two stuff slots is added to `Q K^T / sqrt(32)`. A fixed zero void logit is appended and softmax is along 103 object/stuff/void channels. The message is attention-weighted V, concatenated in head order and projected by O. `route=A.mean(head)` is retained only as a compatibility diagnostic; `feedback_attention=A` is returned for inspection.
+
+Each of four layers adds 262,144 parameters (1,048,576 total). Q/K/V use Xavier uniform gain 1; O is identity. Initialization runs inside a Torch RNG fork at seed 31416 and does not advance external RNG streams. Original `W_inject` remains zero-initialized and applies the existing capped injection to `h` only.
+
+Training uses the locked 8-scene/56-window plan, 64 epochs, 8 GPUs, per-rank batch 1, 448 global updates and 3,584 window exposures. It reuses C's exact manifest, plan, optimizer, LR schedule, loss, gradient combination, explicit rank averaging and clipping. Checkpoints are saved at updates 0/56/112/224/448. Formal evaluation is deferred until user notice after training ends; no text task is run.
+
+The fixed later comparison uses C epoch 64 and MH epoch 64 on train_all56, same_scene_holdout8, dev8 and val32, with context, target-all and true-novel scopes. Primary metric is val32 true-novel official packed mAP. Bootstrap is 2,000 paired val32 scene resamples with seed 2026, recomputing global AP from resampled packed inputs. Camera poses are ground-truth poses.
+
+Evidence of improvement requires the primary mAP difference's 95% CI lower bound to exceed zero; val32 true-novel AP50 and PQ no worse than C by more than 0.01; train_all56 context AP50 no worse by more than 0.02; and context/true-novel PSNR on all four splits no worse by more than 0.5 dB. Otherwise report the measured differences and the mixed or uncertain direction without tuning or follow-up training. Do not describe within-scene gains as cross-scene generalization.
