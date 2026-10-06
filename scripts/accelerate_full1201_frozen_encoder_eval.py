@@ -245,7 +245,7 @@ def evaluate_baseline_depth():
     found=read_baseline_workers();result={'epoch':6,'window_count':len(found),'scopes':{}}
     for scope in SCOPES:
         root=OUT/'aggregate/unfrozen_full_epoch06'/scope
-        root.mkdir(parents=True)
+        root.mkdir(parents=True,exist_ok=True)
         frames=[]
         for (scene,ctx),(rank,row) in found.items():
             wid=f"{scene}_context{'_'.join(map(str,ctx))}";src=rank/'all'/wid
