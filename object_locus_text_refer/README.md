@@ -25,6 +25,8 @@ PYTHONPATH=. python -m unittest tests.test_object_locus_text_refer_contracts -v
 
 The independent entry points use a new adapter around the registered runtime. A future head run remains opt-in through explicit `--max-updates`; this repair smoke is limited to two temporary updates and one official validation expression.
 
+The fixed formal runner `scripts/train_object_locus_text_refer_formal.py` performs 12,000 head updates and does not accept an update-count override. It writes atomic checkpoints at updates 0, 1000, 3000, 6000, 9000, and 12000; JSONL scalar metrics; and `progress.json`. An interrupted run resumes only when an explicit `--resume /path/to/head_update_NNNNN.pt` is supplied. `scripts/submit_object_locus_text_refer_train.sbatch` requests one RTX3090 on `3dimage-11`, 8 CPUs, 64 GB RAM, and 24 hours.
+
 Example for a future intentional head run (not executed in this branch):
 
 ```bash

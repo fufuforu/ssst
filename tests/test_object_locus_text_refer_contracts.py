@@ -126,3 +126,74 @@ class TextReferContracts(unittest.TestCase):
 
 
 if __name__=='__main__': unittest.main()
+
+class FormalTrainingRuntimeContracts(unittest.TestCase):
+    def test_atomic_checkpoint_restores_head_optimizer_and_all_sampling_rngs(self):
+        import tempfile
+        from types import SimpleNamespace
+        import numpy as np
+        from object_locus_text_refer.training_runtime import (
+            atomic_torch_save, build_checkpoint, capture_rng_state, restore_checkpoint,
+        )
+        torch.manual_seed(42); random.seed(42); np.random.seed(42)
+        sample_rng=random.Random(42)
+        provider=SimpleNamespace(pair_rng=random.Random(9),rng=np.random.default_rng(8))
+        head=ObjectLocusTextReferHead()
+        optimizer=build_head_optimizer(head)
+        # Initialize AdamW state so resume covers moments as well as parameter values.
+        optimizer.zero_grad(set_to_none=True)
+        sum(parameter.square().mean() for parameter in head.parameters()).backward()
+        optimizer.step(); optimizer.zero_grad(set_to_none=True)
+        config={'total_updates':12000,'lr':1e-4,'seed':42}
+        rng_state=capture_rng_state(sample_rng,provider)
+        expected_global=random.random(); expected_sample=sample_rng.random()
+        expected_numpy=np.random.random(); expected_torch=torch.rand(())
+        expected_pair=provider.pair_rng.random(); expected_provider=provider.rng.random()
+        blob=build_checkpoint(head,optimizer,17,rng_state,config,'visual.pt',FULL1201_SHA256,
+                              {'revision':'3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268'},'abc',['scene'])
+        self.assertNotIn('visual_model',blob); self.assertNotIn('clip_model',blob)
+        original={k:v.clone() for k,v in head.state_dict().items()}
+        with tempfile.TemporaryDirectory() as temporary:
+            path=Path(temporary)/'head.pt'; atomic_torch_save(blob,path)
+            with torch.no_grad():
+                for parameter in head.parameters(): parameter.add_(1)
+            optimizer2=build_head_optimizer(head)
+            completed,restored=restore_checkpoint(path,head,optimizer2,sample_rng,provider,
+                expected_config=config,expected_visual_sha256=FULL1201_SHA256,
+                expected_clip_revision='3d74acf9a28c67741b2f4f2ea7635f0aaf6f0268',device='cpu')
+        self.assertEqual(completed,17)
+        self.assertTrue(all(torch.equal(head.state_dict()[k],v) for k,v in original.items()))
+        self.assertEqual(random.random(),expected_global)
+        self.assertEqual(sample_rng.random(),expected_sample)
+        self.assertEqual(np.random.random(),expected_numpy)
+        self.assertEqual(torch.rand(()),expected_torch)
+        self.assertEqual(provider.pair_rng.random(),expected_pair)
+        self.assertEqual(provider.rng.random(),expected_provider)
+        self.assertEqual(restored['config'],config)
+
+    def test_formal_log_and_progress_are_cpu_scalars(self):
+        import tempfile
+        from object_locus_text_refer.training_runtime import append_metric, progress_payload, write_json_atomic
+        with tempfile.TemporaryDirectory() as temporary:
+            metrics=Path(temporary)/'training_metrics.jsonl'
+            progress=Path(temporary)/'progress.json'
+            append_metric({'update':1,'total_loss':2.5,'scene':'scene0'},metrics)
+            payload=progress_payload(1,12000,2.5,'head_update_00000.pt',1.0,current_elapsed=4.0)
+            write_json_atomic(payload,progress)
+            self.assertEqual(json.loads(metrics.read_text())['total_loss'],2.5)
+            result=json.loads(progress.read_text())
+            self.assertEqual(result['completed_updates'],1)
+            self.assertEqual(result['total_updates'],12000)
+            self.assertEqual(result['estimated_remaining_seconds'],4.0*11999)
+            self.assertIn('excludes evaluation',result['estimate_basis'])
+
+    def test_formal_entry_fixes_update_count_and_save_schedule(self):
+        root=Path(__file__).resolve().parents[1]
+        source=(root/'scripts/train_object_locus_text_refer_formal.py').read_text()
+        self.assertIn('TOTAL_UPDATES = 12000',source)
+        self.assertIn('SAVE_UPDATES = (0, 1000, 3000, 6000, 9000, 12000)',source)
+        self.assertNotIn('val_refer_seg_data.json',source)
+        self.assertIn('run_train_update(model, tokenizer, encoder, head, optimizer, sample, update)',source)
+        sbatch=(root/'scripts/submit_object_locus_text_refer_train.sbatch').read_text()
+        for fixed in ('--nodelist=3dimage-11','--cpus-per-task=8','--mem=64G','--time=24:00:00','--gres=gpu:3090:1'):
+            self.assertIn(fixed,sbatch)
