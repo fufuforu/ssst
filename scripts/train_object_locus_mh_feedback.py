@@ -73,14 +73,16 @@ def main():
     if rank == 0:
         branch = subprocess.check_output(['git', 'branch', '--show-current'], cwd=Path(__file__).resolve().parents[1], text=True).strip()
         status = subprocess.check_output(['git', 'status', '--porcelain'], cwd=Path(__file__).resolve().parents[1], text=True)
-        remote = subprocess.check_output(['git', 'ls-remote', 'origin', 'refs/heads/object-locus-mh-feedback-v1'], text=True).strip()
+        receipt_path=report_root/'git_provenance.json'
+        if not receipt_path.is_file():raise RuntimeError('verified remote git provenance receipt is missing')
+        receipt=json.loads(receipt_path.read_text())
         if branch != 'object-locus-mh-feedback-v1' or status.strip():
             raise RuntimeError('formal MH requires a clean committed task branch')
-        if not remote or remote.split()[0] != sha:
-            raise RuntimeError('pushed branch SHA does not match training code SHA')
+        if receipt.get('training_sha')!=sha or receipt.get('remote_sha')!=sha or not receipt.get('clean'):
+            raise RuntimeError('preverified pushed branch SHA does not match training code SHA')
         with (report_root / 'run_manifest.json').open('w') as f:
             json.dump(dict(git_sha=sha, branch=branch, base_commit='d606e194d358727fefd7daa6848268e14fea3347',
-                remote_sha=remote.split()[0], job_id=os.environ.get('SLURM_JOB_ID'), node=socket.gethostname(),
+                remote_sha=receipt['remote_sha'], job_id=os.environ.get('SLURM_JOB_ID'), node=socket.gethostname(),
                 world_size=8, per_rank_batch=1, epochs=64, global_updates=448, exposures=3584,
                 checkpoint_updates=[0,56,112,224,448], plan_sha256=plan_sha,
                 optimizer='AdamW betas=(0.9,0.95), eps=1e-8; FP32; explicit gradient mean; clip=1.0',

@@ -30,14 +30,15 @@ repo=Path.cwd(); report=Path('/space/mawb/ssst/group_plus/object_locus_mh_feedba
 sha=subprocess.check_output(['git','rev-parse','HEAD'],cwd=repo,text=True).strip()
 if subprocess.check_output(['git','status','--porcelain'],cwd=repo,text=True).strip(): raise RuntimeError('formal checkout must be clean')
 rows=subprocess.check_output(['git','ls-remote','origin','refs/heads/object-locus-mh-feedback-v1'],cwd=repo,text=True).splitlines()
-if not any(x.split()==[sha,'refs/heads/object-locus-mh-feedback-v1'] for x in rows): raise RuntimeError('remote SHA mismatch')
+matching=[x for x in rows if x.split()==[sha,'refs/heads/object-locus-mh-feedback-v1']]
+if not matching: raise RuntimeError('remote SHA mismatch')
 contracts=json.loads((report/'contracts_smoke.json').read_text())
 single=json.loads((report/'single_smoke.json').read_text())
 eight=json.loads((report/'eight_smoke.json').read_text())
 if contracts.get('status')!='PASS' or single.get('status')!='PASS' or single.get('updates')!=2: raise RuntimeError('CPU/single-card contracts are incomplete')
 if eight.get('status')!='PASS' or eight.get('updates')!=40 or eight.get('world_size')!=8: raise RuntimeError('eight-card smoke is incomplete')
 if not all(v>0 for v in eight.get('injection_weight_norms',{}).values()): raise RuntimeError('four-layer injection did not activate')
-(report/'git_provenance.json').write_text(json.dumps(dict(training_sha=sha,remote_verification='verified via git ls-remote',clean=True),indent=2)+'\n')
+(report/'git_provenance.json').write_text(json.dumps(dict(training_sha=sha,remote_sha=matching[0].split()[0],remote_verification=rows,clean=True),indent=2)+'\n')
 PY
     TASK_JOB_ID=$(sbatch --parsable --job-name=mh-feedback-v1 --partition=3090 --nodelist=3dimage-11 \
       --nodes=1 --ntasks=1 --gres=gpu:8 --cpus-per-task=32 --mem=128G --time=72:00:00 \
@@ -47,6 +48,11 @@ PY
     echo "JOB_ID=$TASK_JOB_ID"
     echo "Waiting only for first-update receipt in $TASK_REPORT/startup_confirmation.json"
     while true; do
+      if rg -q 'Traceback|RuntimeError|FloatingPointError|CUDA out of memory' \
+        "$TASK_LOG/formal-$TASK_JOB_ID.err" "$TASK_LOG/formal-$TASK_JOB_ID.out" 2>/dev/null; then
+        echo "Formal startup failed before first-update confirmation; inspect $TASK_LOG/formal-$TASK_JOB_ID.err" >&2
+        exit 1
+      fi
       if [[ -s "$TASK_REPORT/startup_confirmation.json" ]]; then
         if "$TASK_PYTHON" - "$TASK_REPORT/startup_confirmation.json" "$TASK_JOB_ID" <<'PY'
 import json,math,sys
