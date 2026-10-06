@@ -196,5 +196,5 @@ class FormalTrainingRuntimeContracts(unittest.TestCase):
         self.assertIn('run_train_update(model, tokenizer, encoder, head, optimizer, sample, update)',source)
         self.assertIn('"matched": metric["matched"]}), flush=True)',source)
         sbatch=(root/'scripts/submit_object_locus_text_refer_train.sbatch').read_text()
-        for fixed in ('--nodelist=3dimage-11','--cpus-per-task=8','--mem=64G','--time=24:00:00','--gres=gpu:3090:1'):
+        for fixed in ('--nodelist=3dimage-13','--cpus-per-task=8','--mem=64G','--time=24:00:00','--gres=gpu:3090:1'):
             self.assertIn(fixed,sbatch)
