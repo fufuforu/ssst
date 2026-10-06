@@ -202,6 +202,21 @@ def evaluate_segmentation():
     out['context']={'reused_completed_official_result':True,'window_count':len({(r['scene'],tuple(r['context'])) for r in ctx_manifest['frames']}),
                     'scene_count':len({r['scene'] for r in ctx_manifest['frames']}),'result':ctx}
     for scope in ('target_all','true_novel'):
+        root=OUT/'aggregate/frozen_excluding_dev8_best/epoch_08'/scope
+        saved=root/'official_result.json'; saved_manifest=root/'scope_manifest.json'
+        if saved.is_file() and saved_manifest.is_file():
+            manifest=json.loads(saved_manifest.read_text())
+            saved_windows=set(manifest.get('windows',[]))
+            actual_windows={p.name for p in root.iterdir() if p.is_dir()}
+            if len(saved_windows)!=1812 or saved_windows!=actual_windows:
+                raise RuntimeError(f'incomplete saved segmentation scope {scope}: manifest={len(saved_windows)}, dirs={len(actual_windows)}, expected=1812')
+            res=json.loads(saved.read_text())
+            out[scope]={'official_result':res,'windows':1812,
+                'scenes':len({p.name.split('_context')[0] for p in root.iterdir() if p.is_dir()}),
+                'metrics_device':'reused completed global official result','depth/image_metrics_enabled':False,
+                'reused_completed_scope':True}
+            print('OFFICIAL_SCOPE_REUSED',scope,1812,flush=True)
+            continue
         root,count=prepare_filtered_seg_scope(scope,excluded)
         ev,res=metric_run(root,scope,device='cuda:0',image=False,depth=False,seg=True,map_cpu=True)
         result={'official_result':res,'windows':count,'scenes':len({p.name.split('_context')[0] for p in root.iterdir() if p.is_dir()}),
@@ -230,7 +245,6 @@ def evaluate_baseline_depth():
     found=read_baseline_workers();result={'epoch':6,'window_count':len(found),'scopes':{}}
     for scope in SCOPES:
         root=OUT/'aggregate/unfrozen_full_epoch06'/scope
-        if root.exists():shutil.rmtree(root)
         root.mkdir(parents=True)
         frames=[]
         for (scene,ctx),(rank,row) in found.items():
@@ -244,10 +258,33 @@ def evaluate_baseline_depth():
                     if not sp.is_file():
                         raise RuntimeError(f'missing exported baseline {sub}: window={wid} frame={frame} path={sp}')
                     symlink(sp,dst/sub/name)
-                    frames.append((scene,ctx,int(frame),wid))
-        ev,res=metric_run(root,scope,image=False,depth=True,seg=False)
+            # One frame belongs to both paired directories, but contributes a
+            # single per-image metric row.
+            frames.extend((scene,ctx,int(frame),wid) for frame in ids)
+        # The failed 58638 pass completed official context evaluation and wrote
+        # every window's depth_scores.json/results.json. Reuse those exact
+        # official scores; calculate only the missing alignment metadata with
+        # the pinned evaluator's original CPU least-squares function.
+        reuse_context=(scope=='context' and (root/'results.json').is_file() and
+            len(list(root.glob('*/depth_scores.json')))==1860)
+        if reuse_context:
+            ev=evaluator_cfg(scope,device='cpu',image=False,depth=False,seg=False)
+            res=json.loads((root/'results.json').read_text())
+            if 'absrel' not in res or 'rmse' not in res:
+                raise RuntimeError('saved completed baseline context result lacks official depth metrics')
+            alignments=[]
+            with torch.no_grad():
+                for scene_dir in sorted(p for p in root.iterdir() if p.is_dir()):
+                    for item in sorted((scene_dir/'depth').glob('*.png')):
+                        pred=ev.load_image_to_tensor(item,normalize=False)/1000.0
+                        gt=ev.load_image_to_tensor(scene_dir/'depth_gt'/item.name,normalize=False)/1000.0
+                        scale,shift=ev.fit_scale_and_shift(pred,gt)
+                        alignments.append({'scale':float(scale),'shift':float(shift),'valid_pixels':int((gt>0).sum())})
+        else:
+            ev,res=metric_run(root,scope,image=False,depth=True,seg=False)
+            alignments=ev._depth_alignments
         scores=[]
-        aligns=iter(ev._depth_alignments)
+        aligns=iter(alignments)
         for scene_dir in sorted(p for p in root.iterdir() if p.is_dir()):
             for score in json.loads((scene_dir/'depth_scores.json').read_text()):
                 item=score['item'];a=next(aligns)
