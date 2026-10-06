@@ -10,7 +10,7 @@
 #SBATCH --time=24:00:00
 #SBATCH --output=/space/mawb/ssst/workspace_group_plus/object_locus_text_refer_v1_train/slurm-%j.out
 #SBATCH --error=/space/mawb/ssst/workspace_group_plus/object_locus_text_refer_v1_train/slurm-%j.err
-set -euo pipefail
+set -eo pipefail
 source /space/mawb/anaconda3/etc/profile.d/conda.sh
 conda activate tokengs
 cd /space/mawb/ssst_object_locus_text_refer_v1
