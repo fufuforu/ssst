@@ -11,8 +11,25 @@ OFFICIAL_PYTHON="/space/mawb/SIU3R/.venv_gpu_v4/bin/python"
 GC100_JOB="${1:?usage: submit_object_locus_competition_gc001.sh GC100_JOB_ID}"
 
 mkdir -p "$REPORT/slurm"
-if [[ -e "$REPORT/job_receipt.json" ]]; then
-  echo "job receipt already exists; inspect it before submitting again" >&2
+RECEIPT="$REPORT/job_receipt.json"
+ATTEMPT=1
+if [[ -e "$RECEIPT" ]]; then
+  PREVIOUS_TRAIN="$("$PYTHON" -c 'import json,sys;print(json.load(open(sys.argv[1]))["training_job_id"])' "$RECEIPT")"
+  PREVIOUS_STATE="$(sacct -n -X -j "$PREVIOUS_TRAIN" --format=State | head -n 1 | xargs)"
+  case "$PREVIOUS_STATE" in
+    FAILED|CANCELLED|TIMEOUT|OUT_OF_MEMORY|NODE_FAIL) ;;
+    *) echo "previous training attempt is not a terminal failure ($PREVIOUS_STATE); refusing duplicate" >&2; exit 2 ;;
+  esac
+  ATTEMPT=2
+  RECEIPT="$REPORT/job_receipt_attempt$(printf '%02d' "$ATTEMPT").json"
+  if [[ -e "$RECEIPT" ]]; then
+    echo "receipt for retry attempt already exists; inspect it before submitting again" >&2
+    exit 2
+  fi
+fi
+ACTIVE_TRAIN="$(squeue -h -u "$USER" -n competition-gc001 -o '%i' | head -n 1)"
+if [[ -n "$ACTIVE_TRAIN" ]]; then
+  echo "competition training job $ACTIVE_TRAIN is already pending or running" >&2
   exit 2
 fi
 
@@ -66,11 +83,12 @@ EVAL_JOB="$(sbatch --parsable \
   --chdir="$REPO" \
   --wrap="export TASK_OFFICIAL_PYTHON=\"$OFFICIAL_PYTHON\"; \"$PYTHON\" -m scripts.eval_object_locus_gc_competition_four_arm && \"$OFFICIAL_PYTHON\" -m scripts.summarize_object_locus_gc_competition_four_arm")"
 
-"$PYTHON" - "$REPORT/job_receipt.json" "$GC100_JOB" "$TRAIN_JOB" "$EVAL_JOB" "$REPO" "$TRAIN_DEP_RECORD" <<'PY'
+"$PYTHON" - "$RECEIPT" "$GC100_JOB" "$TRAIN_JOB" "$EVAL_JOB" "$REPO" "$TRAIN_DEP_RECORD" "$ATTEMPT" <<'PY'
 import json, subprocess, sys, time
 from pathlib import Path
-out, gc100, train, evaluation, repo, dependency = sys.argv[1:]
+out, gc100, train, evaluation, repo, dependency, attempt = sys.argv[1:]
 record = {
+    "attempt": int(attempt),
     "created_unix": int(time.time()),
     "gc100_job_id": gc100,
     "training_job_id": train,

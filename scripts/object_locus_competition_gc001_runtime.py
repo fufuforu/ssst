@@ -25,7 +25,10 @@ ARMS = {'comp_gc001': 0.01}
 COMPETITION_LAMBDA = 2.0
 
 def build_comp_model(device='cpu'):
-    model, opt, source = _registered_build_model(device, report=False)
+    # The local wrapper performs the strict Full1201 load and returns its
+    # provenance; the low-level registered constructor returns only
+    # (model, options).
+    model, opt, source = build_model(device, report=False)
     if not isinstance(model, LocusGSObjectLocusPanopticV1Recon):
         raise TypeError('wrong registered Panoptic V1 class')
     before = tuple(model.state_dict().keys())
