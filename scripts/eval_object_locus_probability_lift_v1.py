@@ -13,7 +13,6 @@ from scripts import object_locus_panoptic_v1_runtime as base
 from scripts.object_locus_v3_set_runtime import build_batch, capture_rng, restore_rng
 from scripts.eval_object_locus_v3_set import _run, _candidate_stats
 from scripts.export_object_locus_v3_set_official import write_official_pair
-from scripts.invoke_siu3r_official_evaluator import evaluate
 from tokengs.models.object_locus_probability_lift_eval_v1 import LocusGSObjectLocusProbabilityLiftEvalV1
 
 CKPT = Path('/space/mawb/ssst/workspace_group_plus/object_locus_panoptic_full1201_8gpu/checkpoint_epoch_06.pt')
@@ -39,8 +38,9 @@ def compare(a,b):
     return float((a.detach().float()-b.detach().float()).abs().max()) if a.numel() else 0.
 
 def main():
-    p=argparse.ArgumentParser();p.add_argument('--smoke',action='store_true');args=p.parse_args()
     global REPORT
+    p=argparse.ArgumentParser();p.add_argument('--smoke',action='store_true');p.add_argument('--report-root',type=Path,default=REPORT);args=p.parse_args()
+    REPORT=args.report_root.resolve()
     if args.smoke: REPORT=REPORT/'smoke'
     REPORT.mkdir(parents=True,exist_ok=True);(REPORT/'logs').mkdir(exist_ok=True)
     if socket.gethostname()!='3dimage-17': raise RuntimeError('hardware contract requires 3dimage-17')
@@ -67,6 +67,7 @@ def main():
           'manifest_sha256':sha(MANIFEST),'val32_count':len(wins),'dev8_count':len(dev),'main_count':len(mainwins),
           'val32_windows':wins,'main_windows':mainwins,'effective_exposure':50064,'feedback_beta':.1,
           'new_exposures':0,'optimizer_updates':0,'training_backward':0,'precision':'FP32','TF32':False,
+          'previous_job_id':'58920','previous_status':'INVALID','previous_reason':'missing lpips before model construction',
           'host':socket.gethostname(),'gpu':torch.cuda.get_device_name(0),'job_id':os.environ.get('SLURM_JOB_ID')}
     (REPORT/'experiment_spec.json').write_text(json.dumps(spec,indent=2)+'\n')
     (REPORT/'manifests.json').write_text(json.dumps({'manifest_sha256':spec['manifest_sha256'],
@@ -169,8 +170,17 @@ def main():
       for arm in arms:
         for scope in scopes:
           root=REPORT/arm/cohort/'official'/scope
-          result=evaluate(root,device='cuda',segmentation=True,image_quality=False,depth_quality=False)
-          (REPORT/arm/cohort/f'official_{scope}.json').write_text(json.dumps(result,indent=2,default=str)+'\n')
+          envelope_path=REPORT/arm/cohort/f'official_{scope}_envelope.json'
+          flat_path=REPORT/arm/cohort/f'official_{scope}.json'
+          cmd=[os.environ['TASK_OFFICIAL_PYTHON'],str(REPO/'scripts/invoke_siu3r_official_evaluator.py'),
+               '--eval-path',str(root),'--output',str(envelope_path),'--device','cpu','--no-image-depth']
+          subprocess.run(cmd,check=True)
+          envelope=json.loads(envelope_path.read_text())
+          if envelope.get('official_evaluator_used') is not True or envelope.get('siu3r_commit')!=EXPECTED_SIU3R:
+            raise RuntimeError(f'pinned official evaluator provenance mismatch: {envelope}')
+          result=envelope.get('result')
+          if not isinstance(result,dict): raise RuntimeError('official evaluator result envelope missing result object')
+          flat_path.write_text(json.dumps(result,indent=2,default=str)+'\n')
     def csvwrite(path,rows):
       with path.open('w',newline='') as f:
         if rows:
@@ -187,7 +197,8 @@ def main():
       (REPORT/'complete.json').write_text(json.dumps({'status':'SMOKE_ONLY','windows':len(selected),'job_id':os.environ.get('SLURM_JOB_ID')},indent=2)+'\n')
       (REPORT.parent/'smoke.json').write_text(json.dumps({'status':'PASS','windows':len(selected),'job_id':os.environ.get('SLURM_JOB_ID')},indent=2)+'\n')
     else:
-      subprocess.run([sys.executable,str(REPO/'scripts/summarize_object_locus_probability_lift_v1.py')],check=True)
+      subprocess.run([os.environ['TASK_OFFICIAL_PYTHON'],str(REPO/'scripts/summarize_object_locus_probability_lift_v1.py'),
+                      '--report-root',str(REPORT)],check=True)
       (REPORT/'complete.json').write_text(json.dumps({'status':'COMPLETE','windows':len(selected),'job_id':os.environ.get('SLURM_JOB_ID')},indent=2)+'\n')
 
 if __name__=='__main__': main()
