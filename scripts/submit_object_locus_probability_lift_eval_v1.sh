@@ -6,11 +6,11 @@
 #SBATCH --cpus-per-task=4
 #SBATCH --mem=64G
 #SBATCH --time=24:00:00
-#SBATCH --output=/space/mawb/ssst/group_plus/object_locus_probability_lift_eval_v1/attempts/retry01/logs/slurm-%j.out
-#SBATCH --error=/space/mawb/ssst/group_plus/object_locus_probability_lift_eval_v1/attempts/retry01/logs/slurm-%j.err
+#SBATCH --output=/space/mawb/ssst/group_plus/object_locus_probability_lift_eval_v1/attempts/retry02/logs/slurm-%j.out
+#SBATCH --error=/space/mawb/ssst/group_plus/object_locus_probability_lift_eval_v1/attempts/retry02/logs/slurm-%j.err
 set -euo pipefail
 repo=/space/mawb/ssst_probability_lift_eval_v1
-report=/space/mawb/ssst/group_plus/object_locus_probability_lift_eval_v1/attempts/retry01
+report=/space/mawb/ssst/group_plus/object_locus_probability_lift_eval_v1/attempts/retry02
 TASK_MODEL_PYTHON=/space/mawb/anaconda3/envs/tokengs/bin/python
 TASK_OFFICIAL_PYTHON=/space/mawb/SIU3R/.venv_gpu_v4/bin/python
 mkdir -p "$report/logs"

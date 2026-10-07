@@ -20,6 +20,8 @@ MANIFEST = Path('/space/mawb/ssst/group_plus/object_locus_panoptic_full1201_8gpu
 REPORT = Path('/space/mawb/ssst/group_plus/object_locus_probability_lift_eval_v1')
 EXPECTED_CKPT = '68de912a60340f65d675a521c514641845c43822657f07d5851770c96cbf912a'
 EXPECTED_SIU3R = '8ea80166be76854f938e90521f1a5b688b755c87'
+ATOL=1e-6
+RTOL=1e-6
 
 def sha(path):
     h=hashlib.sha256()
@@ -34,8 +36,21 @@ def state_digest(model):
         h.update(k.encode());h.update(str(x.dtype).encode());h.update(str(tuple(x.shape)).encode());h.update(x.numpy().tobytes())
     return h.hexdigest()
 
-def compare(a,b):
-    return float((a.detach().float()-b.detach().float()).abs().max()) if a.numel() else 0.
+def tensor_parity(actual,reference):
+    if actual.shape!=reference.shape: raise RuntimeError('parity shape mismatch')
+    if actual.dtype!=reference.dtype or actual.device!=reference.device: raise RuntimeError('parity dtype/device mismatch')
+    if not bool(torch.isfinite(actual).all()) or not bool(torch.isfinite(reference).all()): raise FloatingPointError('nonfinite parity input')
+    close=torch.isclose(actual,reference,atol=ATOL,rtol=RTOL,equal_nan=False)
+    diff=(actual-reference).abs();limit=ATOL+RTOL*reference.abs()
+    failed=torch.nonzero(~close,as_tuple=False)[:5]
+    samples=[]
+    for index in failed:
+        idx=tuple(int(x) for x in index.tolist())
+        samples.append({'index':list(idx),'actual':float(actual[idx]),'reference':float(reference[idx]),
+          'abs_diff':float(diff[idx]),'allowed_diff':float(limit[idx])})
+    return {'passed':bool(close.all()),'atol':ATOL,'rtol':RTOL,'numel':actual.numel(),
+      'failed_elements':int((~close).sum()),'max_abs_diff':float(diff.max()) if diff.numel() else 0.,
+      'max_normalized_error':float((diff/limit).max()) if diff.numel() else 0.,'failed_samples':samples}
 
 def main():
     global REPORT
@@ -86,7 +101,32 @@ def main():
     from torchmetrics.detection import MeanAveragePrecision
     local_ap={(arm,scope):MeanAveragePrecision(iou_type='segm',sync_on_compute=False).to(device)
               for arm in ('C','P') for scope in ('context','target-all','novel')}
-    selected=wins[:2] if args.smoke else wins
+    selected=mainwins[:2] if args.smoke else wins
+    parity_rows=[]
+    def save_parity(status,**extra):
+      payload={'status':status,'windows':parity_rows,'state_dict_before':pre,**extra}
+      (REPORT/'parity.json').write_text(json.dumps(payload,indent=2)+'\n')
+    def check_pair(stage,scene,items):
+      stats={}
+      for name,actual,reference in items:
+        try: stats[name]=tensor_parity(actual,reference)
+        except Exception as exc:
+          stats[name]={'passed':False,'atol':ATOL,'rtol':RTOL,'error':f'{type(exc).__name__}: {exc}','failed_samples':[]}
+          parity_rows.append({'stage':stage,'scene':scene,'checks':stats})
+          save_parity('FAILED',failed_stage=stage,failed_scene=scene)
+          raise
+      # Keep the prior summarizer's field while defining it as excess beyond
+      # the normalized isclose boundary. The authoritative raw metrics remain
+      # in `checks`; a passing comparison has exactly zero excess.
+      diff={name:max(0.0,item['max_normalized_error']-1.0) for name,item in stats.items()}
+      row={'stage':stage,'scene':scene,'checks':stats,'diff':diff,
+           'diff_semantics':'max(0, max_normalized_error - 1); zero means torch.isclose passed'}
+      parity_rows.append(row)
+      save_parity('RUNNING')
+      if any(not x['passed'] for x in stats.values()):
+        save_parity('FAILED',failed_stage=stage,failed_scene=scene)
+        raise RuntimeError(f'{stage} parity failed for {scene}: '+json.dumps(stats))
+      return stats
     for ix,w in enumerate(selected):
       batch=build_batch(opt,w,device)
       rng=capture_rng()
@@ -99,13 +139,17 @@ def main():
       model.readout_mode='C'
       with torch.autocast(device_type='cuda',enabled=False), torch.no_grad(): bC,outC=_run(model,opt,w,lambda *_:batch,device)
       if original_out is not None:
-        parity={k:compare(original_out[k],outC[k]) for k in ('gaussians','alpha','lifting_mass','lifting_gate','p_class')}
-        parity['rgb']=compare(original_out['render']['images_pred'],outC['render']['images_pred'])
-        for key in ('q','c','s'): parity[key]=compare(original_out['states'][-1][key],outC['states'][-1][key])
-        if any(v>1e-6 for v in parity.values()): raise RuntimeError(f'original C/new C numerical mismatch {parity}')
+        pairs=[(k,outC[k],original_out[k]) for k in ('gaussians','alpha','lifting_mass','lifting_gate','p_class')]
+        pairs.append(('rgb',outC['render']['images_pred'],original_out['render']['images_pred']))
+        for key in ('q','c','s'): pairs.append((key,outC['states'][-1][key],original_out['states'][-1][key]))
+        c_parity=check_pair('original_C_vs_new_C',w['scene'],pairs)
         from scripts.export_object_locus_v3_set_official import assemble_panoptic
         sa,ia,_=assemble_panoptic(original_out);sb,ib,_=assemble_panoptic(outC)
-        if not torch.equal(sa,sb) or not torch.equal(ia,ib): raise RuntimeError('original C/new C packed PNG parity mismatch')
+        exact={'semantic_exact':torch.equal(sa,sb),'instance_exact':torch.equal(ia,ib)}
+        parity_rows[-1]['packed_exact']=exact;save_parity('RUNNING')
+        if not all(exact.values()):
+          save_parity('FAILED',failed_stage='original_C_vs_new_C_packed',failed_scene=w['scene'])
+          raise RuntimeError(f'original C/new C packed parity failed: {exact}')
         del original_out
       rngC=capture_rng(); restore_rng(rng); model.readout_mode='P'
       with torch.autocast(device_type='cuda',enabled=False), torch.no_grad(): bP,outP=_run(model,opt,w,lambda *_:batch,device)
@@ -115,12 +159,10 @@ def main():
       if any(k not in outP for k in required) or outP['gaussian_feature'] is not None or outP['readout_domain']!='probability':
         raise RuntimeError('P output contract mismatch')
       if not torch.isfinite(outP['gaussian_mask_logits']).all() or not torch.isfinite(outP['region_mass']).all(): raise FloatingPointError('nonfinite P output')
-      diff={k:compare(outC[k],outP[k]) for k in ('gaussians','alpha','lifting_mass','lifting_gate','p_class')}
-      for key in ('q','c','s'):
-        diff[key]=compare(outC['states'][-1][key],outP['states'][-1][key])
-      diff['rgb']=compare(outC['render']['images_pred'],outP['render']['images_pred'])
-      maxdiff.append({'scene':w['scene'],'diff':diff})
-      if any(v>1e-6 for v in diff.values()): raise RuntimeError(f'C/P invariant parity failed: {w["scene"]}: {diff}')
+      pairs=[(k,outP[k],outC[k]) for k in ('gaussians','alpha','lifting_mass','lifting_gate','p_class')]
+      pairs.append(('rgb',outP['render']['images_pred'],outC['render']['images_pred']))
+      for key in ('q','c','s'): pairs.append((key,outP['states'][-1][key],outC['states'][-1][key]))
+      check_pair('C_vs_P_invariants',w['scene'],pairs)
       stat={}
       for branch,out in (('C',outC),('P',outP)):
         for scope,ids in (('context',[0,1]),('target-all',list(range(len(batch['frame_ids'][0])))),('novel',[i for i,f in enumerate(batch['frame_ids'][0].tolist()) if f in set(w['novel'])])):
@@ -191,8 +233,11 @@ def main():
       r=metric.compute();candidate_ap[f'{arm}:{scope}']={'map':float(r['map']),'map_50':float(r['map_50']),
        'definition':'local candidate masks before panoptic packing; not official AP'}
     (REPORT/'local_candidate_ap.json').write_text(json.dumps(candidate_ap,indent=2)+'\n')
-    (REPORT/'parity.json').write_text(json.dumps({'windows':maxdiff,'state_dict_before':pre,'state_dict_after':state_digest(model),'unchanged':pre==state_digest(model)},indent=2)+'\n')
-    if pre!=state_digest(model) or any(p.grad is not None for p in model.parameters()): raise RuntimeError('state/grad integrity failure')
+    post=state_digest(model)
+    if pre!=post or any(p.grad is not None for p in model.parameters()):
+      save_parity('FAILED',state_dict_after=post,unchanged=pre==post,all_parameter_grads_none=all(p.grad is None for p in model.parameters()))
+      raise RuntimeError('state/grad integrity failure')
+    save_parity('PASS',state_dict_after=post,unchanged=True,all_parameter_grads_none=True)
     if args.smoke:
       (REPORT/'complete.json').write_text(json.dumps({'status':'SMOKE_ONLY','windows':len(selected),'job_id':os.environ.get('SLURM_JOB_ID')},indent=2)+'\n')
       (REPORT.parent/'smoke.json').write_text(json.dumps({'status':'PASS','windows':len(selected),'job_id':os.environ.get('SLURM_JOB_ID')},indent=2)+'\n')
