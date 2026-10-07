@@ -13,14 +13,24 @@ GC100_JOB="${1:?usage: submit_object_locus_competition_gc001.sh GC100_JOB_ID}"
 mkdir -p "$REPORT/slurm"
 RECEIPT="$REPORT/job_receipt.json"
 ATTEMPT=1
-if [[ -e "$RECEIPT" ]]; then
-  PREVIOUS_TRAIN="$("$PYTHON" -c 'import json,sys;print(json.load(open(sys.argv[1]))["training_job_id"])' "$RECEIPT")"
+PREVIOUS_RECEIPT="$("$PYTHON" - "$REPORT" <<'PY'
+import json, sys
+from pathlib import Path
+root=Path(sys.argv[1])
+paths=[p for p in root.glob("job_receipt*.json")]
+if paths:
+    paths.sort(key=lambda p: json.loads(p.read_text()).get("attempt", 1))
+    print(paths[-1])
+PY
+)"
+if [[ -n "$PREVIOUS_RECEIPT" ]]; then
+  PREVIOUS_TRAIN="$("$PYTHON" -c 'import json,sys;print(json.load(open(sys.argv[1]))["training_job_id"])' "$PREVIOUS_RECEIPT")"
   PREVIOUS_STATE="$(sacct -n -X -j "$PREVIOUS_TRAIN" --format=State | head -n 1 | xargs)"
   case "$PREVIOUS_STATE" in
     FAILED|CANCELLED|TIMEOUT|OUT_OF_MEMORY|NODE_FAIL) ;;
     *) echo "previous training attempt is not a terminal failure ($PREVIOUS_STATE); refusing duplicate" >&2; exit 2 ;;
   esac
-  ATTEMPT=2
+  ATTEMPT="$("$PYTHON" -c 'import json,sys;print(json.load(open(sys.argv[1])).get("attempt",1)+1)' "$PREVIOUS_RECEIPT")"
   RECEIPT="$REPORT/job_receipt_attempt$(printf '%02d' "$ATTEMPT").json"
   if [[ -e "$RECEIPT" ]]; then
     echo "receipt for retry attempt already exists; inspect it before submitting again" >&2

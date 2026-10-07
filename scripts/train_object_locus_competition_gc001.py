@@ -67,8 +67,12 @@ def compare_tree(a, b, path="root"):
         if a.shape != b.shape or a.dtype != b.dtype:
             raise AssertionError(f"tensor contract shape/dtype mismatch at {path}")
         if a.is_floating_point() or a.is_complex():
-            if not torch.isclose(a, b, atol=1e-6, rtol=1e-6).all():
-                raise AssertionError(f"tensor contract value mismatch at {path}")
+            close = torch.isclose(a, b, atol=1e-6, rtol=1e-6)
+            if not close.all():
+                delta = (a - b).abs()
+                raise AssertionError(
+                    f"tensor contract value mismatch at {path}; "
+                    f"max_abs={float(delta.max())}, failing={int((~close).sum())}/{close.numel()}")
         elif not torch.equal(a, b):
             raise AssertionError(f"tensor contract value mismatch at {path}")
         return
@@ -89,13 +93,19 @@ def model_method_contract(model, opt, window, device):
     batch = build_batch(opt, window, device)
     original_keys = tuple(model.state_dict().keys())
     model.eval()
+    # The original forward can use seeded stochastic CUDA operations. Replay
+    # the exact rank RNG state so lambda=0 and lambda=2 are compared on the
+    # same random stream; the contract itself does not consume training RNG.
+    rng_before = capture_rng()
     with torch.no_grad():
         model.competition_lambda = 0.0
         base_out, base_metrics = model.step_loss(
             batch, step=SOURCE_EXPOSURES + 8 * 25, understanding_weight=1.0)
+        restore_rng(rng_before)
         model.competition_lambda = COMPETITION_LAMBDA
         comp_out, comp_metrics = model.step_loss(
             batch, step=SOURCE_EXPOSURES + 8 * 25, understanding_weight=1.0)
+        restore_rng(rng_before)
     compare_tree(base_out["prediction"], comp_out["prediction"], "prediction")
     from scripts.export_object_locus_v3_set_official import assemble_panoptic
     base_packed = assemble_panoptic(base_out["prediction"])
