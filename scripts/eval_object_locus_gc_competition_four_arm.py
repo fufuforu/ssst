@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import csv
+import argparse
 import hashlib
 import json
 import math
@@ -15,8 +16,8 @@ import torch
 
 from scripts.object_locus_competition_gc001_runtime import (
     ARMS, REPORT_ROOT, RUN_ROOT, SOURCE_CHECKPOINT, SOURCE_EXPOSURES,
-    SOURCE_MANIFEST, SOURCE_SHA256, build_batch, build_comp_model,
-    build_optimizer, rank_world, sha256, write_json,
+    SOURCE_MANIFEST, SOURCE_SHA256, build_batch,
+    rank_world, sha256, write_json,
 )
 from scripts.object_locus_panoptic_v1_runtime import build_model as build_registered_model
 from scripts.eval_object_locus_v3_set import _candidate_stats
@@ -44,7 +45,7 @@ def tensor_state_sha(model) -> str:
     return h.hexdigest()
 
 
-def checkpoint_rows():
+def checkpoint_rows(eval_root: Path):
     src_hash = sha256(SOURCE_CHECKPOINT)
     if src_hash != SOURCE_SHA256:
         raise RuntimeError(f"Full1201 source checkpoint SHA mismatch: {src_hash}")
@@ -91,7 +92,7 @@ def checkpoint_rows():
                      "source_manifest_sha256": manifest_sha,
                      "code_sha": blob["code_sha"]})
         del blob
-    write_json(REPORT_ROOT / "four_arm_evaluation/checkpoint_manifest.json", {
+    write_json(eval_root / "checkpoint_manifest.json", {
         "source_checkpoint": str(SOURCE_CHECKPOINT), "source_sha256": src_hash,
         "plan_sha256": plan_sha, "source_manifest_path": str(source_manifest),
         "source_manifest_sha256": manifest_sha, "endpoints": rows,
@@ -126,11 +127,84 @@ def invoke_official(eval_path: Path, out_path: Path):
         raise RuntimeError(f"official evaluator provenance mismatch: {out_path}")
 
 
-def run_inference(device):
-    eval_root = REPORT_ROOT / "four_arm_evaluation"
+def run_interface_smoke(device, smoke_root: Path):
+    if smoke_root.exists() and any(smoke_root.iterdir()):
+        raise RuntimeError(f"smoke output already exists; refusing overwrite: {smoke_root}")
+    smoke_root.mkdir(parents=True, exist_ok=True)
+    manifest = json.loads((REPORT_ROOT / "source_manifest.json").read_text())
+    dev = {str(w["scene"]) for w in manifest["dev8"]}
+    windows = [w for w in manifest["val32"] if str(w["scene"]) not in dev]
+    if len(windows) != 24:
+        raise RuntimeError("interface smoke requires the registered val32-excluding-dev8 cohort")
+    window = windows[0]
+    _, _, endpoints = checkpoint_rows(smoke_root)
+    smoke_rows = []
+    for endpoint in endpoints:
+        arm = endpoint["arm"]
+        model, opt = build_registered_model(device, report=False)
+        blob = torch.load(endpoint["checkpoint"], map_location="cpu", weights_only=False, mmap=True)
+        model.load_state_dict(blob["model"], strict=True)
+        del blob
+        model.understanding_step = 58128
+        model.eval()
+        before = tensor_state_sha(model)
+        batch = build_batch(opt, window, device)
+        model_input, _ = split_data(batch, opt)
+        decoder = ModelInputDecoder(cam_view=batch["cam_view_all"], intrinsics=batch["intrinsics_all"])
+        with torch.no_grad():
+            out = model.forward_object_locus(ModelInput(model_input.encoder, decoder),
+                    render_decoder_input=decoder, context_decoder=decoder, step=58128)
+        beta = float(torch.as_tensor(out["beta"]).detach().cpu())
+        if not math.isclose(beta, 0.1, abs_tol=1e-6, rel_tol=1e-6):
+            raise RuntimeError(f"{arm} interface smoke beta mismatch: {beta}")
+        for key in ("gaussians", "region_mass", "alpha", "p_class", "semantic_scores"):
+            value = out.get(key)
+            if torch.is_tensor(value) and not torch.isfinite(value).all():
+                raise FloatingPointError(f"{arm} interface smoke nonfinite {key}")
+        for key in ("images_pred", "depths_pred"):
+            value = out["render"].get(key)
+            if torch.is_tensor(value) and not torch.isfinite(value).all():
+                raise FloatingPointError(f"{arm} interface smoke nonfinite render {key}")
+        if "images_pred" not in out["render"] or out["render"]["images_pred"].shape[0] != 1:
+            raise RuntimeError(f"{arm} interface smoke missing batch-one RGB render")
+        frame_ids = [int(v) for v in batch["frame_ids"][0].detach().cpu().tolist()]
+        novel_ids = set(map(int, window["novel"]))
+        scopes = {"context": [0, 1], "target-all": list(range(len(frame_ids))),
+                  "true-novel": [i for i, fid in enumerate(frame_ids) if fid in novel_ids]}
+        candidate = {}
+        for scope, ids in scopes.items():
+            stats = _candidate_stats(out, batch, ids)
+            payload = stats.pop("_map_payload")
+            if not payload or "pred" not in payload or "target" not in payload:
+                raise RuntimeError(f"{arm} candidate interface failed for {scope}")
+            candidate[scope] = {"candidate_count": stats["candidate_count"],
+                                "gt_count": stats["gt_count"]}
+        arm_root = smoke_root / arm
+        write_official_pair(out, batch, window, arm_root / "official_all", target_frames="all")
+        write_official_pair(out, batch, window, arm_root / "official_novel", target_frames="novel")
+        after = tensor_state_sha(model)
+        if after != before:
+            raise RuntimeError(f"{arm} interface smoke mutated model state")
+        if any(p.grad is not None for p in model.parameters()):
+            raise RuntimeError(f"{arm} interface smoke populated model gradients")
+        smoke_rows.append({"arm": arm, "checkpoint": endpoint["checkpoint"],
+                           "window": {"scene": window["scene"], "context": window["context"],
+                                      "novel": window["novel"]}, "beta": beta,
+                           "context_indices": [0, 1], "candidate_scopes": candidate,
+                           "state_sha256_before_after": before, "state_unchanged": True,
+                           "gradients_none": True, "official_all_export": True,
+                           "official_novel_export": True})
+        del model, opt, batch, out, decoder, model_input
+        torch.cuda.empty_cache()
+    write_json(smoke_root / "interface_smoke.json", {
+        "status": "PASS", "four_endpoints": smoke_rows,
+        "no_single_window_metric_interpretation": True})
+
+
+def run_inference(device, eval_root: Path, evaluation_code_sha: str):
     if eval_root.exists() and any(eval_root.iterdir()):
-        raise RuntimeError("evaluation output already exists; refusing overwrite")
-    manifest, plan, checkpoints = checkpoint_rows()
+        raise RuntimeError(f"evaluation output already exists; refusing overwrite: {eval_root}")
+    manifest, plan, checkpoints = checkpoint_rows(eval_root)
     eval_root.mkdir(parents=True, exist_ok=True)
     dev_scenes = {str(w["scene"]) for w in manifest["dev8"]}
     val_scenes = {str(w["scene"]) for w in manifest["val32"]}
@@ -158,8 +232,7 @@ def run_inference(device):
     local_summary = {}
     for endpoint in checkpoints:
         arm = endpoint["arm"]
-        model, opt, source = (build_comp_model(device) if arm == "comp_gc001"
-                              else build_registered_model(device, report=False))
+        model, opt = build_registered_model(device, report=False)
         blob_path = Path(endpoint["checkpoint"])
         blob = torch.load(blob_path, map_location="cpu", weights_only=False, mmap=True)
         model.load_state_dict(blob["model"], strict=True)
@@ -252,7 +325,7 @@ def run_inference(device):
                                                    target_frames="novel")
                 cache_rel = Path("reconstruction_cache") / arm / split / (
                     str(window["scene"]) + "_context" + "_".join(map(str, window["context"])) + ".npz")
-                cache_path = REPORT_ROOT / "four_arm_evaluation" / cache_rel
+                cache_path = eval_root / cache_rel
                 cache_path.parent.mkdir(parents=True, exist_ok=True)
                 render_depth = out["render"]["depths_pred"]
                 if render_depth.ndim == 5:
@@ -321,6 +394,8 @@ def run_inference(device):
         "official_evaluator_commit": SIU3R_COMMIT,
         "official_python": OFFICIAL_PYTHON,
         "task_python": sys.executable, "tf32": False,
+        "evaluation_code_sha": evaluation_code_sha,
+        "checkpoint_training_code_sha": {r["arm"]: r["code_sha"] for r in checkpoints},
         "source_manifest_sha256": sha256(REPORT_ROOT / "source_manifest.json"),
         "plan_sha256": sha256(REPORT_ROOT / "training_plan.json"),
         "window_identity_file": str(identity_path), "window_identity_sha256": sha256(identity_path),
@@ -330,6 +405,11 @@ def run_inference(device):
 
 
 def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--eval-root", type=Path, required=True)
+    parser.add_argument("--interface-smoke", action="store_true")
+    parser.add_argument("--smoke-root", type=Path)
+    args = parser.parse_args()
     if "WORLD_SIZE" in os.environ and int(os.environ["WORLD_SIZE"]) != 1:
         raise RuntimeError("four-arm evaluation is single-process, single-GPU")
     if not torch.cuda.is_available():
@@ -345,7 +425,14 @@ def main():
     torch.backends.cuda.matmul.allow_tf32 = False
     torch.backends.cudnn.allow_tf32 = False
     torch.set_float32_matmul_precision("highest")
-    run_inference(torch.device("cuda", 0))
+    if args.interface_smoke:
+        if args.smoke_root is None:
+            raise RuntimeError("--interface-smoke requires --smoke-root")
+        run_interface_smoke(torch.device("cuda", 0), args.smoke_root)
+    else:
+        sha = subprocess.check_output(["git", "-C", str(Path(__file__).resolve().parents[1]),
+                                       "rev-parse", "HEAD"], text=True).strip()
+        run_inference(torch.device("cuda", 0), args.eval_root, sha)
 
 
 if __name__ == "__main__":

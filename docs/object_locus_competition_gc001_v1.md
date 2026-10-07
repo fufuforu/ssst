@@ -27,3 +27,13 @@ scripts/submit_object_locus_competition_gc001.sh <verified-gc100-job-id>
 ```
 
 The training runner executes the eight-card smoke before the fresh formal run. The evaluator performs one forward per registered window and reuses it for local statistics, official all/novel exports, and float reconstruction caches. A separate SIU3R environment process computes reconstruction metrics and paired scene bootstrap intervals. It does not run full-1860 validation or select a checkpoint.
+
+## Evaluation-only recovery (retry01)
+
+The original unified evaluation attempt failed before inference because its competition-model construction branch expected three return values while the registered constructor returns `(model, options)`. All four endpoint checkpoints have identical registered state structure, so the retry loads every endpoint through the registered Panoptic V1 constructor and applies `load_state_dict(..., strict=True)`. The competition checkpoint's training provenance remains its original training SHA; the retry records evaluation code SHA separately.
+
+The retry writes only to `four_arm_evaluation_retry01/`; the failed `four_arm_evaluation/` attempt and all training provenance remain untouched. A single-GPU job first runs a one-window interface smoke for all four endpoints under `four_arm_eval_interface_smoke_retry01/`, then runs full inference/export and pinned SIU3R reduction/bootstrap in the same allocation. Submit only the evaluation job with:
+
+```bash
+scripts/submit_object_locus_competition_gc_eval_only.sh
+```

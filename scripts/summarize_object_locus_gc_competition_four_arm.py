@@ -2,6 +2,7 @@
 from __future__ import annotations
 
 import csv
+import argparse
 import hashlib
 import json
 import math
@@ -390,6 +391,11 @@ def summarize(recon, per_window, boot):
 
 
 def main():
+    global EVAL
+    parser = argparse.ArgumentParser()
+    parser.add_argument("--eval-root", type=Path, required=True)
+    args = parser.parse_args()
+    EVAL = args.eval_root
     if Path(sys.executable).resolve() != Path(
             "/space/mawb/SIU3R/.venv_gpu_v4/bin/python").resolve():
         raise RuntimeError(f"summary requires pinned SIU3R interpreter, got {sys.executable}")
@@ -400,6 +406,8 @@ def main():
     provenance = json.loads((EVAL / "provenance.json").read_text())
     if provenance.get("status") != "INFERENCE_AND_OFFICIAL_EXPORT_COMPLETE":
         raise RuntimeError("model inference/export stage is incomplete")
+    if not provenance.get("evaluation_code_sha") or not provenance.get("checkpoint_training_code_sha"):
+        raise RuntimeError("evaluation/training code provenance is incomplete")
     recon, per_window = reconstruction_metrics()
     boot = bootstrap()
     summarize(recon, per_window, boot)
