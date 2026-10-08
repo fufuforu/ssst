@@ -10,7 +10,7 @@ def main():
  a=argparse.ArgumentParser();a.add_argument('--attempt',type=Path,required=True);x=a.parse_args();root=Path(__file__).resolve().parents[1]
  out=x.attempt/'execution_files_manifest.json'
  if out.exists():raise RuntimeError(f'refusing to overwrite execution files manifest: {out}')
- files=sorted([*root.glob('scripts/*.py'),*root.glob('tokengs/models/*.py'),*root.glob('tests/*.py'),*root.glob('tests/fixtures/*.json'),*root.glob('slurm/*.sbatch'),*root.glob('docs/frozen_probe_attempt02_finite_resume.md'),*root.glob('docs/object_locus_frozen_probe_resume_attempt03.md')])
+ files=sorted([*root.glob('scripts/*.py'),*root.glob('tokengs/models/*.py'),*root.glob('tests/*.py'),*root.glob('tests/fixtures/*.json'),*root.glob('slurm/*.sbatch'),*root.glob('docs/frozen_probe_attempt02_finite_resume.md'),*root.glob('docs/object_locus_frozen_probe_resume_attempt03.md'),*root.glob('docs/object_locus_frozen_probe_attempt06_classification_flatten_fix.md')])
  rows=[{'path':str(p.relative_to(root)),'sha256':sha(p),'size':p.stat().st_size} for p in files]
  siu=Path('/space/mawb/SIU3R');siu_sha=subprocess.check_output(['git','rev-parse','HEAD'],cwd=siu,text=True).strip();task_repo=Path(__file__).resolve().parents[1]
  if siu_sha!='8ea80166be76854f938e90521f1a5b688b755c87':raise RuntimeError(f'locked SIU3R commit changed: {siu_sha}')

@@ -40,6 +40,48 @@ def probs(logits):
 def cls_summary(pclass,labels):
     return classification_summary(pclass,labels)
 
+def flatten_aligned_batch(pclass, labels, *, queries=100, classes=19):
+    """Flatten window-major/query-major classifier batches after strict alignment checks."""
+    p=np.asarray(pclass); y=np.asarray(labels)
+    if p.ndim not in (2,3) or p.shape[-1] != classes:
+        raise ValueError(f'pclass must be [N,{classes}] or [B,Q,{classes}] before flattening; got {p.shape}')
+    if p.ndim == 3 and p.shape[1] != queries:
+        raise ValueError(f'batched pclass query dimension must be {queries}; got {p.shape}')
+    if p.shape[:-1] != y.shape:
+        raise ValueError(f'pclass leading dimensions {p.shape[:-1]} do not match labels {y.shape}')
+    flat_p=p.reshape((-1,classes),order='C')
+    flat_y=y.reshape(-1,order='C')
+    if flat_p.ndim != 2 or flat_p.shape[1] != classes or flat_y.ndim != 1 or len(flat_p) != len(flat_y):
+        raise ValueError(f'flattened p/y contract failed: {flat_p.shape}/{flat_y.shape}')
+    return flat_p,flat_y
+
+def summarize_train_readout(train_data, head, model=None, batch_size=16):
+    """Use the same ordered batch aggregation for formal evaluation and preflight."""
+    p_batches=[];y_batches=[];batch_records=[]
+    for start in range(0,len(train_data),batch_size):
+        rows=train_data[start:start+batch_size]
+        raw_y=np.stack([r['labels'] for r in rows])
+        if head=='H0':
+            raw_p=np.stack([r['pclass'] for r in rows])
+        else:
+            if model is None: raise ValueError(f'{head} requires a loaded readout')
+            q=torch.from_numpy(np.stack([r['q'] for r in rows])).float()
+            z=torch.from_numpy(np.stack([r['z'] for r in rows])).float()
+            with torch.no_grad(): raw_p=probs(model(q,z))
+        expected=(len(rows),100,19)
+        if raw_p.shape != expected:
+            raise ValueError(f'{head} batch pclass must be {expected}; got {raw_p.shape}')
+        if raw_y.shape != expected[:-1]:
+            raise ValueError(f'{head} batch labels must be {expected[:-1]}; got {raw_y.shape}')
+        p,y=flatten_aligned_batch(raw_p,raw_y)
+        p_batches.append(p);y_batches.append(y)
+        batch_records.append({'start_window_index':start,'window_count':len(rows),'p_shape':list(raw_p.shape),
+            'y_shape':list(raw_y.shape),'flat_p_shape':list(p.shape),'flat_y_shape':list(y.shape)})
+    p=np.concatenate(p_batches,axis=0);y=np.concatenate(y_batches,axis=0)
+    if p.shape!=(len(train_data)*100,19) or y.shape!=(len(train_data)*100,):
+        raise ValueError(f'{head} final train aggregation mismatch: {p.shape}/{y.shape}')
+    return p,y,batch_records
+
 def ranking_metrics(binary,score):
     y=np.asarray(binary,dtype=bool);s=np.asarray(score,dtype=np.float64)
     pos=int(y.sum());neg=int((~y).sum())
@@ -191,22 +233,17 @@ def main():
     for head,seed in readouts:
         if head=='R3D':continue
         name=head if head=='H0' else f'{head}_seed_{seed}'
-        if head=='H0':train_p=np.concatenate([r['pclass'] for r in train_data])
+        if head=='H0':
+            train_p,train_y,batch_shapes=summarize_train_readout(train_data,head)
         else:
             cp=torch.load(root/'heads'/head/f'seed_{seed}'/'best.pt',map_location='cpu',weights_only=False)
             model=Readout(head).cpu().float();model.load_state_dict(cp['state_dict'],strict=True);model.eval()
-            train_p=[]
-            with torch.no_grad():
-                for start in range(0,len(train_data),16):
-                    q=torch.from_numpy(np.stack([r['q'] for r in train_data[start:start+16]])).float()
-                    z=torch.from_numpy(np.stack([r['z'] for r in train_data[start:start+16]])).float()
-                    train_p.append(probs(model(q,z)))
-            train_p=np.concatenate(train_p)
-        train_y=np.concatenate([r['labels'] for r in train_data])
+            train_p,train_y,batch_shapes=summarize_train_readout(train_data,head,model)
         sm=cls_summary(train_p,train_y)
         feature.append({'cohort':'train','scope':'context','head':head,'seed':seed,'threshold':None,
             **{k:v for k,v in sm.items() if k not in ('confusion_18x19','per_class')},
-            'confusion_18x19':sm['confusion_18x19'],'per_class':sm['per_class']})
+            'confusion_18x19':sm['confusion_18x19'],'per_class':sm['per_class'],
+            'aggregation_batch_shapes':batch_shapes})
     del train_data
     # A0/A1 training context is computed from the already saved complete GT x
     # query IoU matrices; no train region images or additional model forward.
