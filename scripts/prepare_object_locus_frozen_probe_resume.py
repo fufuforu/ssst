@@ -103,7 +103,13 @@ def main():
         raise RuntimeError('R3D receipt contains nonfinite window records')
     def identity(row):
         return (row['window_id'], row['split'], row['scene'], tuple(row['context']), tuple(row['novel']), tuple(row['frame_ids']))
-    fixed_identities = [identity(row) for split in ('test', 'dev') for row in cohort[split]]
+    fixed_identities = []
+    for split in ('test', 'dev'):
+        for index, row in enumerate(cohort[split]):
+            window_id = f'{split}_{index:04d}_{row["scene"]}_c{"_".join(map(str, row["context"]))}'
+            frame_ids = list(row['context']) + list(row['novel'])
+            fixed_identities.append((window_id, split, row['scene'], tuple(row['context']),
+                                     tuple(row['novel']), tuple(frame_ids)))
     if [identity(row) for row in r3d['records']] != fixed_identities:
         raise RuntimeError('R3D record window/frame identity differs from the fixed cohort manifest')
     if [identity(row) for row in r3d_cache_manifest['records']] != fixed_identities:
