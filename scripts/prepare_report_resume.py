@@ -17,12 +17,13 @@ def main():
  if not (dst/'preflight/report_preflight.json').is_file():raise RuntimeError('report preflight result is required before preparing attempt root')
  pre=json.loads((dst/'preflight/report_preflight.json').read_text())
  if pre.get('status')!='PASS':raise RuntimeError('report preflight is not PASS')
- allowed_dirs={'slurm','predictions','official','labels','heads','cache','r3d','reconstruction_cache','features','reference_gpu','provenance','preflight'}
- unexpected=[p.name for p in dst.iterdir() if p.name not in allowed_dirs]
- if unexpected:raise RuntimeError(f'refusing to overlay unexpected attempt-root outputs: {unexpected}')
  reuse=json.loads((src/'evaluation_reuse_manifest.json').read_text())
  if reuse.get('status')!='PASS' or reuse.get('missing_consumed_paths'):raise RuntimeError('source evaluation reuse manifest is incomplete')
  manifest_paths={str(row['relative_path']) for row in reuse['files']}
+ allowed_dirs={'slurm','predictions','official','labels','heads','cache','r3d','reconstruction_cache','features','reference_gpu','provenance','preflight'}
+ allowed_top_files={Path(name).name for name in manifest_paths if '/' not in name}
+ unexpected=[p.name for p in dst.iterdir() if p.name not in allowed_dirs and p.name not in allowed_top_files]
+ if unexpected:raise RuntimeError(f'refusing to overlay unexpected attempt-root outputs: {unexpected}')
  for p in dst.iterdir():
   if p.is_dir() and p.name not in allowed_dirs:raise RuntimeError(f'unexpected partial output directory: {p}')
   if p.is_file() and p.name!='preflight/report_preflight.json' and p.name not in manifest_paths:raise RuntimeError(f'unexpected partial output file: {p}')
