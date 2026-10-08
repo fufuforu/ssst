@@ -14,10 +14,10 @@ WORKTREE=/space/mawb/ssst_object_locus_frozen_representation_diagnostic_v1
 cd "$WORKTREE"
 test -n "${TASK_ATTEMPT_ROOT:-}"; test -n "${TASK_CODE_SHA:-}"
 mkdir -p "$TASK_ATTEMPT_ROOT/slurm"
-/space/mawb/anaconda3/envs/tokengs/bin/python scripts/verify_execution_files_manifest.py --attempt "$TASK_ATTEMPT_ROOT"
+/space/mawb/anaconda3/envs/tokengs/bin/python -m scripts.verify_execution_files_manifest --attempt "$TASK_ATTEMPT_ROOT"
 export CUDA_VISIBLE_DEVICES='' OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 NUMEXPR_NUM_THREADS=4
 test "$(/space/mawb/anaconda3/envs/tokengs/bin/python -c "import json,sys;print(json.load(open(sys.argv[1]))['status'])" "$TASK_ATTEMPT_ROOT/extraction_complete.json")" = PASS
 test -f "$TASK_ATTEMPT_ROOT/r3d_frozen_inference_receipt.json"
 test -f "$TASK_ATTEMPT_ROOT/heads_complete.json"
-/space/mawb/anaconda3/envs/tokengs/bin/python scripts/eval_object_locus_frozen_probe.py --attempt "$TASK_ATTEMPT_ROOT"
-TASK_OFFICIAL_PYTHON=/space/mawb/SIU3R/.venv_gpu_v4/bin/python TASK_ATTEMPT_ROOT="$TASK_ATTEMPT_ROOT" /space/mawb/SIU3R/.venv_gpu_v4/bin/python scripts/report_object_locus_frozen_probe.py --attempt "$TASK_ATTEMPT_ROOT"
+/space/mawb/anaconda3/envs/tokengs/bin/python -m scripts.eval_object_locus_frozen_probe --attempt "$TASK_ATTEMPT_ROOT"
+TASK_OFFICIAL_PYTHON=/space/mawb/SIU3R/.venv_gpu_v4/bin/python TASK_ATTEMPT_ROOT="$TASK_ATTEMPT_ROOT" /space/mawb/SIU3R/.venv_gpu_v4/bin/python -m scripts.report_object_locus_frozen_probe --attempt "$TASK_ATTEMPT_ROOT"

@@ -15,6 +15,6 @@ WORKTREE=/space/mawb/ssst_object_locus_frozen_representation_diagnostic_v1
 cd "$WORKTREE"
 test -n "${TASK_ATTEMPT_ROOT:-}"; test -n "${TASK_CODE_SHA:-}"
 mkdir -p "$TASK_ATTEMPT_ROOT/slurm"
-/space/mawb/anaconda3/envs/tokengs/bin/python scripts/verify_execution_files_manifest.py --attempt "$TASK_ATTEMPT_ROOT"
 export OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4
-/space/mawb/anaconda3/envs/tokengs/bin/python scripts/train_parallel_probe_heads.py --attempt "$TASK_ATTEMPT_ROOT"
+/space/mawb/anaconda3/envs/tokengs/bin/python -m scripts.verify_execution_files_manifest --attempt "$TASK_ATTEMPT_ROOT"
+/space/mawb/anaconda3/envs/tokengs/bin/python -m scripts.train_parallel_probe_heads --attempt "$TASK_ATTEMPT_ROOT"

@@ -3,6 +3,16 @@
 import argparse,csv,json,os,subprocess,sys
 from pathlib import Path
 from scripts.object_locus_probe_metrics import verify_gc_cache_manifest
+
+ROOT = Path(__file__).resolve().parents[1]
+
+
+def worker_command(head, attempt, python=sys.executable):
+    """Build the single supported module entrypoint for one allocated GPU."""
+    return [str(python), '-m', 'scripts.train_object_locus_frozen_probe_head_worker',
+            '--head', head, '--device', 'cuda:0', '--attempt', str(attempt)]
+
+
 def main():
  p=argparse.ArgumentParser();p.add_argument('--attempt',type=Path,required=True);a=p.parse_args();root=a.attempt
  if not root.joinpath('extraction_complete.json').is_file():raise RuntimeError('A receipt missing')
@@ -14,8 +24,8 @@ def main():
  procs=[]
  for idx,head in enumerate(('H1','H2','H3')):
   env=os.environ.copy();env['CUDA_VISIBLE_DEVICES']=assigned[idx];env['OMP_NUM_THREADS']='4';env['MKL_NUM_THREADS']='4';env['OPENBLAS_NUM_THREADS']='4'
-  cmd=[sys.executable,'scripts/train_object_locus_frozen_probe_head_worker.py','--head',head,'--device','cuda:0','--attempt',str(root)]
-  procs.append((head,subprocess.Popen(cmd,env=env)))
+  cmd=worker_command(head,root)
+  procs.append((head,subprocess.Popen(cmd,cwd=str(ROOT),env=env)))
  failures=[]
  for head,proc in procs:
   code=proc.wait()

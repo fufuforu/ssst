@@ -407,7 +407,7 @@ def zip_tree(path,members,root):
 
 def package(root):
     maxsize=25*1024*1024; main=[]
-    wanted=['protocol.json','effective_execution_protocol.json','retry02_preflight.json','r3d_registration_normalized.json','r3d_registration_decision_contract_checks.json','git_provenance.json','source_manifest.json','data_contract.json','cohort_manifest.json','freeze_check.json','endpoint_load_check.json','parallel_execution_registration.json','execution_files_manifest.json','previous_attempt.json',
+    wanted=['protocol.json','effective_execution_protocol.json','retry02_preflight.json','entrypoint_preflight.json','cache_reuse_manifest.json','source_stage_provenance.json','execution_code_identity.json','r3d_registration_normalized.json','r3d_registration_decision_contract_checks.json','git_provenance.json','source_manifest.json','data_contract.json','cohort_manifest.json','freeze_check.json','endpoint_load_check.json','parallel_execution_registration.json','execution_files_manifest.json','previous_attempt.json',
       'extraction_complete.json','startup_confirmation.json','smoke.json','smoke_cpu.json','cache_manifest.json','h0_cache_replay_parity.json','h0_cache_replay_parity_first_dev.json','r3d_endpoint_manifest.json','r3d_frozen_inference_receipt.json','r3d_cache_manifest.json','r3d_h0_cache_pair_identity.json','r3d_vs_h0_registration_result.json','reconstruction_metrics.csv','unified_official_metrics.csv','unified_scene_paired_differences.csv','unified_paired_bootstrap.json','jobs.json','cohort_identity.json','public_cohort_identity_receipt.json','reconstruction_evaluator_status.json','execution_files_manifest.json','parallel_execution_registration.json','h0_against_previous_precheck.json','endpoint_load_check.json','freeze_check.json','heads_complete.json','eval_complete.json','bundle_manifest.json','complete.json',
       'h0_against_previous.json','labels/train_labels.csv','labels/dev_test_labels.csv','labels/original_context_hungarian.csv',
       'features/dev_test_q_z.npz','oracle_metrics.csv','class_support.csv','head_manifest.json','training_scalars.csv','feature_probe_metrics.csv',
@@ -417,7 +417,8 @@ def package(root):
       'reproduce_report_cpu.py','scripts/object_locus_frozen_probe_contract.py','scripts/extract_object_locus_frozen_probe.py',
       'scripts/train_object_locus_frozen_probe.py','scripts/eval_object_locus_frozen_probe.py','scripts/report_object_locus_frozen_probe.py',
       'scripts/prepare_object_locus_frozen_probe.py','scripts/object_locus_probe_metrics.py','scripts/object_locus_r3d_registration.py','scripts/train_object_locus_frozen_probe_head_worker.py','scripts/train_parallel_probe_heads.py','scripts/eval_r3d_frozen_inference.py','scripts/verify_execution_files_manifest.py','scripts/write_execution_files_manifest.py','scripts/reproduce_frozen_probe_report_cpu.py','tokengs/models/object_locus_output_refine_gc001.py','tokengs/models/object_locus_output_refine_v1.py','tests/test_object_locus_frozen_probe_contracts.py','tests/fixtures/siu3r_gc001_native_official_result.json',
-      'slurm/extract_frozen_probe.sbatch','slurm/cpu_probe_eval.sbatch','slurm/eval_r3d_inference.sbatch','slurm/train_probe_heads_parallel.sbatch','slurm/unified_eval_report.sbatch']
+      'slurm/extract_frozen_probe.sbatch','slurm/cpu_probe_eval.sbatch','slurm/eval_r3d_inference.sbatch','slurm/train_probe_heads_parallel.sbatch','slurm/unified_eval_report.sbatch',
+      'provenance/source_attempt02/git_provenance.json','provenance/source_attempt02/execution_files_manifest.json']
     for rel in wanted:
         p=(ROOT/rel) if rel.startswith(('scripts/','tokengs/','tests/','slurm/')) else root/rel
         if p.is_file():main.append((p,rel))
