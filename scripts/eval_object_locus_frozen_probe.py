@@ -1,7 +1,7 @@
 #!/usr/bin/env python3
 """Replay all readouts from frozen CPU caches; export and score packed masks."""
 from __future__ import annotations
-import argparse,csv,json,os,subprocess,sys
+import argparse,csv,hashlib,json,os,subprocess,sys
 from pathlib import Path
 import numpy as np
 import torch
