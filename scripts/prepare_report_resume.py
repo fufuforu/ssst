@@ -79,6 +79,7 @@ def main():
   'cached_eval_cache_sha_verification.json','execution_code_identity.json')
  for name in small:
   p=src/name
+  if not p.is_file() and name in ('smoke.json','smoke_cpu.json'):continue
   if not p.is_file():raise FileNotFoundError(f'report small input missing: {p}')
   target=dst/name;copy_file(p,target);entries[name]={'source_path':str(p),'original_manifest_source_path':str(p),'size':p.stat().st_size,'sha256':sha(p),'method':'byte_copy'}
  report_preflight=dst/'preflight/report_preflight.json'
@@ -106,6 +107,13 @@ def main():
    target_root=dst/'provenance'/f'source_{attempt}';shutil.copytree(p,target_root,dirs_exist_ok=True,symlinks=True)
    for source in sorted(x for x in p.rglob('*') if x.is_file()):
     target=target_root/source.relative_to(p);entries[str(target.relative_to(dst))]={'source_path':str(source),'original_manifest_source_path':str(source),'size':source.stat().st_size,'sha256':sha(source),'method':'byte_copy_provenance'}
+ cstage=json.loads((src/'source_stage_provenance.json').read_text())['source_stages']['C']
+ croot=Path(cstage['root']);cprov=dst/'provenance/source_attempt05';cprov.mkdir(parents=True,exist_ok=True)
+ for name in ('head_H1_startup.json','head_H2_startup.json','head_H3_startup.json'):
+  source=croot/name
+  if not source.is_file():raise FileNotFoundError(f'C worker startup receipt missing: {source}')
+  target=cprov/name;copy_file(source,target)
+  entries[str(target.relative_to(dst))]={'source_path':str(source),'original_manifest_source_path':str(source),'size':source.stat().st_size,'sha256':sha(source),'method':'byte_copy_C_startup_receipt'}
  # The original 20-case manifest/source are explicit immutable report inputs.
  from scripts.report_object_locus_frozen_probe import FOCUS_SOURCE,FOCUS_MANIFEST
  for label,p in [('focus20_cases_source.jsonl',FOCUS_SOURCE),('focus20_selection_manifest.json',FOCUS_MANIFEST)]:

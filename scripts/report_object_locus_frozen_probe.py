@@ -41,11 +41,27 @@ def assemble_environment(root,report_runtime=None):
         return {'status':'RECORDED','source_path':str(p),'sha256':sha(p),'values':json.loads(p.read_text())}
     pre=root/'environment_preflight.json'
     if not pre.is_file():raise FileNotFoundError(pre)
-    extraction={'environment_preflight':artifact('environment_preflight.json','historical extraction environment')}
-    training={'gpu_runtime':artifact('gpu_runtime.json','historical GC001 extraction runtime'),
-              'head_training_receipts':[]}
+    extraction={'environment_preflight':artifact('environment_preflight.json','historical extraction environment'),
+                'gpu_runtime':artifact('gpu_runtime.json','historical GC001 extraction GPU runtime')}
+    stage_path=None
+    sp=root/'source_stage_provenance.json'
+    if sp.is_file():
+        provenance=json.loads(sp.read_text())
+        stage_path=(provenance.get('source_stages',{}).get('C',{}).get('root') or provenance.get('C',{}).get('root'))
+    def source_artifact(name,meaning):
+        candidates=[root/'provenance/source_attempt05'/name]
+        if stage_path:candidates.append(Path(stage_path)/name)
+        for p in candidates:
+            if p.is_file():return {'status':'RECORDED','source_path':str(p),'sha256':sha(p),'values':json.loads(p.read_text()),'meaning':meaning}
+        return {'status':'NOT_RECORDED','source_path':[str(p) for p in candidates],'meaning':meaning}
+    training={'gpu_runtime':{'status':'NOT_RECORDED','source_path':'C-stage-specific gpu_runtime.json absent',
+                'meaning':'the available top-level gpu_runtime.json belongs to GC001 extraction job 59164 and is recorded under extraction'},
+              'head_startup_receipts':[],'head_training_receipts':[]}
+    for name in ('head_H1_startup.json','head_H2_startup.json','head_H3_startup.json'):
+        x=source_artifact(name,'historical C GPU head-worker startup/smoke receipt')
+        if x['status']=='RECORDED':training['head_startup_receipts'].append(x)
     for name in ('heads_complete.json','head_H1_complete.json','head_H2_complete.json','head_H3_complete.json'):
-        x=artifact(name,'historical GPU probe-head training receipt')
+        x=artifact(name,'historical GPU probe-head training completion receipt')
         if x['status']=='RECORDED':training['head_training_receipts'].append(x)
     legacy=artifact('cpu_runtime.json','legacy CPU-head-training runtime, if one was actually recorded')
     training['legacy_cpu_runtime']=legacy
