@@ -17,24 +17,38 @@ def main():
  if not (dst/'preflight/report_preflight.json').is_file():raise RuntimeError('report preflight result is required before preparing attempt root')
  pre=json.loads((dst/'preflight/report_preflight.json').read_text())
  if pre.get('status')!='PASS':raise RuntimeError('report preflight is not PASS')
- if any(p for p in dst.iterdir() if p.name!='preflight'):raise RuntimeError(f'refusing to overlay non-empty attempt root: {dst}')
+ allowed_dirs={'slurm','predictions','official','labels','heads','cache','r3d','reconstruction_cache','features','reference_gpu','provenance','preflight'}
+ unexpected=[p.name for p in dst.iterdir() if p.name not in allowed_dirs]
+ if unexpected:raise RuntimeError(f'refusing to overlay unexpected attempt-root outputs: {unexpected}')
  reuse=json.loads((src/'evaluation_reuse_manifest.json').read_text())
  if reuse.get('status')!='PASS' or reuse.get('missing_consumed_paths'):raise RuntimeError('source evaluation reuse manifest is incomplete')
+ manifest_paths={str(row['relative_path']) for row in reuse['files']}
+ for p in dst.iterdir():
+  if p.is_dir() and p.name not in allowed_dirs:raise RuntimeError(f'unexpected partial output directory: {p}')
+  if p.is_file() and p.name!='preflight/report_preflight.json' and p.name not in manifest_paths:raise RuntimeError(f'unexpected partial output file: {p}')
  dest_dirs=('slurm','predictions','official','labels','heads','cache','r3d','reconstruction_cache','features','reference_gpu','provenance','preflight')
  for d in dest_dirs:(dst/d).mkdir(parents=True,exist_ok=True)
- entries={};
+ entries={};manifest_source_mismatches=[]
  for row in reuse['files']:
   rel=Path(row.get('attempt06_relative_path') or row['relative_path'])
   from_attempt=src/rel;origin=Path(row['source_path'])
   if not from_attempt.is_file() or not origin.is_file():raise FileNotFoundError(f'reuse input missing: attempt06={from_attempt}, origin={origin}')
   expected=row['sha256'];size=int(row['size'])
-  if from_attempt.stat().st_size!=size or sha(from_attempt)!=expected or origin.stat().st_size!=size or sha(origin)!=expected:
-   raise RuntimeError(f'reuse source hash/size mismatch: {rel}')
+  if origin.stat().st_size!=size or sha(origin)!=expected:raise RuntimeError(f'original manifest source hash/size mismatch: {rel}')
+  current_size=from_attempt.stat().st_size;current_sha=sha(from_attempt)
+  if current_size!=size or current_sha!=expected:
+   if str(rel)!='previous_attempt.json':raise RuntimeError(f'reuse source hash/size mismatch: {rel}')
+   manifest_source_mismatches.append({'relative_path':str(rel),'old_reuse_manifest_sha256':expected,'old_reuse_manifest_size':size,
+    'attempt06_current_sha256':current_sha,'attempt06_current_size':current_size,'reason':'attempt06 administrative provenance file was updated after its reused-input manifest was written'})
+   expected=current_sha;size=current_size
   target=dst/row['relative_path'];target.parent.mkdir(parents=True,exist_ok=True)
   # Checkpoint and recorded provenance inputs remain byte copies as in attempt06.
   copy_method=row.get('method','')
   immutable_cache=rel.parts[0] in ('cache','r3d','features','reconstruction_cache','reference_gpu')
-  if (size<=8*1024*1024 and not immutable_cache) or copy_method.startswith(('byte_copy','byte_copy_checkpoint','byte_copy_original_provenance','byte_copy_source_input','byte_copy_actual_entrypoint_preflight')):
+  if target.exists() or target.is_symlink():
+   if not target.is_file() or target.stat().st_size!=size or sha(target)!=expected:raise RuntimeError(f'partial attempt input changed: {target}')
+   method='existing_partial_verified'
+  elif (size<=8*1024*1024 and not immutable_cache) or copy_method.startswith(('byte_copy','byte_copy_checkpoint','byte_copy_original_provenance','byte_copy_source_input','byte_copy_actual_entrypoint_preflight')):
    copy_file(from_attempt,target);method='byte_copy'
   else:
    target.symlink_to(from_attempt);method='file_symlink'
@@ -100,7 +114,7 @@ def main():
   if (dst/name).is_symlink():raise RuntimeError(f'mutable/output directory cannot be linked: {dst/name}')
  reuse_doc={'status':'PASS','source_root':str(src),'new_root':str(dst),'source_execution_sha':json.loads((src/'git_provenance.json').read_text())['commit'],
   'new_report_execution_sha':a.execution_sha,'source_reuse_manifest_sha256':sha(src/'evaluation_reuse_manifest.json'),'files':[{'relative_path':k,**v} for k,v in sorted(entries.items())],
-  'file_count':len(entries),'directory_symlinks_used':False,'source_inputs_read_only':True}
+  'manifest_source_mismatches':manifest_source_mismatches,'file_count':len(entries),'directory_symlinks_used':False,'source_inputs_read_only':True}
  (dst/'evaluation_reuse_manifest.json').write_text(json.dumps(reuse_doc,indent=2)+'\n')
  provenance={'status':'PASS','source_attempt06_root':str(src),'new_attempt_root':str(dst),'source_eval_job':'59179',
   'source_eval_execution_sha':json.loads((src/'git_provenance.json').read_text())['commit'],'report_execution_sha':a.execution_sha,
