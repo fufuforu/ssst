@@ -1,9 +1,10 @@
 #!/usr/bin/env python3
 """Create immutable attempt-level protocol and provenance records."""
-import hashlib,json,os,platform,subprocess,sys
+import argparse,hashlib,json,os,platform,subprocess,sys
 from pathlib import Path
 import numpy as np,torch
-ATTEMPT=Path('/space/mawb/ssst/group_plus/object_locus_frozen_representation_diagnostic_v1/attempts/attempt00')
+DEFAULT_ATTEMPT=Path('/space/mawb/ssst/group_plus/object_locus_frozen_representation_diagnostic_v1/attempts/attempt01')
+ATTEMPT=DEFAULT_ATTEMPT
 BASE=Path('/space/mawb/ssst')
 FILES={
  'checkpoint':Path('/space/mawb/ssst/workspace_group_plus/object_locus_gc_sweep_v1/gc001/checkpoint_epoch8.pt'),
@@ -25,6 +26,8 @@ def sha(p):
 def save(n,x):
  p=ATTEMPT/n;p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps(x,indent=2,default=str)+'\n')
 def main():
+ global ATTEMPT
+ ap=argparse.ArgumentParser();ap.add_argument('--attempt',type=Path,default=DEFAULT_ATTEMPT);ATTEMPT=ap.parse_args().attempt
  if not ATTEMPT.is_dir():raise RuntimeError(f'attempt directory missing: {ATTEMPT}')
  if any(ATTEMPT.iterdir()):raise RuntimeError(f'attempt is not empty; refusing overwrite: {ATTEMPT}')
  for name,p in FILES.items():

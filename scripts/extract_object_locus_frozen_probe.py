@@ -13,7 +13,7 @@ sys.path.insert(0, str(ROOT))
 from scripts.object_locus_frozen_probe_contract import labels_from_context
 
 BASE = Path('/space/mawb/ssst')
-ATTEMPT = Path('/space/mawb/ssst/group_plus/object_locus_frozen_representation_diagnostic_v1/attempts/attempt00')
+ATTEMPT = Path(os.environ.get('TASK_ATTEMPT_ROOT','/space/mawb/ssst/group_plus/object_locus_frozen_representation_diagnostic_v1/attempts/attempt01'))
 CKPT = Path('/space/mawb/ssst/workspace_group_plus/object_locus_gc_sweep_v1/gc001/checkpoint_epoch8.pt')
 CKPT_SHA = '72f7440b5b3cf2fd877dfc534ae5c4a409c76c9884729fe23247008aab8c0d58'
 DATA = Path('/space/mawb/ssst/group_plus/object_locus_panoptic_v1_8gpu/data_manifest.json')
@@ -52,16 +52,12 @@ def state_sha(model) -> str:
 
 
 def build_window_data():
-    from scripts.object_locus_gc_sweep_runtime import sha256, build_model, load_source_blob
+    from scripts.object_locus_gc_sweep_runtime import sha256,SOURCE_SHA256
+    from scripts.object_locus_probe_metrics import validate_gc001_endpoint_metadata
     if sha256(CKPT) != CKPT_SHA or sha256(DATA) != DATA_SHA or sha256(PLAN) != PLAN_SHA:
         raise RuntimeError('locked source asset SHA mismatch')
-    blob = load_source_blob()
-    expected = {'epoch': 8, 'completed_updates': 1008, 'new_exposures': 8064,
-                'source_exposure': 50064, 'model_exposure': 58128, 'alpha': 0.01,
-                'code_sha': '9ce7b18b68bae9c4c7c519b670ad1fa79a66f9a0'}
-    got = {k: blob.get(k) for k in expected}
-    if got != expected:
-        raise RuntimeError(f'GC001 checkpoint metadata mismatch: {got}')
+    blob = torch.load(CKPT, map_location='cpu', weights_only=False, mmap=True)
+    validate_gc001_endpoint_metadata(blob,SOURCE_SHA256)
     manifest = json.loads(DATA.read_text())
     four = json.loads(COHORT.read_text())
     old_windows = json.loads((COHORT.parent/'window_identities.json').read_text())['gc001']
@@ -88,35 +84,14 @@ def build_window_data():
     plan = json.loads(PLAN.read_text())
     if len(plan.get('entries', [])) != 1008 or plan.get('updates') != 1008 or plan.get('exposures') != 8064:
         raise RuntimeError('GC sweep window-index plan mismatch')
+    if not isinstance(blob.get('config'),dict) or not isinstance(blob.get('model'),dict):
+        raise RuntimeError('GC001 endpoint requires dict config and complete model state')
+    if blob.get('plan_sha256') != PLAN_SHA:
+        raise RuntimeError('GC001 endpoint training plan SHA mismatch')
     return train, dev, test, blob
 
 
-def gt_rows(sem, ins):
-    valid = (sem >= 0) & (sem <= 19) & ((sem < 2) | (ins > 0))
-    ids = torch.unique(ins[valid & (sem >= 2) & (ins > 0)], sorted=True)
-    rows = []
-    for iid in ids:
-        mask = valid & (sem >= 2) & (ins == iid)
-        counts = torch.bincount(sem[mask], minlength=20)
-        cls = int(torch.nonzero(counts == counts.max(), as_tuple=False)[0, 0])
-        rows.append((int(iid), cls, mask))
-    return valid, rows
-
-
-def raw_iou(region, alpha, sem, ins):
-    valid, rows = gt_rows(sem, ins)
-    pred = (region[:, :100] >= .5) & (alpha[:, None] > .05)
-    iou = np.zeros((len(rows), 100), dtype=np.float64)
-    inters = np.zeros((len(rows), 100), dtype=np.int64)
-    unions = np.zeros((len(rows), 100), dtype=np.int64)
-    for gi, (_, _, gm) in enumerate(rows):
-        for q in range(100):
-            pm = pred[:, q] & valid
-            inter = int((pm & gm).sum())
-            union = int(pm.sum() + gm.sum() - inter)
-            inters[gi, q], unions[gi, q] = inter, union
-            iou[gi, q] = inter / union if union else 0.0
-    return rows, iou, inters, unions
+from scripts.object_locus_probe_metrics import gt_rows, raw_iou
 
 
 def extract_one(model, opt, window, split, index, builder, device):
@@ -198,9 +173,12 @@ def main():
     outroot = args.attempt
     if not outroot.is_dir(): raise RuntimeError(f'attempt directory missing: {outroot}')
     if (outroot / 'extraction_complete.json').exists(): raise RuntimeError('receipt already exists; refusing overwrite')
+    if not torch.cuda.is_available() or torch.cuda.device_count()!=1:raise RuntimeError(f'GC001 extraction requires exactly one visible assigned GPU, got {torch.cuda.device_count()}')
+    if not str(os.environ.get('SLURMD_NODENAME','')).startswith('3dimage-11'):raise RuntimeError('fixed GPU node 3dimage-11 required, got '+str(os.environ.get('SLURMD_NODENAME')))
+    if torch.cuda.get_device_name(0)!='NVIDIA GeForce RTX 3090':raise RuntimeError(f'RTX3090 required, got {torch.cuda.get_device_name(0)}')
     free = __import__('shutil').disk_usage(outroot).free
     if free < 20 * (1 << 30): raise RuntimeError(f'need 20 GiB free before writing; found {free}')
-    train, dev, test, blob = build_window_data()
+    train, dev, test, endpoint = build_window_data()
     from scripts.object_locus_gc_sweep_runtime import build_model
     from scripts.object_locus_v3_set_runtime import build_batch, write_json
     device = torch.device('cuda:0')
@@ -209,6 +187,29 @@ def main():
     torch.backends.cuda.matmul.allow_fp16_reduced_precision_reduction = False
     torch.set_grad_enabled(False)
     model, opt, source = build_model(device, report=False)
+    from dataclasses import asdict
+    if asdict(opt) != endpoint['config']:
+        raise RuntimeError('constructed source architecture config differs from GC001 endpoint config')
+    load_result = model.load_state_dict(endpoint['model'], strict=True)
+    if load_result.missing_keys or load_result.unexpected_keys:
+        raise RuntimeError(f'GC001 strict endpoint load failed: {load_result}')
+    endpoint_state = endpoint['model']
+    constructed_state = model.state_dict()
+    if set(constructed_state) != set(endpoint_state):
+        raise RuntimeError('GC001 endpoint state key set mismatch after strict load')
+    for name, expected_tensor in endpoint_state.items():
+        actual = constructed_state[name].detach().cpu()
+        if actual.shape != expected_tensor.shape or actual.dtype != expected_tensor.dtype or not torch.equal(actual, expected_tensor):
+            raise RuntimeError(f'GC001 endpoint exact tensor mismatch: {name}')
+    endpoint_digest = hashlib.sha256()
+    for name, value in sorted(constructed_state.items()):
+        arr=value.detach().contiguous().cpu().numpy()
+        endpoint_digest.update(name.encode());endpoint_digest.update(str(arr.dtype).encode());endpoint_digest.update(np.asarray(arr.shape,np.int64).tobytes());endpoint_digest.update(arr.tobytes())
+    write_json(outroot/'endpoint_load_check.json',{'status':'PASS','checkpoint_sha256':CKPT_SHA,
+        'metadata':{k:endpoint[k] for k in ('alpha','epoch','completed_updates','new_exposures','source_exposure','model_exposure','code_sha','plan_sha256')},
+        'strict_load':True,'missing_keys':[],'unexpected_keys':[],'state_sha256':endpoint_digest.hexdigest(),
+        'state_tensors':len(constructed_state),'tensor_values_exact':True})
+    del endpoint_state, endpoint, constructed_state
     if any(not p.requires_grad for p in model.parameters()): raise RuntimeError('unexpected pretrained frozen parameter before global freeze')
     for p in model.parameters(): p.requires_grad_(False); p.grad = None
     model.eval()
@@ -260,6 +261,15 @@ def main():
         else:
             path = devcache / f'{wid}.npz'
             np.savez(path, region=data['region'], alpha=data['alpha'], sem=data['sem'], ins=data['ins'], frame_ids=np.asarray(ids,np.int64))
+            render_depth=pred['render']['depths_pred']
+            if render_depth.ndim==5: render_depth=render_depth[:,:,0]
+            recon=outroot/'reconstruction_cache'/'GC001'/split/f'{window["scene"]}_context{"_".join(map(str,window["context"]))}.npz'
+            recon.parent.mkdir(parents=True,exist_ok=True)
+            np.savez_compressed(recon,frame_ids=np.asarray(ids,np.int64),context_ids=np.asarray(window['context'],np.int64),novel_ids=np.asarray(window['novel'],np.int64),
+                pred_rgb=pred['render']['images_pred'][0].detach().float().clamp(0,1).cpu().numpy(),
+                gt_rgb=batch['images_all'][0].detach().float().clamp(0,1).cpu().numpy(),
+                pred_depth=render_depth[0].detach().float().cpu().numpy(),gt_depth_m=batch['depth_gt_m_all'][0,:,0].detach().float().cpu().numpy(),
+                depth_valid=batch['depth_gt_valid_all'][0,:,0].detach().bool().cpu().numpy())
             np.savez(devcache / f'{wid}_iou.npz', iou=iou, intersections=inter, unions=union,
                      gt_ids=np.asarray([x[0] for x in gtrows],np.int64), gt_classes=np.asarray([x[1] for x in gtrows],np.int64))
             features_path = outroot / 'features' / 'dev_test_q_z.npz'
@@ -275,7 +285,8 @@ def main():
             write_official_pair(pred,batch,window,outroot/'reference_gpu',target_frames='novel')
             files.append({'window_id':wid,'path':str(path),'sha256':sha(path),'size':path.stat().st_size,
                 'feature_path':str(feature_path),'feature_sha256':sha(feature_path),'feature_size':feature_path.stat().st_size,
-                'iou_path':str(iou_path),'iou_sha256':sha(iou_path),'iou_size':iou_path.stat().st_size,**identity,**stats})
+                'iou_path':str(iou_path),'iou_sha256':sha(iou_path),'iou_size':iou_path.stat().st_size,
+                'reconstruction_cache':str(recon),'reconstruction_sha256':sha(recon),'reconstruction_size':recon.stat().st_size,**identity,**stats})
         for qid,gid in hpairs: hungarians.append({'split':split,'window_id':wid,'scene':window['scene'],'query_id':qid,'gt_id':gid})
         records.append({'window_id':wid,**identity,'cache_path':str(path),'cache_sha256':sha(path),'cache_bytes':path.stat().st_size,
                         'gt_count':len(gtrows),'gt_iou_shape':list(iou.shape),'state_hungarian':hpairs if split!='train' else None})
@@ -285,6 +296,15 @@ def main():
                 'peak_memory_bytes':int(torch.cuda.max_memory_allocated()),'shape_finite':True,
                 'frozen_parameters':sum(p.numel() for p in model.parameters()),'state_sha256_before':before,
                 'beta':stats['beta'],'forward_step':58128})
+            # Catch CPU cache replay/export interface errors on the first dev
+            # window, while this exact forward is still the formal cache.
+            from scripts.eval_object_locus_frozen_probe import make_out,metric_batch,compare_replay
+            cpu_out=make_out(data['region'],data['alpha'],data['pclass'],data['logits'])
+            cpu_root=outroot/'reference_cpu_first_dev';cpu_root.mkdir(parents=True,exist_ok=True)
+            write_official_pair(cpu_out,metric_batch({'sem':data['sem'],'ins':data['ins'],'frame_ids':np.asarray(ids)},list(range(len(ids)))),window,cpu_root,target_frames='novel')
+            audit=compare_replay(outroot/'reference_gpu',cpu_root,{f'{window["scene"]}_context{"_".join(map(str,window["context"]))}'},devcache,outroot/'features',[window],'dev')
+            write_json(outroot/'h0_cache_replay_parity_first_dev.json',audit)
+            if not audit['passed']: raise RuntimeError('first dev H0 cached CPU replay parity failed')
         if n==19:
             write_json(outroot/'startup_confirmation.json',{'gpu_extraction':{'status':'PASS','formal_windows_completed':20,
                 'frozen_state_sha256':before,'checkpoint_sha256':CKPT_SHA,'all_outputs_finite':True,
@@ -306,10 +326,16 @@ def main():
     if vector_shards:
         keys = ('q','z','logits','pclass','mass','frame_ids')
         merged = {key: [] for key in keys}
+        identity={key:[] for key in ('window_ids','splits','scenes','context_ids','novel_ids')}
+        by_id={r['window_id']:r for r in records if r.get('split') in ('dev','test')}
         for shard in vector_shards:
             with np.load(shard) as data:
                 for key in keys: merged[key].append(data[key])
-        np.savez(outroot/'features'/'dev_test_q_z.npz', **{key: np.stack(vals) for key,vals in merged.items()})
+            row=by_id[shard.stem]
+            for key,value in [('window_ids',row['window_id']),('splits',row['split']),('scenes',row['scene']),('context_ids',row['context']),('novel_ids',row['novel'])]:identity[key].append(value)
+        np.savez(outroot/'features'/'dev_test_q_z.npz', **{key: np.stack(vals) for key,vals in merged.items()},
+            window_ids=np.asarray(identity['window_ids'],dtype='U128'),splits=np.asarray(identity['splits'],dtype='U8'),scenes=np.asarray(identity['scenes'],dtype='U64'),
+            context_ids=np.asarray(identity['context_ids'],np.int64),novel_ids=np.asarray(identity['novel_ids'],np.int64))
     # Locked test cohort census: GT identity is scene-local and merged across
     # the prescribed context/true-novel views before counting instances.
     test_context_gt=test_novel_gt=0; context_images=novel_images=0

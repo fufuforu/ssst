@@ -12,8 +12,12 @@ from scripts.object_locus_frozen_probe_contract import labels_from_context,diagn
 from scripts.train_object_locus_frozen_probe import Readout,load_split
 from scripts.export_object_locus_v3_set_official import write_official_pair
 from scripts.eval_object_locus_v3_set import _candidate_stats
+from scripts.object_locus_probe_metrics import classification_summary
+from scripts.object_locus_probe_metrics import gt_rows,raw_iou
+from scripts.object_locus_probe_metrics import normalize_official_result
+from scripts.object_locus_probe_metrics import verify_gc_cache_manifest,verify_r3d_cache_manifest
 
-ATTEMPT=Path('/space/mawb/ssst/group_plus/object_locus_frozen_representation_diagnostic_v1/attempts/attempt00')
+ATTEMPT=Path(os.environ.get('TASK_ATTEMPT_ROOT','/space/mawb/ssst/group_plus/object_locus_frozen_representation_diagnostic_v1/attempts/attempt01'))
 OFFICIAL_PY='/space/mawb/SIU3R/.venv_gpu_v4/bin/python'
 INVOKE=ROOT/'scripts/invoke_siu3r_official_evaluator.py'
 
@@ -30,27 +34,11 @@ def rows_to_csv(path,rows):
         for row in rows:
             w.writerow({k:(json.dumps(v,ensure_ascii=False,separators=(',',':'),default=lambda x:x.item() if hasattr(x,'item') else str(x)) if isinstance(v,(dict,list,tuple)) else v) for k,v in row.items()})
 
-def probs(logits): return torch.softmax(torch.as_tensor(logits,dtype=torch.float32),-1).cpu().numpy()
+def probs(logits):
+    with torch.no_grad(): return torch.softmax(torch.as_tensor(logits,dtype=torch.float32).detach(),-1).cpu().numpy()
 
 def cls_summary(pclass,labels):
-    y=np.asarray(labels,dtype=np.int64); p=np.asarray(pclass).argmax(-1); pos=y<18; valid=y>=0
-    confusion=np.zeros((18,19),np.int64)
-    for yy,pp in zip(y[pos],p[pos]): confusion[yy,pp]+=1
-    supports=confusion.sum(1); active=np.where(supports>0)[0]
-    per=[]
-    for c in range(18):
-        tp=int(confusion[c,c]); fp=int(confusion[:,c].sum()-tp); fn=int(confusion[c].sum()-tp)
-        per.append({'class_internal':c+2,'support':int(supports[c]),'precision':tp/max(1,tp+fp),'recall':tp/max(1,tp+fn),'f1':2*tp/max(1,2*tp+fp+fn) if 2*tp+fp+fn else 0.})
-    conditional=np.asarray(pclass)[:,:18].argmax(-1)
-    binary=np.isin(y,[18]); known=np.isin(y,[*range(18),18]); score=1-np.asarray(pclass)[:,18]
-    auc,auprc=ranking_metrics(binary[known],score[known])
-    return {'joint19_accuracy':float((p[valid]==y[valid]).mean()) if valid.any() else None,
-        'conditional18_accuracy':float((conditional[pos]==y[pos]).mean()) if pos.any() else None,
-        'macro_f1_supported_classes':float(np.mean([per[c]['f1'] for c in active])) if len(active) else None,
-        'support_classes':(active+2).tolist(),'no_support_classes':(np.where(supports==0)[0]+2).tolist(),
-        'confusion_18x19':confusion.tolist(),'per_class':per,'positive_count':int(pos.sum()),
-        'negative_count':int((y==18).sum()),'ambiguous_count':int((y==-1).sum()),
-        'objectness_auroc':None if auc is None else float(auc),'objectness_auprc':None if auprc is None else float(auprc)}
+    return classification_summary(pclass,labels)
 
 def ranking_metrics(binary,score):
     y=np.asarray(binary,dtype=bool);s=np.asarray(score,dtype=np.float64)
@@ -164,18 +152,44 @@ def compare_replay(gpu_root,cpu_root,expected_names,cache_root,feature_root,wind
         'candidate_eligibility_raw_area_won_area_removal_reason_exact':not any(x.get('scope')=='candidate' or x.get('field')=='candidate_audit_row_count' for x in failures),
         'candidate_audit_sha256':candidate_hash,'failures':failures}
 
+def cached_window(root,cohort,i,w,head):
+    prefix=f'{cohort}_{i:04d}_{w["scene"]}_c{"_".join(map(str,w["context"]))}'
+    base=root/'r3d' if head=='R3D' else root
+    with np.load(base/'features'/f'{prefix}.npz') as f:feat={k:f[k].copy() for k in f.files}
+    with np.load(base/'cache/dev_test'/f'{prefix}.npz' if head!='R3D' else base/'cache'/f'{prefix}.npz') as d:data={k:d[k].copy() for k in d.files}
+    return prefix,data,feat
+
+def labels_for_scope(root,cohort,i,w,scope,head,data):
+    if head=='R3D':
+        prefix=f'{cohort}_{i:04d}_{w["scene"]}_c{"_".join(map(str,w["context"]))}'
+        with np.load(root/'r3d'/'cache'/f'{prefix}_{scope}_iou.npz') as z:
+            return labels_from_context(z['iou'],z['gt_classes'].tolist())['labels']
+    if head!='R3D' and scope=='context':
+        prefix=f'{cohort}_{i:04d}_{w["scene"]}_c{"_".join(map(str,w["context"]))}'
+        with np.load(root/'cache/dev_test'/f'{prefix}_iou.npz') as z:return labels_from_context(z['iou'],z['gt_classes'].tolist())['labels']
+    ids=[0,1] if scope=='context' else [j for j,f in enumerate(data['frame_ids']) if int(f) in set(map(int,w['novel']))]
+    _,matrix,_,_=raw_iou(torch.from_numpy(data['region'][ids]),torch.from_numpy(data['alpha'][ids]),torch.from_numpy(data['sem'][ids]),torch.from_numpy(data['ins'][ids]))
+    _,rows=gt_rows(torch.from_numpy(data['sem'][ids]),torch.from_numpy(data['ins'][ids]))
+    return labels_from_context(matrix,[r[1] for r in rows])['labels']
+
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('--attempt',type=Path,default=ATTEMPT);args=ap.parse_args();root=args.attempt
     if (root/'extraction_complete.json').exists() is False or json.loads((root/'extraction_complete.json').read_text()).get('complete') is not True:raise RuntimeError('missing extraction receipt')
+    cache_receipt=verify_gc_cache_manifest(root);r3d_cache_receipt=verify_r3d_cache_manifest(root)
+    dump(root/'cached_eval_cache_sha_verification.json',{'GC001':cache_receipt,'R3D':r3d_cache_receipt})
     cohorts=json.loads((root/'cohort_manifest.json').read_text()); test=cohorts['test'];dev=cohorts['dev']
     from torchmetrics.detection.mean_ap import MeanAveragePrecision
-    readouts=[('H0',None)]+[(h,s) for h in ('H1','H2','H3') for s in (20261,20262,20263)]
-    funnel=[]; clsrows=[]; feature=[]; official=[]; pergt=[]; perquery=[]; perwindow=[]; oracle=[];scope_labels=[]
+    readouts=[('H0',None)]+[(h,s) for h in ('H1','H2','H3') for s in (20261,20262,20263)]+[('R3D',None)]
+    funnel=[]; clsrows=[]; feature=[]; official=[]; pergt=[]; perquery=[]; perwindow=[]; oracle=[];scope_labels=[];r3d_scope_labels=[]
+    fixed_hungarian={}
+    with (root/'labels/original_context_hungarian.csv').open(newline='') as f:
+        for r in csv.DictReader(f):fixed_hungarian.setdefault(r['window_id'],{})[int(r['gt_id'])]=int(r['query_id'])
     parity_roots=[]; thresholds={}
     # Training is aggregated for classifier diagnostics only; no full train
     # q/z or soft-mask prediction table is exported.
     train_data=load_split(root,'train')
     for head,seed in readouts:
+        if head=='R3D':continue
         name=head if head=='H0' else f'{head}_seed_{seed}'
         if head=='H0':train_p=np.concatenate([r['pclass'] for r in train_data])
         else:
@@ -205,10 +219,11 @@ def main():
                 'a1_ge_075':m075['objective'][0],'a1_matches':json.dumps(m05['matches'])})
     for cohort,windows in (('dev',dev),('test',test)):
       for head,seed in readouts:
-        name=head if head=='H0' else f'{head}_seed_{seed}'
+        name=head if head in ('H0','R3D') else f'{head}_seed_{seed}'
         predroot=root/'predictions'/cohort/name/'official'; predroot.mkdir(parents=True,exist_ok=True)
         evaluator_root=predroot
-        if head!='H0':
+        gpu_root=root/'r3d'/'reference_gpu' if head=='R3D' else root/'reference_gpu'
+        if head in ('H1','H2','H3'):
             cp=torch.load(root/'heads'/head/f'seed_{seed}'/'best.pt',map_location='cpu',weights_only=False)
             model=Readout(head).cpu().float();model.load_state_dict(cp['state_dict'],strict=True);model.eval()
         candidate_metric={scope:MeanAveragePrecision(iou_type='segm',sync_on_compute=False) for scope in ('context','true-novel')}
@@ -216,16 +231,11 @@ def main():
         threshold=None; raw_rows=[]
         if cohort=='dev':
             for i,w in enumerate(windows):
-                prefix=f'dev_{i:04d}_{w["scene"]}_c{"_".join(map(str,w["context"]))}'
-                with np.load(root/'features'/f'{prefix}.npz') as f: logits0=f['logits'].copy();p0=f['pclass'].copy()
-                with np.load(root/'cache/dev_test'/f'{prefix}.npz') as d: data={k:d[k].copy() for k in d.files}
-                if head=='H0': pclass=p0
+                prefix,data,features=cached_window(root,cohort,i,w,head);p0=features['pclass'];q=features['q'];z=features['z']
+                if head in ('H0','R3D'):pclass=p0
                 else:
-                    with np.load(root/'features'/f'{prefix}.npz') as f: q,z=f['q'].copy(),f['z'].copy()
                     with torch.no_grad():pclass=probs(model(torch.from_numpy(q),torch.from_numpy(z)))
-                # Recompute fixed context labels and choose this head's threshold only on dev context.
-                # labels require GT classes from the exact IoU archive.
-                with np.load(root/'cache/dev_test'/f'{prefix}_iou.npz') as x: labels=labels_from_context(x['iou'],x['gt_classes'].tolist())['labels']
+                labels=labels_for_scope(root,cohort,i,w,'context',head,data)
                 cls_scope['context']['p'].append(pclass);cls_scope['context']['y'].append(labels)
             ps=np.concatenate(cls_scope['context']['p']);ys=np.concatenate(cls_scope['context']['y']);threshold=fixed_threshold(ys,ps)
             thresholds[name]=threshold
@@ -233,17 +243,27 @@ def main():
         else:
             threshold=thresholds.get(name)
         for i,w in enumerate(windows):
-            prefix=f'{cohort}_{i:04d}_{w["scene"]}_c{"_".join(map(str,w["context"]))}'
-            with np.load(root/'features'/f'{prefix}.npz') as f: logits0=f['logits'].copy();p0=f['pclass'].copy();q=f['q'].copy();z=f['z'].copy()
-            with np.load(root/'cache/dev_test'/f'{prefix}.npz') as d: data={k:d[k].copy() for k in d.files}
-            pclass=p0 if head=='H0' else probs(model(torch.from_numpy(q),torch.from_numpy(z)))
+            prefix,data,features=cached_window(root,cohort,i,w,head)
+            logits0=features['logits'];p0=features['pclass'];q=features['q'];z=features['z']
+            pclass=p0 if head in ('H0','R3D') else probs(model(torch.from_numpy(q),torch.from_numpy(z)))
             out=make_out(data['region'],data['alpha'],pclass,logits0);batch=metric_batch(data,list(range(len(data['frame_ids']))))
             write_official_pair(out,batch,w,evaluator_root,target_frames='novel')
-            if head=='H0': parity_roots.append((cohort,root/'reference_gpu',evaluator_root))
+            if head in ('H0','R3D'): parity_roots.append((cohort,gpu_root,evaluator_root,head))
             for scope,ids in (('context',[0,1]),('true-novel',[j for j,fid in enumerate(data['frame_ids']) if int(fid) in set(map(int,w['novel']))])):
                 stat=_candidate_stats(out,batch,ids)
                 payload=flatten_map_payload(stat.pop('_map_payload'))
                 candidate_metric[scope].update([payload['pred']],[payload['target']])
+                if head!='R3D':
+                    for gr in stat['per_gt']:
+                        qid=fixed_hungarian.get(prefix,{}).get(int(gr['instance_id'])) if scope=='context' else None
+                        if head=='H0' and qid is not None and gr.get('matched_query') not in (None,qid):raise RuntimeError(f'H0 fixed context Hungarian query mismatch for {prefix}/{gr["instance_id"]}')
+                        gr['matched_query']=qid
+                        if qid is None:
+                            gr.update({'matched_class':None,'matched_class_correct':None,'matched_conditional_class':None,'matched_conditional_class_correct':None})
+                        else:
+                            pred19=int(np.argmax(pclass[qid]));pred18=int(np.argmax(pclass[qid,:18]));truth=int(gr['class'])-2
+                            gr.update({'matched_class':pred19+2 if pred19<18 else None,'matched_class_correct':bool(pred19==truth),
+                                'matched_conditional_class':pred18+2,'matched_conditional_class_correct':bool(pred18==truth)})
                 # Fixed mask-set A0/A1 reference.
                 scope_gt,sub_iou,_,_=raw_iou(torch.from_numpy(data['region'][ids]),torch.from_numpy(data['alpha'][ids]),
                     torch.from_numpy(data['sem'][ids]),torch.from_numpy(data['ins'][ids]))
@@ -254,18 +274,11 @@ def main():
                         'a0_ge_075':int((sub_iou.max(axis=1)>=.75).sum()) if len(sub_iou) else 0,
                         'a1_ge_05':a1['objective'][0],'a1_ge_075':a175['objective'][0],
                         'a1_matches':json.dumps([{'gt_id':scope_gt[g][0],'query_id':q,'iou':v} for g,q,v in a1['matches']])})
-                with np.load(root/'cache/dev_test'/f'{prefix}_iou.npz') as x: yctx=labels_from_context(x['iou'],x['gt_classes'].tolist())['labels']
-                if scope=='context': yy=yctx
-                else:
-                    from scripts.extract_object_locus_frozen_probe import raw_iou
-                    niou=raw_iou(torch.from_numpy(data['region'][ids]),torch.from_numpy(data['alpha'][ids]),torch.from_numpy(data['sem'][ids]),torch.from_numpy(data['ins'][ids]))[1]
-                    with np.load(root/'cache/dev_test'/f'{prefix}_iou.npz') as x:
-                        sem_gt,ins_gt=torch.from_numpy(data['sem'][ids]),torch.from_numpy(data['ins'][ids])
-                        _,novel_rows=__import__('scripts.extract_object_locus_frozen_probe',fromlist=['gt_rows']).gt_rows(sem_gt,ins_gt)
-                        yy=labels_from_context(niou,[r[1] for r in novel_rows])['labels']
-                for qid,label in enumerate(yy):
-                    scope_labels.append({'split':cohort,'scope':scope,'window_id':prefix,'scene':w['scene'],'query_id':qid,
-                        'label':int(label),'role':'POSITIVE' if label<18 else 'NEGATIVE' if label==18 else 'AMBIGUOUS'})
+                yy=labels_for_scope(root,cohort,i,w,scope,head,data)
+                if head in ('H0','R3D'):
+                    dst=scope_labels if head=='H0' else r3d_scope_labels
+                    for qid,label in enumerate(yy):dst.append({'split':cohort,'scope':scope,'window_id':prefix,'scene':w['scene'],'query_id':qid,
+                        'label':int(label),'role':'POSITIVE' if 0<=label<18 else 'NEGATIVE' if label==18 else 'AMBIGUOUS'})
                 cls_scope[scope]['p'].append(pclass);cls_scope[scope]['y'].append(yy)
                 csummary=cls_summary(pclass,yy)
                 clsrows.append({'cohort':cohort,'scope':scope,'head':head,'seed':seed,'window_id':prefix,
@@ -286,21 +299,22 @@ def main():
                     qi=int(r['query_id']);r['pclass_json']=pclass[qi].tolist();r['h0_pclass_json']=p0[qi].tolist()
                     r['joint_class_0_18']=int(np.argmax(pclass[qi]))
                     r['conditional_thing_class_internal']=int(np.argmax(pclass[qi,:18])+2)
-                    r['diagnostic_label']=int(yy[qi]);r['diagnostic_role']='POSITIVE' if yy[qi]<18 else 'NEGATIVE' if yy[qi]==18 else 'AMBIGUOUS'
+                    r['diagnostic_label']=int(yy[qi]);r['diagnostic_role']='POSITIVE' if 0<=yy[qi]<18 else 'NEGATIVE' if yy[qi]==18 else 'AMBIGUOUS'
                     perquery.append({'cohort':cohort,'scope':scope,'head':head,'seed':seed,'window_id':prefix,'scene':w['scene'],**r})
                 perwindow.append({'cohort':cohort,'scope':scope,'head':head,'seed':seed,'window_id':prefix,'scene':w['scene'],
                     'gt_count':stat['gt_count'],'candidate_count':stat['candidate_count'],'packed_ca':stat['panoptic_ca'],'packed_cw':stat['panoptic_cw'],
                     'pq':stat['panoptic_pq'],'miou':stat['panoptic_semantic_miou'],
                     'classification_confusion_18x19':csummary['confusion_18x19'],
-                    'joint_correct':int(((np.asarray(pclass).argmax(-1)==np.asarray(yy))&(np.asarray(yy)>=0)).sum()),
-                    'joint_total':int((np.asarray(yy)>=0).sum()),
+                    'conditional_confusion_18x18':csummary['conditional_confusion_18x18'],
+                    'joint_correct':int(((np.asarray(pclass).argmax(-1)==np.asarray(yy))&(np.asarray(yy)>=0)&(np.asarray(yy)<18)).sum()),
+                    'joint_total':csummary['positive_count'],
                     'conditional_correct':int(((np.asarray(pclass)[:,:18].argmax(-1)==np.asarray(yy))&(np.asarray(yy)<18)).sum()),
                     'conditional_total':csummary['positive_count']})
                 hmatched=[r for r in stat['per_gt'] if r.get('matched_query') is not None]
-                hcond=[r for r in hmatched if r.get('matched_class') is not None]
+                hcond=[r for r in hmatched if r.get('matched_conditional_class') is not None]
                 perwindow[-1].update({'h0_context_hungarian_joint_correct':sum(bool(r.get('matched_class_correct')) for r in hmatched),
                     'h0_context_hungarian_joint_total':len(hmatched),
-                    'h0_context_hungarian_conditional_correct':sum(bool(r.get('matched_class_correct')) for r in hcond),
+                    'h0_context_hungarian_conditional_correct':sum(bool(r.get('matched_conditional_class_correct')) for r in hcond),
                     'h0_context_hungarian_conditional_total':len(hcond)})
                 if cohort=='test' and scope=='context':
                     obj=1-np.asarray(pclass)[:,18];known=np.asarray(yy)>=0;positive=(np.asarray(yy)<18)&known;negative=np.asarray(yy)==18
@@ -318,7 +332,8 @@ def main():
         subprocess.run([OFFICIAL_PY,str(INVOKE),'--eval-path',str(official_dir),'--output',str(result_path),'--device','cpu','--no-image-depth'],check=True,env=env)
         envelope=json.loads(result_path.read_text())
         if envelope.get('official_evaluator_used') is not True or envelope.get('siu3r_commit')!='8ea80166be76854f938e90521f1a5b688b755c87':raise RuntimeError('official evaluator provenance mismatch')
-        metric_res=envelope['result'];official.append({'cohort':cohort,'head':head,'seed':seed,'readout':name,'result':metric_res})
+        metric_res=envelope['result'];normalized=normalize_official_result(metric_res)
+        official.append({'cohort':cohort,'head':head,'seed':seed,'readout':name,'result':normalized,'raw_result_schema':sorted(metric_res)})
         for scope in ('context','true-novel'):
             met=candidate_metric[scope].compute();candidate_metric[scope].reset()
             # Local map is a distinct candidate metric; official values come from SIU3R.
@@ -357,28 +372,37 @@ def main():
                 'candidate_ca_tp':68,'candidate_cw_tp':61,'packed_ca_tp':62,'packed_cw_tp':56}
             old=json.loads(Path('/space/mawb/ssst/group_plus/object_locus_competition_gc001_v1/four_arm_evaluation_retry01/official_results.json').read_text())['gc001']['val32_excluding_dev8_scenes']['true-novel']
             dump(root/'h0_against_previous_precheck.json',{'counts':actual,'expected':expected,'counts_exact_match':actual==expected,
-                'current_official_point':metric_res.get('target'),'previous_official_point':old,
-                'official_point_difference':{k:metric_res.get('target',{}).get(k)-old.get(k) for k in ('mAP','AP50','PQ','mIoU')
-                    if metric_res.get('target',{}).get(k) is not None and old.get(k) is not None}})
+                'current_official_point':normalized.get('true-novel'),'previous_official_point':old,
+                'official_point_difference':{k:normalized.get('true-novel',{}).get(k)-old.get(k) for k in ('mAP','AP50','PQ','mIoU')
+                    if normalized.get('true-novel',{}).get(k) is not None and old.get(k) is not None}})
             if actual!=expected:raise RuntimeError(f'prior GC001 fixed-count precheck failed: {actual}')
     parity=[]
-    for cohort,gpu,cpu in parity_roots:
+    for cohort,gpu,cpu,head in parity_roots:
         # each cohort gets an isolated CPU output tree at predictions/<cohort>/H0/official
         windows=cohorts[cohort]
         expected={f'{w["scene"]}_context{"_".join(map(str,w["context"]))}' for w in windows}
-        parity.append({'cohort':cohort,'result':compare_replay(gpu,cpu,expected,root/'cache/dev_test',root/'features',windows,cohort)})
+        cache=root/'r3d'/'cache' if head=='R3D' else root/'cache/dev_test'
+        features=root/'r3d'/'features' if head=='R3D' else root/'features'
+        parity.append({'cohort':cohort,'readout':head,'result':compare_replay(gpu,cpu,expected,cache,features,windows,cohort)})
     if not all(x['result']['passed'] for x in parity):
         dump(root/'h0_cache_replay_parity.json',{'status':'INVALID','cohorts':parity});raise RuntimeError('H0 GPU->CPU packed replay parity failed')
     dump(root/'h0_cache_replay_parity.json',{'status':'PASS','cohorts':parity})
     for filename,data in [('feature_probe_metrics.csv',feature),('official_metrics.csv',official),('funnel_metrics.csv',funnel),('per_gt.csv',pergt),('per_query.csv',perquery),('per_window.csv',perwindow),('oracle_metrics.csv',oracle)]:rows_to_csv(root/filename,data)
-    rows_to_csv(root/'labels/dev_test_scope_labels.csv',scope_labels)
+    unique={}
+    for r in scope_labels:
+        key=(r['split'],r['scope'],r['window_id'],r['query_id'])
+        if key in unique and unique[key]!=r:raise RuntimeError(f'fixed labels disagree across heads: {key}')
+        unique[key]=r
+    if len(unique)!=32*2*100:raise RuntimeError(f'scope labels must contain one row per window/query/scope, got {len(unique)}')
+    rows_to_csv(root/'labels/dev_test_scope_labels.csv',list(unique.values()))
+    rows_to_csv(root/'labels/r3d_dev_test_scope_labels.csv',r3d_scope_labels)
     dump(root/'objectness_thresholds.json',thresholds)
     forbidden=[m for m in sys.modules if m in ('scripts.object_locus_gc_sweep_runtime','scripts.object_locus_panoptic_v1_runtime')]
     if forbidden:raise RuntimeError(f'cached CPU evaluator imported a model runtime: {forbidden}')
     dump(root/'cached_eval_provenance.json',{'cached_feature_only':True,'model_checkpoint_loaded':False,
-        'GC001_model_constructed':False,'model_forward_calls':0,'distributed_initialized':False,
+        'GC001_model_constructed':False,'R3D_model_constructed':False,'model_forward_calls':0,'distributed_initialized':False,
         'optimizer_or_backward_on_model':False,'cuda_visible_devices':os.environ.get('CUDA_VISIBLE_DEVICES'),
-        'model_runtime_modules_imported':forbidden,'head_state_dicts_loaded':9})
+        'model_runtime_modules_imported':forbidden,'head_state_dicts_loaded':9,'readouts_evaluated':11})
     # one pre-fixed dev-derived objectness threshold per readout; caller applies on test
     dump(root/'eval_complete.json',{'status':'PASS','readouts':len(readouts),'cohorts':['dev','test'],'packed_parity':'PASS','official_results':len(official)})
 

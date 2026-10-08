@@ -4,9 +4,11 @@ from __future__ import annotations
 import argparse,csv,hashlib,json,math,os,shutil,stat,sys,zipfile
 from pathlib import Path
 import numpy as np
-
 ROOT=Path(__file__).resolve().parents[1]
-ATTEMPT=Path('/space/mawb/ssst/group_plus/object_locus_frozen_representation_diagnostic_v1/attempts/attempt00')
+sys.path.insert(0,str(ROOT))
+from scripts.object_locus_probe_metrics import normalize_official_result
+
+ATTEMPT=Path(os.environ.get('TASK_ATTEMPT_ROOT','/space/mawb/ssst/group_plus/object_locus_frozen_representation_diagnostic_v1/attempts/attempt01'))
 FOCUS_SOURCE=Path('/space/mawb/ssst/group_plus/object_locus_instance_attribution_v1/attempts/attempt00/results/focus20_cases.jsonl')
 FOCUS_MANIFEST=Path('/space/mawb/ssst/group_plus/object_locus_instance_attribution_v1/attempts/attempt00/selection_manifest.json')
 
@@ -19,26 +21,31 @@ def dump(path,obj):
  p=Path(path);p.parent.mkdir(parents=True,exist_ok=True);p.write_text(json.dumps(obj,indent=2,ensure_ascii=False,default=lambda x:x.item() if hasattr(x,'item') else str(x))+'\n')
 def read_csv(path):
  with Path(path).open(newline='') as f:return list(csv.DictReader(f))
+def write_csv(path,rows):
+ if not rows:return
+ with Path(path).open('w',newline='') as f:
+  w=csv.DictWriter(f,fieldnames=list(rows[0]));w.writeheader();w.writerows(rows)
 def parse_json(x,default=None):
  if x in (None,''):return default
  try:return json.loads(x)
  except Exception:return default
 def ci(x):return np.percentile(np.asarray(x,dtype=np.float64),[2.5,97.5]).tolist()
 
-def readout_name(head,seed):return head if head=='H0' else f'{head}_seed_{seed}'
+def readout_name(head,seed):return head if head in ('H0','R3D') else f'{head}_seed_{seed}'
 def metric_result(rows,cohort,head,seed,scope):
- target='context' if scope=='context' else 'target'
+ target='context' if scope=='context' else 'true-novel'
  for r in rows:
   if r['cohort']==cohort and r['head']==head and (r['seed'] in ('','None') if seed is None else int(r['seed'])==seed):
    value=parse_json(r['result'],{})
-   if target in value:return value[target]
+   normalized=normalize_official_result(value)
+   if target in normalized:return normalized[target]
  raise KeyError((cohort,head,seed,scope))
 def class_row(rows,cohort,scope,head,seed):
  return next(r for r in rows if r['cohort']==cohort and r['scope']==scope and r['head']==head and
              (r['seed'] in ('','None') if seed is None else int(r['seed'])==seed))
 
 def confusion_metrics(conf):
- c=np.asarray(conf,dtype=np.int64);total=int(c.sum());correct=int(np.trace(c[:,:18]))+int(c[:,18].sum()*0)
+ c=np.asarray(conf,dtype=np.int64);total=int(c.sum());correct=int(np.trace(c[:,:18]))
  # Joint denominator includes explicit no-object examples. They are represented by
  # the separate negative-correct count supplied in per-window totals, not confusion.
  supported=np.where(c.sum(1)>0)[0];f1=[]
@@ -51,14 +58,16 @@ def aggregate_scene_rows(rows,indices,scenes,readout,scope):
  by={}
  for r in rows:
   if r['cohort']=='test' and r['scope']==scope and r['head']==readout[0] and (r['seed'] in ('','None') if readout[1] is None else int(r['seed'])==readout[1]):by[r['scene']]=r
- conf=np.zeros((18,19),np.int64);joint_c=joint_n=cond_c=cond_n=cw_tp=cw_fp=cw_fn=0
+ conf=np.zeros((18,19),np.int64);cconf=np.zeros((18,18),np.int64);joint_c=joint_n=cond_c=cond_n=cw_tp=cw_fp=cw_fn=0
  for idx in indices:
   row=by[scenes[int(idx)]];conf+=np.asarray(parse_json(row['classification_confusion_18x19'],np.zeros((18,19))),dtype=np.int64)
+  cconf+=np.asarray(parse_json(row.get('conditional_confusion_18x18'),np.zeros((18,18))),dtype=np.int64)
   joint_c+=int(row['joint_correct']);joint_n+=int(row['joint_total']);cond_c+=int(row['conditional_correct']);cond_n+=int(row['conditional_total'])
   cw=parse_json(row['packed_cw'],{});cw_tp+=int(cw.get('tp',0));cw_fp+=int(cw.get('fp',0));cw_fn+=int(cw.get('fn',0))
- _,_,mf=confusion_metrics(conf)
+ _,_,mf=confusion_metrics(conf);_,_,cmf=confusion_metrics(cconf)
  return {'joint19_accuracy':joint_c/joint_n if joint_n else None,'conditional18_accuracy':cond_c/cond_n if cond_n else None,
-         'macro_f1_supported':mf,'packed_cw':{'tp':cw_tp,'fp':cw_fp,'fn':cw_fn},'confusion':conf}
+         'macro_f1_supported_classes':mf,'conditional_macro_f1_supported_classes':cmf,
+         'packed_cw':{'tp':cw_tp,'fp':cw_fp,'fn':cw_fn},'confusion':conf,'conditional_confusion':cconf}
 
 def official_bootstrap(root,official_rows,scene_rows):
     from torchmetrics.detection.mean_ap import MeanAveragePrecision
@@ -75,7 +84,7 @@ def official_bootstrap(root,official_rows,scene_rows):
     if len(scenes)!=24:raise RuntimeError(f'official bootstrap requires exactly24 test scenes, got {len(scenes)}')
     matrix=np.random.default_rng(2026).choice(24,size=(2000,24),replace=True)
     np.save(root/'bootstrap_scene_indices_seed2026.npy',matrix)
-    readouts=[('H0',None),('H1',20261),('H2',20261),('H3',20261)]
+    readouts=[('H0',None),('H1',20261),('H2',20261),('H3',20261),('R3D',None)]
     payloads={};point={}
     for head,seed in readouts:
         name=readout_name(head,seed);pairs=sorted((root/'predictions/test'/name/'official').iterdir())
@@ -108,46 +117,45 @@ def official_bootstrap(root,official_rows,scene_rows):
     primary_scope={s:{readout_name(h,seed):{} for h,seed in readouts} for s in ('context','true-novel')}
     for scope in ('context','true-novel'):
       for ro in readouts:
-        name=readout_name(*ro);series={'joint19_accuracy':[],'conditional18_accuracy':[],'macro_f1_supported':[],'packed_cw_tp':[],'packed_cw_fp':[]}
+        name=readout_name(*ro);series={'joint19_accuracy':[],'conditional18_accuracy':[],'macro_f1_supported_classes':[],'conditional_macro_f1_supported_classes':[],'packed_cw_tp':[],'packed_cw_fp':[]}
         for selection in matrix:
             a=aggregate_scene_rows(scene_rows,selection,scenes,ro,scope)
-            for key in ('joint19_accuracy','conditional18_accuracy','macro_f1_supported'):
+            for key in ('joint19_accuracy','conditional18_accuracy','macro_f1_supported_classes','conditional_macro_f1_supported_classes'):
                 series[key].append(np.nan if a[key] is None else a[key])
             series['packed_cw_tp'].append(a['packed_cw']['tp']);series['packed_cw_fp'].append(a['packed_cw']['fp'])
         primary_scope[scope][name]=series
     comparisons={}
-    for a,b in [('H1_seed_20261','H0'),('H2_seed_20261','H1_seed_20261'),('H3_seed_20261','H1_seed_20261')]:
+    for a,b in [('H1_seed_20261','H0'),('H2_seed_20261','H1_seed_20261'),('H3_seed_20261','H1_seed_20261'),('R3D','H0')]:
       entry={'comparison':a+'-'+b,'classification':{},'packed_cw':{}}
       for scope in ('context','true-novel'):
         left,right=primary_scope[scope][a],primary_scope[scope][b];entry['classification'][scope]={}
-        for key in ('joint19_accuracy','conditional18_accuracy','macro_f1_supported'):
+        if a=='R3D':
+          entry['classification'][scope]={'interpretation':'not_compared: R3D diagnostic labels use R3D-native masks/GT matches; probe labels use fixed GC001 masks'}
+        for key in (() if a=='R3D' else ('joint19_accuracy','conditional18_accuracy','macro_f1_supported_classes','conditional_macro_f1_supported_classes')):
           deltas=np.asarray(left[key])-np.asarray(right[key]);deltas=deltas[np.isfinite(deltas)]
-          left_point=float(class_row(read_csv(root/'feature_probe_metrics.csv'),'test',scope,a.split('_')[0],20261)[key])
-          right_head=b.split('_')[0];right_seed=None if right_head=='H0' else 20261
-          right_point=float(class_row(read_csv(root/'feature_probe_metrics.csv'),'test',scope,right_head,right_seed)[key])
+          left_head=a.split('_seed_')[0];left_seed=int(a.split('_seed_')[1]) if '_seed_' in a else None
+          left_value=class_row(read_csv(root/'feature_probe_metrics.csv'),'test',scope,left_head,left_seed)[key]
+          left_point=float(left_value) if left_value not in ('',None) else float('nan')
+          right_head=b.split('_seed_')[0];right_seed=int(b.split('_seed_')[1]) if '_seed_' in b else None
+          right_value=class_row(read_csv(root/'feature_probe_metrics.csv'),'test',scope,right_head,right_seed)[key]
+          right_point=float(right_value) if right_value not in ('',None) else float('nan')
           entry['classification'][scope][key]={'actual_delta':left_point-right_point,'bootstrap_mean_delta':float(deltas.mean()),'ci95':ci(deltas),'replicates':deltas.tolist()}
         tp_delta=np.asarray(left['packed_cw_tp'])-np.asarray(right['packed_cw_tp'])
         fp_delta=np.asarray(left['packed_cw_fp'])-np.asarray(right['packed_cw_fp'])
-        ro_left=(a.split('_seed_')[0],20261);ro_right=('H0',None) if b=='H0' else (b.split('_seed_')[0],20261)
+        ro_left=(a.split('_seed_')[0],int(a.split('_seed_')[1]) if '_seed_' in a else None)
+        ro_right=(b.split('_seed_')[0],int(b.split('_seed_')[1]) if '_seed_' in b else None)
         def cw_total(ro,field):
             return sum(int(parse_json(r['packed_cw'],{}).get(field,0)) for r in scene_rows if r['cohort']=='test' and r['scope']==scope and
-                r['head']==ro[0] and (r['seed']=='None' if ro[1] is None else int(r['seed'])==ro[1]))
+                r['head']==ro[0] and (r['seed'] in ('','None') if ro[1] is None else int(r['seed'])==ro[1]))
         entry['packed_cw'][scope]={'tp_actual_delta':cw_total(ro_left,'tp')-cw_total(ro_right,'tp'),
             'tp_bootstrap_mean_delta':float(tp_delta.mean()),'tp_ci95':ci(tp_delta),
             'fp_actual_delta':cw_total(ro_left,'fp')-cw_total(ro_right,'fp'),
             'fp_bootstrap_mean_delta':float(fp_delta.mean()),'fp_ci95':ci(fp_delta)}
-      if a!='H3_seed_20261':
-        entry['official_true_novel']={}
-        for metric in ('map','ap50'):
-          arr=boot[a][metric]-boot[b][metric]
-          actual=point[a]['mAP' if metric=='map' else 'AP50']-point[b]['mAP' if metric=='map' else 'AP50']
-          entry['official_true_novel'][metric]={'actual_delta':actual,'bootstrap_mean_delta':float(arr.mean()),'ci95':ci(arr),'replicates':arr.tolist()}
-      else:
-        entry['official_true_novel']={}
-        for metric in ('map','ap50'):
-          arr=boot[a][metric]-boot[b][metric]
-          actual=point[a]['mAP' if metric=='map' else 'AP50']-point[b]['mAP' if metric=='map' else 'AP50']
-          entry['official_true_novel'][metric]={'actual_delta':actual,'bootstrap_mean_delta':float(arr.mean()),'ci95':ci(arr),'replicates':arr.tolist()}
+      entry['official_true_novel']={}
+      for metric in ('map','ap50'):
+        arr=boot[a][metric]-boot[b][metric]
+        actual=point[a]['mAP' if metric=='map' else 'AP50']-point[b]['mAP' if metric=='map' else 'AP50']
+        entry['official_true_novel'][metric]={'actual_delta':actual,'bootstrap_mean_delta':float(arr.mean()),'ci95':ci(arr),'replicates':arr.tolist()}
       comparisons[entry['comparison']]=entry
     dump(root/'paired_bootstrap.json',{'status':'COMPLETE','seed':2026,'resamples':2000,'scene_names':scenes,
         'shared_scene_indices_sha256':sha(root/'bootstrap_scene_indices_seed2026.npy'),'official_point_check':'PASS atol=1e-6',
@@ -278,9 +286,110 @@ def focus_cases(root):
         for r in out:f.write(json.dumps(r,ensure_ascii=False)+'\n')
     return out
 
+def reconstruction_reduce(root):
+    import torch
+    torch.set_num_threads(4);sys.path.insert(0,'/space/mawb/SIU3R')
+    from src.config import EvaluatorCfg
+    from src.evaluator import Evaluator
+    from src.utils.scannet_constant import PANOPTIC_SEMANTIC2NAME,STUFF_CLASSES,THING_CLASSES
+    cfg=EvaluatorCfg(dataset_name='scannet',eval_context_miou=False,eval_context_pq=False,eval_context_map=False,
+      eval_target_miou=False,eval_target_pq=False,eval_target_map=False,eval_image_quality=True,eval_depth_quality=False,
+      id2label=PANOPTIC_SEMANTIC2NAME,stuffs=STUFF_CLASSES,things=THING_CLASSES,device='cpu',eval_path=str(root))
+    evaluator=Evaluator(cfg);lpips_error=None
+    try:evaluator.setup()
+    except Exception as exc:
+      if not (hasattr(evaluator,'psnr') and hasattr(evaluator,'ssim')):raise
+      lpips_error=f'{type(exc).__name__}: {exc}'
+    lpips_available=hasattr(evaluator,'lpips')
+    rows=[]
+    for arm in ('GC001','R3D'):
+      for split in ('dev','test'):
+       vals={scope:{k:[] for k in ('psnr','ssim','lpips','absrel','rmse')}|{'undefined_depth':0,'depth_images':0} for scope in ('context','true-novel')}
+       files=sorted((root/'reconstruction_cache'/arm/split).glob('*.npz'))
+       expected=8 if split=='dev' else 24
+       if len(files)!=expected:raise RuntimeError(f'{arm}/{split} reconstruction cache count {len(files)} != {expected}')
+       for path in files:
+        with np.load(path) as z:d={k:z[k].copy() for k in z.files}
+        frame=d['frame_ids'].tolist();context=set(d['context_ids'].tolist());novel=set(d['novel_ids'].tolist())
+        groups={'context':[i for i,f in enumerate(frame) if f in context],
+          'true-novel':[i for i,f in enumerate(frame) if f in novel and f not in context]}
+        for scope,ids in groups.items():
+         for vi in ids:
+          pred=torch.from_numpy(d['pred_rgb'][vi]).float()[None];truth=torch.from_numpy(d['gt_rgb'][vi]).float()[None]
+          lp=None
+          if lpips_available:
+           try:lp=float(evaluator.lpips(pred,truth).item())
+           except Exception as exc:lpips_available=False;lpips_error=f'{type(exc).__name__}: {exc}'
+          rec={'psnr':float(evaluator.psnr(pred,truth).item()),'ssim':float(evaluator.ssim(pred,truth).item()),'lpips':lp}
+          evaluator.psnr.reset();evaluator.ssim.reset()
+          if lpips_available:evaluator.lpips.reset()
+          for k,v in rec.items():
+           if v is not None and not math.isfinite(v):raise FloatingPointError(f'nonfinite reconstruction {k}: {path}')
+           if v is not None:vals[scope][k].append(v)
+          pm=torch.from_numpy(d['pred_depth'][vi]).float()/0.15;gt=torch.from_numpy(d['gt_depth_m'][vi]).float();valid=torch.from_numpy(d['depth_valid'][vi]).bool()&(gt>0)
+          scale=shift=absrel=rmse=None
+          if valid.any():
+           masked=torch.where(valid,gt,torch.zeros_like(gt));sc,sh=evaluator.fit_scale_and_shift(pm,masked);err=(pm*sc+sh)[valid]-gt[valid]
+           absrel=float((err.abs()/gt[valid]).mean());rmse=float(err.square().mean().sqrt());scale=float(sc);shift=float(sh)
+           vals[scope]['absrel'].append(absrel);vals[scope]['rmse'].append(rmse);vals[scope]['depth_images']+=1
+          else:vals[scope]['undefined_depth']+=1
+          rows.append({'arm':arm,'split':split,'scene':path.stem.split('_context')[0],'scope':scope,'frame_id':int(frame[vi]),**rec,'absrel':absrel,'rmse':rmse,'scale':scale,'shift':shift,'depth_defined':bool(valid.any())})
+       for scope,v in vals.items():
+        for k in ('psnr','ssim','lpips','absrel','rmse'):v[k]=float(np.mean(v[k])) if v[k] else None
+        vals[scope]=v
+       vals_json={'arm':arm,'split':split,'scopes':vals}
+       (root/f'reconstruction_{arm}_{split}.json').write_text(json.dumps(vals_json,indent=2)+'\n')
+    with (root/'reconstruction_metrics.csv').open('w',newline='') as f:
+      if not lpips_available:
+       for row in rows:row['lpips']=None
+       for arm in ('GC001','R3D'):
+        for split in ('dev','test'):
+         item=json.loads((root/f'reconstruction_{arm}_{split}.json').read_text())
+         for scope in item['scopes']:item['scopes'][scope]['lpips']=None
+         (root/f'reconstruction_{arm}_{split}.json').write_text(json.dumps(item,indent=2)+'\n')
+         summary[(arm,split)]=item['scopes']
+      w=csv.DictWriter(f,fieldnames=list(rows[0]));w.writeheader();w.writerows(rows)
+    summary={}
+    for arm in ('GC001','R3D'):
+      for split in ('dev','test'):
+       summary[(arm,split)]=json.loads((root/f'reconstruction_{arm}_{split}.json').read_text())['scopes']
+    (root/'reconstruction_evaluator_status.json').write_text(json.dumps({'status':'PASS' if lpips_available else 'LIMITED','siu3r_evaluator_used':True,
+      'lpips_available':lpips_available,'lpips_error':lpips_error,'missing_metric':'LPIPS' if not lpips_available else None},indent=2)+'\n')
+    return summary
+
+def r3d_registration_result(root,bootstrap,official,reconstruction):
+    registration=json.loads(Path('/space/mawb/ssst/group_plus/object_locus_output_refine_gc001_v1/attempts/attempt02/evaluation_registration.json').read_text())
+    expected={'delta_map_min':.01,'delta_ap50_min':-.01,'delta_pq_min':-.01,'context_psnr_drop_max_db':.5,'true_novel_psnr_drop_max_db':.5,'true_novel_absrel_ratio_max':1.05}
+    got={'delta_map_min':registration['success']['delta_map_min'],'delta_ap50_min':registration['success']['delta_ap50_min'],'delta_pq_min':registration['success']['delta_pq_min'],
+      'context_psnr_drop_max_db':registration['success']['context_psnr_drop_max_db'],'true_novel_psnr_drop_max_db':registration['success']['true_novel_psnr_drop_max_db'],'true_novel_absrel_ratio_max':registration['success']['true_novel_absrel_ratio_max']}
+    if got!=expected:status='INVALID';reason='Registered success thresholds differ from the prompt'
+    else:
+     boot=bootstrap['comparisons']['R3D-H0']['official_true_novel'];h0=metric_result(official,'test','H0',None,'true-novel');r3=metric_result(official,'test','R3D',None,'true-novel')
+     dmap=float(r3['mAP'])-float(h0['mAP']);dap=float(r3['AP50'])-float(h0['AP50']);dpq=float(r3['PQ'])-float(h0['PQ'])
+     ci_map=boot['map']['ci95'];ci_ap=boot['ap50']['ci95']
+     hrec=reconstruction[('GC001','test')];rrec=reconstruction[('R3D','test')]
+     if any(v is None for v in (hrec['context']['psnr'],rrec['context']['psnr'],hrec['true-novel']['psnr'],rrec['true-novel']['psnr'],hrec['true-novel']['absrel'],rrec['true-novel']['absrel'])):
+      result={'status':'INCONCLUSIVE','reason':'registered reconstruction protection metrics are missing','conditions':{'thresholds':got}}
+      (root/'r3d_vs_h0_registration_result.json').write_text(json.dumps(result,indent=2)+'\n');return result
+     dc=hrec['context']['psnr']-rrec['context']['psnr'];dn=hrec['true-novel']['psnr']-rrec['true-novel']['psnr']
+     ratio=rrec['true-novel']['absrel']/hrec['true-novel']['absrel'] if hrec['true-novel']['absrel'] else None
+     valid=(json.loads((root/'r3d_frozen_inference_receipt.json').read_text()).get('status')=='PASS'
+       and json.loads((root/'heads_complete.json').read_text()).get('status')=='PASS'
+       and json.loads((root/'extraction_complete.json').read_text()).get('status')=='PASS'
+       and json.loads((root/'h0_cache_replay_parity.json').read_text()).get('status')=='PASS'
+       and json.loads((root/'h0_against_previous_precheck.json').read_text()).get('counts_exact_match') is True
+       and json.loads((root/'eval_complete.json').read_text()).get('status')=='PASS')
+     success=(valid and dmap>=.01 and ci_map[0]>0 and dap>=-.01 and dpq>=-.01 and dc<=.5 and dn<=.5 and ratio is not None and ratio<=1.05)
+     failure=(valid and (ci_map[1]<=0 or ci_ap[1]<-.01 or dc>.5 or dn>.5 or ratio is None or ratio>1.05))
+     status='SUCCESS' if success else 'FAILURE' if failure else 'INCONCLUSIVE';reason=None
+     got.update({'delta_map':dmap,'delta_map_ci95':ci_map,'delta_ap50':dap,'delta_ap50_ci95':ci_ap,'delta_pq':dpq,
+       'context_psnr_drop_db':dc,'true_novel_psnr_drop_db':dn,'true_novel_absrel_ratio':ratio,'protocol_complete':valid})
+    result={'status':status,'reason':reason,'registration_source':str(Path('/space/mawb/ssst/group_plus/object_locus_output_refine_gc001_v1/attempts/attempt02/evaluation_registration.json')),'conditions':got}
+    (root/'r3d_vs_h0_registration_result.json').write_text(json.dumps(result,indent=2)+'\n');return result
+
 def write_reproducer(root):
     p=root/'reproduce_report_cpu.py'
-    p.write_text('''#!/usr/bin/env python3\n"""Recompute cached classification summaries and actual point differences.\nNo model or GPU is loaded. Full official AP bootstrap requires packed prediction ZIPs.\n"""\nimport csv,json,sys\nfrom pathlib import Path\nr=Path(__file__).resolve().parent\nrows=list(csv.DictReader((r/"feature_probe_metrics.csv").open()))\nfor x in rows:\n if x["scope"]=="true-novel" and x["cohort"]=="test":\n  print(x["head"],x["seed"],"joint",x["joint19_accuracy"],"conditional",x["conditional18_accuracy"])\nprint("report:",r/"report_to_gpt.md")\n''')
+    shutil.copy2(ROOT/'scripts/reproduce_frozen_probe_report_cpu.py',p)
 
 def zip_tree(path,members,root):
     path.parent.mkdir(parents=True,exist_ok=True)
@@ -302,21 +411,23 @@ def zip_tree(path,members,root):
 
 def package(root):
     maxsize=25*1024*1024; main=[]
-    wanted=['protocol.json','git_provenance.json','source_manifest.json','data_contract.json','cohort_manifest.json','freeze_check.json',
-      'extraction_complete.json','startup_confirmation.json','smoke.json','smoke_cpu.json','cache_manifest.json','h0_cache_replay_parity.json',
+    wanted=['protocol.json','git_provenance.json','source_manifest.json','data_contract.json','cohort_manifest.json','freeze_check.json','endpoint_load_check.json','parallel_execution_registration.json','execution_files_manifest.json','previous_attempt.json',
+      'extraction_complete.json','startup_confirmation.json','smoke.json','smoke_cpu.json','cache_manifest.json','h0_cache_replay_parity.json','h0_cache_replay_parity_first_dev.json','r3d_endpoint_manifest.json','r3d_frozen_inference_receipt.json','r3d_cache_manifest.json','r3d_h0_cache_pair_identity.json','r3d_vs_h0_registration_result.json','reconstruction_metrics.csv','unified_official_metrics.csv','unified_scene_paired_differences.csv','unified_paired_bootstrap.json','jobs.json','cohort_identity.json','public_cohort_identity_receipt.json','reconstruction_evaluator_status.json','execution_files_manifest.json','parallel_execution_registration.json','h0_against_previous_precheck.json','endpoint_load_check.json','freeze_check.json','heads_complete.json','eval_complete.json','bundle_manifest.json','complete.json',
       'h0_against_previous.json','labels/train_labels.csv','labels/dev_test_labels.csv','labels/original_context_hungarian.csv',
       'features/dev_test_q_z.npz','oracle_metrics.csv','class_support.csv','head_manifest.json','training_scalars.csv','feature_probe_metrics.csv',
       'official_metrics.csv','funnel_metrics.csv','per_gt.csv','per_query.csv','per_window.csv','scene_paired_differences.csv',
-      'labels/dev_test_scope_labels.csv','cached_eval_provenance.json','focus20_cases.jsonl','focus20_cases_source.jsonl',
+      'labels/dev_test_scope_labels.csv','labels/r3d_dev_test_scope_labels.csv','cached_eval_provenance.json','focus20_cases.jsonl','focus20_cases_source.jsonl',
       'bootstrap_scene_indices_seed2026.npy','paired_bootstrap.json','missing_items.json','report_to_gpt.md','summary.json',
       'reproduce_report_cpu.py','scripts/object_locus_frozen_probe_contract.py','scripts/extract_object_locus_frozen_probe.py',
       'scripts/train_object_locus_frozen_probe.py','scripts/eval_object_locus_frozen_probe.py','scripts/report_object_locus_frozen_probe.py',
-      'scripts/prepare_object_locus_frozen_probe.py','tests/test_object_locus_frozen_probe_contracts.py',
-      'slurm/extract_frozen_probe.sbatch','slurm/cpu_probe_eval.sbatch']
+      'scripts/prepare_object_locus_frozen_probe.py','scripts/object_locus_probe_metrics.py','scripts/train_object_locus_frozen_probe_head_worker.py','scripts/train_parallel_probe_heads.py','scripts/eval_r3d_frozen_inference.py','scripts/verify_execution_files_manifest.py','scripts/write_execution_files_manifest.py','scripts/reproduce_frozen_probe_report_cpu.py','tokengs/models/object_locus_output_refine_gc001.py','tokengs/models/object_locus_output_refine_v1.py','tests/test_object_locus_frozen_probe_contracts.py','tests/fixtures/siu3r_gc001_native_official_result.json',
+      'slurm/extract_frozen_probe.sbatch','slurm/cpu_probe_eval.sbatch','slurm/eval_r3d_inference.sbatch','slurm/train_probe_heads_parallel.sbatch','slurm/unified_eval_report.sbatch']
     for rel in wanted:
-        p=root/rel
+        p=(ROOT/rel) if rel.startswith(('scripts/','tokengs/','tests/','slurm/')) else root/rel
         if p.is_file():main.append((p,rel))
     for p in sorted((root/'cache/dev_test').glob('*_iou.npz')):main.append((p,'diagnostic_iou/'+p.name))
+    for p in sorted((root/'r3d'/'features').glob('*.npz')):main.append((p,'r3d/features/'+p.name))
+    for p in sorted((root/'r3d'/'cache').glob('*_iou.npz')):main.append((p,'r3d/iou/'+p.name))
     for p in sorted((root/'cache/train_iou').glob('*.npz')):main.append((p,'diagnostic_iou/train/'+p.name))
     for p in sorted((root/'heads').glob('H*/seed_*/*.pt')):main.append((p,'heads/'+p.relative_to(root/'heads').as_posix()))
     for p in sorted((root/'heads').glob('H*/seed_*/manifest.json')):main.append((p,'heads/'+p.relative_to(root/'heads').as_posix()))
@@ -335,10 +446,10 @@ def package(root):
         if part:bundles.append(zip_tree(root/f'frozen_representation_diagnostic_v1_main_part{idx:02d}.zip',part,root))
     # The primary package includes each readout's predictions and a shared GT tree.
     cohort=json.loads((root/'cohort_manifest.json').read_text())['test'];primary=[]
-    names=['H0']+[f'{h}_seed_{s}' for h in ('H1','H2','H3') for s in (20261,20262,20263)]
+    names=['H0']+[f'{h}_seed_{s}' for h in ('H1','H2','H3') for s in (20261,20262,20263)]+['R3D']
     index_doc={'readouts':names,'windows':[{'scene':w['scene'],'context':w['context'],'true_novel':w['novel'],
         'pair_directory':f'{w["scene"]}_context{"_".join(map(str,w["context"]))}'} for w in cohort],
-        'readout_prediction_frame_count':144,'shared_ground_truth_frame_count':144}
+        'readout_prediction_frame_count':144,'total_readouts':11,'total_prediction_frames':1584,'shared_ground_truth_frame_count':144}
     index_path=root/'primary_windows.json';dump(index_path,index_doc)
     rebuild=root/'rebuild_official_tree.py'
     rebuild.write_text('''#!/usr/bin/env python3\nimport argparse,shutil\nfrom pathlib import Path\np=argparse.ArgumentParser();p.add_argument('archive_root',type=Path);p.add_argument('readout');p.add_argument('output',type=Path);a=p.parse_args()\nsrc=a.archive_root/'readout'/a.readout;gt=a.archive_root/'ground_truth';a.output.mkdir(parents=True,exist_ok=True)\nfor pair in src.iterdir():\n if not pair.is_dir():continue\n dst=a.output/pair.name;dst.mkdir(parents=True,exist_ok=True)\n for scope in ('context','target'):\n  shutil.copytree(pair/(scope+'_seg_pred'),dst/(scope+'_seg_pred'),dirs_exist_ok=True)\n  shutil.copytree(gt/pair.name/(scope+'_seg_gt'),dst/(scope+'_seg_gt'),dirs_exist_ok=True)\n''')
@@ -358,7 +469,7 @@ def package(root):
                 count+=len(pngs)
         if count!=144:raise RuntimeError(f'{name} expected 144 packed predicted frames, got {count}')
         readme=root/'primary_predictions_README.txt'
-        if not readme.exists():readme.write_text('H0 and all nine fixed-seed probe readouts for the 24 fixed test windows.\nEach readout/pair contains context_seg_pred and target_seg_pred.\nGround truth appears once under ground_truth/<pair>/{context,target}_seg_gt.\nRun rebuild_official_tree.py to copy the shared GT into a standard SIU3R evaluator layout. Target contains true-novel frames only.\n')
+        if not readme.exists():readme.write_text('H0, all nine fixed-seed probe readouts, and R3D epoch8 for the 24 fixed test windows.\nEach readout/pair contains context_seg_pred and target_seg_pred.\nGround truth appears once under ground_truth/<pair>/{context,target}_seg_gt.\nRun rebuild_official_tree.py to copy the shared GT into a standard SIU3R evaluator layout. Target contains true-novel frames only.\n')
         files.append((readme,'README.txt'))
         files.extend([(index_path,'primary_windows.json'),(rebuild,'rebuild_official_tree.py')])
         zip_path=root/f'frozen_representation_diagnostic_v1_primary_{name}.zip'
@@ -381,6 +492,14 @@ def package(root):
 def main():
     ap=argparse.ArgumentParser();ap.add_argument('--attempt',type=Path,default=ATTEMPT);args=ap.parse_args();root=args.attempt
     if not (root/'eval_complete.json').is_file():raise RuntimeError('cached eval did not complete')
+    required_receipts=['endpoint_load_check.json','extraction_complete.json','freeze_check.json','heads_complete.json','r3d_endpoint_manifest.json','r3d_frozen_inference_receipt.json','r3d_cache_manifest.json','r3d_h0_cache_pair_identity.json','h0_cache_replay_parity.json']
+    missing=[x for x in required_receipts if not (root/x).is_file()]
+    if missing:raise RuntimeError(f'joint report missing required receipts: {missing}')
+    if json.loads((root/'extraction_complete.json').read_text()).get('cached_windows')!=1040:raise RuntimeError('GC001 cache is not complete 1040 windows')
+    if json.loads((root/'r3d_frozen_inference_receipt.json').read_text()).get('windows')!=32:raise RuntimeError('R3D cache is not the fixed 32-window cohort')
+    if json.loads((root/'heads_complete.json').read_text()).get('best_checkpoints')!=9:raise RuntimeError('probe heads do not contain all nine best checkpoints')
+    ev=json.loads((root/'eval_complete.json').read_text())
+    if ev.get('readouts')!=11 or ev.get('official_results')!=22:raise RuntimeError('unified eval missing one or more of the 11 readouts / 2 cohorts')
     env0=json.loads((root/'environment_preflight.json').read_text())
     env0['gpu_runtime']=json.loads((root/'gpu_runtime.json').read_text())
     env0['cpu_runtime']=json.loads((root/'cpu_runtime.json').read_text())
@@ -389,6 +508,14 @@ def main():
     dump(root/'environment.json',env0)
     official=read_csv(root/'official_metrics.csv');perwindow=read_csv(root/'per_window.csv');feature=read_csv(root/'feature_probe_metrics.csv')
     comparisons,points,scenes,matrix=official_bootstrap(root,official,perwindow)
+    reconstruction=reconstruction_reduce(root)
+    r3d_result=r3d_registration_result(root,json.loads((root/'paired_bootstrap.json').read_text()),official,reconstruction)
+    unified=[]
+    for row in official:
+      parsed=parse_json(row['result'],{})
+      for scope,metrics in parsed.items():unified.append({'cohort':row['cohort'],'scope':scope,'head':row['head'],'seed':row['seed'],**metrics})
+    write_csv(root/'unified_official_metrics.csv',unified)
+    shutil.copy2(root/'paired_bootstrap.json',root/'unified_paired_bootstrap.json')
     focus=focus_cases(root)
     # Fixed source counts are a contract check against the prior GC001 evaluation.
     funnel=read_csv(root/'funnel_metrics.csv');oracle=read_csv(root/'oracle_metrics.csv')
@@ -405,7 +532,7 @@ def main():
     expected={'test_windows':24,'gt_count':104,'raw_iou_ge_05':88,'raw_iou_ge_075':63,'candidate_ca_tp':68,'candidate_cw_tp':61,'packed_ca_tp':62,'packed_cw_tp':56}
     count_pass=actual==expected
     funnel_primary=[]
-    for h,s in [('H0',None)]+[(h,seed) for h in ('H1','H2','H3') for seed in (20261,20262,20263)]:
+    for h,s in [('H0',None)]+[(h,seed) for h in ('H1','H2','H3') for seed in (20261,20262,20263)]+[('R3D',None)]:
         subset=[r for r in funnel if r['cohort']=='test' and r['scope']=='true-novel' and r['head']==h and
             (r['seed']=='None' if s is None else int(r['seed'])==s)]
         totals={k:sum(int(parse_json(r[field],{}).get(k,0)) for r in subset) for field in ('candidate_ca','candidate_cw','panoptic_ca','panoptic_cw') for k in ('tp','fp','fn')}
@@ -437,16 +564,25 @@ def main():
           'positive_count':count if c<18 else 0,'explicit_negative_count':sum(int(r['label'])==18 for r in subset),
           'ambiguous_count':sum(int(r['label'])==-1 for r in subset),
           'window_count':len({r['window_id'] for r in subset}),'scene_count':len({r['scene'] for r in subset})})
+    r3d_labels=read_csv(root/'labels/r3d_dev_test_scope_labels.csv')
+    for split in ('dev','test'):
+      for scope in ('context','true-novel'):
+        subset=[r for r in r3d_labels if r['split']==split and r['scope']==scope]
+        for c in range(19):
+          support.append({'split':split,'scope':scope,'class_head_index':c,'semantic_internal':c+2 if c<18 else None,
+            'positive_count':sum(int(r['label'])==c for r in subset) if c<18 else 0,
+            'explicit_negative_count':sum(int(r['label'])==18 for r in subset),'ambiguous_count':sum(int(r['label'])==-1 for r in subset),
+            'window_count':len({r['window_id'] for r in subset}),'scene_count':len({r['scene'] for r in subset}), 'label_source':'R3D-native'})
     with (root/'class_support.csv').open('w',newline='') as f:
       w=csv.DictWriter(f,fieldnames=list(support[0]));w.writeheader();w.writerows(support)
     # Scene-level actual and paired changes for the primary seed.
     scene_diff=[]
     for scene in scenes:
       for scope in ('context','true-novel'):
-       for left,right in [('H1','H0'),('H2','H1'),('H3','H1')]:
-        probe=next(r for r in perwindow if r['cohort']=='test' and r['scope']==scope and r['scene']==scene and r['head']==left and int(r['seed'])==20261)
+       for left,right,lseed,rseed in [('H1','H0',20261,None),('H2','H1',20261,20261),('H3','H1',20261,20261),('R3D','H0',None,None)]:
+        probe=next(r for r in perwindow if r['cohort']=='test' and r['scope']==scope and r['scene']==scene and r['head']==left and (r['seed'] in ('','None') if lseed is None else int(r['seed'])==lseed))
         base=next(r for r in perwindow if r['cohort']=='test' and r['scope']==scope and r['scene']==scene and r['head']==right and
-            (r['seed'] in ('','None') if right=='H0' else int(r['seed'])==20261))
+            (r['seed'] in ('','None') if rseed is None else int(r['seed'])==rseed))
         pc=parse_json(probe['packed_cw'],{});bc=parse_json(base['packed_cw'],{})
         scene_diff.append({'scene':scene,'scope':scope,'comparison':left+'-'+right,'base_joint_correct':base['joint_correct'],'probe_joint_correct':probe['joint_correct'],
             'base_packed_cw':bc,'probe_packed_cw':pc,'joint_correct_delta':int(probe['joint_correct'])-int(base['joint_correct']),
@@ -454,6 +590,7 @@ def main():
     with (root/'scene_paired_differences.csv').open('w',newline='') as f:
       w=csv.DictWriter(f,fieldnames=list(scene_diff[0]));w.writeheader();
       for x in scene_diff:w.writerow({k:json.dumps(v,separators=(',',':')) if isinstance(v,(dict,list)) else v for k,v in x.items()})
+    shutil.copy2(root/'scene_paired_differences.csv',root/'unified_scene_paired_differences.csv')
     bootstrap=json.loads((root/'paired_bootstrap.json').read_text());decisions={}
     for comp,key in [('H1_seed_20261-H0','READOUT_READABILITY_SUPPORTED'),('H2_seed_20261-H1_seed_20261','GS_REGION_READABILITY_SUPPORTED'),('H3_seed_20261-H1_seed_20261','JOINT_READOUT_SIGNAL_WITH_CAPACITY_CONFOUND')]:
         entry=bootstrap['comparisons'][comp];decision={}
@@ -492,26 +629,33 @@ def main():
       if r['cohort']!='test':continue
       primary_rows.setdefault(r['readout'],r['result'])
     jobs=json.loads((root/'slurm/jobs.json').read_text()) if (root/'slurm/jobs.json').is_file() else {}
-    summary={'execution_status':'COMPLETE','interpretation_decisions':decisions,'fixed_count_check':actual,'funnel_primary_test_true_novel':funnel_primary,'jobs':jobs,
-      'test_primary_seed_official':{name:metric_result(official,'test',h,s,'true-novel') for name,h,s in [('H0','H0',None),('H1','H1',20261),('H2','H2',20261),('H3','H3',20261)]},
+    summary={'execution_status':'COMPLETE','r3d_registered_result':r3d_result,'interpretation_decisions':decisions,'fixed_count_check':actual,'funnel_primary_test_true_novel':funnel_primary,'jobs':jobs,
+      'test_primary_seed_official':{name:metric_result(official,'test',h,s,'true-novel') for name,h,s in [('H0','H0',None),('H1','H1',20261),('H2','H2',20261),('H3','H3',20261),('R3D','R3D',None)]},
       'all_readout_official_metrics':official,'all_feature_metrics':feature,'focus20_count':len(focus),
       'bootstrap':{'scene_count':24,'resamples':2000,'seed':2026},'limitations':['Three probe seeds do not represent full model training seeds.','Test cohort was reused from prior research and is exploratory.','H3 has more parameters than H1/H2.','Objectness supervision labels explicit context non-covering candidates; does not prove semantic-only representation.']}
     dump(root/'summary.json',summary)
     # Full Chinese report with status, frozen model and all primary comparisons.
-    lines=['# Object-Locus Frozen Representation Diagnostic V1','',f'- 执行状态：`COMPLETE`；唯一冻结模型 GC001 alpha=.01、epoch8、exposure=58128。',
+    lines=['# Frozen Probe + R3D 配对评测','',f'- 执行状态：`COMPLETE`；唯一冻结模型 GC001 alpha=.01、epoch8、exposure=58128。',
       f'- 代码版本：`{subprocess_sha(root)}`；SIU3R commit `8ea80166be76854f938e90521f1a5b688b755c87`。',
-      f'- 作业 ID：GPU `{jobs.get("gpu_job_id")}`；CPU afterok `{jobs.get("cpu_job_id")}`。GC001 训练 exposure 未改变。','',
+      f'- 四阶段作业：A `{jobs.get("A_gc001_job_id")}`；B `{jobs.get("B_r3d_job_id")}`；C `{jobs.get("C_heads_job_id")}`；D `{jobs.get("D_unified_eval_job_id")}`。GC001 训练 exposure 未改变。','',
+      '## 三类证据',
+      '- 冻结表示可读性：H1/H2/H3 只训练轻量分类头，固定 GC001 mask/标签，并与同次 GC001 H0 配对。',
+      '- 实际任务转化：比较全部真实 query 候选、候选筛选、packed 输出和官方 SIU3R AP。',
+      '- R3D 受控结构结果：R3D 为已训练 epoch8 端到端结构输出；其分类诊断使用 R3D 自身 mask/GT 匹配，正例人口不同，不能把其准确率差解释为同表示分类头收益。两侧训练监督和曝光预算不同。',
+      f'- 注册 R3D-H0 结果：`{r3d_result["status"]}`；条件见 `r3d_vs_h0_registration_result.json`。','',
       '## 固定 raw 区域与 A0/A1',
       f'- test true-novel：GT={actual["gt_count"]}；A0 raw max IoU≥.5/≥.75 为 {actual["raw_iou_ge_05"]}/{actual["raw_iou_ge_075"]}；A1 max-cardinality 一对一匹配数为 {actual["a1_max_cardinality_ge_05"]}/{actual["a1_max_cardinality_ge_075"]}。',
       '- A0/A1 是固定 raw mask 集合的覆盖与一对一诊断参照，不是部署 AP 或 packed AP 的理论上界。','',
       '## 主 seed 结果与配对决策']
     for comp,d in decisions.items():lines.append(f'- `{comp}`：readability `{d["readability_label"]}`；task transfer `{d["task_transfer_label"]}`；overall `{d["label"]}`；novel joint Δ={d.get("joint19_accuracy",{}).get("point_delta")}、conditional Δ={d.get("conditional18_accuracy",{}).get("point_delta")}；mAP Δ={d.get("task_actual_map_delta")}，95% CI={d.get("task_map_ci95")}。')
     lines+=['','## Test 所有读出与 seed 的绝对结果','','| Readout | Scope | Joint acc | Conditional acc | Macro F1 | mAP | AP50 | PQ | mIoU |','|---|---|---:|---:|---:|---:|---:|---:|---:|']
-    for h,s in [('H0',None)]+[(h,seed) for h in ('H1','H2','H3') for seed in (20261,20262,20263)]:
+    for h,s in [('H0',None)]+[(h,seed) for h in ('H1','H2','H3') for seed in (20261,20262,20263)]+[('R3D',None)]:
       name=readout_name(h,s);om=metric_result(official,'test',h,s,'true-novel');cm=class_row(feature,'test','true-novel',h,s)
       for scope in ('context','true-novel'):
         o=metric_result(official,'test',h,s,scope);c=class_row(feature,'test',scope,h,s)
-        lines.append(f'| {name} | {scope} | {float(c["joint19_accuracy"]):.4f} | {float(c["conditional18_accuracy"]):.4f} | {float(c["macro_f1_supported_classes"]):.4f} | {float(o["mAP"]):.4f} | {float(o["AP50"]):.4f} | {float(o["PQ"]):.4f} | {float(o["mIoU"]):.4f} |')
+        vals=[c.get('joint19_accuracy'),c.get('conditional18_accuracy'),c.get('macro_f1_supported_classes'),o.get('mAP'),o.get('AP50'),o.get('PQ'),o.get('mIoU')]
+        fmt=lambda v:'NA' if v is None else f'{float(v):.4f}'
+        lines.append(f'| {name} | {scope} | ' + ' | '.join(fmt(v) for v in vals) + ' |')
     lines+=['','## Task 转化 funnel（test true-novel）','','| Readout | Eligible candidates | Candidate CA TP/FP/FN | Candidate CW TP/FP/FN | Packed CA TP/FP/FN | Packed CW TP/FP/FN | Local candidate mAP |','|---|---:|---:|---:|---:|---:|---:|']
     for x in funnel_primary:
         ca=x['candidate_ca'];cw=x['candidate_cw'];pa=x['packed_ca'];pw=x['packed_cw'];ap=x['candidate_ap'] or {}
@@ -529,11 +673,14 @@ def main():
     # Existing job receipts are inserted by the Slurm wrapper when available.
     bundles,primary=package(root)
     allz=bundles+primary
-    manifest={'zip_archives':allz,'primary_prediction_expected':{'scenes':24,'readouts':10,'context_frames_per_scene':2,
-        'true_novel_frames_per_scene':4,'prediction_frames_per_readout':144,'total_prediction_frames':1440},
+    manifest={'zip_archives':allz,'primary_prediction_expected':{'scenes':24,'readouts':11,'context_frames_per_scene':2,
+        'true_novel_frames_per_scene':4,'prediction_frames_per_readout':144,'total_prediction_frames':1584},
         'zip_limit_bytes':25*1024*1024,'all_crc_and_member_sha_checked':True}
     dump(root/'bundle_manifest.json',manifest)
-    dump(root/'complete.json',{'status':'COMPLETE','extraction':True,'training':True,'cached_eval':True,'official_packed_ap_bootstrap':True,
+    stage_receipts={'extraction':json.loads((root/'extraction_complete.json').read_text()),'training':json.loads((root/'heads_complete.json').read_text()),'r3d_inference':json.loads((root/'r3d_frozen_inference_receipt.json').read_text()),'unified_eval':ev}
+    stage_ok=all(x.get('status')=='PASS' for x in stage_receipts.values())
+    dump(root/'complete.json',{'status':'COMPLETE' if stage_ok else 'INCOMPLETE','stage_receipts':stage_receipts,
+        'extraction':stage_receipts['extraction'].get('status')=='PASS','training':stage_receipts['training'].get('status')=='PASS','cached_eval':stage_receipts['unified_eval'].get('status')=='PASS','official_packed_ap_bootstrap':stage_receipts['unified_eval'].get('status')=='PASS',
         'h0_replay_parity':True,'primary_prediction_packages':len(primary),'main_packages':len(bundles),
         'count_contract':'PASS','complete_utc':__import__('datetime').datetime.now(__import__('datetime').timezone.utc).isoformat()})
 

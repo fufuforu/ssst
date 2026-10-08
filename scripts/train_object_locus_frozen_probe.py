@@ -12,7 +12,7 @@ from torch.nn import functional as F
 
 from scripts.object_locus_frozen_probe_contract import labels_from_context
 
-ATTEMPT=Path('/space/mawb/ssst/group_plus/object_locus_frozen_representation_diagnostic_v1/attempts/attempt00')
+ATTEMPT=Path(os.environ.get('TASK_ATTEMPT_ROOT','/space/mawb/ssst/group_plus/object_locus_frozen_representation_diagnostic_v1/attempts/attempt01'))
 SEEDS=(20261,20262,20263)
 
 class Readout(nn.Module):
@@ -57,7 +57,7 @@ def batches(data,order,batch_size=16):
 def weighted_ce(logits,labels):
     valid=labels>=0
     if not valid.any(): return None
-    weights=torch.ones(19,dtype=logits.dtype); weights[18]=.1
+    weights=torch.ones(19,dtype=logits.dtype,device=logits.device); weights[18]=.1
     losses=F.cross_entropy(logits[valid],labels[valid],reduction='none')
     sample=weights[labels[valid]]
     return (losses*sample).sum()/sample.sum()
@@ -72,12 +72,11 @@ def evaluate(head,data):
                 weights=torch.ones(19); weights[18]=.1
                 loss=F.cross_entropy(logits[mask],y[mask],weight=weights,reduction='sum')
                 ce_num+=float(loss); ce_den+=float(weights[y[mask]].sum())
-            positive=y<18; pred=logits.argmax(-1)
-            correct+=int(((pred==y)&positive).sum()); pos+=int(positive.sum())
-            joint+=int(((pred==y)&(y>=0)).sum())
-            cond+=int(((pred==y)&positive).sum())
-    return {'ce':ce_num/ce_den if ce_den else None,'joint_acc':joint/max(1,sum(int((r['labels']>=0).sum()) for r in data)),
-            'conditional_acc':cond/max(1,pos),'positive_queries':pos}
+            positive=(y>=0)&(y<18); pred=logits.argmax(-1); c_pred=logits[:,:18].argmax(-1)
+            joint+=int(((pred==y)&positive).sum()); pos+=int(positive.sum())
+            cond+=int(((c_pred==y)&positive).sum())
+    return {'ce':ce_num/ce_den if ce_den else None,'joint_acc':joint/pos if pos else None,
+            'conditional_acc':cond/pos if pos else None,'positive_queries':pos}
 
 def main():
     ap=argparse.ArgumentParser(); ap.add_argument('--attempt',type=Path,default=ATTEMPT); args=ap.parse_args(); root=args.attempt
@@ -108,7 +107,7 @@ def main():
             if path.stat().st_size!=row[size_key] or h.hexdigest()!=row[hash_key]: raise RuntimeError(f'cache SHA mismatch: {path}')
     train=load_split(root,'train'); dev=load_split(root,'dev')
     if len(train)!=1008 or len(dev)!=8: raise RuntimeError('train/dev cache count mismatch')
-    if not any(np.any(r['labels']<18) for r in train) or not any(np.any(r['labels']==18) for r in train):
+    if not any(np.any((r['labels']>=0)&(r['labels']<18)) for r in train) or not any(np.any(r['labels']==18) for r in train):
         raise RuntimeError('train split needs at least one positive and explicit negative')
     out=root/'heads'; out.mkdir(parents=True,exist_ok=True)
     scalar_path=root/'training_scalars.csv'; scalar_path.parent.mkdir(parents=True,exist_ok=True)
