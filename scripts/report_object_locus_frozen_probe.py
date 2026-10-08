@@ -418,7 +418,8 @@ def package(root):
       'scripts/train_object_locus_frozen_probe.py','scripts/eval_object_locus_frozen_probe.py','scripts/report_object_locus_frozen_probe.py',
       'scripts/prepare_object_locus_frozen_probe.py','scripts/object_locus_probe_metrics.py','scripts/object_locus_r3d_registration.py','scripts/train_object_locus_frozen_probe_head_worker.py','scripts/train_parallel_probe_heads.py','scripts/eval_r3d_frozen_inference.py','scripts/verify_execution_files_manifest.py','scripts/write_execution_files_manifest.py','scripts/reproduce_frozen_probe_report_cpu.py','tokengs/models/object_locus_output_refine_gc001.py','tokengs/models/object_locus_output_refine_v1.py','tests/test_object_locus_frozen_probe_contracts.py','tests/fixtures/siu3r_gc001_native_official_result.json',
       'slurm/extract_frozen_probe.sbatch','slurm/cpu_probe_eval.sbatch','slurm/eval_r3d_inference.sbatch','slurm/train_probe_heads_parallel.sbatch','slurm/unified_eval_report.sbatch',
-      'provenance/source_attempt02/git_provenance.json','provenance/source_attempt02/execution_files_manifest.json']
+      'provenance/source_attempt02/git_provenance.json','provenance/source_attempt02/execution_files_manifest.json',
+      'provenance/attempt03_old_d_cancellation/job_59167_before_cancel.txt','provenance/attempt03_old_d_cancellation/job_59167_before_cancel.sacct.txt','provenance/attempt03_old_d_cancellation/job_59167_after_cancel.txt','provenance/attempt03_old_d_cancellation/job_59167_after_cancel.sacct.txt']
     for rel in wanted:
         p=(ROOT/rel) if rel.startswith(('scripts/','tokengs/','tests/','slurm/')) else root/rel
         if p.is_file():main.append((p,rel))

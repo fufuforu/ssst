@@ -10,6 +10,8 @@ from pathlib import Path
 from scripts.object_locus_probe_metrics import verify_gc_cache_manifest, verify_r3d_cache_manifest
 
 SOURCE = Path('/space/mawb/ssst/group_plus/object_locus_frozen_representation_diagnostic_v1/attempts/attempt02')
+ENTRYPOINT_PREFLIGHT = Path('/space/mawb/ssst/group_plus/object_locus_frozen_representation_diagnostic_v1/attempts/attempt03/entrypoint_preflight.json')
+OLD_D_EVIDENCE = Path('/space/mawb/ssst/group_plus/object_locus_frozen_representation_diagnostic_v1/attempts/attempt03/slurm')
 EXPECTED_GC = '72f7440b5b3cf2fd877dfc534ae5c4a409c76c9884729fe23247008aab8c0d58'
 EXPECTED_R3D = '9f06d78c58bd5e00b84ed712840e767c3151db1fe170f3408c6079fca263db2c'
 OLD_CODE = '6489441d1814af23cafab9a9170ba77c4b1e5da3'
@@ -143,6 +145,24 @@ def main():
             raise RuntimeError(f'original provenance byte copy mismatch: {rel}')
         ledger.append({'relative_path': str(dst.relative_to(root)), 'source_path': str(src),
                        'sha256': sha(src), 'size': src.stat().st_size, 'method': 'byte_copy_original_provenance'})
+    cancellation_dir = root / 'provenance/attempt03_old_d_cancellation'
+    for name in ('job_59167_before_cancel.txt', 'job_59167_before_cancel.sacct.txt',
+                 'job_59167_after_cancel.txt', 'job_59167_after_cancel.sacct.txt',
+                 'old_d_job_output_absence.txt', 'attempt02_frozen-unified-eval-59167.err',
+                 'attempt02_frozen-unified-eval-59167.out'):
+        src = OLD_D_EVIDENCE / name
+        if not src.is_file():
+            if name in ('attempt02_frozen-unified-eval-59167.err', 'attempt02_frozen-unified-eval-59167.out'):
+                continue
+            raise FileNotFoundError(src)
+        dst = cancellation_dir / name
+        dst.parent.mkdir(parents=True, exist_ok=True)
+        shutil.copy2(src, dst)
+        if sha(src) != sha(dst):
+            raise RuntimeError(f'old D cancellation evidence copy mismatch: {name}')
+        ledger.append({'relative_path': str(dst.relative_to(root)), 'source_path': str(src),
+                       'sha256': sha(src), 'size': src.stat().st_size,
+                       'method': 'byte_copy_attempt03_cancellation_evidence'})
 
     metadata = ['source_manifest.json', 'protocol.json', 'data_contract.json', 'cohort_identity.json',
                 'cohort_manifest.json', 'public_cohort_identity_receipt.json', 'endpoint_source_hashes.json',
@@ -154,6 +174,24 @@ def main():
                 'gpu_runtime.json', 'smoke.json', 'h0_cache_replay_parity_first_dev.json', 'startup_confirmation.json']
     for rel in metadata:
         copy_input(root, rel, ledger)
+    if not ENTRYPOINT_PREFLIGHT.is_file():
+        raise FileNotFoundError(ENTRYPOINT_PREFLIGHT)
+    preflight_copy = root / 'entrypoint_preflight.json'
+    shutil.copy2(ENTRYPOINT_PREFLIGHT, preflight_copy)
+    if sha(preflight_copy) != sha(ENTRYPOINT_PREFLIGHT):
+        raise RuntimeError('entrypoint preflight record copy SHA mismatch')
+    entrypoint_record = json.loads(preflight_copy.read_text())
+    if entrypoint_record.get('status') != 'PASS' or any(
+            row.get('exit_code') != 0 or not row.get('help_usage_present') or row.get('module_not_found')
+            for row in entrypoint_record.get('checks', [])) or len(entrypoint_record.get('checks', [])) != 6:
+        raise RuntimeError('actual C/D module --help preflight record is not a six-entry PASS')
+    code_root = Path(__file__).resolve().parents[1]
+    for rel, info in entrypoint_record.get('source_files', {}).items():
+        if sha(code_root / rel) != info['sha256']:
+            raise RuntimeError(f'entrypoint preflight source hash differs from committed code: {rel}')
+    ledger.append({'relative_path': 'entrypoint_preflight.json', 'source_path': str(ENTRYPOINT_PREFLIGHT),
+                   'sha256': sha(ENTRYPOINT_PREFLIGHT), 'size': ENTRYPOINT_PREFLIGHT.stat().st_size,
+                   'method': 'byte_copy_actual_entrypoint_preflight'})
     for rel in ('labels/train_labels.csv', 'labels/dev_test_labels.csv', 'labels/original_context_hungarian.csv'):
         copy_input(root, rel, ledger)
 
@@ -186,6 +224,7 @@ def main():
 
     source_provenance = {
         'source_attempt_root': str(SOURCE), 'new_attempt_root': str(root),
+        'attempt_root_selection_reason': 'attempt03 already contains the first recovery cache-view output and its Slurm cancellation/entrypoint evidence; per instruction, this completed recovery uses the next empty attempt04 root.',
         'GC001': {'job_id': '59164', 'status': 'COMPLETED 0:0', 'execution_sha': OLD_CODE,
                   'checkpoint_sha256': EXPECTED_GC, 'receipt': 'extraction_complete.json',
                   'manifest_check': gc_manifest_result, 'new_root_manifest_check': gc_view},
@@ -240,7 +279,7 @@ def main():
              'consumed_relative_paths_checked': len(must_exist), 'missing_consumed_paths': []}
     (root / 'cache_reuse_manifest.json').write_text(json.dumps(reuse, indent=2) + '\n')
     print(json.dumps({'status': 'PASS', 'attempt_root': str(root), 'reused_files': len(ledger),
-                      'GC001': gc_view, 'R3D': r3d_view, 'consumed_paths': len(must_exist)}, flush=True))
+                      'GC001': gc_view, 'R3D': r3d_view, 'consumed_paths': len(must_exist)}), flush=True)
 
 
 if __name__ == '__main__':
