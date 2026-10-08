@@ -27,10 +27,11 @@ def main():
  if ckpt_sha!=EXPECTED_CKPT_SHA:raise RuntimeError(f'R3D epoch8 checkpoint SHA mismatch: {ckpt_sha}')
  receipt=json.loads((R3D_ROOT/'training_complete.json').read_text());reg=json.loads((R3D_ROOT/'evaluation_registration.json').read_text());run=json.loads((R3D_ROOT/'run_manifest.json').read_text())
  if receipt.get('completed_updates')!=1008 or receipt.get('new_exposures')!=8064 or receipt.get('model_exposure')!=58128 or receipt.get('status')!='WAIT_USER_NOTIFICATION_FOR_EVALUATION':raise RuntimeError('R3D training completion receipt invalid')
- if reg.get('code_sha')!=EXPECTED_CODE or reg.get('source_checkpoint_sha256')!=EXPECTED_SOURCE or reg.get('plan_sha256')!=EXPECTED_PLAN or reg.get('world_size')!=4 or reg.get('logical_global_slots')!=8 or reg.get('gradient_accumulation_steps')!=2:raise RuntimeError('R3D evaluation registration identity/budget mismatch')
+ if reg.get('source_checkpoint_sha256')!=EXPECTED_SOURCE or reg.get('fixed_training_plan_sha256')!=EXPECTED_PLAN or reg.get('training',{}).get('logical_global_slots')!=8 or reg.get('execution_conditions',{}).get('R3D')!='4 physical GPUs x two batch-1 microbatches, accumulation=2':raise RuntimeError('R3D evaluation registration identity/budget mismatch')
  progress=json.loads((R3D_ROOT/'progress.json').read_text());roundtrip=json.loads((R3D_ROOT/'checkpoint_roundtrip_exact.json').read_text())
  if progress.get('status')!='COMPLETE' or roundtrip.get('status')!='PASS' or roundtrip.get('all_state_keys_shapes_dtypes_values_exact') is not True:raise RuntimeError('R3D progress/roundtrip completion evidence invalid')
  if run.get('code_sha')!=EXPECTED_CODE or run.get('plan_sha256')!=EXPECTED_PLAN:raise RuntimeError('R3D completed run manifest code/plan mismatch')
+ if run.get('world_size')!=4 or run.get('logical_global_slots')!=8 or run.get('gradient_accumulation_steps')!=2 or run.get('new_exposures')!=8064 or run.get('model_exposure_endpoint')!=58128:raise RuntimeError('R3D actual run execution budget mismatch')
  identity=json.loads((root/'cohort_identity.json').read_text())
  if identity.get('source_manifest_sha256')!='a03e6842e9657d512a0de2b9dd20ed73aa9bcc61ec8f4fd8d33ed07e8cc11249' or identity.get('dev_test_identity_matches_registered_four_arm') is not True:raise RuntimeError('prelocked public cohort identity receipt invalid')
  dev,test=identity['dev'],identity['test']
