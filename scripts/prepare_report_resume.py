@@ -19,7 +19,7 @@ def main():
  if pre.get('status')!='PASS':raise RuntimeError('report preflight is not PASS')
  reuse=json.loads((src/'evaluation_reuse_manifest.json').read_text())
  if reuse.get('status')!='PASS' or reuse.get('missing_consumed_paths'):raise RuntimeError('source evaluation reuse manifest is incomplete')
- manifest_paths={str(row['relative_path']) for row in reuse['files']}
+ manifest_paths={str(row.get('attempt06_relative_path') or row['relative_path']) for row in reuse['files']}
  allowed_dirs={'slurm','predictions','official','labels','heads','cache','r3d','reconstruction_cache','features','reference_gpu','provenance','preflight'}
  allowed_top_files={Path(name).name for name in manifest_paths if '/' not in name}|{p.name for p in src.iterdir() if p.is_file()}
  unexpected=[p.name for p in dst.iterdir() if p.name not in allowed_dirs and p.name not in allowed_top_files]
@@ -33,7 +33,8 @@ def main():
  for d in dest_dirs:(dst/d).mkdir(parents=True,exist_ok=True)
  entries={};manifest_source_mismatches=[]
  for row in reuse['files']:
-  rel=Path(row.get('attempt06_relative_path') or row['relative_path'])
+  target_rel=Path(row.get('attempt06_relative_path') or row['relative_path'])
+  rel=target_rel
   from_attempt=src/rel;origin=Path(row['source_path'])
   if not from_attempt.is_file() or not origin.is_file():raise FileNotFoundError(f'reuse input missing: attempt06={from_attempt}, origin={origin}')
   expected=row['sha256'];size=int(row['size'])
@@ -44,7 +45,7 @@ def main():
    manifest_source_mismatches.append({'relative_path':str(rel),'old_reuse_manifest_sha256':expected,'old_reuse_manifest_size':size,
     'attempt06_current_sha256':current_sha,'attempt06_current_size':current_size,'reason':'attempt06 administrative provenance file was updated after its reused-input manifest was written'})
    expected=current_sha;size=current_size
-  target=dst/row['relative_path'];target.parent.mkdir(parents=True,exist_ok=True)
+  target=dst/target_rel;target.parent.mkdir(parents=True,exist_ok=True)
   # Checkpoint and recorded provenance inputs remain byte copies as in attempt06.
   copy_method=row.get('method','')
   immutable_cache=rel.parts[0] in ('cache','r3d','features','reconstruction_cache','reference_gpu')
