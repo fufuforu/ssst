@@ -174,11 +174,15 @@ def main():
                 'gpu_runtime.json', 'smoke.json', 'h0_cache_replay_parity_first_dev.json', 'startup_confirmation.json']
     for rel in metadata:
         copy_input(root, rel, ledger)
-    if not ENTRYPOINT_PREFLIGHT.is_file():
-        raise FileNotFoundError(ENTRYPOINT_PREFLIGHT)
+    preflight_source = root / 'entrypoint_preflight.json'
+    if not preflight_source.is_file():
+        preflight_source = ENTRYPOINT_PREFLIGHT
+    if not preflight_source.is_file():
+        raise FileNotFoundError(preflight_source)
     preflight_copy = root / 'entrypoint_preflight.json'
-    shutil.copy2(ENTRYPOINT_PREFLIGHT, preflight_copy)
-    if sha(preflight_copy) != sha(ENTRYPOINT_PREFLIGHT):
+    if preflight_source != preflight_copy:
+        shutil.copy2(preflight_source, preflight_copy)
+    if sha(preflight_copy) != sha(preflight_source):
         raise RuntimeError('entrypoint preflight record copy SHA mismatch')
     entrypoint_record = json.loads(preflight_copy.read_text())
     if entrypoint_record.get('status') != 'PASS' or any(
@@ -189,8 +193,8 @@ def main():
     for rel, info in entrypoint_record.get('source_files', {}).items():
         if sha(code_root / rel) != info['sha256']:
             raise RuntimeError(f'entrypoint preflight source hash differs from committed code: {rel}')
-    ledger.append({'relative_path': 'entrypoint_preflight.json', 'source_path': str(ENTRYPOINT_PREFLIGHT),
-                   'sha256': sha(ENTRYPOINT_PREFLIGHT), 'size': ENTRYPOINT_PREFLIGHT.stat().st_size,
+    ledger.append({'relative_path': 'entrypoint_preflight.json', 'source_path': str(preflight_source),
+                   'sha256': sha(preflight_source), 'size': preflight_source.stat().st_size,
                    'method': 'byte_copy_actual_entrypoint_preflight'})
     for rel in ('labels/train_labels.csv', 'labels/dev_test_labels.csv', 'labels/original_context_hungarian.csv'):
         copy_input(root, rel, ledger)
