@@ -12,7 +12,7 @@ from torch.nn import functional as F
 
 from scripts.object_locus_frozen_probe_contract import labels_from_context
 
-ATTEMPT=Path(os.environ.get('TASK_ATTEMPT_ROOT','/space/mawb/ssst/group_plus/object_locus_frozen_representation_diagnostic_v1/attempts/attempt01'))
+ATTEMPT=Path(os.environ.get('TASK_ATTEMPT_ROOT','/space/mawb/ssst/group_plus/object_locus_frozen_representation_diagnostic_v1/attempts/attempt02'))
 SEEDS=(20261,20262,20263)
 
 class Readout(nn.Module):

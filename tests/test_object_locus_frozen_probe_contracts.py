@@ -8,6 +8,7 @@ import pytest
 import json
 from scripts.object_locus_probe_metrics import normalize_official_result
 from scripts.report_object_locus_frozen_probe import metric_result,aggregate_scene_rows
+from scripts.object_locus_r3d_registration import normalize_r3d_registration,registered_outcome
 
 
 def test_locked_math_contract():
@@ -77,3 +78,27 @@ def test_actual_siu3r_official_schema_and_paired_scene_aggregate():
     assert result['macro_f1_supported_classes']==1 and result['conditional_macro_f1_supported_classes']==1
     official=[{'cohort':'test','head':'H0','seed':'','result':json.dumps(normalized)}]
     assert metric_result(official,'test','H0',None,'true-novel')['mAP']==actual['target_map']['map']
+
+def test_real_r3d_registration_normalizes_actual_source_schema():
+    attempt='/space/mawb/ssst/group_plus/object_locus_frozen_representation_diagnostic_v1/attempts/attempt02'
+    saved=json.loads(open(attempt+'/r3d_registration_normalized.json').read())
+    normalized=normalize_r3d_registration(checkpoint_metadata=saved['checkpoint_metadata'],checkpoint_sha256=saved['checkpoint_sha256'])
+    assert normalized['registration_sha256']==saved['registration_sha256']
+    assert normalized['identity']['physical_world_size']==4
+    assert normalized['identity']['logical_global_slots']==8
+    assert normalized['field_mappings']['plan_sha256']=='evaluation_registration.json:fixed_training_plan_sha256'
+    assert normalized['success_conditions']['delta_map_min']==.01
+
+def test_registered_r3d_outcome_branches_and_missing_receipts():
+    reg=json.loads(open('/space/mawb/ssst/group_plus/object_locus_frozen_representation_diagnostic_v1/attempts/attempt02/r3d_registration_normalized.json').read())
+    good={'delta_map':.02,'map_ci_lower':.01,'map_ci_upper':.03,'delta_ap50':0,'ap50_ci_upper':.01,'delta_pq':0,
+      'context_psnr_drop_db':0,'true_novel_psnr_drop_db':0,'true_novel_absrel_ratio':1}
+    fail={**good,'map_ci_lower':-.02,'map_ci_upper':0}
+    middle={**good,'delta_map':0,'map_ci_lower':-.01,'map_ci_upper':.02}
+    assert registered_outcome(reg,good,protocol_complete=True)['status']=='SUCCESS'
+    assert registered_outcome(reg,fail,protocol_complete=True)['status']=='FAILURE'
+    assert registered_outcome(reg,middle,protocol_complete=True)['status']=='INCONCLUSIVE'
+    invalid=registered_outcome(reg,good,protocol_complete=False)
+    assert invalid['status']=='INVALID' and invalid['algorithm_conclusion'] is None
+    incomplete=registered_outcome(reg,{'delta_map':.2},protocol_complete=True)
+    assert incomplete['status']=='INCOMPLETE' and incomplete['algorithm_conclusion'] is None

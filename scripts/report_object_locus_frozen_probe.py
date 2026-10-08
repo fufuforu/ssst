@@ -7,8 +7,9 @@ import numpy as np
 ROOT=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(ROOT))
 from scripts.object_locus_probe_metrics import normalize_official_result
+from scripts.object_locus_r3d_registration import normalize_r3d_registration,registered_outcome
 
-ATTEMPT=Path(os.environ.get('TASK_ATTEMPT_ROOT','/space/mawb/ssst/group_plus/object_locus_frozen_representation_diagnostic_v1/attempts/attempt01'))
+ATTEMPT=Path(os.environ.get('TASK_ATTEMPT_ROOT','/space/mawb/ssst/group_plus/object_locus_frozen_representation_diagnostic_v1/attempts/attempt02'))
 FOCUS_SOURCE=Path('/space/mawb/ssst/group_plus/object_locus_instance_attribution_v1/attempts/attempt00/results/focus20_cases.jsonl')
 FOCUS_MANIFEST=Path('/space/mawb/ssst/group_plus/object_locus_instance_attribution_v1/attempts/attempt00/selection_manifest.json')
 
@@ -358,33 +359,28 @@ def reconstruction_reduce(root):
     return summary
 
 def r3d_registration_result(root,bootstrap,official,reconstruction):
-    registration=json.loads(Path('/space/mawb/ssst/group_plus/object_locus_output_refine_gc001_v1/attempts/attempt02/evaluation_registration.json').read_text())
-    expected={'delta_map_min':.01,'delta_ap50_min':-.01,'delta_pq_min':-.01,'context_psnr_drop_max_db':.5,'true_novel_psnr_drop_max_db':.5,'true_novel_absrel_ratio_max':1.05}
-    got={'delta_map_min':registration['success']['delta_map_min'],'delta_ap50_min':registration['success']['delta_ap50_min'],'delta_pq_min':registration['success']['delta_pq_min'],
-      'context_psnr_drop_max_db':registration['success']['context_psnr_drop_max_db'],'true_novel_psnr_drop_max_db':registration['success']['true_novel_psnr_drop_max_db'],'true_novel_absrel_ratio_max':registration['success']['true_novel_absrel_ratio_max']}
-    if got!=expected:status='INVALID';reason='Registered success thresholds differ from the prompt'
-    else:
-     boot=bootstrap['comparisons']['R3D-H0']['official_true_novel'];h0=metric_result(official,'test','H0',None,'true-novel');r3=metric_result(official,'test','R3D',None,'true-novel')
-     dmap=float(r3['mAP'])-float(h0['mAP']);dap=float(r3['AP50'])-float(h0['AP50']);dpq=float(r3['PQ'])-float(h0['PQ'])
-     ci_map=boot['map']['ci95'];ci_ap=boot['ap50']['ci95']
-     hrec=reconstruction[('GC001','test')];rrec=reconstruction[('R3D','test')]
-     if any(v is None for v in (hrec['context']['psnr'],rrec['context']['psnr'],hrec['true-novel']['psnr'],rrec['true-novel']['psnr'],hrec['true-novel']['absrel'],rrec['true-novel']['absrel'])):
-      result={'status':'INCONCLUSIVE','reason':'registered reconstruction protection metrics are missing','conditions':{'thresholds':got}}
-      (root/'r3d_vs_h0_registration_result.json').write_text(json.dumps(result,indent=2)+'\n');return result
-     dc=hrec['context']['psnr']-rrec['context']['psnr'];dn=hrec['true-novel']['psnr']-rrec['true-novel']['psnr']
-     ratio=rrec['true-novel']['absrel']/hrec['true-novel']['absrel'] if hrec['true-novel']['absrel'] else None
-     valid=(json.loads((root/'r3d_frozen_inference_receipt.json').read_text()).get('status')=='PASS'
-       and json.loads((root/'heads_complete.json').read_text()).get('status')=='PASS'
-       and json.loads((root/'extraction_complete.json').read_text()).get('status')=='PASS'
-       and json.loads((root/'h0_cache_replay_parity.json').read_text()).get('status')=='PASS'
-       and json.loads((root/'h0_against_previous_precheck.json').read_text()).get('counts_exact_match') is True
-       and json.loads((root/'eval_complete.json').read_text()).get('status')=='PASS')
-     success=(valid and dmap>=.01 and ci_map[0]>0 and dap>=-.01 and dpq>=-.01 and dc<=.5 and dn<=.5 and ratio is not None and ratio<=1.05)
-     failure=(valid and (ci_map[1]<=0 or ci_ap[1]<-.01 or dc>.5 or dn>.5 or ratio is None or ratio>1.05))
-     status='SUCCESS' if success else 'FAILURE' if failure else 'INCONCLUSIVE';reason=None
-     got.update({'delta_map':dmap,'delta_map_ci95':ci_map,'delta_ap50':dap,'delta_ap50_ci95':ci_ap,'delta_pq':dpq,
-       'context_psnr_drop_db':dc,'true_novel_psnr_drop_db':dn,'true_novel_absrel_ratio':ratio,'protocol_complete':valid})
-    result={'status':status,'reason':reason,'registration_source':str(Path('/space/mawb/ssst/group_plus/object_locus_output_refine_gc001_v1/attempts/attempt02/evaluation_registration.json')),'conditions':got}
+    endpoint=json.loads((root/'r3d_endpoint_manifest.json').read_text())
+    registration=normalize_r3d_registration(checkpoint_metadata=endpoint['checkpoint_metadata'],checkpoint_sha256=endpoint['checkpoint_sha256'])
+    if registration['registration_sha256']!=endpoint['normalized_registration_sha256']:
+        raise RuntimeError('D R3D registration normalization differs from B locked normalization')
+    boot=bootstrap['comparisons']['R3D-H0']['official_true_novel'];h0=metric_result(official,'test','H0',None,'true-novel');r3=metric_result(official,'test','R3D',None,'true-novel')
+    hrec=reconstruction[('GC001','test')];rrec=reconstruction[('R3D','test')]
+    dmap=float(r3['mAP'])-float(h0['mAP']);dap=float(r3['AP50'])-float(h0['AP50']);dpq=float(r3['PQ'])-float(h0['PQ'])
+    ci_map=boot['map']['ci95'];ci_ap=boot['ap50']['ci95']
+    dc=(hrec['context']['psnr']-rrec['context']['psnr']) if hrec['context']['psnr'] is not None and rrec['context']['psnr'] is not None else None
+    dn=(hrec['true-novel']['psnr']-rrec['true-novel']['psnr']) if hrec['true-novel']['psnr'] is not None and rrec['true-novel']['psnr'] is not None else None
+    ratio=(rrec['true-novel']['absrel']/hrec['true-novel']['absrel']) if hrec['true-novel']['absrel'] not in (None,0) and rrec['true-novel']['absrel'] is not None else None
+    valid=(json.loads((root/'r3d_frozen_inference_receipt.json').read_text()).get('status')=='PASS'
+      and json.loads((root/'heads_complete.json').read_text()).get('status')=='PASS'
+      and json.loads((root/'extraction_complete.json').read_text()).get('status')=='PASS'
+      and json.loads((root/'h0_cache_replay_parity.json').read_text()).get('status')=='PASS'
+      and json.loads((root/'h0_against_previous_precheck.json').read_text()).get('counts_exact_match') is True
+      and json.loads((root/'eval_complete.json').read_text()).get('status')=='PASS')
+    metrics={'delta_map':dmap,'map_ci_lower':ci_map[0],'map_ci_upper':ci_map[1],'delta_ap50':dap,'ap50_ci_upper':ci_ap[1],
+      'delta_pq':dpq,'context_psnr_drop_db':dc,'true_novel_psnr_drop_db':dn,'true_novel_absrel_ratio':ratio}
+    outcome=registered_outcome(registration,metrics,protocol_complete=valid)
+    result={**outcome,'registration_source':registration['registration_path'],'registration_sha256':registration['registration_sha256'],
+      'conditions':{**metrics,'map_ci95':ci_map,'ap50_ci95':ci_ap,'protocol_complete':valid}}
     (root/'r3d_vs_h0_registration_result.json').write_text(json.dumps(result,indent=2)+'\n');return result
 
 def write_reproducer(root):
@@ -411,7 +407,7 @@ def zip_tree(path,members,root):
 
 def package(root):
     maxsize=25*1024*1024; main=[]
-    wanted=['protocol.json','git_provenance.json','source_manifest.json','data_contract.json','cohort_manifest.json','freeze_check.json','endpoint_load_check.json','parallel_execution_registration.json','execution_files_manifest.json','previous_attempt.json',
+    wanted=['protocol.json','effective_execution_protocol.json','retry02_preflight.json','r3d_registration_normalized.json','r3d_registration_decision_contract_checks.json','git_provenance.json','source_manifest.json','data_contract.json','cohort_manifest.json','freeze_check.json','endpoint_load_check.json','parallel_execution_registration.json','execution_files_manifest.json','previous_attempt.json',
       'extraction_complete.json','startup_confirmation.json','smoke.json','smoke_cpu.json','cache_manifest.json','h0_cache_replay_parity.json','h0_cache_replay_parity_first_dev.json','r3d_endpoint_manifest.json','r3d_frozen_inference_receipt.json','r3d_cache_manifest.json','r3d_h0_cache_pair_identity.json','r3d_vs_h0_registration_result.json','reconstruction_metrics.csv','unified_official_metrics.csv','unified_scene_paired_differences.csv','unified_paired_bootstrap.json','jobs.json','cohort_identity.json','public_cohort_identity_receipt.json','reconstruction_evaluator_status.json','execution_files_manifest.json','parallel_execution_registration.json','h0_against_previous_precheck.json','endpoint_load_check.json','freeze_check.json','heads_complete.json','eval_complete.json','bundle_manifest.json','complete.json',
       'h0_against_previous.json','labels/train_labels.csv','labels/dev_test_labels.csv','labels/original_context_hungarian.csv',
       'features/dev_test_q_z.npz','oracle_metrics.csv','class_support.csv','head_manifest.json','training_scalars.csv','feature_probe_metrics.csv',
@@ -420,7 +416,7 @@ def package(root):
       'bootstrap_scene_indices_seed2026.npy','paired_bootstrap.json','missing_items.json','report_to_gpt.md','summary.json',
       'reproduce_report_cpu.py','scripts/object_locus_frozen_probe_contract.py','scripts/extract_object_locus_frozen_probe.py',
       'scripts/train_object_locus_frozen_probe.py','scripts/eval_object_locus_frozen_probe.py','scripts/report_object_locus_frozen_probe.py',
-      'scripts/prepare_object_locus_frozen_probe.py','scripts/object_locus_probe_metrics.py','scripts/train_object_locus_frozen_probe_head_worker.py','scripts/train_parallel_probe_heads.py','scripts/eval_r3d_frozen_inference.py','scripts/verify_execution_files_manifest.py','scripts/write_execution_files_manifest.py','scripts/reproduce_frozen_probe_report_cpu.py','tokengs/models/object_locus_output_refine_gc001.py','tokengs/models/object_locus_output_refine_v1.py','tests/test_object_locus_frozen_probe_contracts.py','tests/fixtures/siu3r_gc001_native_official_result.json',
+      'scripts/prepare_object_locus_frozen_probe.py','scripts/object_locus_probe_metrics.py','scripts/object_locus_r3d_registration.py','scripts/train_object_locus_frozen_probe_head_worker.py','scripts/train_parallel_probe_heads.py','scripts/eval_r3d_frozen_inference.py','scripts/verify_execution_files_manifest.py','scripts/write_execution_files_manifest.py','scripts/reproduce_frozen_probe_report_cpu.py','tokengs/models/object_locus_output_refine_gc001.py','tokengs/models/object_locus_output_refine_v1.py','tests/test_object_locus_frozen_probe_contracts.py','tests/fixtures/siu3r_gc001_native_official_result.json',
       'slurm/extract_frozen_probe.sbatch','slurm/cpu_probe_eval.sbatch','slurm/eval_r3d_inference.sbatch','slurm/train_probe_heads_parallel.sbatch','slurm/unified_eval_report.sbatch']
     for rel in wanted:
         p=(ROOT/rel) if rel.startswith(('scripts/','tokengs/','tests/','slurm/')) else root/rel

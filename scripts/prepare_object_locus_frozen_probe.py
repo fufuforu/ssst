@@ -3,7 +3,7 @@
 import argparse,hashlib,json,os,platform,subprocess,sys
 from pathlib import Path
 import numpy as np,torch
-DEFAULT_ATTEMPT=Path('/space/mawb/ssst/group_plus/object_locus_frozen_representation_diagnostic_v1/attempts/attempt01')
+DEFAULT_ATTEMPT=Path('/space/mawb/ssst/group_plus/object_locus_frozen_representation_diagnostic_v1/attempts/attempt02')
 ATTEMPT=DEFAULT_ATTEMPT
 BASE=Path('/space/mawb/ssst')
 FILES={
@@ -29,7 +29,9 @@ def main():
  global ATTEMPT
  ap=argparse.ArgumentParser();ap.add_argument('--attempt',type=Path,default=DEFAULT_ATTEMPT);ATTEMPT=ap.parse_args().attempt
  if not ATTEMPT.is_dir():raise RuntimeError(f'attempt directory missing: {ATTEMPT}')
- if any(ATTEMPT.iterdir()):raise RuntimeError(f'attempt is not empty; refusing overwrite: {ATTEMPT}')
+ managed=('source_manifest.json','git_provenance.json','protocol.json','data_contract.json','environment_preflight.json')
+ existing=[n for n in managed if (ATTEMPT/n).exists()]
+ if existing:raise RuntimeError(f'attempt preparation outputs already exist; refusing overwrite: {existing}')
  for name,p in FILES.items():
   if not p.is_file():raise FileNotFoundError(p)
   digest=sha(p)
@@ -65,7 +67,7 @@ def main():
  save('data_contract.json',{'source_sha_checks':'PASS','four_arm_test_identity_check':'deferred to extractor','scene_disjointness':'deferred to extractor','query_count':100,'train_windows':1008,'dev_windows':8,'test_windows':24,'status':'PENDING'})
  try: gpu=subprocess.check_output(['nvidia-smi','-L'],text=True)
  except Exception as e:gpu=str(e)
- try: slurm=subprocess.check_output(['scontrol','show','node','3dimage-13'],text=True)
+ try: slurm=subprocess.check_output(['scontrol','show','node','3dimage-11'],text=True)
  except Exception as e:slurm=str(e)
  env={'python':sys.version,'python_executable':sys.executable,'torch':torch.__version__,'numpy':np.__version__,
       'cuda_visible_devices':os.environ.get('CUDA_VISIBLE_DEVICES'),'gpu_listing':gpu,'node_resources':slurm,

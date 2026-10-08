@@ -17,7 +17,7 @@ from scripts.object_locus_probe_metrics import gt_rows,raw_iou
 from scripts.object_locus_probe_metrics import normalize_official_result
 from scripts.object_locus_probe_metrics import verify_gc_cache_manifest,verify_r3d_cache_manifest
 
-ATTEMPT=Path(os.environ.get('TASK_ATTEMPT_ROOT','/space/mawb/ssst/group_plus/object_locus_frozen_representation_diagnostic_v1/attempts/attempt01'))
+ATTEMPT=Path(os.environ.get('TASK_ATTEMPT_ROOT','/space/mawb/ssst/group_plus/object_locus_frozen_representation_diagnostic_v1/attempts/attempt02'))
 OFFICIAL_PY='/space/mawb/SIU3R/.venv_gpu_v4/bin/python'
 INVOKE=ROOT/'scripts/invoke_siu3r_official_evaluator.py'
 

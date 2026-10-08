@@ -13,7 +13,7 @@ sys.path.insert(0, str(ROOT))
 from scripts.object_locus_frozen_probe_contract import labels_from_context
 
 BASE = Path('/space/mawb/ssst')
-ATTEMPT = Path(os.environ.get('TASK_ATTEMPT_ROOT','/space/mawb/ssst/group_plus/object_locus_frozen_representation_diagnostic_v1/attempts/attempt01'))
+ATTEMPT = Path(os.environ.get('TASK_ATTEMPT_ROOT','/space/mawb/ssst/group_plus/object_locus_frozen_representation_diagnostic_v1/attempts/attempt02'))
 CKPT = Path('/space/mawb/ssst/workspace_group_plus/object_locus_gc_sweep_v1/gc001/checkpoint_epoch8.pt')
 CKPT_SHA = '72f7440b5b3cf2fd877dfc534ae5c4a409c76c9884729fe23247008aab8c0d58'
 DATA = Path('/space/mawb/ssst/group_plus/object_locus_panoptic_v1_8gpu/data_manifest.json')
