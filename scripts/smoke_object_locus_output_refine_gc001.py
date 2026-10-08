@@ -8,6 +8,7 @@ import os
 import subprocess
 import time
 import traceback
+import gc
 from pathlib import Path
 
 import numpy as np
@@ -19,16 +20,11 @@ from scripts.object_locus_output_refine_gc001_runtime import (
     roots, write_json, rank_world, init_distributed, build_model, build_optimizer,
     init_slot_states, train_update, load_checkpoint, record_blocker,
 )
-
-
-def flatten_tensors(obj, prefix=''):
-    found = {}
-    if torch.is_tensor(obj): found[prefix] = obj.detach().cpu()
-    elif isinstance(obj, dict):
-        for key, value in obj.items(): found.update(flatten_tensors(value, f'{prefix}.{key}' if prefix else str(key)))
-    elif isinstance(obj, (list, tuple)):
-        for i, value in enumerate(obj): found.update(flatten_tensors(value, f'{prefix}.{i}'))
-    return found
+from scripts.object_locus_output_refine_smoke_contracts import (
+    compare_independent_forward, flattened_tensors, clone_tree, assert_tensor_tree_equal,
+    assert_value_tree_equal,
+    checked_lift_replacement, patch_shared_readout_inputs, cleanup_distributed_if_initialized,
+)
 
 
 def cpu_copy(obj):
@@ -37,27 +33,6 @@ def cpu_copy(obj):
     if isinstance(obj, list): return [cpu_copy(v) for v in obj]
     if isinstance(obj, tuple): return tuple(cpu_copy(v) for v in obj)
     return obj
-
-
-def compare_outputs(reference, candidate):
-    a, b = flatten_tensors(reference), flatten_tensors(candidate)
-    ignored = {k for k in b if k.endswith('.q_refined') or k in ('q_refined', 'q_base')}
-    common = sorted((set(a) & set(b)) - ignored)
-    missing = sorted((set(a) ^ set(b)) - ignored)
-    results = []
-    for key in common:
-        x, y = a[key].float(), b[key].float()
-        if x.shape != y.shape:
-            results.append({'key': key, 'shape_mismatch': [list(x.shape), list(y.shape)], 'failed_elements': int(x.numel())})
-            continue
-        valid = torch.isfinite(x) & torch.isfinite(y)
-        passed = valid & ((x-y).abs() <= 1e-6 + 1e-5*y.abs())
-        results.append({'key': key, 'shape': list(x.shape), 'failed_elements': int((~passed).sum()),
-                        'max_abs_difference': float((x-y).abs().max()) if x.numel() else 0.0})
-    failed = sum(x['failed_elements'] for x in results)
-    return {'common_tensor_count': len(common), 'missing_tensor_paths': missing,
-            'failed_elements': failed, 'maximum_absolute_difference': max((x.get('max_abs_difference', 0) for x in results), default=0),
-            'tolerance': 'abs(a-b) <= 1e-6 + 1e-5*abs(b)', 'per_tensor': results}
 
 
 def real_forward(model, batch):
@@ -76,51 +51,189 @@ def cpu_forward_compare(model, batch):
 
 
 def cpu_state_hash(model):
-    h = hashlib.sha256()
-    for name, value in sorted(model.state_dict().items()):
-        h.update(name.encode()); h.update(value.detach().cpu().contiguous().numpy().tobytes())
-    return h.hexdigest()
+    return tensor_state_hash(model.state_dict())
 
 
 def tensor_state_hash(state):
     h = hashlib.sha256()
     for name, value in sorted(state.items()):
-        h.update(name.encode()); h.update(value.detach().cpu().contiguous().numpy().tobytes())
+        value = value.detach().cpu().contiguous()
+        h.update(name.encode()); h.update(str(value.dtype).encode())
+        h.update(json.dumps(list(value.shape)).encode()); h.update(value.numpy().tobytes())
     return h.hexdigest()
 
 
-def identity_readout_contract(prediction, model):
-    base = prediction['q_base'].float()
-    refined = prediction['q_refined'].float()
-    features = prediction['gaussian_feature'].float()
-    xyz = prediction['gaussians'][..., :3]
-    final = prediction['states'][-1]
-    # Existing lifting/renderer results are reused; no second lifting/render pass.
-    q_test = model.panoptic.output_3d_refine(base, features, xyz, final['c'], final['s'])
-    mq_base = model.understanding.mask_embedder(base)
-    mq_refined = model.understanding.mask_embedder(q_test)
-    logits_base = features @ mq_base.transpose(1, 2)
-    logits_refined = features @ mq_refined.transpose(1, 2)
-    cls_base = model.panoptic.classify(base)
-    cls_refined = model.panoptic.classify(q_test)
-    region = prediction['region_mass']
-    semantic_base = region.new_zeros((region.shape[0], region.shape[1], 20, *region.shape[-2:]))
-    semantic_base[:, :, :2] = region[:, :, 100:102]
-    semantic_base[:, :, 2:20] = torch.einsum('bvqhw,bqc->bvchw', region[:, :, :100], cls_base['p_class'][..., :18])
-    semantic_base = semantic_base / (semantic_base.sum(2, keepdim=True) + 1e-6)
-    return {
-        'q_refined_exact': torch.equal(q_test, base),
-        'gaussian_logits_exact': torch.equal(logits_base, logits_refined),
-        'membership_exact': torch.equal(logits_base.sigmoid(), logits_refined.sigmoid()),
-        'class_exact': torch.equal(cls_base['thing_logits19'], cls_refined['thing_logits19']),
-        'same_render_region_reused': True,
-        'semantic_postprocess_exact': torch.equal(semantic_base, prediction['semantic_scores']),
-        'returned_q_exact': torch.equal(refined, base),
+def memory_snapshot(stage, device=None):
+    payload = {'stage': stage, 'device': None, 'max_memory_allocated_bytes': None,
+               'max_memory_reserved_bytes': None, 'cuda_available': bool(torch.cuda.is_available()),
+               'unavailable_reason': None}
+    if not torch.cuda.is_available():
+        payload['unavailable_reason'] = 'torch.cuda.is_available() is false'
+        return payload
+    try:
+        index = torch.cuda.current_device() if device is None else torch.device(device).index
+        if index is None: index = torch.cuda.current_device()
+        payload.update(device=torch.cuda.get_device_name(index), device_index=index,
+                       max_memory_allocated_bytes=torch.cuda.max_memory_allocated(index),
+                       max_memory_reserved_bytes=torch.cuda.max_memory_reserved(index))
+    except Exception as exc:
+        payload['unavailable_reason'] = repr(exc)
+    return payload
+
+
+def reset_peak_memory(device):
+    if torch.cuda.is_available():
+        torch.cuda.reset_peak_memory_stats(device)
+
+
+def record_smoke_exception(stage, exc):
+    try:
+        report, _ = roots()
+        rank = int(os.environ.get('LOCAL_RANK', '0'))
+        path = report / ('single_smoke_failure.json' if stage == 'single_gpu_smoke'
+                         else f'four_accum_smoke_failure_rank{rank}.json')
+        prior = json.loads(path.read_text()) if path.exists() else {}
+        prior.update({'status': 'INVALID', 'stage': stage, 'failure': repr(exc),
+                      'traceback': traceback.format_exc(), 'job_id': os.environ.get('SLURM_JOB_ID'),
+                      'gpu_memory': memory_snapshot(stage)})
+        write_json(path, prior)
+    except Exception:
+        pass
+
+
+def _finite_tree(value, label):
+    for key, tensor in flattened_tensors(value).items():
+        if not torch.isfinite(tensor).all():
+            raise FloatingPointError(f'nonfinite {label}.{key}')
+
+
+def _readout_identity_contract(model, prediction, batch, report):
+    """Run both actual readout methods against one shared true lift/render result."""
+    import hashlib as _hashlib
+    import torch.nn.functional as F
+    from scripts.export_object_locus_v3_set_official import assemble_panoptic, _save_packed
+    from tokengs.models.input_types import ModelInputDecoder
+    import tokengs.models.object_locus_panoptic_v1 as old_module
+    import tokengs.models.object_locus_output_refine_gc001 as new_module
+
+    old_final = clone_tree(prediction['states'][-1])
+    new_final = clone_tree(prediction['states'][-1])
+    old_final.pop('q_refined', None); new_final.pop('q_refined', None)
+    old_original = clone_tree(old_final); new_original = clone_tree(new_final)
+    gaussians = prediction['gaussians']
+    fm = prediction['F_m']
+    b = gaussians.shape[0]
+    render_decoder = ModelInputDecoder(cam_view=batch['cam_view_all'][:, :2], intrinsics=batch['intrinsics_all'][:, :2])
+    read_decoder = ModelInputDecoder(cam_view=batch['cam_view_all'][:, :2], intrinsics=batch['intrinsics_all'][:, :2])
+
+    feature_grid = F.interpolate(fm.flatten(0, 1), size=(256, 256), mode='bilinear',
+                                  align_corners=False).reshape(b, 2, 256, 256, 256)
+    from tokengs.models.object_locus_panoptic_v1_lift import lift_features
+    with torch.no_grad():
+        cached_lift = lift_features(feature_grid, gaussians, read_decoder, model.gs)
+    _finite_tree(cached_lift, 'cached_lift')
+    counts = {'true_lifting_calls': 1, 'shared_lift_consumers': 0,
+              'real_renderer_calls': 0, 'shared_renderer_consumers': 0,
+              'output_refiner_calls': 0}
+    lift_replacement = checked_lift_replacement(
+        feature_grid.detach().clone(), gaussians.detach().clone(),
+        read_decoder.cam_view.detach().clone(), read_decoder.intrinsics.detach().clone(),
+        model.gs, cached_lift, counts)
+    original_renderer = model.gs.render_feature_channels
+    original_old_lift = old_module.lift_features
+    original_new_lift = new_module.lift_features
+    hook = model.panoptic.output_3d_refine.register_forward_hook(
+        lambda _module, _inputs, _output: counts.__setitem__('output_refiner_calls', counts['output_refiner_calls'] + 1))
+    try:
+        with torch.no_grad(), patch_shared_readout_inputs(
+                old_module, new_module, model.gs, lift_replacement, original_renderer, counts) as renderer_state:
+            old_output = old_module.LocusGSObjectLocusPanopticV1Recon._readout(
+                model, old_final, gaussians, fm, read_decoder, render_decoder)
+            new_output = new_module.LocusGSObjectLocusOutputRefineV1Recon._readout(
+                model, new_final, gaussians, fm, read_decoder, render_decoder)
+            if counts['shared_lift_consumers'] != 2 or counts['real_renderer_calls'] != 1 or counts['shared_renderer_consumers'] != 1:
+                raise AssertionError(f'shared evidence/render call counts invalid: {counts}')
+            if counts['output_refiner_calls'] != 1:
+                raise AssertionError(f'actual output_3d_refine call count must be 1, got {counts["output_refiner_calls"]}')
+            if renderer_state['output'] is None:
+                raise AssertionError('old readout did not execute the real feature renderer')
+            # Each method mutates only its own final mapping with the same class outputs.
+            old_final_common = {k: v for k, v in old_final.items() if k in old_original}
+            new_final_common = {k: v for k, v in new_final.items() if k in new_original}
+            assert_value_tree_equal(old_original, {k: old_final_common[k] for k in old_original}, 'old final input values')
+            assert_value_tree_equal(new_original, {k: new_final_common[k] for k in new_original}, 'new final input values')
+            assert_value_tree_equal(old_final_common, new_final_common, 'mutated public final state')
+            q = new_original['q']
+            for name, value in (('q_base', new_output['q_base']), ('q_refined', new_output['q_refined']),
+                                ('final.q_refined', new_final['q_refined'])):
+                if not torch.equal(value, q): raise AssertionError(f'{name} is not exactly the original q')
+            old_tensors, new_tensors = flattened_tensors(old_output), flattened_tensors(new_output)
+            expected_extras = {'q_base', 'q_refined'}
+            if set(new_tensors) - set(old_tensors) != expected_extras or set(old_tensors) - set(new_tensors):
+                raise AssertionError('old/new readout public tensor keys differ beyond q_base/q_refined')
+            old_public = {k: old_tensors[k] for k in sorted(old_tensors)}
+            new_public = {k: new_tensors[k] for k in sorted(old_tensors)}
+            assert_tensor_tree_equal(old_public, new_public, 'shared evidence readout public tensors')
+            if not torch.equal(new_output['q_base'], q) or not torch.equal(new_output['q_refined'], q):
+                raise AssertionError('new readout query identity failed')
+            old_panoptic = assemble_panoptic(old_output)
+            new_panoptic = assemble_panoptic(new_output)
+            assert_tensor_tree_equal(dict(zip(('semantic', 'instance', 'raw_sem'), old_panoptic)),
+                                     dict(zip(('semantic', 'instance', 'raw_sem'), new_panoptic)),
+                                     'official assemble_panoptic outputs')
+            packed_root = report / 'smoke_single' / 'shared_evidence_readout_identity'
+            packed_root.mkdir(parents=True, exist_ok=True)
+            packed = []
+            for view in (0, 1):
+                row = {}
+                for label, panoptic in (('old', old_panoptic), ('new', new_panoptic)):
+                    path = packed_root / f'{label}_context{view}.png'
+                    _save_packed(path, panoptic[0][view], panoptic[1][view])
+                    payload = path.read_bytes()
+                    row[label] = {'path': str(path), 'sha256': _hashlib.sha256(payload).hexdigest(),
+                                  'bytes': len(payload)}
+                if row['old']['sha256'] != row['new']['sha256'] or (packed_root / f'old_context{view}.png').read_bytes() != (packed_root / f'new_context{view}.png').read_bytes():
+                    raise AssertionError(f'official packed PNG bytes differ at context {view}')
+                packed.append(row)
+    finally:
+        hook.remove()
+
+    restored_renderer = model.gs.render_feature_channels
+    patches_restored = (old_module.lift_features is original_old_lift and
+                        new_module.lift_features is original_new_lift and
+                        restored_renderer.__func__ is original_renderer.__func__ and
+                        restored_renderer.__self__ is original_renderer.__self__)
+    if not patches_restored: raise AssertionError('shared readout patches did not restore original functions')
+    record = {
+        'status': 'PASS',
+        'protocol': 'shared_evidence_identity_v2',
+        'actual_methods': {
+            'old': 'LocusGSObjectLocusPanopticV1Recon._readout',
+            'new': 'LocusGSObjectLocusOutputRefineV1Recon._readout',
+        },
+        'shared_inputs': {
+            'real_r3d_final_decoder_state': True, 'same_gaussians_object': True,
+            'same_F_m': True, 'read_context_cam_view_sha256': _hashlib.sha256(read_decoder.cam_view.detach().cpu().contiguous().numpy().tobytes()).hexdigest(),
+            'read_context_intrinsics_sha256': _hashlib.sha256(read_decoder.intrinsics.detach().cpu().contiguous().numpy().tobytes()).hexdigest(),
+            'render_cam_view_sha256': _hashlib.sha256(render_decoder.cam_view.detach().cpu().contiguous().numpy().tobytes()).hexdigest(),
+            'render_intrinsics_sha256': _hashlib.sha256(render_decoder.intrinsics.detach().cpu().contiguous().numpy().tobytes()).hexdigest(),
+        },
+        'calls': counts,
+        'all_public_readout_tensors_torch_equal': True,
+        'public_readout_tensor_count': len(old_tensors),
+        'new_q_base_q_refined_and_final_q_refined_equal_original_q': True,
+        'official_assemble_panoptic_semantic_instance_raw_sem_equal': True,
+        'official_packed_context_pngs': packed,
+        'patches_restored': patches_restored,
     }
+    write_json(report / 'same_evidence_readout_identity.json', record)
+    return record
 
 
 def single():
-    start = time.time(); device = init_distributed(formal=False); rank, _ = rank_world()
+    start = time.time(); device = init_distributed(formal=False); rank, world = rank_world()
+    if world != 1 or dist.is_initialized(): raise RuntimeError('single smoke must run without a process group')
+    reset_peak_memory(device)
     report, _ = roots()
     manifest = json.loads(SOURCE_MANIFEST.read_text())
     plan = json.loads((report / 'training_plan.json').read_text())
@@ -130,43 +243,44 @@ def single():
     from scripts.object_locus_gc_sweep_runtime import build_model as build_gc_model
     first = manifest['expanded_train_windows'][wi]
     gpu = torch.device(device)
-    # Baseline output is detached before constructing R3D so the real 3090 remains
-    # within the specified memory budget.
+    # Exactly one complete model resides on the GPU at a time.
     base_model, opt, source = build_gc_model(device, report=False)
     base_model.eval(); batch = build_batch(opt, first, gpu)
     base_compare = cpu_forward_compare(base_model, batch)
     old_state = {k: v.detach().cpu().clone() for k, v in base_model.state_dict().items()}
-    del base_model; torch.cuda.empty_cache()
+    base_state_sha = tensor_state_hash(old_state)
+    del base_model; gc.collect(); torch.cuda.empty_cache()
     model, opt, source_new = build_model(device)
     old_loaded = model.state_dict()
-    if any(not torch.equal(old_loaded[k].detach().cpu(), v) for k, v in old_state.items()):
+    if set(old_loaded) - {f'panoptic.output_3d_refine.{k}' for k in model.panoptic.output_3d_refine.state_dict()} != set(old_state):
+        raise RuntimeError('R3D source-state keys differ from C source keys')
+    if len(old_state) != 1445 or any(
+            old_loaded[k].shape != v.shape or old_loaded[k].dtype != v.dtype or
+            not torch.equal(old_loaded[k].detach().cpu(), v) for k, v in old_state.items()):
         raise RuntimeError('R3D initial source state differs from original C model')
+    r3d_source_state_sha = tensor_state_hash({k: old_loaded[k] for k in old_state})
+    if r3d_source_state_sha != base_state_sha:
+        raise RuntimeError('C/R full source-state SHA mismatch despite source loading')
+    refiner = model.panoptic.output_3d_refine
+    if sum(p.numel() for p in refiner.parameters()) != 527616:
+        raise RuntimeError('new output refiner parameter count differs from 527616')
+    for name, value in refiner.state_dict().items():
+        if name.startswith(('W_O.', 'W_2.')) and not torch.equal(value, torch.zeros_like(value)):
+            raise RuntimeError(f'zero output projection init failed for {name}')
+    initial_state_sha = cpu_state_hash(model)
+    refiner_state_sha = tensor_state_hash(refiner.state_dict())
     model.eval()
     r3d_model = model
     r3d_compare_gpu = real_forward(r3d_model, batch)
     r3d_compare = cpu_copy(r3d_compare_gpu)
-    parity = compare_outputs(base_compare, r3d_compare)
-    if parity['failed_elements'] or parity['missing_tensor_paths']:
-        # Repeated C/C and R/R outputs are retained as diagnostics, without changing
-        # the preregistered elementwise threshold.
-        repeat_r = cpu_copy(real_forward(r3d_model, batch))
-        r_repeat = compare_outputs(r3d_compare, repeat_r)
-        del repeat_r, r3d_model, model, r3d_compare_gpu; torch.cuda.empty_cache()
-        repeat_c_model, repeat_opt, _ = build_gc_model(device, report=False)
-        repeat_c_model.load_state_dict(old_state, strict=True); repeat_c_model.eval()
-        repeat_c = cpu_forward_compare(repeat_c_model, batch)
-        c_repeat = compare_outputs(base_compare, repeat_c)
-        del repeat_c_model; torch.cuda.empty_cache()
-        write_json(report / 'single_smoke_failure.json', {'status': 'INVALID', 'parity': parity,
-                    'repeat_c_vs_c': c_repeat, 'repeat_r_vs_r': r_repeat,
-                    'repeat_c_state_sha': tensor_state_hash(old_state),
-                    'repeat_r_state_sha': 'same initialized state as first R3D forward'})
-        raise RuntimeError('C/R full-forward parity exceeded locked elementwise tolerance')
-    readout = identity_readout_contract(r3d_compare_gpu, r3d_model)
-    if not all(readout.values()): raise RuntimeError(f'same-evidence readout identity failed: {readout}')
-    del r3d_model, model, r3d_compare_gpu
-    del base_compare, r3d_compare, old_state
-    torch.cuda.empty_cache()
+    independent = compare_independent_forward(base_compare, r3d_compare)
+    write_json(report / 'independent_full_forward_diagnostic.json', {
+        'status': 'DIAGNOSTIC_ONLY', 'classification': independent['classification'],
+        'independent_full_forward_diagnostic': independent['independent_full_forward_diagnostic']})
+    readout = _readout_identity_contract(r3d_model, r3d_compare_gpu, batch, report)
+    del r3d_model, model, r3d_compare_gpu, base_compare, r3d_compare, old_state, old_loaded, refiner
+    del batch, opt, source, source_new
+    gc.collect(); torch.cuda.empty_cache()
     # Three local two-window smoke updates, slot 0 and slot 4 only; not a global update.
     model, opt, source = build_model(device); model.train(); optimizer = build_optimizer(model)
     bn_before = {n: b.running_mean.detach().clone() for n, b in model.named_modules()
@@ -187,35 +301,121 @@ def single():
     changed = any(not torch.equal(refiner0[n], p.detach().cpu()) for n, p in model.named_parameters() if n in refiner0)
     if not changed or not positive_under or logs[2]['q_refined_minus_q_base_rms'] <= 0:
         raise RuntimeError('three-update single smoke did not activate the output refiner')
+    batch = build_batch(opt, first, gpu)
     smoke_ckpt = report / 'smoke_single' / 'roundtrip.pt'
     from scripts.object_locus_output_refine_gc001_runtime import save_checkpoint
+    import dataclasses
     code_sha = subprocess.check_output(['git', 'rev-parse', 'HEAD'], cwd=Path(__file__).resolve().parents[1], text=True).strip()
+    saved_config = dataclasses.asdict(opt)
     save_checkpoint(smoke_ckpt, model, optimizer, 3, states, np.zeros(WINDOWS, dtype=np.int64),
-                   __import__('dataclasses').asdict(opt), source, sha256(report / 'training_plan.json'), code_sha, device)
+                   saved_config, source, sha256(report / 'training_plan.json'), code_sha, device)
+    roundtrip_state_cpu = {k: v.detach().cpu().contiguous().clone() for k, v in model.state_dict().items()}
+    roundtrip_state_sha = tensor_state_hash(roundtrip_state_cpu)
+    roundtrip_refiner_sha = tensor_state_hash({k: v for k, v in roundtrip_state_cpu.items()
+        if k.startswith('panoptic.output_3d_refine.')})
+    roundtrip_prediction = real_forward(model.eval(), batch)
+    _finite_tree(roundtrip_prediction, 'checkpoint_preload_forward')
+    final = roundtrip_prediction['states'][-1]
+    fixed_inputs_gpu = {
+        'q_base': roundtrip_prediction['q_base'].detach().contiguous(),
+        'gaussian_feature': roundtrip_prediction['gaussian_feature'].detach().contiguous(),
+        'xyz': roundtrip_prediction['gaussians'][..., :3].detach().contiguous(),
+        'c': final['c'].detach().contiguous(), 's': final['s'].detach().contiguous(),
+    }
+    with torch.no_grad():
+        fixed_q_refined = model.panoptic.output_3d_refine(
+            fixed_inputs_gpu['q_base'], fixed_inputs_gpu['gaussian_feature'], fixed_inputs_gpu['xyz'],
+            fixed_inputs_gpu['c'], fixed_inputs_gpu['s'])
+        fixed_mask_embed = model.understanding.mask_embedder(fixed_q_refined)
+        fixed_logits = fixed_inputs_gpu['gaussian_feature'] @ fixed_mask_embed.transpose(1, 2)
+        fixed_membership = fixed_logits.sigmoid()
+        fixed_class = model.panoptic.classify(fixed_q_refined)
+    fixed_reference_gpu = {'q_refined': fixed_q_refined, 'gaussian_mask_logits': fixed_logits,
+                           'gaussian_membership': fixed_membership, 'classification': fixed_class}
+    _finite_tree(fixed_reference_gpu, 'checkpoint_fixed_input_reference')
+    fixed_inputs_cpu = {k: v.detach().cpu().contiguous().clone() for k, v in fixed_inputs_gpu.items()}
+    fixed_reference_cpu = cpu_copy(fixed_reference_gpu)
+    del fixed_inputs_gpu, fixed_reference_gpu, fixed_q_refined, fixed_mask_embed, fixed_logits, fixed_membership, fixed_class
+    del roundtrip_prediction, final, batch, model, opt, optimizer, states, refiner0, bn_before, bn_after
+    del source
+    gc.collect(); torch.cuda.empty_cache()
+    # Only one complete GPU model is created by the public strict loader.
     reloaded, reopt, metadata = load_checkpoint(smoke_ckpt, device)
     reloaded.eval()
-    reloaded_prediction = real_forward(reloaded, batch)
-    original_prediction = real_forward(model.eval(), batch)
-    reload_equal = torch.allclose(reloaded_prediction['q_refined'], original_prediction['q_refined'], rtol=1e-5, atol=1e-6)
-    for key in ('gaussian_mask_logits', 'semantic_scores', 'p_class'):
-        reload_equal &= torch.allclose(reloaded_prediction[key], original_prediction[key], rtol=1e-5, atol=1e-6)
-    if not reload_equal or metadata.get('experiment', {}).get('arm') != 'R3D':
-        raise RuntimeError('strict checkpoint loader did not restore exact R3D outputs')
-    peak = torch.cuda.max_memory_allocated(device)
-    result = {'status': 'PASS', 'source_state_tensors': 1445, 'source_state_exact': True,
-        'full_forward_parity': parity, 'same_evidence_readout_identity': readout,
+    loaded_state = reloaded.state_dict()
+    if set(loaded_state) != set(roundtrip_state_cpu): raise RuntimeError('checkpoint state keys differ on load')
+    for name, expected in roundtrip_state_cpu.items():
+        value = loaded_state[name].detach().cpu().contiguous()
+        if value.shape != expected.shape or value.dtype != expected.dtype or not torch.equal(value, expected):
+            raise RuntimeError(f'strict checkpoint state mismatch at {name}')
+    loaded_state_sha = tensor_state_hash({k: v.detach().cpu().contiguous() for k, v in loaded_state.items()})
+    loaded_refiner_sha = tensor_state_hash({k: v.detach().cpu().contiguous() for k, v in loaded_state.items()
+        if k.startswith('panoptic.output_3d_refine.')})
+    if loaded_state_sha != roundtrip_state_sha or loaded_refiner_sha != roundtrip_refiner_sha:
+        raise RuntimeError('checkpoint state SHA mismatch')
+    if metadata.get('experiment', {}).get('arm') != 'R3D' or metadata.get('source_sha256') != '68de912a60340f65d675a521c514641845c43822657f07d5851770c96cbf912a':
+        raise RuntimeError('strict checkpoint experiment/source metadata mismatch')
+    if metadata.get('plan_sha256') != sha256(report / 'training_plan.json') or metadata.get('completed_updates') != 3:
+        raise RuntimeError('strict checkpoint plan/update metadata mismatch')
+    if metadata.get('config') != saved_config or dataclasses.asdict(reopt) != saved_config:
+        raise RuntimeError('strict checkpoint configuration metadata mismatch')
+    if metadata.get('source_manifest_sha256') != 'a03e6842e9657d512a0de2b9dd20ed73aa9bcc61ec8f4fd8d33ed07e8cc11249' or metadata.get('code_sha') != code_sha:
+        raise RuntimeError('strict checkpoint manifest/code metadata mismatch')
+    loaded_inputs = {k: v.to(device=device) for k, v in fixed_inputs_cpu.items()}
+    with torch.no_grad():
+        loaded_q_refined = reloaded.panoptic.output_3d_refine(
+            loaded_inputs['q_base'], loaded_inputs['gaussian_feature'], loaded_inputs['xyz'],
+            loaded_inputs['c'], loaded_inputs['s'])
+        loaded_mask_embed = reloaded.understanding.mask_embedder(loaded_q_refined)
+        loaded_logits = loaded_inputs['gaussian_feature'] @ loaded_mask_embed.transpose(1, 2)
+        loaded_outputs = {'q_refined': loaded_q_refined, 'gaussian_mask_logits': loaded_logits,
+                          'gaussian_membership': loaded_logits.sigmoid(),
+                          'classification': reloaded.panoptic.classify(loaded_q_refined)}
+    loaded_outputs_cpu = cpu_copy(loaded_outputs)
+    assert_tensor_tree_equal(fixed_reference_cpu, loaded_outputs_cpu, 'same_input_heads_exact')
+    checkpoint_record = {
+        'status': 'PASS', 'path': str(smoke_ckpt), 'completed_updates': 3,
+        'full_state_sha256': roundtrip_state_sha, 'loaded_full_state_sha256': loaded_state_sha,
+        'new_block_state_sha256': roundtrip_refiner_sha, 'loaded_new_block_state_sha256': loaded_refiner_sha,
+        'full_state_tensor_count': len(roundtrip_state_cpu), 'all_state_keys_shapes_dtypes_values_exact': True,
+        'same_input_heads_exact': True,
+        'fixed_head_outputs': ['q_refined', 'gaussian_mask_logits', 'gaussian_membership',
+                               'thing_logits19', 'class_logits19', 'p_class', 'conditional_class_prob',
+                               'objectness_prob', 'thing_class_logits'],
+        'independent_full_forward_exactness_claimed': False,
+        'optimizer_moments_restored_for_continued_training': False,
+        'metadata': {'arm': metadata['experiment']['arm'], 'source_sha256': metadata['source_sha256'],
+                     'source_manifest_sha256': metadata['source_manifest_sha256'],
+                     'plan_sha256': metadata['plan_sha256'], 'code_sha': metadata['code_sha'],
+                     'configuration_exact': True, 'completed_updates': metadata['completed_updates']},
+    }
+    write_json(report / 'checkpoint_roundtrip_exact.json', checkpoint_record)
+    del reloaded, reopt, loaded_inputs, loaded_outputs, loaded_outputs_cpu, loaded_q_refined, loaded_mask_embed, loaded_logits
+    del loaded_state, roundtrip_state_cpu, fixed_inputs_cpu, fixed_reference_cpu
+    gc.collect(); torch.cuda.empty_cache()
+    peak = memory_snapshot('single_gpu_smoke', device)
+    result = {'status': 'PASS', 'protocol': 'shared_evidence_identity_v2',
+        'source_state_tensors': 1445, 'source_state_exact': True,
+        'source_state_sha256': base_state_sha, 'initial_r3d_source_state_sha256': r3d_source_state_sha,
+        'initial_r3d_state_sha256': initial_state_sha,
+        'initial_r3d_new_block_state_sha256': refiner_state_sha,
+        'new_block_parameters': 527616, 'new_block_zero_output_projection': True,
+        'independent_full_forward_diagnostic': independent['independent_full_forward_diagnostic'],
+        'independent_hard_gate_classification': independent['classification'],
+        'same_evidence_readout_identity': readout,
         'three_local_updates_two_microbatches': {'updates': 3, 'windows': windows, 'steps_are_not_global_eight_window_updates': True,
             'finite': True, 'bn_running_statistics_unchanged': True, 'positive_understanding_gradient': positive_under,
             'refiner_parameters_changed': changed, 'last_q_delta_rms': logs[-1]['q_refined_minus_q_base_rms'], 'logs': logs},
-        'strict_checkpoint_reload': {'status': 'PASS', 'outputs_exact': reload_equal, 'path': str(smoke_ckpt)},
-        'gpu': torch.cuda.get_device_name(device), 'peak_allocated_bytes': peak,
+        'checkpoint_roundtrip_exact': checkpoint_record,
+        'gpu': torch.cuda.get_device_name(device), 'gpu_memory': peak,
         'elapsed_seconds': time.time() - start}
     if rank == 0: write_json(report / 'single_smoke.json', result)
-    dist.barrier(); dist.destroy_process_group()
+    cleanup_distributed_if_initialized(dist)
 
 
 def four():
     device = init_distributed(formal=True); rank, world = rank_world()
+    reset_peak_memory(device)
     report, _ = roots(); manifest = json.loads(SOURCE_MANIFEST.read_text())
     plan = json.loads((report / 'training_plan.json').read_text())
     model, opt, source = build_model(device); model.train(); optimizer = build_optimizer(model)
@@ -237,6 +437,7 @@ def four():
     changed = any(not torch.equal(initial[n], p.detach().cpu()) for n, p in model.named_parameters() if n in initial)
     if not changed: raise RuntimeError('four-card smoke did not update refiner parameters')
     payload = {'rank': rank, 'slots': [rank, rank+4], 'selected_windows': [entry['rank_windows'][s] for entry in plan['entries'][:3] for s in (rank,rank+4)],
+               'stage': 'four_gpu_accumulation_smoke', 'device': torch.cuda.get_device_name(device),
                'peak_allocated_bytes': torch.cuda.max_memory_allocated(device), 'peak_reserved_bytes': torch.cuda.max_memory_reserved(device),
                'model_sha256': state_hash, 'sync_status': 'PASS'}
     gathered = [None] * world; dist.all_gather_object(gathered, payload)
@@ -249,7 +450,7 @@ def four():
             'ranks': gathered, 'expected_rank_windows': expected_windows,
             'source_sha256': '68de912a60340f65d675a521c514641845c43822657f07d5851770c96cbf912a',
             'plan_sha256': sha256(report / 'training_plan.json')})
-    dist.barrier(); dist.destroy_process_group()
+    cleanup_distributed_if_initialized(dist)
 
 
 def main():
@@ -260,7 +461,11 @@ def main():
         if args.single: single()
         else: four()
     except BaseException as exc:
+        record_smoke_exception('single_gpu_smoke' if args.single else 'four_gpu_accumulation_smoke', exc)
         record_blocker('gpu_smoke', exc)
+        if dist.is_initialized():
+            try: dist.destroy_process_group()
+            except Exception: pass
         raise
 
 

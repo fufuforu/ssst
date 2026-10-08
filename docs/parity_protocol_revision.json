@@ -1,0 +1,67 @@
+{
+  "protocol": "shared_evidence_identity_v2",
+  "experiment": "object_locus_output_refine_gc001_v1",
+  "branch": "object-locus-output-refine-gc001-v1",
+  "parent_training_sha": "e1a28afc7c4600b4600e64e354ae7111caf113d0",
+  "scientific_baseline_sha": "9ce7b18b68bae9c4c7c519b670ad1fa79a66f9a0",
+  "reason_for_revision": "Independent full-forward elementwise comparison did not isolate zero-initialized new-block equivalence because the original C path also showed repeat-run differences. A shared-evidence identity contract now calls the actual old and new readout methods with one verified lifting result and one verified renderer result. Independent forward differences remain recorded under their original thresholds and hard gates.",
+  "attempt01_evidence": {
+    "failure_report": "/space/mawb/ssst/group_plus/object_locus_output_refine_gc001_v1/attempts/attempt01/single_smoke_failure.json",
+    "failure_report_sha256": "1275cfa8974c72c6fe778f3a8f3f92905c02ae9008fb2c1dfbdd6b30a1951c24",
+    "blocker_report": "/space/mawb/ssst/group_plus/object_locus_output_refine_gc001_v1/attempts/attempt01/blocker.json",
+    "blocker_report_sha256": "291b400892236c691d98fa09f71556f10beb7db0ee7aa9a24db687248e4084eb",
+    "job_id": "59131",
+    "status": "INVALID",
+    "formal_updates": 0,
+    "new_exposures": 0,
+    "original_tolerance": "abs(a-b) <= 1e-6 + 1e-5*abs(b)",
+    "observed_independent_differences": {
+      "C/R": {"common_tensors": 163, "failed_elements": 696, "maximum_absolute_difference": 9.1552734375e-05},
+      "C/C": {"common_tensors": 163, "failed_elements": 596, "maximum_absolute_difference": 7.62939453125e-05},
+      "R/R": {"common_tensors": 163, "failed_elements": 664, "maximum_absolute_difference": 7.62939453125e-05}
+    },
+    "observation": "C/R states, Gaussians, RGB/depth render outputs and class outputs were exact in that attempt; lifting/downstream fields contained differences. This does not prove all differences harmless or identify a CUDA kernel root cause."
+  },
+  "independent_full_forward_contract": {
+    "source_state": "C and R share the exact 1445 source tensors including key, shape, dtype, and value; record separate actual C/R state SHA256 values.",
+    "new_block": "527616 parameters; W_O/W_2 weights and biases are all zero; actual C/R full state hashes are recorded.",
+    "public_keys": "Every common tensor key must exist, have identical shape and dtype, and be finite. R-only tensor paths allowed: q_base, q_refined, states.11.q_refined. Any unclassified common tensor fails.",
+    "strict_torch_equal": ["states.*", "F_m", "q_pre", "gaussians", "render.*", "alpha", "pixel_void_mass", "child_feature_residual", "anchor_*", "p_class", "thing_class_logits", "thing_logits19", "class_logits19", "conditional_class_prob", "objectness_prob"],
+    "fixed_tolerance": {
+      "keys": ["lifting_mass", "lifting_gate", "gaussian_feature", "membership_mass", "region_mass", "pixel_membership", "semantic_scores"],
+      "comparison": "abs(reference-candidate) <= 1e-6 + 1e-5*abs(candidate)",
+      "reference": "C",
+      "candidate": "R"
+    },
+    "diagnostic_only_keys": ["gaussian_mask_logits", "assignment", "gaussian_membership"],
+    "diagnostic_limits": "Record original comparator per-key failed-element counts and maxima; key, shape, dtype, finite gates remain hard. No other key is diagnostic-only. assignment and gaussian_membership are aliases, so their counts intentionally include alias duplication.",
+    "no_widening": "Do not change atol/rtol or comparator direction; specifically do not use atol=1e-4. Do not run repeated C/C, R/R, seed, or multi-window sweeps."
+  },
+  "shared_evidence_readout_contract": {
+    "methods": ["LocusGSObjectLocusPanopticV1Recon._readout", "LocusGSObjectLocusOutputRefineV1Recon._readout"],
+    "model_mode": "eval with torch.no_grad",
+    "fixed_inputs": "One actual R full-forward final state, Gaussian tensor, F_m and the two context read/render cameras. Old and new receive separate final dicts with q_refined removed and original q/c/s retained.",
+    "lifting": "One actual lift_features call from the exact _readout interpolation; finite evidence/gate/mass cached. Scoped patches to each module's imported lifting reference verify feature grid, Gaussians, camera tensors and identical gs object before returning that cache.",
+    "renderer": "Old _readout executes the true renderer once. Scoped wrapper checks exact Gaussians, membership and camera inputs from new _readout before returning cached renderer outputs. Membership is never overwritten to force a match.",
+    "required_calls": {"true_lifting_calls": 1, "shared_lift_consumers": 2, "real_renderer_calls": 1, "shared_renderer_consumers": 1, "actual_output_refiner_calls": 1},
+    "identity": "All public readout tensors, final state values, q_base/q_refined/final.q_refined, official assemble_panoptic semantic/instance/raw_sem, and two context packed PNG bytes must be torch.equal/byte-equal.",
+    "scope": "All patches restore on scope exit. Do not mock decoder, refiner, lifting computation, or old renderer call."
+  },
+  "checkpoint_roundtrip_contract": {
+    "state": "Clone complete post-smoke model state to CPU; after releasing the original model and optimizer, load one new model via public load_checkpoint and compare every key, shape, dtype and tensor value with torch.equal plus full/new-block state SHA256.",
+    "fixed_inputs": "From one finite eval forward, save detached contiguous q_base, gaussian_feature, xyz, c, and s to CPU. Compare q_refined, Gaussian logits/sigmoid, and every panoptic.classify output using these exact inputs after reload.",
+    "forbidden_claim": "Do not claim independent full-forward exactness or restored optimizer moments; do not run a second full-forward parity/allclose gate."
+  },
+  "memory_and_distributed_contract": {
+    "single": "Reset and record max_memory_allocated/max_memory_reserved; init_distributed(formal=False) leaves no process group; barrier/destroy only if dist.is_initialized().",
+    "four_rank": "Reset and gather per-rank device and peak allocated/reserved values on success; failures may write rank-local records and must not add a blocking collective.",
+    "failure": "Success and exception artifacts contain stage/device/peak fields; unavailable CUDA statistics are null with the actual reason while preserving the original exception."
+  },
+  "authorized_change_boundary": {
+    "allowed_paths": ["scripts/smoke_object_locus_output_refine_gc001.py", "scripts/object_locus_output_refine_smoke_contracts.py", "tests/test_object_locus_output_refine_smoke_contracts.py", "docs/parity_protocol_revision.json"],
+    "prohibited_science_and_training_paths": ["tokengs/models/object_locus_output_refine_v1.py", "tokengs/models/object_locus_output_refine_gc001.py", "tokengs/models/object_locus_panoptic_v1.py", "tokengs/models/object_locus_panoptic_v1_lift.py", "tokengs/models/object_locus_v3_set.py", "scripts/object_locus_output_refine_gc001_runtime.py", "scripts/train_object_locus_output_refine_gc001.py", "scripts/submit_object_locus_output_refine_gc001.sh"],
+    "diff_boundary_check": "Before commit, verify every changed path is in allowed_paths and all prohibited paths have no diff from parent_training_sha.",
+    "scientific_model_and_training_settings_changed": false,
+    "cpu_contract_reuse": "Reuse attempt00/git_provenance.json: 10 model contracts PASS and optimizer-focused check PASS; not rerun because this diff changes only smoke validation code."
+  }
+}
