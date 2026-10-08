@@ -6,7 +6,7 @@ REPORT_ATTEMPT="${TASK_REPORT_ATTEMPT:?set report attempts/attemptNN path}"
 RUN_ATTEMPT="${TASK_RUN_ATTEMPT:?set checkpoint attempts/attemptNN path}"
 mkdir -p "$REPORT_ATTEMPT/slurm" "$RUN_ATTEMPT"
 TASK_CODE_SHA="$(git -C "$REPO" rev-parse HEAD)"
-JOB_BODY='set -euo pipefail
+JOB_BODY='set -eu
 cd "$TASK_REPO"
 test "$(git rev-parse HEAD)" = "$TASK_CODE_SHA"
 "$TASK_PYTHON" -m torch.distributed.run --standalone --nproc_per_node=1 --module scripts.smoke_object_locus_output_refine_gc001 --single
