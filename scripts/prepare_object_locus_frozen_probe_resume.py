@@ -134,6 +134,7 @@ def main():
     # Original provenance is retained byte-for-byte in a namespaced directory.
     provenance = root / 'provenance/source_attempt02'
     for rel in ('git_provenance.json', 'execution_files_manifest.json', 'retry02_preflight.json',
+                'effective_execution_protocol.json',
                 'retry02_startup_status.json', 'jobs.json', 'parallel_execution_registration.json'):
         src = SOURCE / rel
         if not src.is_file():
@@ -167,13 +168,42 @@ def main():
     metadata = ['source_manifest.json', 'protocol.json', 'data_contract.json', 'cohort_identity.json',
                 'cohort_manifest.json', 'public_cohort_identity_receipt.json', 'endpoint_source_hashes.json',
                 'endpoint_load_check.json', 'freeze_check.json', 'extraction_complete.json',
-                'cache_manifest.json', 'effective_execution_protocol.json', 'r3d_endpoint_manifest.json',
+                'cache_manifest.json', 'r3d_endpoint_manifest.json',
                 'r3d_frozen_inference_receipt.json', 'r3d_cache_manifest.json', 'r3d_h0_cache_pair_identity.json',
                 'r3d_registration_normalized.json', 'r3d_registration_decision_contract_checks.json',
                 'retry02_preflight.json', 'previous_attempt.json', 'environment_preflight.json',
                 'gpu_runtime.json', 'smoke.json', 'h0_cache_replay_parity_first_dev.json', 'startup_confirmation.json']
     for rel in metadata:
         copy_input(root, rel, ledger)
+    prior_protocol_path = provenance / 'effective_execution_protocol.json'
+    effective = json.loads(prior_protocol_path.read_text())
+    effective['attempt_root'] = str(root)
+    effective['execution_code_sha'] = a.execution_sha
+    effective['recovery_protocol'] = 'Frozen Probe + R3D: reuse completed caches, restore C/D user prompt'
+    effective['execution'] = {
+        'node': '3dimage-11', 'partition': '3090',
+        'A': {'gpus': 1, 'cpus': 4, 'memory': '64G', 'time': '24:00:00',
+              'state': 'REUSED_COMPLETED_SOURCE', 'source_job_id': '59164', 'new_job_submitted': False},
+        'B': {'gpus': 1, 'cpus': 4, 'memory': '64G', 'time': '24:00:00',
+              'state': 'REUSED_COMPLETED_SOURCE', 'source_job_id': '59165', 'new_job_submitted': False},
+        'C': {'gpus': 3, 'cpus': 12, 'memory': '64G', 'time': '24:00:00', 'dependency': None},
+        'D': {'gpus': 0, 'cpus': 4, 'memory': '64G', 'time': '48:00:00',
+              'dependency': 'afterok:<new-C-job-id>'},
+    }
+    effective['execution_recovery'] = {
+        'rerun_A': False, 'rerun_B': False, 'reuse_attempt02_complete_cache': True,
+        'submit_new_C_and_D_once': True, 'old_C_job_id': '59166', 'old_D_job_id': '59167',
+        'old_D_cancelled_before_start': True, 'compute_node_git_checkout': False,
+        'retry_after_failure': False,
+    }
+    effective['previous_attempt02_protocol_sha256'] = sha(prior_protocol_path)
+    effective_path = root / 'effective_execution_protocol.json'
+    effective_path.write_text(json.dumps(effective, indent=2) + '\n')
+    ledger.append({'relative_path': 'effective_execution_protocol.json',
+                   'source_path': str(prior_protocol_path),
+                   'sha256': sha(prior_protocol_path), 'size': prior_protocol_path.stat().st_size,
+                   'result_sha256': sha(effective_path), 'result_size': effective_path.stat().st_size,
+                   'method': 'recovery_protocol_derived_from_byte_preserved_attempt02_protocol'})
     preflight_source = root / 'entrypoint_preflight.json'
     if not preflight_source.is_file():
         preflight_source = ENTRYPOINT_PREFLIGHT
@@ -226,9 +256,11 @@ def main():
     if missing:
         raise RuntimeError(f'new-root consumed input paths missing: {missing[:20]}')
 
+    root_number = int(root.name.removeprefix('attempt'))
+    previous_root = root.parent / f'attempt{root_number - 1:02d}'
     source_provenance = {
         'source_attempt_root': str(SOURCE), 'new_attempt_root': str(root),
-        'attempt_root_selection_reason': 'attempt03 already contains the first recovery cache-view output and its Slurm cancellation/entrypoint evidence; per instruction, this completed recovery uses the next empty attempt04 root.',
+        'attempt_root_selection_reason': f'{previous_root} already contains recovery outputs; retained it and selected this next empty root.',
         'GC001': {'job_id': '59164', 'status': 'COMPLETED 0:0', 'execution_sha': OLD_CODE,
                   'checkpoint_sha256': EXPECTED_GC, 'receipt': 'extraction_complete.json',
                   'manifest_check': gc_manifest_result, 'new_root_manifest_check': gc_view},
