@@ -3,6 +3,25 @@ import tempfile
 from scripts.object_locus_image_memory_runtime import *
 
 
+def checkpoint_contract(plan_sha):
+    # Small atomic I/O and RNG/count recovery, without another full model copy.
+    with tempfile.TemporaryDirectory() as tmp:
+        path=Path(tmp)/'latest.pt';payload={'model':{'p':torch.ones(2)},'completed_new_updates':1043,'plan_sha256':plan_sha,'git_sha':'test','object_image_memory_size':128,'arm':'u128'}
+        atomic_checkpoint(path,payload);read=torch.load(path,weights_only=False)
+        assert read['completed_new_updates']==1043 and read['object_image_memory_size']==128
+        from types import SimpleNamespace
+        tiny=torch.nn.Linear(2,1);tiny.opt=SimpleNamespace();tiny.anchor_decoder=SimpleNamespace(opt=tiny.opt)
+        tiny_opt=torch.optim.AdamW(tiny.parameters())
+        payload.update(model=tiny.state_dict(),optimizer=tiny_opt.state_dict(),world_size=4,microsteps=2,alpha=.01,
+                       completed_exposures=50064+8*1043,rank_states=[{'rng':base.capture_rng(),'window_counts':[1,2]}]*4)
+        atomic_checkpoint(path,payload)
+        step,restored=restore(path,tiny,tiny_opt,'u128',plan_sha)
+        assert step==1043 and restored==[1,2] and tiny.understanding_step==50064+8*1043
+        try:restore(path,tiny,tiny_opt,'c32',plan_sha)
+        except RuntimeError:pass
+        else:raise AssertionError('cross-arm restore accepted')
+
+
 def main():
     torch.set_num_threads(4)
     manifest,plan,plan_sha=prepare_plan()
@@ -48,11 +67,7 @@ def main():
     assert len(levels)==2 and all(wd==0 and lr==1e-5 for _,wd,lr in levels)
     blob=torch.load(base.SOURCE_CHECKPOINT,map_location='cpu',mmap=True,weights_only=False)
     assert all(torch.equal(v.cpu(),blob['model'][name]) for name,v in model.state_dict().items())
-    # Small atomic I/O contract checks registered metadata without saving another full model.
-    with tempfile.TemporaryDirectory() as tmp:
-        path=Path(tmp)/'latest.pt';payload={'model':{'p':torch.ones(2)},'completed_new_updates':1043,'plan_sha256':plan_sha,'git_sha':'test','object_image_memory_size':128,'arm':'u128'}
-        atomic_checkpoint(path,payload);read=torch.load(path,weights_only=False)
-        assert read['completed_new_updates']==1043 and read['object_image_memory_size']==128
+    checkpoint_contract(plan_sha)
     write_json(ROOT/'cpu_contracts.json',{'status':'PASS','plan_sha256':plan_sha,'source':identity,'memory32_exact':True,'memory128_order':True,'state_compatible':True,
         'identical_initialization':True,'optimizer_groups_identical':True,'grouped_gradient_8_sample_mean':True,'S':1191,'N':8337,'U':1043,'P':7,
         'checkpoint_metadata_roundtrip':True,'level_embed':levels})

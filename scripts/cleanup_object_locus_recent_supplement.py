@@ -4,6 +4,7 @@ from pathlib import Path
 from scripts.cleanup_object_locus_recent import digest,ROOT
 
 def main():
+    if (ROOT/'cleanup_supplement.json').exists():raise RuntimeError('Cleanup already recorded; reuse existing receipt')
     queue=subprocess.check_output(['squeue','-h','-u','mawb','-o','%i %j'],text=True)
     jobs=[]
     for line in queue.splitlines():

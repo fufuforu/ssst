@@ -168,6 +168,8 @@ def atomic_checkpoint(path,payload):
 def restore(path,model,optimizer,arm,plan_sha):
     blob=torch.load(path,map_location='cpu',mmap=True,weights_only=False)
     if (blob['arm'],blob['object_image_memory_size'],blob['plan_sha256'],blob['world_size'],blob['microsteps'],blob['alpha'])!=(arm,ARMS[arm],plan_sha,4,2,.01):raise RuntimeError('cross-arm/recipe restore forbidden')
+    from scripts.object_locus_image_memory_checkpoint import restore_image_memory_configuration
+    restore_image_memory_configuration(model,blob)
     model.load_state_dict(blob['model'],strict=True);optimizer.load_state_dict(blob['optimizer'])
     rank,_=base.rank_world();base.restore_rng(blob['rank_states'][rank]['rng'])
     model.understanding_step=blob['completed_exposures']

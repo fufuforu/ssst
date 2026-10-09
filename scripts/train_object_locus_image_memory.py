@@ -16,7 +16,7 @@ def main():
         receipt=json.loads((ROOT/'git_provenance.json').read_text())
         if receipt['training_sha']!=code_sha or receipt['plan_sha256']!=plan_sha or not receipt['remote_verified']:raise RuntimeError('launch provenance mismatch')
         if subprocess.check_output(['git','status','--porcelain'],cwd=base.REPO,text=True).strip():raise RuntimeError('dirty formal checkout')
-        for gate in ('cpu_contracts.json','single_smoke.json','four_smoke_c32.json','four_smoke_u128.json'):
+        for gate in ('cpu_contracts.json','single_smoke.json','four_smoke_c32.json','four_smoke_u128.json','checkpoint_loading_contract.json','checkpoint_recovery_contract.json'):
             if json.loads((ROOT/gate).read_text())['status']!='PASS':raise RuntimeError('missing required gate '+gate)
     model,opt,optimizer,identity=construct(args.arm,device);model.train();torch.cuda.reset_peak_memory_stats()
     counts=[0]*plan['N'];start=0

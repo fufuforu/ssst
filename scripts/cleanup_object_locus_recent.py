@@ -12,6 +12,7 @@ def digest(path):
     return h.hexdigest()
 
 def main():
+    if (ROOT/'cleanup_manifest.json').exists():raise RuntimeError('Cleanup already recorded; reuse existing receipt')
     queue=subprocess.check_output(['squeue','-h','-u','mawb','-o','%i %j %T'],text=True)
     if queue.strip():raise RuntimeError('cleanup requires inspecting active job references first: '+queue)
     complete=json.loads((FINAL/'complete.json').read_text())
