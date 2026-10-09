@@ -1,5 +1,5 @@
 {
-  "status": "V2_IMPLEMENTED_AWAITING_GPU_VALIDATION",
+  "status": "GEOMETRY_BLOCKED",
   "repository": "https://github.com/fufuforu/ssst",
   "worktree": "/space/mawb/ssst_object_locus_frozen_vggt_posefree_v1",
   "branch": "object-locus-frozen-vggt-posefree-v1",
@@ -103,12 +103,8 @@
     "status": "PASS"
   },
   "not_run": {
-    "window_4253_real_calibration": true,
-    "single_gpu_smoke": true,
-    "eight_gpu_smoke": true,
-    "training": true,
-    "evaluation": true,
-    "slurm_submission": true
+    "formal_training": true,
+    "evaluation": true
   },
   "unverified_next_phase": [
     "RTX3090 BF16/FP32 operator compatibility",
@@ -160,5 +156,56 @@
   },
   "previous_review_commit_sha": "6e27010adb83f8fd7db9336f0200d6174e2add0f",
   "calibration_protocol": "shared_context_depth_sim3_v2",
-  "v2_gpu_validation": "pending ordered task job; no GPU forward run on login host"
+  "v2_gpu_validation": "window 4253 and single-card pass; eight-card smoke stopped by fixed geometry acceptance at scene0563_00",
+  "execution": {
+    "slurm_job_id": "59658",
+    "execution_git_sha": "d4107c881b0c5ce4e0bb187f620d0607e9e41454",
+    "node": "3dimage-13",
+    "allocated_gpus": 8,
+    "calibration_protocol": "shared_context_depth_sim3_v2",
+    "window4253": "PASS",
+    "window4253_old_signed_scale": 1.1510381972999872,
+    "window4253_v2_scale": 0.25734600363107785,
+    "window4253_reprojection_median_px": [
+      1.3320113689798505,
+      1.3794367738011355
+    ],
+    "window4253_reprojection_p90_px": [
+      2.894427130351441,
+      5.975093226302229
+    ],
+    "single_card_smoke": {
+      "status": "GPU_SMOKE_COMPLETED",
+      "updates": 2,
+      "exposures": 2
+    },
+    "eight_card_smoke": {
+      "status": "GEOMETRY_BLOCKED",
+      "update_zero_based": 1,
+      "rank": 5,
+      "manifest_index": 6923,
+      "scene": "scene0563_00",
+      "context": [
+        145,
+        197
+      ],
+      "novel": [
+        151,
+        185
+      ],
+      "view0_reprojection_median_p90_px": [
+        4.836568398348592,
+        21.18293121426183
+      ],
+      "view1_reprojection_median_p90_px": [
+        4.6023185046943285,
+        11.443502569360495
+      ]
+    },
+    "formal_training": "NOT_STARTED",
+    "formal_updates": 0,
+    "formal_exposures": 0,
+    "slurm_exit_code": "1:0",
+    "evidence_root": "/space/mawb/ssst/group_plus/object_locus_frozen_vggt_posefree_v1/calibration_v2/attempts/59658"
+  }
 }

@@ -256,6 +256,13 @@ weight sums and pre-override shared camera differences. Fixed window 4253 saves
 old signed-baseline diagnostics and compact point/camera evidence; each training
 window only adds compact scalars unless calibration fails.
 
-The ordered 3dimage-13 job first runs window 4253, then fresh one-card and
-eight-card real smokes, then starts a fresh eight-card formal run. This v2
-calibration and all GPU stages remain unverified until those job reports exist.
+The ordered 3dimage-13 job first ran fixed window 4253, then the fresh one-card
+and eight-card real smokes. Window 4253 and the one-card smoke passed. The
+eight-card smoke hit the fixed v2 geometry gate on zero-based update 1, rank 5,
+scene `scene0563_00`: view 0 reprojection median/p90 were 4.837/21.183 pixels;
+view 1 median was 4.602 pixels. The run stopped with `GEOMETRY_BLOCKED` before
+formal training. The old method's signed scale on window 4253 was +1.151038197,
+so the prior training error was not reproduced by that diagnostic window. The
+full per-window evidence is retained outside Git under
+`/space/mawb/ssst/group_plus/object_locus_frozen_vggt_posefree_v1/calibration_v2/attempts/59658/`.
+No thresholds were changed, no windows skipped, and no GT fallback applied.

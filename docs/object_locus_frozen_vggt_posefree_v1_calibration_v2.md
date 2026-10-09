@@ -10,4 +10,15 @@ The FP64 weighted Umeyama fit centers and RMS-normalizes each point cloud, check
 
 Predeclared per-window engineering acceptance: >=32 valid pairs per view, positive-Z ratio >=0.95, 256-pixel reprojection median <=4 and p90 <=12, finite camera and Sim(3), SO(3) tolerance 1e-8, positive scale. Failures stop the stage with recorded evidence; no GT fallback, skipped windows, altered threshold, or prior calibration fallback.
 
-Expected artifacts: `window4253_old_alignment.json`, `window4253_context_sim3_v2.json`, and its compact points NPZ; then single/eight GPU smoke reports, formal plan/run manifests, and 20-update startup confirmation. No real GPU result is claimed until the ordered job has produced it.
+Observed execution (Slurm 59658, code SHA
+`d4107c881b0c5ce4e0bb187f620d0607e9e41454`): fixed window 4253 passed with
+v2 scale `0.257346004`, reprojection median `[1.332, 1.379]` and p90
+`[2.894, 5.975]` pixels. The old method's signed scale on that window was
+`1.151038197`; the earlier failure was not reproduced on that diagnostic
+window. The single-card real smoke passed its two updates. The eight-card
+smoke stopped at update 1, rank 5, scene `scene0563_00`, context `[145,197]`:
+view medians were `[4.837, 4.602]` pixels and view 0 p90 was `21.183`, above
+the fixed acceptance limits. Full error diagnostics and point evidence are in
+the external run evidence directory `.../calibration_v2/attempts/59658/`.
+Status is `GEOMETRY_BLOCKED`; formal training did not start and no geometry
+threshold or fallback was changed.
