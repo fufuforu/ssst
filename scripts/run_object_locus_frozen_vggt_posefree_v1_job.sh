@@ -41,7 +41,6 @@ free -h
 [[ "$(/space/mawb/anaconda3/envs/tokengs/bin/python -c 'import json,sys;print(json.load(open(sys.argv[1]))["hf_revision"])' "$ARTIFACT")" == 860abec7937da0a4c03c41d3c269c366e82abdf9 ]]
 
 single_gpu=${CUDA_VISIBLE_DEVICES%%,*}
-mkdir -p "$(dirname "$SINGLE_REPORT")"
 printf 'stage=single_smoke_start gpu=%s time=%s\n' "$single_gpu" "$(date -Is)"
 env -u RANK -u WORLD_SIZE -u LOCAL_RANK -u MASTER_ADDR -u MASTER_PORT \
   CUDA_VISIBLE_DEVICES="$single_gpu" HF_HUB_CACHE="$HF_HUB_CACHE" HF_HUB_OFFLINE=1 \
