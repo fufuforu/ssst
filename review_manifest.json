@@ -1,0 +1,108 @@
+{
+  "status": "IMPLEMENTED_FOR_REVIEW",
+  "repository": "https://github.com/fufuforu/ssst",
+  "worktree": "/space/mawb/ssst_object_locus_frozen_vggt_posefree_v1",
+  "branch": "object-locus-frozen-vggt-posefree-v1",
+  "base": {
+    "branch": "object-locus-gc-sweep-v1",
+    "sha": "9ce7b18b68bae9c4c7c519b670ad1fa79a66f9a0"
+  },
+  "remote_at_start": {
+    "object-locus-gc-sweep-v1": "9ce7b18b68bae9c4c7c519b670ad1fa79a66f9a0",
+    "main": "f49b492bf3030d434a39f7cb7321bc149561022e"
+  },
+  "official_vggt": {
+    "repository": "https://github.com/facebookresearch/vggt",
+    "source_commit": "a288dd0f14786c93483e45524328726ab7b1b4ce",
+    "model_id": "facebook/VGGT-1B",
+    "source_revision_verified_from_remote": true,
+    "hf_model_revision": null,
+    "weight_files_sha256": null,
+    "status": "NOT_VERIFIED_HF_UNREACHABLE",
+    "reason": "Configured proxy refused connection; direct HF metadata request timed out; no local VGGT-1B cache found. Code requires a full HF revision SHA and strict local key/shape audit."
+  },
+  "initialization_checkpoint": {
+    "path": "/space/mawb/ssst/workspace_group_plus/object_locus_panoptic_full1201_8gpu/checkpoint_epoch_06.pt",
+    "expected_sha256": "68de912a60340f65d675a521c514641845c43822657f07d5851770c96cbf912a",
+    "actual_sha256": "68de912a60340f65d675a521c514641845c43822657f07d5851770c96cbf912a",
+    "epoch": 6,
+    "completed_updates": 6258,
+    "completed_exposures": 50064,
+    "migration_cpu_result": {
+      "loaded": 1377,
+      "explicitly_excluded": 68,
+      "new_memory_adapter_parameters": 17,
+      "missing": 0,
+      "shape_mismatch": 0,
+      "unknown": 0,
+      "model_structure": "real Object-Locus model; controlled VGGT stub; no forward"
+    }
+  },
+  "training_manifest": {
+    "path": "/space/mawb/ssst/group_plus/object_locus_panoptic_full1201_8gpu/manifest.json",
+    "sha256": "87e3cde298569c4e7735cf75ee596868eadf01e9a6a95438c6be51e42f55a523",
+    "actual_train_scenes": 1191,
+    "fixed_windows": 8337,
+    "contexts_per_window": 2,
+    "sampler_reused_without_resampling": true
+  },
+  "cpu_checks": {
+    "status": "PASS",
+    "unittest_command": "CUDA_VISIBLE_DEVICES= python -m unittest tests.test_object_locus_frozen_vggt_posefree_contracts -v",
+    "contracts_passed": 13,
+    "contracts_failed": 0,
+    "covered": [
+      "official layer indices/None/patch shape",
+      "memory and K/V shape",
+      "context-only generate stub independence",
+      "frozen/no-grad boundary with stub",
+      "pixel projection and backprojection",
+      "first-camera coordinate and median depth scale",
+      "518 dense rays and 14-pixel Plucker pooling",
+      "orientation-aware Sim(3) and degenerate baseline",
+      "migration whitelist/optimizer exclusion",
+      "gradient accumulation/GC/exposure/LR/sampler",
+      "fixed full1201 manifest counts"
+    ],
+    "python_syntax": "PASS",
+    "train_entry_help": "PASS with CUDA_VISIBLE_DEVICES empty",
+    "smoke_entry_help": "PASS with CUDA_VISIBLE_DEVICES empty",
+    "eval_entry_help": "PASS with CUDA_VISIBLE_DEVICES empty",
+    "smoke_cpu_contract_entry": "PASS (13 tests)",
+    "bash_syntax": "PASS (bash -n existing full1201 submit script)"
+  },
+  "not_verified": [
+    "HF model revision and model file SHA256",
+        "real official VGGT aggregator/camera/depth forward",
+        "exact point_head/track_head unused checkpoint key inventory (runtime enumerates it from the pinned source file)",
+    "real GPU generate/render",
+    "distributed 4xRTX4090 training step",
+    "evaluation metrics"
+  ],
+  "gpu_forward": "NOT_RUN",
+  "gpu_smoke": "NOT_RUN",
+  "training": "NOT_RUN",
+  "evaluation": "NOT_RUN",
+  "slurm_submission": "NOT_SUBMITTED",
+  "review_files": [
+    "docs/object_locus_frozen_vggt_posefree_v1.md",
+    "docs/object_locus_frozen_vggt_posefree_weight_mapping.json",
+    "review_manifest.json",
+    "scripts/eval_object_locus_frozen_vggt_posefree_v1.py",
+    "scripts/object_locus_frozen_vggt_posefree_runtime.py",
+    "scripts/smoke_object_locus_frozen_vggt_posefree_v1.py",
+    "scripts/train_object_locus_frozen_vggt_posefree_v1.py",
+    "tests/test_object_locus_frozen_vggt_posefree_contracts.py",
+    "tokengs/models/__init__.py",
+    "tokengs/models/frozen_vggt_posefree.py",
+    "tokengs/models/object_locus_frozen_vggt_posefree.py",
+    "tokengs/models/object_locus_posefree_geometry.py",
+    "tokengs/options.py"
+  ],
+  "next_phase_entry": "scripts/train_object_locus_frozen_vggt_posefree_v1.py --run-training --vggt-revision <reviewed-40-char-HF-SHA> (requires local official VGGT source at pinned Git commit, local pinned weight snapshot, 3dimage-14, and torchrun -nproc_per_node=4)",
+  "mapping_report": "docs/object_locus_frozen_vggt_posefree_weight_mapping.json",
+  "design_document": "docs/object_locus_frozen_vggt_posefree_v1.md",
+  "deviations": [
+    "The official VGGT-1B Hugging Face revision and file hashes could not be obtained because network metadata access failed and no local artifact was available. No alternate VGGT or weights were substituted. Real VGGT forward remains unverified."
+  ]
+}

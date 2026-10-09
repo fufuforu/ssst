@@ -35,12 +35,14 @@ from .object_locus_v2_1 import LocusGSObjectLocusV2_1Recon
 from .object_locus_v3_set import LocusGSObjectLocusV3SetRecon
 
 from .object_locus_panoptic_v1 import LocusGSObjectLocusPanopticV1Recon
+from .object_locus_frozen_vggt_posefree import LocusGSObjectLocusFrozenVGGT
 from .official_locusgs_recon import OfficialLocusGSRecon
 
 # Model registry
 from .object_locus_joint_v1 import LocusGSObjectLocusJointV1Recon
 
 model_registry = {
+    'siu3r_object_locus_frozen_vggt_posefree_v1': LocusGSObjectLocusFrozenVGGT,
     'siu3r_object_locus_panoptic_v1': LocusGSObjectLocusPanopticV1Recon,
     'siu3r_object_locus_joint_v1': LocusGSObjectLocusJointV1Recon,
     'siu3r_official_locusgs_recon': OfficialLocusGSRecon,

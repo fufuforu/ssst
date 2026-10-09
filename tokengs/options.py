@@ -1005,4 +1005,10 @@ config_defaults["train_siu3r_object_locus_panoptic_v1"] = config_defaults["train
     model_type="siu3r_object_locus_panoptic_v1", workspace="/space/mawb/ssst/workspace_group_plus/object_locus_panoptic_v1_8gpu",
     experiment_name="siu3r_object_locus_panoptic_v1", batch_size=1, mixed_precision="no")
 
+config_doc["train_siu3r_object_locus_frozen_vggt_posefree_v1"] = "Frozen official VGGT pose-free Object-Locus review recipe; training is not auto-started."
+config_defaults["train_siu3r_object_locus_frozen_vggt_posefree_v1"] = config_defaults["train_siu3r_object_locus_panoptic_v1"].evolve(
+    model_type="siu3r_object_locus_frozen_vggt_posefree_v1",
+    workspace="/space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1",
+    experiment_name="object_locus_frozen_vggt_posefree_v1", batch_size=1, mixed_precision="no")
+
 AllConfigs = tyro.extras.subcommand_type_from_defaults(config_defaults, config_doc)
