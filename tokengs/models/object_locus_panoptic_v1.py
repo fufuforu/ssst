@@ -11,6 +11,17 @@ from tokengs.models.object_locus_v3_set import alpha_normalize_membership
 from tokengs.models.object_locus_panoptic_v1_lift import lift_features
 
 
+def object_image_memory(fm, size=32):
+    """View-major image memory; configuration changes no model state."""
+    if size not in (32, 128):
+        raise ValueError('object_image_memory_size must be 32 or 128')
+    if fm.ndim != 5 or tuple(fm.shape[1:]) != (2, 256, 128, 128):
+        raise ValueError('expected F_m [B,2,256,128,128]')
+    batch = fm.shape[0]
+    image = F.interpolate(fm.flatten(0,1),size=(32,32),mode='bilinear',align_corners=False) if size == 32 else fm
+    return image.reshape(batch,2,256,size*size).permute(0,1,3,2).reshape(batch,2*size*size,256)
+
+
 class PanopticAnchorDecoder(LocusGSAnchorDecoder):
     def forward_stateful(self, tokens, latent, rays, controller, fm, qpre, mask_embedder, exposure):
         moment, direction = rays
@@ -18,8 +29,7 @@ class PanopticAnchorDecoder(LocusGSAnchorDecoder):
         if moment.shape[1] != latent.keys.shape[-2]: raise ValueError('ray/key count mismatch')
         mu = self.mu[None].expand(batch,-1,-1).contiguous()
         rho = self.rho[None].expand(batch,-1).contiguous()
-        image = F.interpolate(fm.flatten(0,1),size=(32,32),mode='bilinear',align_corners=False)
-        image = image.reshape(batch,2,256,1024).permute(0,1,3,2).reshape(batch,2048,256)
+        image = object_image_memory(fm, getattr(self.opt, 'object_image_memory_size', 32))
         states, ray_stats = [], []
         q = c = s = ell = origin = None
         for index, (block, head_mu, head_rho) in enumerate(zip(self.decoder_blocks,self.refine_mu,self.refine_rho)):
