@@ -17,10 +17,24 @@ def rows(path):
 def write(path,data):
  with Path(path).open('w',newline='') as f:
   w=csv.DictWriter(f,fieldnames=list(data[0]));w.writeheader();w.writerows(data)
+def validate_packed_window_identity(root,window_ids):
+ idx_path=root/'packed_window_index.json';manifest_path=root/'cohort_manifest.json'
+ if not idx_path.is_file() or not manifest_path.is_file():raise FileNotFoundError('CPU report reproduction requires packed_window_index.json and cohort_manifest.json')
+ index=json.loads(idx_path.read_text());manifest=json.loads(manifest_path.read_text())['test']
+ h0=[x for x in index['entries'] if x['readout']=='H0']
+ observed=[(x['scene'],x['context_frame_ids'],x['true_novel_frame_ids'],x['pair_name']) for x in h0]
+ expected=[(w['scene'],list(map(int,w['context'])),list(map(int,w['novel'])),f"{w['scene']}_context{'_'.join(map(str,w['context']))}") for w in manifest]
+ if observed!=expected:raise RuntimeError('packed_window_index H0 identities differ from locked test cohort_manifest order')
+ expected_ids=[f"test_{i:04d}_{w['scene']}_c{'_'.join(map(str,w['context']))}" for i,w in enumerate(manifest)]
+ observed_ids=[str(x) for x in window_ids if str(x).startswith('test_')]
+ if observed_ids!=expected_ids:raise RuntimeError('cached test feature window order differs from packed_window_index/cohort_manifest')
+ return {'status':'PASS','test_windows':len(expected),'scene_order':[w['scene'] for w in manifest],
+   'packed_window_index_sha256':__import__('hashlib').sha256(idx_path.read_bytes()).hexdigest()}
 def main():
  p=argparse.ArgumentParser();p.add_argument('root',type=Path);a=p.parse_args();r=a.root
  if torch.cuda.is_available():raise RuntimeError('reproduction must be CPU-only')
  with np.load(r/'features/dev_test_q_z.npz',allow_pickle=False) as z:data={k:z[k].copy() for k in z.files}
+ packed_window_identity=validate_packed_window_identity(r,data['window_ids'].tolist())
  idx={str(w):i for i,w in enumerate(data['window_ids'].tolist())};fixed=rows(r/'labels/dev_test_scope_labels.csv');r3d=rows(r/'labels/r3d_dev_test_scope_labels.csv') if (r/'labels/r3d_dev_test_scope_labels.csv').exists() else []
  labelmap={(x['split'],x['scope'],x['window_id']):None for x in fixed}
  for x in fixed:labelmap[(x['split'],x['scope'],x['window_id'])]=[]
@@ -70,5 +84,6 @@ def main():
       'conditional18_accuracy_delta':None if left['conditional18_accuracy'] is None else left['conditional18_accuracy']-base['conditional18_accuracy']})
  write(r/'reproduced_point_deltas.csv',deltas)
  print(json.dumps({'status':'PASS','readouts':11,'classifier_rows':len(metrics),'point_deltas':len(deltas),'cuda_used':False,
+  'packed_window_identity':packed_window_identity,
   'scope':'R3D class metrics use R3D-native GT matching; probe metrics use the fixed GC001 mask labels'}))
 if __name__=='__main__':main()

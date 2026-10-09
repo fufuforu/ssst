@@ -144,6 +144,142 @@ def snapshot_official_inputs(root):
     return {str(p.relative_to(root)):{'size':p.stat().st_size,'sha256':sha(p)} for p in sorted(paths)}
 
 def readout_name(head,seed):return head if head in ('H0','R3D') else f'{head}_seed_{seed}'
+
+def packed_pair_name(window):
+    """Return the exported pair name using the manifest's context order."""
+    return f"{window['scene']}_context{'_'.join(map(str,window['context']))}"
+
+def build_packed_window_index(root,cohort,readouts=None):
+    """Index packed predictions by the locked cohort manifest, never by iterdir order."""
+    from PIL import Image
+    root=Path(root)
+    if cohort not in ('dev','test'):raise ValueError(f'unsupported cohort: {cohort}')
+    manifest_path=root/'cohort_manifest.json'
+    manifest=json.loads(manifest_path.read_text())
+    windows=manifest[cohort]
+    expected_count=8 if cohort=='dev' else 24
+    if len(windows)!=expected_count:raise RuntimeError(f'{cohort} manifest window count {len(windows)} != {expected_count}')
+    scenes=[w['scene'] for w in windows]
+    if len(set(scenes))!=expected_count:raise RuntimeError(f'{cohort} manifest does not have one window per scene')
+    per_window_path=root/'per_window.csv'
+    per_window=read_csv(per_window_path)
+    observed={(r['scene'],r['window_id']) for r in per_window if r['cohort']==cohort}
+    expected={(w['scene'],f"{cohort}_{i:04d}_{w['scene']}_c{'_'.join(map(str,w['context']))}") for i,w in enumerate(windows)}
+    if observed!=expected:
+        raise RuntimeError(f'{cohort} per_window identity mismatch missing={sorted(expected-observed)[:5]} extra={sorted(observed-expected)[:5]}')
+    if readouts is None:
+        readouts=['H0']+[f'{h}_seed_{s}' for h in ('H1','H2','H3') for s in (20261,20262,20263)]+['R3D']
+    entries=[];diagnostics={}
+    for readout in readouts:
+        base=root/'predictions'/cohort/readout/'official'
+        if not base.is_dir():raise FileNotFoundError(f'official prediction root missing: {base}')
+        expected_names={packed_pair_name(w) for w in windows}
+        actual=list(base.iterdir())
+        actual_dirs={p.name for p in actual if p.is_dir()}
+        extra_dirs=sorted(actual_dirs-expected_names);missing_dirs=sorted(expected_names-actual_dirs)
+        aux=[]
+        for p in actual:
+            if p.name not in expected_names:
+                q=p.resolve(strict=True) if p.exists() else p
+                aux.append({'name':p.name,'is_file':p.is_file(),'is_dir':p.is_dir(),'is_symlink':p.is_symlink(),
+                    'resolved_path':str(q),'has_target_seg_pred':(q/'target_seg_pred').is_dir() if q.is_dir() else False,
+                    'has_target_seg_gt':(q/'target_seg_gt').is_dir() if q.is_dir() else False})
+        diagnostics[readout]={'official_root':str(base),'exists':True,'actual_children':[{'name':p.name,'is_file':p.is_file(),
+            'is_dir':p.is_dir(),'is_symlink':p.is_symlink(),'resolved_path':str(p.resolve(strict=True)) if p.exists() else str(p),
+            'has_target_seg_pred':(p.resolve()/'target_seg_pred').is_dir() if p.is_dir() else False,
+            'has_target_seg_gt':(p.resolve()/'target_seg_gt').is_dir() if p.is_dir() else False} for p in sorted(actual)],
+            'expected_window_count':expected_count,'actual_window_directories':len(actual_dirs),'extra_window_directories':extra_dirs,
+            'missing_window_directories':missing_dirs,'excluded_auxiliary_items':aux}
+        if extra_dirs or missing_dirs:raise RuntimeError(f'{readout} packed window inventory mismatch extra={extra_dirs} missing={missing_dirs}')
+        for i,w in enumerate(windows):
+            pair=base/packed_pair_name(w);context=list(map(int,w['context']));novel=list(map(int,w['novel']))
+            artifact={'scene':w['scene'],'scene_index':i,'context_frame_ids':context,'true_novel_frame_ids':novel,
+                'pair_name':pair.name,'pair_path':str(pair),'pair_resolved_path':str(pair.resolve(strict=True)),'readout':readout,'cohort':cohort,
+                'files':{}}
+            for scope,ids in [('context',context),('target',novel)]:
+                pred_dir=pair/f'{scope}_seg_pred';gt_dir=pair/f'{scope}_seg_gt';pred_json=pred_dir/'pred.json'
+                if not pred_json.is_file() or not gt_dir.is_dir() or not pred_dir.is_dir():
+                    raise FileNotFoundError(f'{readout}/{pair.name}/{scope} missing pred.json or pred/GT directory')
+                pred_doc=json.loads(pred_json.read_text())
+                if not isinstance(pred_doc,list):raise ValueError(f'{pred_json} must contain an instance list (empty is valid)')
+                expected_png_names={f"{w['scene']}_pred{fid}.png" for fid in ids}
+                expected_gt_names={f"{w['scene']}_gt{fid}.png" for fid in ids}
+                actual_png_names={p.name for p in pred_dir.glob('*.png')}
+                actual_gt_names={p.name for p in gt_dir.glob('*.png')}
+                if actual_png_names!=expected_png_names:
+                    raise RuntimeError(f'{readout}/{pair.name}/{scope} prediction frame identity mismatch missing={sorted(expected_png_names-actual_png_names)} extra={sorted(actual_png_names-expected_png_names)}')
+                if actual_gt_names!=expected_gt_names:
+                    raise RuntimeError(f'{readout}/{pair.name}/{scope} GT frame identity mismatch missing={sorted(expected_gt_names-actual_gt_names)} extra={sorted(actual_gt_names-expected_gt_names)}')
+                for record in pred_doc:
+                    if not isinstance(record,dict) or not {'id','label_id','score'}<=set(record):
+                        raise ValueError(f'{pred_json} has a malformed prediction record: {record!r}')
+                pred_png=[];gt_png=[]
+                for fid in ids:
+                    pp=pred_dir/f"{w['scene']}_pred{fid}.png";gp=gt_dir/f"{w['scene']}_gt{fid}.png"
+                    if not pp.is_file():raise FileNotFoundError(pp)
+                    if not gp.is_file():raise FileNotFoundError(gp)
+                    # Decode files now so corrupt/non-PNG artifacts fail in preflight, not in bootstrap.
+                    with Image.open(pp) as im:
+                        if im.format!='PNG':raise ValueError(f'prediction is not PNG: {pp}')
+                    with Image.open(gp) as im:
+                        if im.format!='PNG':raise ValueError(f'ground truth is not PNG: {gp}')
+                    pred_png.append({'path':str(pp),'sha256':sha(pp),'size':pp.stat().st_size,'frame_id':fid})
+                    gt_png.append({'path':str(gp),'sha256':sha(gp),'size':gp.stat().st_size,'frame_id':fid})
+                artifact['files'][scope]={'pred_json':{'path':str(pred_json),'sha256':sha(pred_json),'size':pred_json.stat().st_size,
+                    'instance_records':len(pred_doc)},'pred_png':pred_png,'gt_png':gt_png}
+            entries.append(artifact)
+    return {'cohort':cohort,'manifest_path':str(manifest_path),'manifest_sha256':sha(manifest_path),
+        'window_count':expected_count,'scene_names':scenes,'readouts':list(readouts),'entries':entries,'directory_diagnostics':diagnostics}
+
+def official_payloads(root,official_rows,scene_rows,evaluator,readouts=None):
+    """Parse each indexed true-novel pair with SIU3R's official parser."""
+    from torchmetrics.detection.mean_ap import MeanAveragePrecision
+    # Persist and share the complete eleven-readout identity index, although AP
+    # bootstrap consumes only the five registered primary readouts.
+    index=build_packed_window_index(root,'test')
+    readouts=index['readouts'] if readouts is None else list(readouts)
+    scenes=index['scene_names'];payloads={};point={};payload_identity={}
+    for ro in readouts:
+        print(f'[bootstrap payload] parsing {ro}: {len(scenes)} manifest-indexed windows',flush=True)
+        by_scene={}
+        for entry in (x for x in index['entries'] if x['readout']==ro):
+            pair=Path(entry['pair_path'])
+            parsed=evaluator.process_segmentation(pair/'target_seg_pred',pair/'target_seg_gt')
+            by_scene[entry['scene']]=(parsed['map_pred'],parsed['map_gt'])
+            payload_identity.setdefault(ro,[]).append({'scene':entry['scene'],'pair':entry['pair_name'],
+                'pred_json_sha256':entry['files']['target']['pred_json']['sha256'],
+                'pred_png_sha256':[x['sha256'] for x in entry['files']['target']['pred_png']],
+                'gt_png_sha256':[x['sha256'] for x in entry['files']['target']['gt_png']],
+                'prediction_frames':[x['frame_id'] for x in entry['files']['target']['pred_png']],
+                'ground_truth_frames':[x['frame_id'] for x in entry['files']['target']['gt_png']]})
+        if set(by_scene)!=set(scenes):raise RuntimeError(f'{ro} official window scene identity mismatch')
+        metric=MeanAveragePrecision(iou_type='segm',class_metrics=True,sync_on_compute=False)
+        for scene in scenes:
+            p,g=by_scene[scene];metric.update([p],[g])
+        full=metric.compute();metric.reset()
+        head,seed=(ro.split('_seed_')[0],int(ro.split('_seed_')[1])) if '_seed_' in ro else (ro,None)
+        exp=metric_result(official_rows,'test',head,seed,'true-novel')
+        for key,actual in [('mAP',float(full['map'])),('AP50',float(full['map_50']))]:
+            if abs(actual-float(exp[key]))>1e-6:raise RuntimeError(f'{ro} cached official {key} {actual} != point evaluator {exp[key]}')
+        point[ro]={'mAP':float(full['map']),'AP50':float(full['map_50']),'source_mAP':float(exp['mAP']),
+            'source_AP50':float(exp['AP50']),'mAP_abs_difference':abs(float(full['map'])-float(exp['mAP'])),
+            'AP50_abs_difference':abs(float(full['map_50'])-float(exp['AP50']))}
+        payloads[ro]=by_scene
+    return index,scenes,payloads,point,payload_identity
+
+def global_ap_for_scene_selection(payloads,scenes,selection):
+    """Official global AP over selected scenes, preserving duplicate draws."""
+    from torchmetrics.detection.mean_ap import MeanAveragePrecision
+    output={}
+    for name,by_scene in payloads.items():
+        metric=MeanAveragePrecision(iou_type='segm',class_metrics=True,sync_on_compute=False)
+        preds=[];gts=[]
+        for index in selection:
+            pred,gt=by_scene[scenes[int(index)]]
+            preds.append(pred);gts.append(gt)
+        metric.update(preds,gts);result=metric.compute();metric.reset()
+        output[name]={'mAP':float(result['map']),'AP50':float(result['map_50'])}
+    return output
 def metric_result(rows,cohort,head,seed,scope):
  target='context' if scope=='context' else 'true-novel'
  for r in rows:
@@ -181,8 +317,8 @@ def aggregate_scene_rows(rows,indices,scenes,readout,scope):
          'macro_f1_supported_classes':mf,'conditional_macro_f1_supported_classes':cmf,
          'packed_cw':{'tp':cw_tp,'fp':cw_fp,'fn':cw_fn},'confusion':conf,'conditional_confusion':cconf}
 
-def official_bootstrap(root,official_rows,scene_rows):
-    from torchmetrics.detection.mean_ap import MeanAveragePrecision
+def make_official_evaluator(root,setup_path=None):
+    import sys
     sys.path.insert(0,'/space/mawb/SIU3R')
     from src.config import EvaluatorCfg
     from src.evaluator import Evaluator
@@ -190,45 +326,63 @@ def official_bootstrap(root,official_rows,scene_rows):
     cfg=EvaluatorCfg(dataset_name='scannet',eval_context_miou=False,eval_context_pq=False,eval_context_map=False,
         eval_target_miou=False,eval_target_pq=False,eval_target_map=True,eval_image_quality=False,eval_depth_quality=False,
         id2label=PANOPTIC_SEMANTIC2NAME,stuffs=STUFF_CLASSES,things=THING_CLASSES,device='cpu',
-        eval_path=str(root/'predictions/test/H0/official'))
+        eval_path=str(setup_path or (Path(root)/'predictions/test/H0/official')))
     evaluator=Evaluator(cfg);evaluator.setup()
-    scenes=sorted({r['scene'] for r in scene_rows if r['cohort']=='test' and r['scope']=='true-novel'})
-    if len(scenes)!=24:raise RuntimeError(f'official bootstrap requires exactly24 test scenes, got {len(scenes)}')
+    return evaluator
+
+def official_bootstrap(root,official_rows,scene_rows,preflight_only=False,setup_path=None):
+    """Run registered global AP and paired scene bootstrap from cached official payloads."""
+    root=Path(root)
+    evaluator=make_official_evaluator(root,setup_path=setup_path or (root/'report_scratch'/'siu3r_setup'))
+    readouts=[readout_name(h,s) for h,s in [('H0',None),('H1',20261),('H2',20261),('H3',20261),('R3D',None)]]
+    index,scenes,payloads,point,payload_identity=official_payloads(root,official_rows,scene_rows,evaluator,readouts)
+    # The registered bootstrap order is lexicographically sorted scene identity.
+    sorted_scenes=sorted(scenes)
+    if scenes!=sorted_scenes:
+        raise RuntimeError('cohort manifest scene ordering differs from registered sorted scene order')
     matrix=np.random.default_rng(2026).choice(24,size=(2000,24),replace=True)
-    np.save(root/'bootstrap_scene_indices_seed2026.npy',matrix)
-    readouts=[('H0',None),('H1',20261),('H2',20261),('H3',20261),('R3D',None)]
-    payloads={};point={}
-    for head,seed in readouts:
-        name=readout_name(head,seed);pairs=sorted((root/'predictions/test'/name/'official').iterdir())
-        if len(pairs)!=24:raise RuntimeError(f'{name} is missing packed test windows')
-        by_scene={}
-        for pair in pairs:
-            scene=pair.name.split('_context')[0]
-            if scene in by_scene:raise RuntimeError(f'{name} has duplicate window for scene={scene}')
-            parsed=evaluator.process_segmentation(pair/'target_seg_pred',pair/'target_seg_gt')
-            by_scene[scene]=(parsed['map_pred'],parsed['map_gt'])
-        if set(by_scene)!=set(scenes):raise RuntimeError(f'{name} official window scene identity mismatch')
-        metric=MeanAveragePrecision(iou_type='segm',class_metrics=True,sync_on_compute=False)
-        for scene in scenes:
-            p,g=by_scene[scene];metric.update([p],[g])
-        full=metric.compute();metric.reset()
-        exp=metric_result(official_rows,'test',head,seed,'true-novel')
-        for key,actual in [('mAP',float(full['map'])),('AP50',float(full['map_50']))]:
-            if abs(actual-float(exp[key]))>1e-6:raise RuntimeError(f'{name} cached official {key} {actual} != point evaluator {exp[key]}')
-        point[name]={'mAP':float(full['map']),'AP50':float(full['map_50'])}
-        payloads[name]=by_scene
+    dump(root/'packed_window_index.json',index)
+    matrix_path=root/'bootstrap_scene_indices_seed2026.npy'
+    np.save(matrix_path,matrix)
+    if preflight_only:
+        selection=matrix[0]
+        replicate=global_ap_for_scene_selection(payloads,scenes,selection)
+        packed=selection.tolist()
+        counts={scene:packed.count(i) for i,scene in enumerate(scenes) if i in packed}
+        aggregate={}
+        for scope in ('context','true-novel'):
+            aggregate[scope]={}
+            probe_aggregate_readouts=[('H0',None)]+[(h,s) for h in ('H1','H2','H3') for s in (20261,20262,20263)]
+            for ro in probe_aggregate_readouts:
+                result=aggregate_scene_rows(scene_rows,selection,scenes,ro,scope)
+                aggregate[scope][readout_name(*ro)]={k:v for k,v in result.items() if k not in ('confusion','conditional_confusion')}
+                aggregate[scope][readout_name(*ro)]['confusion_shape']=list(result['confusion'].shape)
+                aggregate[scope][readout_name(*ro)]['conditional_confusion_shape']=list(result['conditional_confusion'].shape)
+                aggregate[scope][readout_name(*ro)]['confusion_total']=int(result['confusion'].sum())
+        out={'status':'PASS','mode':'real_payload_single_registered_replicate_preflight','official_point_check':'PASS atol=1e-6',
+          'scene_order':scenes,'point_reproduction':point,'source_official_envelopes':22,'primary_ap_readout_count':5,
+          'probe_classification_aggregate_readouts':10,'r3d_population_classification_comparison':'EXCLUDED_DIFFERENT_NATIVE_LABEL_POPULATION',
+          'payload_identity':payload_identity,'payload_window_count':{k:len(v) for k,v in payload_identity.items()},
+          'shared_selection_seed':2026,'selection_row_index':0,'selection_indices':packed,
+          'selection_scene_names':[scenes[i] for i in packed],'selection_scene_draw_counts':counts,
+          'replicate0_global_ap':replicate,'replicate0_all_finite':all(np.isfinite(v) for x in replicate.values() for v in x.values()),
+          'aggregate_scene_rows_same_selection':aggregate,'formal_resamples_remain':2000,
+          'bootstrap_matrix_sha256':sha(matrix_path)}
+        dump(root/'preflight/bootstrap_entry_preflight.json',out)
+        if not out['replicate0_all_finite']:raise FloatingPointError('first registered bootstrap replicate is nonfinite')
+        return None,point,scenes,matrix
+    # The full run shares the exact same payload parser and per-selection global AP function.
     boot={name:{'map':np.zeros(2000,np.float64),'ap50':np.zeros(2000,np.float64)} for name in payloads}
     for b,selection in enumerate(matrix):
-      for name,by_scene in payloads.items():
-        metric=MeanAveragePrecision(iou_type='segm',class_metrics=True,sync_on_compute=False)
-        pred=[];gt=[]
-        for ix in selection:
-            p,g=by_scene[scenes[int(ix)]];pred.append(p);gt.append(g)
-        metric.update(pred,gt);r=metric.compute();boot[name]['map'][b]=float(r['map']);boot[name]['ap50'][b]=float(r['map_50']);metric.reset()
-    scene_boot={}
-    primary_scope={s:{readout_name(h,seed):{} for h,seed in readouts} for s in ('context','true-novel')}
+        values=global_ap_for_scene_selection(payloads,scenes,selection)
+        for name,v in values.items():
+            boot[name]['map'][b]=v['mAP'];boot[name]['ap50'][b]=v['AP50']
+        if b==0 or (b+1)%25==0:
+            dump(root/'bootstrap_progress.json',{'status':'RUNNING','completed_replicates':b+1,'total_replicates':2000,
+                'first_replicate_global_ap':values if b==0 else None,'scene_matrix_sha256':sha(matrix_path)})
+    primary_scope={s:{readout_name(h,seed):{} for h,seed in [('H0',None),('H1',20261),('H2',20261),('H3',20261),('R3D',None)]} for s in ('context','true-novel')}
     for scope in ('context','true-novel'):
-      for ro in readouts:
+      for ro in [('H0',None),('H1',20261),('H2',20261),('H3',20261),('R3D',None)]:
         name=readout_name(*ro);series={'joint19_accuracy':[],'conditional18_accuracy':[],'macro_f1_supported_classes':[],'conditional_macro_f1_supported_classes':[],'packed_cw_tp':[],'packed_cw_fp':[]}
         for selection in matrix:
             a=aggregate_scene_rows(scene_rows,selection,scenes,ro,scope)
@@ -241,8 +395,7 @@ def official_bootstrap(root,official_rows,scene_rows):
       entry={'comparison':a+'-'+b,'classification':{},'packed_cw':{}}
       for scope in ('context','true-novel'):
         left,right=primary_scope[scope][a],primary_scope[scope][b];entry['classification'][scope]={}
-        if a=='R3D':
-          entry['classification'][scope]={'interpretation':'not_compared: R3D diagnostic labels use R3D-native masks/GT matches; probe labels use fixed GC001 masks'}
+        if a=='R3D':entry['classification'][scope]={'interpretation':'not_compared: R3D diagnostic labels use R3D-native masks/GT matches; probe labels use fixed GC001 masks'}
         for key in (() if a=='R3D' else ('joint19_accuracy','conditional18_accuracy','macro_f1_supported_classes','conditional_macro_f1_supported_classes')):
           deltas=np.asarray(left[key])-np.asarray(right[key]);deltas=deltas[np.isfinite(deltas)]
           left_head=a.split('_seed_')[0];left_seed=int(a.split('_seed_')[1]) if '_seed_' in a else None
@@ -252,28 +405,25 @@ def official_bootstrap(root,official_rows,scene_rows):
           right_value=class_row(read_csv(root/'feature_probe_metrics.csv'),'test',scope,right_head,right_seed)[key]
           right_point=float(right_value) if right_value not in ('',None) else float('nan')
           entry['classification'][scope][key]={'actual_delta':left_point-right_point,'bootstrap_mean_delta':float(deltas.mean()),'ci95':ci(deltas),'replicates':deltas.tolist()}
-        tp_delta=np.asarray(left['packed_cw_tp'])-np.asarray(right['packed_cw_tp'])
-        fp_delta=np.asarray(left['packed_cw_fp'])-np.asarray(right['packed_cw_fp'])
+        tp_delta=np.asarray(left['packed_cw_tp'])-np.asarray(right['packed_cw_tp']);fp_delta=np.asarray(left['packed_cw_fp'])-np.asarray(right['packed_cw_fp'])
         ro_left=(a.split('_seed_')[0],int(a.split('_seed_')[1]) if '_seed_' in a else None)
         ro_right=(b.split('_seed_')[0],int(b.split('_seed_')[1]) if '_seed_' in b else None)
         def cw_total(ro,field):
             return sum(int(parse_json(r['packed_cw'],{}).get(field,0)) for r in scene_rows if r['cohort']=='test' and r['scope']==scope and
                 r['head']==ro[0] and (r['seed'] in ('','None') if ro[1] is None else int(r['seed'])==ro[1]))
-        entry['packed_cw'][scope]={'tp_actual_delta':cw_total(ro_left,'tp')-cw_total(ro_right,'tp'),
-            'tp_bootstrap_mean_delta':float(tp_delta.mean()),'tp_ci95':ci(tp_delta),
-            'fp_actual_delta':cw_total(ro_left,'fp')-cw_total(ro_right,'fp'),
-            'fp_bootstrap_mean_delta':float(fp_delta.mean()),'fp_ci95':ci(fp_delta)}
+        entry['packed_cw'][scope]={'tp_actual_delta':cw_total(ro_left,'tp')-cw_total(ro_right,'tp'),'tp_bootstrap_mean_delta':float(tp_delta.mean()),
+            'tp_ci95':ci(tp_delta),'fp_actual_delta':cw_total(ro_left,'fp')-cw_total(ro_right,'fp'),'fp_bootstrap_mean_delta':float(fp_delta.mean()),'fp_ci95':ci(fp_delta)}
       entry['official_true_novel']={}
       for metric in ('map','ap50'):
-        arr=boot[a][metric]-boot[b][metric]
-        actual=point[a]['mAP' if metric=='map' else 'AP50']-point[b]['mAP' if metric=='map' else 'AP50']
+        arr=boot[a][metric]-boot[b][metric];actual=point[a]['mAP' if metric=='map' else 'AP50']-point[b]['mAP' if metric=='map' else 'AP50']
         entry['official_true_novel'][metric]={'actual_delta':actual,'bootstrap_mean_delta':float(arr.mean()),'ci95':ci(arr),'replicates':arr.tolist()}
       comparisons[entry['comparison']]=entry
     dump(root/'paired_bootstrap.json',{'status':'COMPLETE','seed':2026,'resamples':2000,'scene_names':scenes,
-        'shared_scene_indices_sha256':sha(root/'bootstrap_scene_indices_seed2026.npy'),'official_point_check':'PASS atol=1e-6',
-        'official_points':point,'official_mAP_AP50_bootstrap':{k:{m:v.tolist() for m,v in d.items()} for k,d in boot.items()},
+        'shared_scene_indices_sha256':sha(matrix_path),'official_point_check':'PASS atol=1e-6','official_points':point,
+        'official_mAP_AP50_bootstrap':{k:{m:v.tolist() for m,v in d.items()} for k,d in boot.items()},
         'classification_bootstrap':primary_scope,'comparisons':comparisons,
         'limits':'Fixed GC001 and fixed probe seeds; excludes full model training seed and multiplicity correction.'})
+    dump(root/'bootstrap_progress.json',{'status':'COMPLETE','completed_replicates':2000,'total_replicates':2000,'scene_matrix_sha256':sha(matrix_path)})
     return comparisons,point,scenes,matrix
 
 def focus_cases(root):
@@ -537,7 +687,8 @@ def package(root):
       'features/dev_test_q_z.npz','oracle_metrics.csv','class_support.csv','head_manifest.json','training_scalars.csv','feature_probe_metrics.csv',
       'official_metrics.csv','funnel_metrics.csv','per_gt.csv','per_query.csv','per_window.csv','scene_paired_differences.csv',
       'labels/dev_test_scope_labels.csv','labels/r3d_dev_test_scope_labels.csv','cached_eval_provenance.json','focus20_cases.jsonl','focus20_cases_source.jsonl',
-      'bootstrap_scene_indices_seed2026.npy','paired_bootstrap.json','missing_items.json','report_to_gpt.md','summary.json','report_preflight.json',
+      'bootstrap_scene_indices_seed2026.npy','bootstrap_progress.json','packed_window_index.json','packed_window_diagnosis.json',
+      'preflight/bootstrap_entry_preflight.json','paired_bootstrap.json','missing_items.json','report_to_gpt.md','summary.json','report_preflight.json',
       'preflight/report_preflight.json','preflight/class_support_roundtrip.csv','report_runtime.json','environment.json','report_source_hashes_before.json','report_source_hashes_after.json','report_statistics_started.json','focus20_selection_manifest.json',
       'reproduce_report_cpu.py','scripts/object_locus_frozen_probe_contract.py','scripts/extract_object_locus_frozen_probe.py',
       'scripts/train_object_locus_frozen_probe.py','scripts/eval_object_locus_frozen_probe.py','scripts/preflight_frozen_probe_d_classification.py','scripts/report_object_locus_frozen_probe.py','scripts/report_preflight.py',
@@ -546,6 +697,7 @@ def package(root):
       'provenance/source_attempt02/git_provenance.json','provenance/source_attempt02/execution_files_manifest.json','provenance/source_attempt02/effective_execution_protocol.json',
       'provenance/source_attempt05/git_provenance.json','provenance/source_attempt05/execution_files_manifest.json','provenance/source_attempt05/jobs.json','provenance/source_attempt05/source_stage_provenance.json','provenance/source_attempt05/slurm/frozen-unified-eval-59175.err',
       'provenance/source_attempt06/git_provenance.json','provenance/source_attempt06/execution_files_manifest.json','provenance/source_attempt06/source_stage_provenance.json','provenance/source_attempt06/evaluation_reuse_manifest.json','provenance/source_attempt06/cache_reuse_manifest.json','provenance/source_attempt06/jobs.json','provenance/source_attempt06/report_stage_failure.json','provenance/source_attempt06/slurm/frozen-unified-eval-59179.err','provenance/source_attempt06/slurm/frozen-unified-eval-59179.out',
+      'provenance/source_attempt07/report_statistics_started.json','provenance/source_attempt07/jobs.json','provenance/source_attempt07/source_stage_provenance.json','provenance/source_attempt07/slurm/report-59252.err','provenance/source_attempt07/slurm/report-59252.out','provenance/source_attempt07/slurm/report_failure_59252.json',
       'provenance/attempt03_old_d_cancellation/job_59167_before_cancel.txt','provenance/attempt03_old_d_cancellation/job_59167_before_cancel.sacct.txt','provenance/attempt03_old_d_cancellation/job_59167_after_cancel.txt','provenance/attempt03_old_d_cancellation/job_59167_after_cancel.sacct.txt']
     for rel in wanted:
         p=(ROOT/rel) if rel.startswith(('scripts/','tokengs/','tests/','slurm/')) else root/rel
@@ -572,26 +724,28 @@ def package(root):
     # The primary package includes each readout's predictions and a shared GT tree.
     cohort=json.loads((root/'cohort_manifest.json').read_text())['test'];primary=[]
     names=['H0']+[f'{h}_seed_{s}' for h in ('H1','H2','H3') for s in (20261,20262,20263)]+['R3D']
+    packed_index=build_packed_window_index(root,'test',names)
     index_doc={'readouts':names,'windows':[{'scene':w['scene'],'context':w['context'],'true_novel':w['novel'],
-        'pair_directory':f'{w["scene"]}_context{"_".join(map(str,w["context"]))}'} for w in cohort],
-        'readout_prediction_frame_count':144,'total_readouts':11,'total_prediction_frames':1584,'shared_ground_truth_frame_count':144}
+        'pair_directory':packed_pair_name(w)} for w in cohort],
+        'readout_prediction_frame_count':144,'total_readouts':11,'total_prediction_frames':1584,'shared_ground_truth_frame_count':144,
+        'packed_window_index_sha256':sha(root/'packed_window_index.json')}
     index_path=root/'primary_windows.json';dump(index_path,index_doc)
     rebuild=root/'rebuild_official_tree.py'
-    rebuild.write_text('''#!/usr/bin/env python3\nimport argparse,shutil\nfrom pathlib import Path\np=argparse.ArgumentParser();p.add_argument('archive_root',type=Path);p.add_argument('readout');p.add_argument('output',type=Path);a=p.parse_args()\nsrc=a.archive_root/'readout'/a.readout;gt=a.archive_root/'ground_truth';a.output.mkdir(parents=True,exist_ok=True)\nfor pair in src.iterdir():\n if not pair.is_dir():continue\n dst=a.output/pair.name;dst.mkdir(parents=True,exist_ok=True)\n for scope in ('context','target'):\n  shutil.copytree(pair/(scope+'_seg_pred'),dst/(scope+'_seg_pred'),dirs_exist_ok=True)\n  shutil.copytree(gt/pair.name/(scope+'_seg_gt'),dst/(scope+'_seg_gt'),dirs_exist_ok=True)\n''')
+    rebuild.write_text('''#!/usr/bin/env python3\nimport argparse,json,shutil\nfrom pathlib import Path\np=argparse.ArgumentParser();p.add_argument('archive_root',type=Path);p.add_argument('readout');p.add_argument('output',type=Path);a=p.parse_args()\nindex=json.loads((a.archive_root/'primary_windows.json').read_text())\nif a.readout not in index['readouts']:raise RuntimeError('readout is absent from primary_windows.json')\npairs=[w['pair_directory'] for w in index['windows']];src=a.archive_root/'readout'/a.readout;gt=a.archive_root/'ground_truth';a.output.mkdir(parents=True,exist_ok=True)\nactual={x.name for x in src.iterdir() if x.is_dir()};expected=set(pairs)\nif actual!=expected:raise RuntimeError(f'prediction window identity mismatch missing={sorted(expected-actual)} extra={sorted(actual-expected)}')\nfor name in pairs:\n pair=src/name;dst=a.output/name;dst.mkdir(parents=True,exist_ok=True)\n for scope in ('context','target'):\n  shutil.copytree(pair/(scope+'_seg_pred'),dst/(scope+'_seg_pred'),dirs_exist_ok=True)\n  shutil.copytree(gt/name/(scope+'_seg_gt'),dst/(scope+'_seg_gt'),dirs_exist_ok=True)\n''')
     for name in names:
-        files=[];base=root/'predictions/test'/name/'official'
-        pairs=sorted(p for p in base.iterdir() if p.is_dir())
-        if len(pairs)!=24:raise RuntimeError(f'primary prediction package missing windows for {name}')
+        files=[];entries=[x for x in packed_index['entries'] if x['readout']==name]
+        if len(entries)!=24:raise RuntimeError(f'primary prediction package missing manifest-indexed windows for {name}')
         count=0
-        for pair in pairs:
-            for scope in ('context','target'):
-                pd=pair/f'{scope}_seg_pred';gt=pair/f'{scope}_seg_gt'
-                pngs=list(pd.glob('*.png'));expected=2 if scope=='context' else 4
-                if len(pngs)!=expected:raise RuntimeError(f'{name}/{pair.name}/{scope} frame count mismatch')
-                for p in [pd/'pred.json',*pngs]:files.append((p,f'readout/{name}/{pair.name}/{scope}_seg_pred/{p.name}'))
+        for entry in entries:
+            pair=Path(entry['pair_path']);pairname=entry['pair_name']
+            for scope,archive_scope in [('context','context'),('target','target')]:
+                info=entry['files'][scope]
+                pred_json=Path(info['pred_json']['path']);pred_png=[Path(x['path']) for x in info['pred_png']]
+                for p in [pred_json,*pred_png]:files.append((p,f'readout/{name}/{pairname}/{archive_scope}_seg_pred/{p.name}'))
                 if name=='H0':
-                    for p in gt.glob('*.png'):files.append((p,f'ground_truth/{pair.name}/{scope}_seg_gt/{p.name}'))
-                count+=len(pngs)
+                    for item in info['gt_png']:
+                        p=Path(item['path']);files.append((p,f'ground_truth/{pairname}/{archive_scope}_seg_gt/{p.name}'))
+                count+=len(pred_png)
         if count!=144:raise RuntimeError(f'{name} expected 144 packed predicted frames, got {count}')
         readme=root/'primary_predictions_README.txt'
         if not readme.exists():readme.write_text('H0, all nine fixed-seed probe readouts, and R3D epoch8 for the 24 fixed test windows.\nEach readout/pair contains context_seg_pred and target_seg_pred.\nGround truth appears once under ground_truth/<pair>/{context,target}_seg_gt.\nRun rebuild_official_tree.py to copy the shared GT into a standard SIU3R evaluator layout. Target contains true-novel frames only.\n')

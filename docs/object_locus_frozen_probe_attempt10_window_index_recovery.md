@@ -1,0 +1,13 @@
+# Frozen Probe report recovery: manifest-indexed packed windows
+
+This report-only recovery inherits the fixed evaluation and statistics protocol from the prior report-only recovery prompt. It uses the completed attempt06 evaluation outputs and does not retrain, reload an original model, render predictions, or rerun the 22 official evaluations.
+
+The attempt07 report job (59252, execution SHA `9b268406879f4b8a7d51420ed45aa038c8d6e160`) failed because `official_bootstrap` counted every immediate child under `predictions/test/H0/official` as a packed window. The directory has 24 manifest-named pair directories plus `results.json`; the latter is evaluator metadata, not a window. This made the old `len(pairs) == 24` check reject a complete cache.
+
+The report now builds an explicit dev/test window index from `cohort_manifest.json`, retaining the manifest's scene and context order and validating identities against `per_window.csv`. For all eleven readouts it checks each expected pair path, context and true-novel frame PNG names, matching GT frame names, `pred.json` presence/schema, and source SHA256/size. Auxiliary directory entries are recorded and excluded from sampling. The same index feeds official payload loading and the 24-scene prediction package.
+
+The official AP path is split into shared payload parsing, global AP for an explicit scene selection, and the registered 2,000-resample bootstrap. The preflight calls those same parser/AP functions on the five primary readouts, recomputes complete 24-scene global mAP/AP50 against the saved official values at absolute tolerance `1e-6`, then computes the first row of the locked `default_rng(2026)` selection matrix. Duplicate scene draws remain repeated inputs. It also calls the existing scene aggregation on that same row for the two scopes. This preflight is interface verification only and is not an inferential result or a registered outcome.
+
+`Evaluator.setup` is given an isolated scratch path during preflight. Prediction and GT files stay read-only; their hashes are captured in `packed_window_index.json` and checked against the completed source view. Formal reporting still uses the unchanged 24-scene cohort, shared 2,000 selections, four registered comparisons, reconstruction reduction, and R3D protection conditions.
+
+The initial attempt08 input-view preparation stopped before required prediction/official/R3D/reconstruction paths were present. The attempt09 copy then stopped at a symlinked directory and also remained partial. Both roots are preserved and excluded as data sources. The complete input view is built independently from attempt06 in attempt10. The fallback reasons and required missing paths are recorded in attempt10 provenance.
