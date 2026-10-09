@@ -6,6 +6,7 @@ import json
 import math
 import os
 import socket
+import sys
 import time
 from pathlib import Path
 import random
@@ -14,9 +15,17 @@ import traceback
 import numpy as np
 import torch
 from torch import nn
-from tokengs.models.frozen_vggt_posefree import FrozenVGGT
 
 REPO=Path(__file__).resolve().parents[1]
+if str(REPO) not in sys.path:
+    sys.path.insert(0,str(REPO))
+# Must run before importing tokengs.models: its package initializer imports the
+# legacy renderer, which expects this cluster's documented fused-SSIM shim.
+from scripts.runtime_bootstrap import prepare_runtime
+prepare_runtime(REPO)
+
+from tokengs.models.frozen_vggt_posefree import FrozenVGGT
+
 MANIFEST=Path('/space/mawb/ssst/group_plus/object_locus_panoptic_full1201_8gpu/manifest.json')
 CHECKPOINT=Path('/space/mawb/ssst/workspace_group_plus/object_locus_panoptic_full1201_8gpu/checkpoint_epoch_06.pt')
 EXPECTED_CHECKPOINT_SHA='68de912a60340f65d675a521c514641845c43822657f07d5851770c96cbf912a'
