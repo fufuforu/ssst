@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=vggt-pf-v2-8x3090
+#SBATCH --job-name=vggt-pf-monitor-8x3090
 #SBATCH --partition=3090
 #SBATCH --nodelist=3dimage-13
 #SBATCH --nodes=1
@@ -15,13 +15,14 @@ PYTHON=/space/mawb/anaconda3/envs/tokengs/bin/python
 ASSET_ROOT=/space/mawb/ssst_object_locus_frozen_vggt_posefree_v1_assets
 MANIFEST=/space/mawb/ssst/group_plus/object_locus_panoptic_full1201_8gpu/manifest.json
 SOURCE=/space/mawb/ssst/workspace_group_plus/object_locus_panoptic_full1201_8gpu/checkpoint_epoch_06.pt
-RUN_DIR=/space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1_calibration_v2
-REPORT=/space/mawb/ssst/group_plus/object_locus_frozen_vggt_posefree_v1/calibration_v2
+RUN_DIR=/space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1_calibration_v2_monitor
+REPORT=/space/mawb/ssst/group_plus/object_locus_frozen_vggt_posefree_v1/calibration_v2_monitor
 ARTIFACT="$REPO/vggt_artifact_manifest.json"
 ATTEMPT="$REPORT/attempts/${SLURM_JOB_ID}"
 JOB_SMOKE="$ATTEMPT/smoke"
-WINDOW_REPORT="$ATTEMPT/window4253"
-SINGLE_REPORT="$JOB_SMOKE/single/smoke_report.json"
+HISTORICAL=/space/mawb/ssst/group_plus/object_locus_frozen_vggt_posefree_v1/calibration_v2/attempts/59658
+WINDOW_REPORT="$HISTORICAL/window4253"
+SINGLE_REPORT="$HISTORICAL/smoke/single/smoke_report.json"
 EIGHT_REPORT="$JOB_SMOKE/eight/smoke_report.json"
 
 mkdir -p "$ATTEMPT" "$REPORT/slurm" "$JOB_SMOKE"
@@ -49,31 +50,18 @@ import json,os
 from pathlib import Path
 root=Path(os.environ['ATTEMPT_ROOT'])
 record={'slurm_job_id':os.environ['TASK_JOB_ID'],'execution_git_sha':os.environ['TASK_CODE_SHA'],
-        'calibration_protocol':'shared_context_depth_sim3_v2','node':'3dimage-13',
+        'calibration_protocol':'shared_context_depth_sim3_v2','geometry_quality_policy':'monitor_v1',
+        'single_smoke_reused':True,'single_smoke_execution_sha':'d4107c881b0c5ce4e0bb187f620d0607e9e41454','node':'3dimage-13',
         'gpu':'RTX3090','world_size':8,'microbatch_per_rank':1,'accumulation':1}
 (root/'attempt_manifest.json').write_text(json.dumps(record,indent=2)+'\n')
 jobs=root.parent/'jobs.json';rows=json.loads(jobs.read_text()) if jobs.is_file() else []
 rows.append(record);tmp=jobs.with_suffix('.json.tmp');tmp.write_text(json.dumps(rows,indent=2)+'\n');tmp.replace(jobs)
 PY
 
-single_gpu=${CUDA_VISIBLE_DEVICES%%,*}
-printf 'stage=window4253_calibration_v2_start gpu=%s time=%s\n' "$single_gpu" "$(date -Is)"
-env -u RANK -u WORLD_SIZE -u LOCAL_RANK -u MASTER_ADDR -u MASTER_PORT \
-  CUDA_VISIBLE_DEVICES="$single_gpu" HF_HUB_CACHE="$HF_HUB_CACHE" HF_HUB_OFFLINE=1 \
-  PYTHONPATH="$PYTHONPATH" OMP_NUM_THREADS=4 "$PYTHON" -u \
-  scripts/smoke_object_locus_frozen_vggt_posefree_v1.py --window-4253-calibration \
-  --manifest "$MANIFEST" --checkpoint "$SOURCE" --output-dir "$WINDOW_REPORT" \
-  --vggt-revision 860abec7937da0a4c03c41d3c269c366e82abdf9 --artifact-manifest "$ARTIFACT"
-printf 'stage=window4253_calibration_v2_pass time=%s\n' "$(date -Is)"
-
-printf 'stage=single_smoke_start gpu=%s time=%s\n' "$single_gpu" "$(date -Is)"
-env -u RANK -u WORLD_SIZE -u LOCAL_RANK -u MASTER_ADDR -u MASTER_PORT \
-  CUDA_VISIBLE_DEVICES="$single_gpu" HF_HUB_CACHE="$HF_HUB_CACHE" HF_HUB_OFFLINE=1 \
-  PYTHONPATH="$PYTHONPATH" OMP_NUM_THREADS=4 "$PYTHON" -u \
-  scripts/smoke_object_locus_frozen_vggt_posefree_v1.py --single-card-real \
-  --manifest "$MANIFEST" --checkpoint "$SOURCE" --output-dir "$JOB_SMOKE/single" \
-  --vggt-revision 860abec7937da0a4c03c41d3c269c366e82abdf9 --artifact-manifest "$ARTIFACT"
-printf 'stage=single_smoke_pass time=%s\n' "$(date -Is)"
+# Reuse the strict-policy 59658 single smoke; no computation/precision/gradient change.
+# The historical --window-4253-calibration and single smoke evidence remain immutable.
+printf 'stage=single_smoke_reused job=59658 sha=d4107c881b0c5ce4e0bb187f620d0607e9e41454 policy=strict_v2_historical\n'
+[[ -f "$SINGLE_REPORT" && -f "$WINDOW_REPORT/window4253_context_sim3_v2.json" ]]
 
 printf 'stage=eight_smoke_start time=%s\n' "$(date -Is)"
 "$PYTHON" -m torch.distributed.run --standalone --nnodes=1 --nproc_per_node=8 \

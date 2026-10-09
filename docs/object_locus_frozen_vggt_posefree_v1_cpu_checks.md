@@ -66,3 +66,22 @@ nonzero understanding weight; single/eight smoke exposures are 2/16; and the
 resume configuration records eight rank RNG states while retaining the fixed
 8344-update/66752-exposure schedule. The submit/job wrappers target only
 `3dimage-13`, eight GPUs, 32 CPUs, 128 GiB host memory and 48 hours.
+
+## monitor_v1 recovery checks
+
+The current recovery preserves the 24 v2 CPU contracts and adds four checks:
+quality warnings preserve cameras and R/s/t; invalid scale/camera contracts
+still fail; runtime monitoring preserves loss/gradients/exposure; full warning
+NPZ evidence is limited to two distinct windows. The recovery validation receipt
+and logs are under
+`/space/mawb/ssst/group_plus/object_locus_frozen_vggt_posefree_v1/calibration_v2_monitor/validation/`.
+A CPU comparison also runs the geometry implementation from `8502d978` on the
+same inputs and checks exact R/s/t and camera equality. No new asset key audit,
+full-manifest calibration scan, or GPU diagnostic experiment is introduced.
+
+Historical single smoke 59658 is reused with execution SHA
+`d4107c881b0c5ce4e0bb187f620d0607e9e41454` and its original strict policy.
+Its report is not rewritten. Training's new receipt records this distinction;
+fresh eight-card smoke verifies the pushed monitor snapshot on the first 16
+fixed epoch-zero windows, including 6923. Smoke optimizer/clock never enter
+formal training.

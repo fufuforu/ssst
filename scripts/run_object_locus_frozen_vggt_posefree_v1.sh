@@ -6,7 +6,7 @@ ASSET_ROOT=/space/mawb/ssst_object_locus_frozen_vggt_posefree_v1_assets
 PYTHON=/space/mawb/anaconda3/envs/tokengs/bin/python
 MANIFEST=/space/mawb/ssst/group_plus/object_locus_panoptic_full1201_8gpu/manifest.json
 SOURCE=/space/mawb/ssst/workspace_group_plus/object_locus_panoptic_full1201_8gpu/checkpoint_epoch_06.pt
-RUN_DIR=/space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1
+RUN_DIR=/space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1_calibration_v2_monitor
 ARTIFACT="$REPO/vggt_artifact_manifest.json"
 
 if [[ $# -lt 1 ]]; then

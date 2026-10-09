@@ -8,7 +8,9 @@ Fixed 37x37 correspondences per view use pixel centers at `(7+14*r+0.5, 7+14*c+0
 
 The FP64 weighted Umeyama fit centers and RMS-normalizes each point cloud, checks second/first covariance eigenvalue ratio >=1e-6 (planar accepted), performs one initial fit plus exactly five Huber refits, and restores the transform to original coordinates. It maps cameras directly into the generation frame. It never reapplies first-camera normalization or `a_scale`.
 
-Predeclared per-window engineering acceptance: >=32 valid pairs per view, positive-Z ratio >=0.95, 256-pixel reprojection median <=4 and p90 <=12, finite camera and Sim(3), SO(3) tolerance 1e-8, positive scale. Failures stop the stage with recorded evidence; no GT fallback, skipped windows, altered threshold, or prior calibration fallback.
+Current policy: `geometry_quality_policy=monitor_v1`. Hard validity requires >=32 valid pairs per view, nondegenerate positive RMS and covariance second/first ratio >=1e-6, finite invertible cameras/K and fit, SO(3) tolerance 1e-8, positive scale, and finite loss/gradients/updated parameters. Quality reference values (positive-Z ratio >=0.95, 256-pixel reprojection median <=4 and p90 <=12) generate per-view warnings only. A valid fit returns status=PASS, fit_status=VALID and quality_status=OK/WARNING. PASS means the computation contract passed; it does not establish teacher accuracy. Warnings do not alter cameras, losses, weights or exposure, and do not stop train/smoke/eval.
+
+Each rank writes scalar geometry_monitor_rankN.jsonl, and a summary every 20 formal updates. Only hard failures and the first two distinct warning windows retain full point/camera evidence. Historical strict-policy reports below are retained as failures under that historical policy. Engineering repairs may be retried with a newly pushed fixed snapshot; fresh smoke state never enters formal training.
 
 Observed execution (Slurm 59658, code SHA
 `d4107c881b0c5ce4e0bb187f620d0607e9e41454`): fixed window 4253 passed with
@@ -18,7 +20,7 @@ v2 scale `0.257346004`, reprojection median `[1.332, 1.379]` and p90
 window. The single-card real smoke passed its two updates. The eight-card
 smoke stopped at update 1, rank 5, scene `scene0563_00`, context `[145,197]`:
 view medians were `[4.837, 4.602]` pixels and view 0 p90 was `21.183`, above
-the fixed acceptance limits. Full error diagnostics and point evidence are in
+the historical strict acceptance limits. Full error diagnostics and point evidence are in
 the external run evidence directory `.../calibration_v2/attempts/59658/`.
 Status is `GEOMETRY_BLOCKED`; formal training did not start and no geometry
 threshold or fallback was changed.

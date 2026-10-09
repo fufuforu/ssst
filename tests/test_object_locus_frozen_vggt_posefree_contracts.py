@@ -461,6 +461,66 @@ class CameraGeometryContracts(unittest.TestCase):
         with self.assertRaisesRegex(ContextDepthSim3Error,'valid depth correspondences'):
             self._fit_v2(missing)
 
+    def test_monitor_warning_preserves_fit_and_camera_values(self):
+        fixture=self._v2_fixture()
+        baseline,baseline_diag,_=self._fit_v2(fixture)
+        # Only projection diagnostics change; the valid point-fit input is identical.
+        fixture['k256_context']=fixture['k256_context'].clone()
+        fixture['k256_context'][:,:,0,2]+=30.
+        aligned,diagnostics,_=self._fit_v2(fixture)
+        row=diagnostics[0]
+        self.assertTrue(torch.equal(aligned,baseline))
+        for key in ('R','s','t'):self.assertEqual(row[key],baseline_diag[0][key])
+        self.assertEqual((row['status'],row['fit_status'],row['quality_status']),('PASS','VALID','WARNING'))
+        for view in row['views']:
+            self.assertGreater(view['reprojection_median_px'],4.)
+            self.assertGreater(view['reprojection_p90_px'],12.)
+            self.assertIn('reprojection_median_above_reference',view['quality_warning_reasons'])
+            self.assertIn('reprojection_p90_above_reference',view['quality_warning_reasons'])
+        fixture['c2w_context'][:,:,2,3]+=10.
+        _,diagnostics,_=self._fit_v2(fixture)
+        for view in diagnostics[0]['views']:
+            self.assertIn('positive_z_below_reference',view['quality_warning_reasons'])
+            self.assertIn('reprojection_metric_unavailable',view['quality_warning_reasons'])
+            self.assertIsNone(view['reprojection_median_px'])
+
+    def test_monitor_retains_only_two_distinct_warning_window_npz_files(self):
+        import json
+        from scripts.object_locus_frozen_vggt_posefree_runtime import GeometryMonitor
+        fixture=self._v2_fixture();fixture['k256_context'][:,:,0,2]+=30.
+        cameras,diagnostics,points=self._fit_v2(fixture)
+        calibration={'diagnostics':diagnostics,'point_records':points,'c2w':cameras,
+            'intrinsics_matrix':fixture['k256_context']}
+        with tempfile.TemporaryDirectory() as directory, patch.dict('os.environ',{'POSEFREE_V2_EVIDENCE_DIR':directory}):
+            monitor=GeometryMonitor(Path(directory)/'smoke',0,'eight_smoke')
+            for index in (6923,6923,100,101):
+                monitor.record(calibration,1,{'manifest_index':index})
+            self.assertEqual(len(list(Path(directory).rglob('*.npz'))),2)
+            examples=[json.loads(p.read_text()) for p in Path(directory).rglob('calibration_warning.json')]
+            self.assertEqual({r['monitor']['manifest_index'] for r in examples},{6923,100})
+            self.assertEqual(monitor.counts['WARNING'],4)
+            self.assertEqual(len((Path(directory)/'smoke/geometry_monitor_rank0.jsonl').read_text().splitlines()),4)
+
+    def test_monitor_still_rejects_invalid_sim3_and_cameras(self):
+        import tokengs.models.object_locus_posefree_geometry as geometry
+        original=geometry._weighted_fit_normalized
+        for invalid_scale in (-1.,float('nan'),float('inf')):
+            calls=0
+            def invalid(*args):
+                nonlocal calls
+                calls+=1
+                r,scale,t=original(*args)
+                return r,(scale.new_tensor(invalid_scale) if calls==6 else scale),t
+            with patch.object(geometry,'_weighted_fit_normalized',side_effect=invalid):
+                with self.assertRaisesRegex(ContextDepthSim3Error,'nonfinite, nonpositive'):
+                    self._fit_v2(self._v2_fixture())
+        fixture=self._v2_fixture();fixture['c2w_all'][0,3]=0
+        with self.assertRaisesRegex(ContextDepthSim3Error,'noninvertible'):
+            self._fit_v2(fixture)
+        fixture=self._v2_fixture();fixture['c2w_all'][0,3,0,0]=float('nan')
+        with self.assertRaisesRegex(ContextDepthSim3Error,'nonfinite inputs'):
+            self._fit_v2(fixture)
+
     def test_old_alignment_diagnostic_reports_signed_scale_and_angle_without_raising(self):
         f=self._v2_fixture()
         # Reverse the context-only baseline while keeping each camera finite.
@@ -567,6 +627,38 @@ class MigrationAndTrainingContracts(unittest.TestCase):
         self.assertEqual(model.steps,[(0,0.)])
         self.assertEqual(row['completed_updates'],1); self.assertEqual(row['completed_exposures'],1)
         self.assertEqual(row['understanding_weight'],0.); self.assertEqual(row['beta'],0.)
+
+    def test_monitor_serialization_does_not_change_loss_gradient_or_exposure(self):
+        import json
+        import copy
+        from scripts.object_locus_frozen_vggt_posefree_runtime import GeometryMonitor, _write_json_atomic
+        view={'valid_count':1369,'positive_z_ratio':1.,'reprojection_median_px':5.,'reprojection_p90_px':20.,
+            'residual_3d_median_over_scene_median_depth':.1,'residual_3d_p90_over_scene_median_depth':.2,
+            'residual_3d_rmse_over_scene_median_depth':.15,
+            'quality_warning_reasons':['reprojection_median_above_reference'],
+            'diagnostic_unavailable_reasons':{}}
+        calibration={'diagnostics':[{'s':.72,'fit_status':'VALID','quality_status':'WARNING','views':[view,view]}]}
+        class TinyTrain(nn.Module):
+            def __init__(self):
+                super().__init__();self.reconstruction=nn.Linear(1,1,bias=False)
+            def step_loss(self,batch,*,step,understanding_weight):
+                rec=self.reconstruction(batch).square().mean()
+                return {'prediction':{'target_camera_calibration':calibration}},{'loss_recon':rec,'loss_understanding':rec*.1}
+        from scripts.object_locus_frozen_vggt_posefree_runtime import build_optimizer
+        model=TinyTrain();reference=copy.deepcopy(model)
+        with tempfile.TemporaryDirectory() as directory, patch.dict('os.environ',{'POSEFREE_V2_EVIDENCE_DIR':''}):
+            monitor=GeometryMonitor(directory,0,'eight_smoke')
+            row=train_microbatch_window(model,build_optimizer(model),[torch.ones(1,1)],1,base_exposure=8,world_size=8,
+                monitor=monitor,window_metadata=[{'manifest_index':6923,'scene':'scene0563_00','context_ids':[145,197],'novel_ids':[151,185]}],stage='eight_smoke')
+            expected=train_microbatch_window(reference,build_optimizer(reference),[torch.ones(1,1)],1,base_exposure=8,world_size=8)
+            self.assertEqual(row,expected)
+            for a,b in zip(model.parameters(),reference.parameters()):
+                self.assertTrue(torch.equal(a,b));self.assertTrue(torch.equal(a.grad,b.grad))
+            saved=json.loads((Path(directory)/'geometry_monitor_rank0.jsonl').read_text())
+            self.assertEqual(saved['stage'],'eight_smoke');self.assertEqual(saved['manifest_index'],6923)
+            self.assertEqual(monitor.counts['WARNING'],1)
+            _write_json_atomic(Path(directory)/'unavailable.json',{'statistic':float('nan'),'reason':'nonfinite_diagnostic_statistic'})
+            self.assertIsNone(json.loads((Path(directory)/'unavailable.json').read_text())['statistic'])
 
     def test_gc_eight_rank_one_sample_average_matches_eight_sample_reference(self):
         class Toy(nn.Module):

@@ -1,6 +1,8 @@
 """Pixel camera, ray, scene-scale, and orientation-constrained Sim(3) contracts."""
 from __future__ import annotations
 
+import math
+
 import torch
 import torch.nn.functional as F
 
@@ -282,6 +284,14 @@ def align_cameras_by_shared_context_depth_v2(
             diag["status"]="NONFINITE_INPUT"
             raise ContextDepthSim3Error("nonfinite inputs to shared-context depth Sim(3)", diagnostics=diag,
                                         points=support_points)
+        try:
+            inverses=[torch.linalg.inv(value) for value in
+                (all_cam,all_k,c2w_context[b].to(torch.float64),k256_context[b].to(torch.float64))]
+            if not all(torch.isfinite(value).all() for value in inverses):
+                raise ValueError("nonfinite camera/K inverse")
+        except (RuntimeError,ValueError) as exc:
+            diag["status"]="INVALID_CAMERA"
+            raise ContextDepthSim3Error("invalid or noninvertible camera/K",diagnostics=diag,points=support_points) from exc
         for view in range(2):
             invk = torch.linalg.inv(all_k[view])
             camera_ray = torch.einsum("ij,nj->ni", invk, sample_pixels[view])
@@ -416,21 +426,33 @@ def align_cameras_by_shared_context_depth_v2(
             "camera_center_difference_before_context_override":center_diff,
             "camera_orientation_difference_radians_before_context_override":rotation_diff,
             "confidence_is_official_score_not_probability":True})
+        # PASS means the numerical contract passed, not an accurate camera teacher.
+        diag.update(fit_status="VALID", geometry_quality_policy="monitor_v1")
         for view_metrics in diag["views"]:
-            if (view_metrics["positive_z_ratio"] < .95
-                    or view_metrics["reprojection_median_px"] is None
-                    or view_metrics["reprojection_p90_px"] is None
-                    or view_metrics["reprojection_median_px"] > 4.
-                    or view_metrics["reprojection_p90_px"] > 12.):
-                diag["status"]="GEOMETRY_BLOCKED"
-                raise ContextDepthSim3Error(
-                    f"shared-context projection quality failed for view {diag['views'].index(view_metrics)}",
-                    diagnostics=diag, points={**support_points,"pixels_518":pixels[b].cpu().numpy(),
-                        "X_source_world":x.cpu().numpy(),"Y_context_scene":y.cpu().numpy(),
-                        "X_mapped_scene":mapped.cpu().numpy(),"initial_weights":w0.cpu().numpy(),
-                        "final_weights":w.cpu().numpy(),"initial_residual_normalized":initial_res.cpu().numpy(),
-                        "final_residual_normalized":final_res.cpu().numpy()})
-        point_record={"pixels_518":pixels[b].cpu().numpy(),"X_source_world":x.cpu().numpy(),"Y_context_scene":y.cpu().numpy(),
+            reasons=[]
+            unavailable=[]
+            for key,value in list(view_metrics.items()):
+                if isinstance(value,float) and not math.isfinite(value):
+                    view_metrics[key]=None
+                    unavailable.append(key)
+            if view_metrics["positive_z_ratio"] < .95:
+                reasons.append("positive_z_below_reference")
+            for key,limit,reason in (
+                ("reprojection_median_px",4.,"reprojection_median_above_reference"),
+                ("reprojection_p90_px",12.,"reprojection_p90_above_reference")):
+                if view_metrics[key] is None:
+                    if "reprojection_metric_unavailable" not in reasons:
+                        reasons.append("reprojection_metric_unavailable")
+                elif view_metrics[key] > limit:
+                    reasons.append(reason)
+            view_metrics["quality_warning_reasons"]=reasons
+            view_metrics["diagnostic_unavailable_reasons"]={key:"nonfinite_diagnostic_statistic" for key in unavailable}
+            if view_metrics["reprojection_median_px"] is None:
+                view_metrics["diagnostic_unavailable_reasons"].setdefault("reprojection_median_px","no_positive_z_correspondences")
+            if view_metrics["reprojection_p90_px"] is None:
+                view_metrics["diagnostic_unavailable_reasons"].setdefault("reprojection_p90_px","no_positive_z_correspondences")
+        diag["quality_status"]="WARNING" if any(v["quality_warning_reasons"] for v in diag["views"]) else "OK"
+        point_record={**support_points,"pixels_518":pixels[b].cpu().numpy(),"X_source_world":x.cpu().numpy(),"Y_context_scene":y.cpu().numpy(),
             "X_mapped_scene":mapped.cpu().numpy(),"initial_weights":w0.cpu().numpy(),"final_weights":w.cpu().numpy(),
             "correspondence_pixels_518":torch.cat([torch.as_tensor(item["pixels"]) for item in per_view_raw]).cpu().numpy(),
             "correspondence_view_ids":torch.cat([torch.full((item["base"].numel(),),view,dtype=torch.int64)

@@ -45,6 +45,7 @@ TOTAL_UPDATES=8344
 TOTAL_EXPOSURES=66752
 VGGT_ARTIFACT_MANIFEST=REPO/'vggt_artifact_manifest.json'
 CALIBRATION_PROTOCOL='shared_context_depth_sim3_v2'
+GEOMETRY_QUALITY_POLICY='monitor_v1'
 if WORLD_SIZE*MICRO_BATCH*ACCUMULATION!=GLOBAL_BATCH:
     raise RuntimeError('resource adaptation must preserve global batch 8')
 
@@ -258,14 +259,15 @@ def save_calibration_failure(error,update,rank,stage='formal_training'):
     directory=Path(root)/'geometry_failures'/stage/f'update_{int(update):06d}_rank_{int(rank)}'
     directory.mkdir(parents=True,exist_ok=True)
     _write_json_atomic(directory/'calibration_failure.json',{'protocol':CALIBRATION_PROTOCOL,
-        'status':'GEOMETRY_BLOCKED','update':int(update),'rank':int(rank),
+        'geometry_quality_policy':GEOMETRY_QUALITY_POLICY,'status':'HARD_VALIDITY_FAILED','update':int(update),'rank':int(rank),
         'error':str(error),'diagnostics':error.diagnostics})
     if error.points:
         np.savez_compressed(directory/'calibration_failure_points.npz',**error.points)
     return str(directory)
 
 
-def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world_size=None):
+def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world_size=None,
+                            monitor=None,window_metadata=None,stage="formal_training"):
     """Two-microbatch GC step with one accumulated gradient family per parameter."""
     if len(batches)!=ACCUMULATION: raise ValueError(f"each rank must receive exactly {ACCUMULATION} accumulation microbatches")
     named=sorted((n,p) for n,p in model.named_parameters() if p.requires_grad)
@@ -285,7 +287,7 @@ def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world
             error=exc
             if isinstance(error,ContextDepthSim3Error):
                 rank=torch.distributed.get_rank() if torch.distributed.is_initialized() else 0
-                try: save_calibration_failure(error,update,rank)
+                try: save_calibration_failure(error,update,rank,stage)
                 except Exception as save_exc:
                     error=RuntimeError(f"{exc}; saving geometry evidence failed: {save_exc}")
         synchronized_error(error,device,'forward',int(update))
@@ -305,13 +307,19 @@ def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world
             calibration=output.get('prediction',{}).get('target_camera_calibration') if isinstance(output,dict) else None
             if calibration is not None:
                 ds=calibration['diagnostics'][0]
-                calibration_row={'protocol':CALIBRATION_PROTOCOL,'scale':ds['s'],
+                calibration_row={'protocol':CALIBRATION_PROTOCOL,'geometry_quality_policy':GEOMETRY_QUALITY_POLICY,
+                    'fit_status':ds['fit_status'],'quality_status':ds['quality_status'],
+                    'quality_warning_reasons':[v['quality_warning_reasons'] for v in ds['views']],
+                    'diagnostic_unavailable_reasons':[v['diagnostic_unavailable_reasons'] for v in ds['views']],
+                    'scale':ds['s'],
                     'valid_points':[v['valid_count'] for v in ds['views']],
                     'positive_z_ratio':[v['positive_z_ratio'] for v in ds['views']],
                     'reprojection_median_px':[v['reprojection_median_px'] for v in ds['views']],
                     'reprojection_p90_px':[v['reprojection_p90_px'] for v in ds['views']],
                     'residual_3d_median_over_scene_median_depth':[
                         v['residual_3d_median_over_scene_median_depth'] for v in ds['views']]}
+            if monitor is not None and calibration is not None:
+                monitor.record(calibration,update,(window_metadata or [None])[micro_index])
             local_rows.append({'loss_recon':float(metrics['loss_recon'].detach()),
                 'loss_understanding':float(metrics['loss_understanding'].detach()),
                 'calibration':calibration_row})
@@ -356,7 +364,8 @@ def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world
 
 
 def plan_record():
-    return {'manifest':str(MANIFEST),'manifest_sha256':sha256(MANIFEST) if MANIFEST.exists() else None,
+    return {'geometry_quality_policy':GEOMETRY_QUALITY_POLICY,'calibration_protocol':CALIBRATION_PROTOCOL,
+            'manifest':str(MANIFEST),'manifest_sha256':sha256(MANIFEST) if MANIFEST.exists() else None,
             'expected_scenes':EXPECTED_SCENES,'expected_windows':EXPECTED_WINDOWS,'context_views_per_window':2,
             'world_size':WORLD_SIZE,'gpu_model':'RTX3090','node':'3dimage-13','microbatch_per_rank':MICRO_BATCH,'accumulation':ACCUMULATION,
             'global_batch':8,'epochs':8,'windows_per_epoch_padded':WINDOWS_PER_EPOCH,
@@ -367,9 +376,14 @@ def plan_record():
 
 def training_configuration():
     return {'calibration_protocol':CALIBRATION_PROTOCOL,
-        'calibration_acceptance':{'min_valid_points_per_view':32,'min_positive_z_ratio':.95,
-            'max_reprojection_median_px':4.,'max_reprojection_p90_px':12.,
-            'min_covariance_second_eigen_ratio':1e-6,'huber_irls_iterations':5},
+        'geometry_quality_policy':GEOMETRY_QUALITY_POLICY,
+        'calibration_acceptance':{
+            'hard_validity':{'min_valid_points_per_view':32,'finite_inputs_cameras_fit_loss_gradients_parameters':True,
+                'positive_scale':True,'invertible_camera_and_K':True,'SO3_atol':1e-8,
+                'min_covariance_second_eigen_ratio':1e-6,'positive_rms':True},
+            'quality_reference':{'min_positive_z_ratio':.95,'max_reprojection_median_px':4.,
+                'max_reprojection_p90_px':12.,'handling':'diagnostic warning only; never changes cameras or loss'},
+            'huber_irls_iterations':5},
         'node':'3dimage-13','gpu_model':'RTX3090','world_size':WORLD_SIZE,
         'global_batch':GLOBAL_BATCH,'microbatch':MICRO_BATCH,
         'accumulation':ACCUMULATION,'epochs':EPOCHS,'updates_per_epoch':UPDATES_PER_EPOCH,
@@ -440,6 +454,99 @@ def _write_json_atomic(path: Path, value):
     temp.write_text(json.dumps(_json_finite(value),indent=2,allow_nan=False)+'\n')
     os.replace(temp,path)
 
+
+
+class GeometryMonitor:
+    """Scalar per-window evidence; two shared warning slots, no tensor retention."""
+    def __init__(self,directory,rank,stage):
+        self.directory=Path(directory);self.directory.mkdir(parents=True,exist_ok=True)
+        self.rank=int(rank);self.stage=stage
+        self.counts={'windows':0,'OK':0,'WARNING':0,'warning_reasons':{}}
+        self.latest=None
+
+    def record(self,calibration,update,metadata):
+        ds=calibration['diagnostics'][0]
+        views=ds['views'];metadata=metadata or {}
+        row={'stage':self.stage,'epoch':int(update)//UPDATES_PER_EPOCH+1,
+            'update':int(update)+1,'rank':self.rank,**metadata,
+            'geometry_quality_policy':GEOMETRY_QUALITY_POLICY,'fit_status':ds['fit_status'],
+            'quality_status':ds['quality_status'],'quality_warning_reasons':[v['quality_warning_reasons'] for v in views],
+            'diagnostic_unavailable_reasons':[v['diagnostic_unavailable_reasons'] for v in views],
+            'scale':ds['s'],'valid_points':[v['valid_count'] for v in views],
+            **{key:[v[key] for v in views] for key in ('positive_z_ratio','reprojection_median_px',
+                'reprojection_p90_px','residual_3d_median_over_scene_median_depth',
+                'residual_3d_p90_over_scene_median_depth','residual_3d_rmse_over_scene_median_depth')}}
+        row=_json_finite(row)
+        with (self.directory/f'geometry_monitor_rank{self.rank}.jsonl').open('a') as stream:
+            stream.write(json.dumps(row,separators=(',',':'),allow_nan=False)+'\n')
+        self.latest=row;self.counts['windows']+=1;self.counts[ds['quality_status']]+=1
+        for reason in {reason for view in views for reason in view['quality_warning_reasons']}:
+            self.counts['warning_reasons'][reason]=self.counts['warning_reasons'].get(reason,0)+1
+        if ds['quality_status']=='WARNING':
+            evidence=os.environ.get('POSEFREE_V2_EVIDENCE_DIR')
+            if evidence:
+                root=Path(evidence)/'geometry_warnings';root.mkdir(parents=True,exist_ok=True)
+                # Exclusive window claims prevent duplicate evidence across ranks/stages.
+                claim=root/f"window_{metadata.get('manifest_index','unknown')}"
+                try:claim.mkdir()
+                except FileExistsError:return
+                for slot in range(2):
+                    directory=root/f'example_{slot}'
+                    try:directory.mkdir()
+                    except FileExistsError:continue
+                    _write_json_atomic(directory/'calibration_warning.json',{'monitor':row,'diagnostics':ds})
+                    cameras={key:calibration[key].detach().cpu().numpy() for key in ('c2w','intrinsics_matrix')}
+                    np.savez_compressed(directory/'calibration_warning_points.npz',**calibration['point_records'][0],**cameras)
+                    break
+                # Only the first two distinct warnings need a persistent claim.
+                if not any((root/f'example_{i}'/'calibration_warning.json').is_file() and
+                    json.loads((root/f'example_{i}'/'calibration_warning.json').read_text())['monitor'].get('manifest_index')==metadata.get('manifest_index') for i in range(2)):
+                    claim.rmdir()
+
+    def summary(self):
+        return {'counts':self.counts,'latest':self.latest,'stage':self.stage,'rank':self.rank}
+
+    def write_summary(self,completed):
+        with (self.directory/f'geometry_monitor_summary_rank{self.rank}.jsonl').open('a') as stream:
+            stream.write(json.dumps({'completed_updates':completed,**self.summary()},allow_nan=False)+'\n')
+
+
+def window_identity(index,window):
+    return {'manifest_index':int(index),'scene':window['scene'],
+            'context_ids':window['context'],'novel_ids':window['novel']}
+
+
+def validated_smoke(path,mode,world,execution_sha,manifest_digest,artifact):
+    path=Path(path)
+    if path.is_dir():path=path/'smoke_report.json'
+    report=json.loads(path.read_text())
+    if (report.get('status')!='GPU_SMOKE_COMPLETED' or report.get('mode')!=mode or
+        report.get('world_size')!=world or report.get('updates')!=2 or
+        report.get('exposures')!=smoke_exposure_count(mode) or
+        report.get('manifest_sha256')!=manifest_digest or
+        report.get('calibration_protocol')!=CALIBRATION_PROTOCOL or
+        report.get('source_checkpoint',{}).get('sha256')!=EXPECTED_CHECKPOINT_SHA):
+        raise RuntimeError(f'smoke evidence contract/identity mismatch: {path}')
+    keys=('repository','model_id','revision','files','loaded_subtrees','loaded_key_sha256')
+    if any(report['vggt_artifact'].get(k)!=artifact.get(k) for k in keys):
+        raise RuntimeError(f'smoke asset identity mismatch: {path}')
+    if mode=='eight' and report.get('window_indices')!=epoch_order(0)[:16].astype(int).tolist():
+        raise RuntimeError('eight smoke did not use the fixed first sixteen windows including 6923')
+    reused=mode=='single' and report.get('geometry_quality_policy')!=GEOMETRY_QUALITY_POLICY
+    sha=report.get('execution_git_sha')
+    if reused:
+        attempt=json.loads((path.parents[2]/'attempt_manifest.json').read_text())
+        sha=attempt['execution_git_sha']
+        if sha!='d4107c881b0c5ce4e0bb187f620d0607e9e41454' or attempt['slurm_job_id']!='59658':
+            raise RuntimeError('unrecognized historical single smoke provenance')
+    elif sha!=execution_sha or report.get('geometry_quality_policy')!=GEOMETRY_QUALITY_POLICY:
+        raise RuntimeError('current smoke must execute the fixed monitor snapshot')
+    return {'path':str(path),'status':report['status'],'world_size':world,'updates':2,
+        'exposures':report['exposures'],'execution_git_sha':sha,
+        'geometry_quality_policy':report.get('geometry_quality_policy','strict_v2_historical'),
+        'single_smoke_reused':reused,'reuse_reason':
+            'Only quality error handling and evidence changed; fitting, precision, gradients and science unchanged.' if reused else None,
+        'geometry_monitor_by_rank':report.get('geometry_monitor_by_rank')}
 
 def run_window4253_calibration(*, output_dir: Path, manifest_path: Path=MANIFEST,
                                checkpoint: Path=CHECKPOINT, hf_revision: str,
@@ -517,7 +624,7 @@ def run_window4253_calibration(*, output_dir: Path, manifest_path: Path=MANIFEST
         c2w_context_only=generated['predicted_context_c2w'].detach().cpu().numpy(),
         k256_context_only=generated['predicted_context_intrinsics_matrix'].detach().cpu().numpy())
     payload={'window_index':4253,'window':window,'status':'PASS',
-        'calibration_protocol':CALIBRATION_PROTOCOL,'context_rgb_exactly_shared':shared_equal,
+        'calibration_protocol':CALIBRATION_PROTOCOL,'geometry_quality_policy':GEOMETRY_QUALITY_POLICY,'context_rgb_exactly_shared':shared_equal,
         'depth_context_from_full_window_aggregator':True,
         'diagnostics':calibrated['diagnostics'],
         'c2w_all_raw':calibration_pass['c2w_cv'].detach().cpu().tolist(),
@@ -570,7 +677,7 @@ def _atomic_save(payload,path: Path):
 
 
 def run_training(*, manifest_path: Path=MANIFEST, checkpoint: Path=CHECKPOINT,
-                 run_dir: Path=Path('/space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1_calibration_v2'),
+                 run_dir: Path=Path('/space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1_calibration_v2_monitor'),
                  hf_revision: str, resume: bool=False,
                  calibration_report: Path | None=None,
                  single_smoke_report: Path | None=None,
@@ -621,6 +728,8 @@ def run_training(*, manifest_path: Path=MANIFEST, checkpoint: Path=CHECKPOINT,
     model.train()
     model.frozen_vggt.eval()
     optimizer=build_optimizer(model)
+    single_evidence=validated_smoke(single_smoke_report,'single',1,execution_sha,manifest_digest,model.frozen_vggt.source_identity)
+    eight_evidence=validated_smoke(eight_smoke_report,'eight',WORLD_SIZE,execution_sha,manifest_digest,model.frozen_vggt.source_identity)
     from scripts import object_locus_v3_set_runtime as provider_runtime
     if rank==0:
         run_dir.mkdir(parents=True,exist_ok=True)
@@ -633,7 +742,8 @@ def run_training(*, manifest_path: Path=MANIFEST, checkpoint: Path=CHECKPOINT,
             'vggt_source':model.frozen_vggt.source_identity,'optimizer':'AdamW',
             'seeds':{'common_model_initialization':42,'per_rank_training_rng':[42+r for r in range(WORLD_SIZE)],'memory_adapter_isolated':31415},
             'optimizer_state_restored':False,'scheduler_state_restored':False,'rng_state_restored':False,
-            'calibration_protocol':CALIBRATION_PROTOCOL,
+            'calibration_protocol':CALIBRATION_PROTOCOL,'geometry_quality_policy':GEOMETRY_QUALITY_POLICY,
+            'training_configuration':training_configuration(),'single_card_smoke':single_evidence,'eight_card_smoke':eight_evidence,
             'evaluation_launched':False},indent=2)+'\n')
         if not resume:
             _write_json_atomic(run_dir/'training_plan.json',{
@@ -641,6 +751,7 @@ def run_training(*, manifest_path: Path=MANIFEST, checkpoint: Path=CHECKPOINT,
                 'training_configuration':training_configuration(),
                 'manifest_sha256':manifest_digest,'execution_git_sha':execution_sha})
     dist.barrier()
+    monitor=GeometryMonitor(run_dir,rank,'formal_training')
     total_counts=np.zeros(EXPECTED_WINDOWS,dtype=np.int64)
     completed=0;start_epoch=0;last_row=None
     if resume:
@@ -682,9 +793,11 @@ def run_training(*, manifest_path: Path=MANIFEST, checkpoint: Path=CHECKPOINT,
             try:batches=[provider_runtime.build_batch(opt,windows[index],device) for index in indices]
             except Exception as exc:error=exc
             synchronized_error(error,device,'batch',update)
-            result=train_microbatch_window(model,optimizer,batches,update,base_exposure=update*GLOBAL_BATCH,world_size=WORLD_SIZE)
+            result=train_microbatch_window(model,optimizer,batches,update,base_exposure=update*GLOBAL_BATCH,world_size=WORLD_SIZE,monitor=monitor,
+                window_metadata=[window_identity(index,windows[index]) for index in indices])
             for index in indices: total_counts[index]+=1
             completed=update+1;last_row=result
+            if completed%20==0:monitor.write_summary(completed)
             if rank==0 and (completed%20==0 or completed==TOTAL_UPDATES):
                 with (run_dir/'training_rank0.jsonl').open('a') as stream:
                     stream.write(json.dumps({'epoch':epoch+1,'update':completed,'exposure':completed*GLOBAL_BATCH,
@@ -696,30 +809,41 @@ def run_training(*, manifest_path: Path=MANIFEST, checkpoint: Path=CHECKPOINT,
                     'completed_exposures':completed*GLOBAL_BATCH,
                     **{key:result[key] for key in ('loss_recon','loss_understanding','understanding_weight',
                         'beta','group_lr','preclip_norm')},
+                    'geometry_monitor':monitor.summary(),
                     **{key:result[key] for key in ('allocated','reserved','peak_allocated','peak_reserved') if key in result}}
                 rank_updates=[None for _ in range(WORLD_SIZE)]
                 dist.all_gather_object(rank_updates,local_update)
                 startup_error=None
                 if rank==0:
                     try:
-                        def checked_smoke(path_env,expected_mode,expected_world):
-                            path=Path(os.environ[path_env])
-                            if not path.is_file():raise FileNotFoundError(f'required smoke report missing: {path}')
-                            report=json.loads(path.read_text())
-                            if report.get('status')!='GPU_SMOKE_COMPLETED' or report.get('mode')!=expected_mode or report.get('world_size')!=expected_world:
-                                raise RuntimeError(f'smoke report did not pass required contract: {path}')
-                            return {'path':str(path),'status':report['status'],'world_size':report['world_size'],
-                                    'updates':report['updates'],'exposures':report['exposures']}
-                        single=checked_smoke('POSEFREE_SINGLE_SMOKE_REPORT','single',1)
-                        eight=checked_smoke('POSEFREE_EIGHT_SMOKE_REPORT','eight',WORLD_SIZE)
+                        single=single_evidence
+                        eight=eight_evidence
                         if len(rank_updates)!=WORLD_SIZE or not all(row['completed_updates']==completed and row['completed_exposures']==completed*GLOBAL_BATCH for row in rank_updates):
                             raise RuntimeError('startup confirmation rank update accounting mismatch')
+                        if sorted(row['rank'] for row in rank_updates)!=list(range(WORLD_SIZE)):
+                            raise RuntimeError('startup rank set mismatch')
+                        expected_weight,expected_beta=exposure_schedule((completed-1)*GLOBAL_BATCH)
+                        for row in rank_updates:
+                            if row['understanding_weight']!=expected_weight or row['beta']!=expected_beta:
+                                raise RuntimeError('startup exposure weight/beta mismatch')
+                            if not all(math.isfinite(row[key]) for key in ('loss_recon','loss_understanding','preclip_norm')):
+                                raise FloatingPointError('startup row contains nonfinite training values')
+                            for group in optimizer.param_groups:
+                                if row['group_lr'][group['name']]!=group['peak_lr']*lr_multiplier(completed-1):
+                                    raise RuntimeError('startup learning rate mismatch')
                         confirmation={'status':'TRAINING_CONFIRMED','slurm_job_id':os.environ.get('SLURM_JOB_ID'),
                             'node':socket.gethostname().split('.')[0],
                             'gpu_models':[torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())],
                             'world_size':WORLD_SIZE,'global_batch':GLOBAL_BATCH,'microbatch_per_rank':MICRO_BATCH,
                             'accumulation':ACCUMULATION,'code_sha':execution_sha,
                             'training_code_sha':execution_sha,'postprocessing_code_sha':execution_sha,
+                            'remote_verified_sha':os.environ.get('TASK_CODE_SHA'),
+                            'calibration_protocol':CALIBRATION_PROTOCOL,'geometry_quality_policy':GEOMETRY_QUALITY_POLICY,
+                            'single_smoke_reused':single['single_smoke_reused'],'single_smoke_reuse_reason':single['reuse_reason'],
+                            'geometry_quality_status':'WARNING' if any(row['geometry_monitor']['counts']['WARNING'] for row in rank_updates) else 'OK',
+                            'training_configuration':training_configuration(),
+                            'loss_gradient_updated_parameters_finite':True,
+                            'geometry_warning_evidence_root':str(Path(os.environ.get('POSEFREE_V2_EVIDENCE_DIR',''))/'geometry_warnings'),
                             'vggt_artifact':model.frozen_vggt.source_identity,
                             'single_card_smoke':single,'eight_card_smoke':eight,
                             'confirmed_updates':completed,'confirmed_new_exposures':completed*GLOBAL_BATCH,
@@ -761,7 +885,7 @@ def run_training(*, manifest_path: Path=MANIFEST, checkpoint: Path=CHECKPOINT,
                      'source_checkpoint_sha256':EXPECTED_CHECKPOINT_SHA,
                      'initialization_provenance':provenance,
                      'vggt_artifact_identity':{k:model.frozen_vggt.source_identity.get(k) for k in ('repository','model_id','revision','files','loaded_subtrees','loaded_source_key_count','explicitly_excluded_source_key_count','loaded_key_sha256')},
-                     'config':training_configuration(),
+                     'config':training_configuration(),'geometry_quality_policy':GEOMETRY_QUALITY_POLICY,
                      'sampler':{'rule':'default_rng(42+epoch) permutation padded by prefix to multiple of 8',
                         'completed_epoch':epoch+1,'next_position':0},
                      'initial_seeds':{'common_model_initialization':42,'rank_training_rng':[42+r for r in range(WORLD_SIZE)],
@@ -800,6 +924,7 @@ def run_real_smoke(*, mode: str, manifest_path: Path=MANIFEST, checkpoint: Path=
     seed_everything(42+rank)
     model.to(device=f'cuda:{local}',dtype=torch.float32);model.train();model.frozen_vggt.eval()
     optimizer=build_optimizer(model)
+    execution_sha=subprocess.check_output(['git','-C',str(REPO),'rev-parse','HEAD'],text=True).strip()
     manifest,_,windows=load_manifest(manifest_path)
     order=epoch_order(0)
     planned_windows=(order[:16].astype(int).tolist() if distributed else [int(order[0]),int(order[0])])
@@ -813,6 +938,7 @@ def run_real_smoke(*, mode: str, manifest_path: Path=MANIFEST, checkpoint: Path=
     if rank==0:output_dir.mkdir(parents=True,exist_ok=False)
     if distributed:dist.barrier()
     device=torch.device(f'cuda:{local}')
+    monitor=GeometryMonitor(output_dir,rank,'eight_smoke' if distributed else 'single_smoke')
     version_before={id(p):p._version for p in model.frozen_vggt.parameters()}
     first_window=windows[int(order[0])]
     preview_batch=build_batch(opt,first_window,device)
@@ -851,7 +977,8 @@ def run_real_smoke(*, mode: str, manifest_path: Path=MANIFEST, checkpoint: Path=
         base_exposure=update*(GLOBAL_BATCH if distributed else MICRO_BATCH*ACCUMULATION)
         started=time.perf_counter()
         row=train_microbatch_window(model,optimizer,batches,update,base_exposure=base_exposure,
-                                    world_size=expected)
+                                    world_size=expected,monitor=monitor,stage=monitor.stage,
+                                    window_metadata=[window_identity(index,windows[index]) for index in index_pair])
         torch.cuda.synchronize(device);row['seconds']=time.perf_counter()-started
         row['smoke_mode']=mode;row['rank']=rank;row['window_indices']=list(index_pair)
         row['gradient_family_norms']={family:float(torch.sqrt(sum((p.grad.detach().float().square().sum() for n,p in model.named_parameters() if p.grad is not None and parameter_family(n)==family),torch.zeros((),device=device))))
@@ -876,15 +1003,17 @@ def run_real_smoke(*, mode: str, manifest_path: Path=MANIFEST, checkpoint: Path=
     if distributed:
         dist.barrier()
         rank_rows=[None for _ in range(expected)]
-        dist.all_gather_object(rank_rows,rows)
+        dist.all_gather_object(rank_rows,{'rows':rows,'geometry_monitor':monitor.summary()})
     else:
-        rank_rows=[rows]
+        rank_rows=[{'rows':rows,'geometry_monitor':monitor.summary()}]
     if rank==0:
-        payload={'mode':mode,'world_size':expected,'rows_by_rank':rank_rows,'updates':2,
+        payload={'mode':mode,'world_size':expected,'rows_by_rank':[item['rows'] for item in rank_rows],
+            'geometry_monitor_by_rank':[item['geometry_monitor'] for item in rank_rows],
+            'geometry_quality_policy':GEOMETRY_QUALITY_POLICY,'execution_git_sha':execution_sha,'updates':2,
             'exposures':formal_completed_exposure,'formal_schedule_start_exposure':0,
             'understanding_diagnostic':'separate weight=1 backward; no optimizer step or clock increment',
             'source_checkpoint':provenance,'migration_counts':transfer['counts'],
-            'calibration_protocol':CALIBRATION_PROTOCOL,
+            'calibration_protocol':CALIBRATION_PROTOCOL,'training_configuration':training_configuration(),
             'target_calibration_diagnostics':preview_calibration_diagnostics,
             'initial_seeds':{'common_model_initialization':42,'rank_training_rng':[42+r for r in range(expected)],'memory_adapter_isolated':31415},
             'vggt_artifact':model.frozen_vggt.source_identity,

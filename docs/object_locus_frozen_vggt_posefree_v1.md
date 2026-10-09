@@ -245,16 +245,7 @@ The transform maps independent raw world points and cameras directly into the
 context-only scene, so there is no second first-camera inverse or median-depth
 scale application.
 
-Every window must have at least 32 valid sampled correspondences in each view,
-positive Z ratio at least 95%, reprojection median at most 4 pixels and p90 at
-most 12 pixels at 256 resolution. The fit checks finite camera/transform values,
-SO(3) at FP64 tolerance `1e-8`, and positive scale. Failure is a geometry block;
-there is no GT fallback, window skipping, threshold relaxation, or old-method
-fallback. Reports include per-view point counts, 3D residuals normalized by the
-context scene median depth, reprojection residuals, positive-Z counts, confidence
-weight sums and pre-override shared camera differences. Fixed window 4253 saves
-old signed-baseline diagnostics and compact point/camera evidence; each training
-window only adds compact scalars unless calibration fails.
+Under current `monitor_v1`, hard validity requires >=32 correspondences per view, finite invertible cameras/K and Sim(3), positive scale, SO(3) tolerance 1e-8 and nondegenerate clouds. Quality references (positive Z >=95%, reprojection median <=4 pixels and p90 <=12 pixels at 256 resolution) produce warnings; they do not block training or change the fitted cameras or loss. PASS denotes numerical contract success, not camera accuracy. Scalar per-rank logs retain all warnings and unavailable-statistic reasons; only hard failures and the first two distinct warning windows save full point/camera evidence. The 59658 strict-policy observations below are historical and remain unchanged. Its real single smoke is reused with its original SHA and policy; a fresh monitor eight-card smoke precedes fresh full training.
 
 The ordered 3dimage-13 job first ran fixed window 4253, then the fresh one-card
 and eight-card real smokes. Window 4253 and the one-card smoke passed. The

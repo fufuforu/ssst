@@ -65,9 +65,12 @@ def initialize_memory_adapter(adapter: nn.Module, seed: int = 31415):
 class LocusGSObjectLocusFrozenVGGT(LocusGSObjectLocusPanopticV1Recon):
     architecture_name = "LOCUSGS_OBJECT_LOCUS_FROZEN_VGGT_POSEFREE_V1"
     calibration_protocol = "shared_context_depth_sim3_v2"
+    geometry_quality_policy = "monitor_v1"
 
     def __init__(self, opt, *, vggt: FrozenVGGT | None = None,
                  test_only_vggt: bool=False):
+        if getattr(opt,"geometry_quality_policy","monitor_v1") != "monitor_v1":
+            raise ValueError("pose-free train/smoke/eval requires monitor_v1")
         super().__init__(opt)
         if vggt is not None and not (vggt.source_identity.get('verification_status')=='VERIFIED' or test_only_vggt):
             raise ValueError("VGGT injection is test-only unless loaded through the verified official artifact loader")
@@ -172,6 +175,7 @@ class LocusGSObjectLocusFrozenVGGT(LocusGSObjectLocusPanopticV1Recon):
         return {"c2w":aligned,"intrinsics_matrix":k256,"intrinsics":camera_vectors(k256),
                 "sim3":sim3,"diagnostics":diagnostics,"point_records":point_records,
                 "old_alignment_diagnostics":old,"calibration_protocol":self.calibration_protocol,
+                "geometry_quality_policy":self.geometry_quality_policy,
                 "A_518_to_256":A.detach(),"source_identity":result['source_identity'],
                 "depth_context_from_full_window_aggregator":True}
 

@@ -31,6 +31,7 @@ class Options:
     workspace: str = "./workspace"
     resume: str | None = None
     model_type: str = "tokengs"
+    geometry_quality_policy: str = "monitor_v1"
     seed: int = 42
 
     # --- wandb / logging

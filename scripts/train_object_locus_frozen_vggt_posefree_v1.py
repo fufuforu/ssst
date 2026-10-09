@@ -18,15 +18,15 @@ def main(argv=None):
     parser.add_argument('--prepare-only',action='store_true',help='validate local manifest and print the review plan')
     parser.add_argument('--manifest',type=Path,default=None)
     parser.add_argument('--checkpoint',type=Path,default=CHECKPOINT)
-    parser.add_argument('--run-dir',type=Path,default=Path('/space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1_calibration_v2'))
-    parser.add_argument('--calibration-report',type=Path,help='passed fixed-window 4253 v2 report (required for fresh training)')
+    parser.add_argument('--run-dir',type=Path,default=Path('/space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1_calibration_v2_monitor'))
+    parser.add_argument('--calibration-report',type=Path,help='historical passed window 4253 v2 evidence (required for fresh training)')
     parser.add_argument('--single-smoke-report',type=Path,help='passed one-card real smoke report (required for fresh training)')
     parser.add_argument('--eight-smoke-report',type=Path,help='passed eight-card real smoke report (required for fresh training)')
     parser.add_argument('--artifact-manifest',type=Path,default=Path(__file__).resolve().parents[1]/'vggt_artifact_manifest.json')
     parser.add_argument('--resume',action='store_true',help='restore latest model, optimizer, clock, sampler and per-rank RNG')
     parser.add_argument('--vggt-revision',default=os.environ.get('VGGT_HF_REVISION'),
                         help='pinned facebook/VGGT-1B Hugging Face commit SHA')
-    parser.add_argument('--run-training',action='store_true',help='reserved for a separately reviewed next phase')
+    parser.add_argument('--run-training',action='store_true',help='run the authorized locked monitor_v1 training recipe')
     args=parser.parse_args(argv)
     # Keep --help lightweight: importing the runtime initializes PyTorch and its
     # optional compiler workers even though argparse exits before main continues.
