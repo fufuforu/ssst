@@ -64,8 +64,11 @@ def initialize_memory_adapter(adapter: nn.Module, seed: int = 31415):
 class LocusGSObjectLocusFrozenVGGT(LocusGSObjectLocusPanopticV1Recon):
     architecture_name = "LOCUSGS_OBJECT_LOCUS_FROZEN_VGGT_POSEFREE_V1"
 
-    def __init__(self, opt, *, vggt: FrozenVGGT | None = None):
+    def __init__(self, opt, *, vggt: FrozenVGGT | None = None,
+                 test_only_vggt: bool=False):
         super().__init__(opt)
+        if vggt is not None and not (vggt.source_identity.get('verification_status')=='VERIFIED' or test_only_vggt):
+            raise ValueError("VGGT injection is test-only unless loaded through the verified official artifact loader")
         self.frozen_vggt = vggt if vggt is not None else FrozenVGGT()
         with torch.random.fork_rng(devices=[]):
             torch.manual_seed(31415)
@@ -118,7 +121,7 @@ class LocusGSObjectLocusFrozenVGGT(LocusGSObjectLocusPanopticV1Recon):
             vggt_result.c2w_cv,vggt_result.intrinsics518,vggt_result.depth518)
         model_input,_=self._predicted_input(context_rgb,vggt_result,c2w_scene,k256)
         latent=self._latent_from_vggt(vggt_result)
-        patch_rays=rays_to_patch_plucker(c2w_scene,k256,patch_size=14)
+        patch_rays=rays_to_patch_plucker(c2w_scene,vggt_result.intrinsics518,patch_size=14)
         fm,qpre=self.understanding(context_rgb)
         states,ray_stats=self.anchor_decoder.forward_stateful(
             self.get_gs_tokens(batch_size=context_rgb.shape[0]),latent,patch_rays,
@@ -153,9 +156,39 @@ class LocusGSObjectLocusFrozenVGGT(LocusGSObjectLocusPanopticV1Recon):
                 "sim3":sim3,"A_518_to_256":A.detach(),"source_identity":result['source_identity']}
 
     def render_generated_at(self, generated: dict, cam_view: torch.Tensor, intrinsics: torch.Tensor):
-        """Render existing generated Gaussians for an externally supplied target camera."""
+        """Render reconstruction and fixed panoptic state at a supplied camera.
+
+        This deliberately reuses the generated Gaussian membership and p_class;
+        no VGGT pass, query generation, feature lifting, or _readout is repeated.
+        """
         decoder=ModelInputDecoder(cam_view=cam_view,intrinsics=intrinsics)
-        return self.render_reconstruction(generated['reconstruction'],decoder)
+        render=self.render_reconstruction(generated['reconstruction'],decoder)
+        final=generated['states'][-1]
+        b=generated['gaussians'].shape[0]
+        rendered=self.gs.render_feature_channels(generated['gaussians'],
+            generated['gaussian_membership'],decoder.cam_view,decoder.intrinsics)
+        alpha=rendered['alphas_pred']
+        from tokengs.models.object_locus_panoptic_v1 import alpha_normalize_membership
+        region=alpha_normalize_membership(rendered['images_pred'],alpha)
+        p_class=generated['p_class']
+        semantic=region.new_zeros((b,region.shape[1],20,*region.shape[-2:]))
+        semantic[:,:,0:2]=region[:,:,100:102]
+        semantic[:,:,2:20]=torch.einsum('bvqhw,bqc->bvchw',region[:,:,:100],p_class[...,:18])
+        semantic=semantic/(semantic.sum(2,keepdim=True)+1e-6)
+        return {**render,'states':generated['states'],'gaussians':generated['gaussians'],
+            'gaussian_membership':generated['gaussian_membership'],'p_class':p_class,
+            'assignment':generated['gaussian_membership'],'membership_mass':rendered['images_pred'],
+            'region_mass':region,'pixel_membership':region,'semantic_scores':semantic,
+            'pixel_void_mass':1-alpha,'alpha':alpha,'panoptic_state':final}
+
+    @staticmethod
+    def _reject_legacy_forward(*args,**kwargs):
+        del args,kwargs
+        raise TypeError("legacy ModelInput/GT-camera forward is unsupported; use generate(context_rgb) and render_generated_at")
+
+    forward_object_locus=_reject_legacy_forward
+    forward_instance_state=_reject_legacy_forward
+    forward_reconstruction_only=_reject_legacy_forward
 
     def step_loss(self,batch,*,step,phase="train",understanding_weight=1.0):
         del phase
@@ -192,6 +225,8 @@ class LocusGSObjectLocusFrozenVGGT(LocusGSObjectLocusPanopticV1Recon):
         del skip_loss
         if isinstance(data,torch.Tensor):
             return self.generate(data)
+        if isinstance(data,ModelInput):
+            raise TypeError("legacy ModelInput/GT-camera forward is unsupported; use generate(context_rgb)")
         if isinstance(data,dict):
             return self.step_loss(data,step=self.understanding_step)[0]
-        raise TypeError("pose-free forward accepts context RGB or training batch")
+        raise TypeError("pose-free forward accepts context RGB or the new loss batch; legacy ModelInput/GT-camera input is unsupported")

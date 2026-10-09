@@ -31,9 +31,15 @@ PATCH_COUNT = 1369
 def verify_official_source_revision() -> str:
     """Require the imported official package to come from the pinned Git commit."""
     spec=importlib.util.find_spec('vggt')
-    if spec is None or not spec.origin:
+    if spec is None:
         raise RuntimeError("official facebookresearch/vggt source package is not installed")
-    root=Path(spec.origin).resolve().parents[1]
+    if spec.origin:
+        root=Path(spec.origin).resolve().parents[1]
+    elif spec.submodule_search_locations:
+        # The pinned official checkout is a PEP 420 namespace package.
+        root=Path(next(iter(spec.submodule_search_locations))).resolve().parent
+    else:
+        raise RuntimeError("official VGGT source package has no verifiable checkout path")
     try:
         actual=subprocess.check_output(['git','-C',str(root),'rev-parse','HEAD'],text=True,stderr=subprocess.DEVNULL).strip()
     except Exception as exc:
@@ -96,15 +102,13 @@ class VGGTResult:
 
 class FrozenVGGT(nn.Module):
     """Official VGGT aggregator plus camera/depth heads, all permanently frozen."""
-    def __init__(self, *, model=None, source_identity: dict | None = None, pose_decoder=None):
+    def __init__(self, *, model=None, source_identity: dict | None = None, pose_decoder=None,
+                 test_only: bool=False, verified_artifact: bool=False):
         super().__init__()
         if model is None:
-            verify_official_source_revision()
-            try:
-                from vggt.models.vggt import VGGT
-            except ImportError as exc:
-                raise RuntimeError("install official facebookresearch/vggt at the documented commit") from exc
-            model = VGGT.from_pretrained(VGGT_MODEL_ID)
+            raise ValueError("construct VGGT only with from_pretrained() using a verified pinned artifact; model injection is test-only")
+        if not (test_only or verified_artifact):
+            raise ValueError("model injection is reserved for explicit test_only stubs")
         self.model = model
         self.pose_decoder = pose_decoder
         self.source_identity = source_identity or {"model_id": VGGT_MODEL_ID, "revision": "unverified-local"}
@@ -114,14 +118,24 @@ class FrozenVGGT(nn.Module):
         self.eval()
 
     @classmethod
-    def from_pretrained(cls, *, local_files_only: bool = False, revision: str | None = None):
+    def from_pretrained(cls, *, local_files_only: bool = False, revision: str | None = None,
+                        artifact_manifest: Path | None = None):
         """Load official HF artifact; emit the resolved revision and weight SHA256."""
         if revision is None or re.fullmatch(r"[0-9a-fA-F]{40}",revision) is None:
             raise ValueError("pin facebook/VGGT-1B to a full 40-character Hugging Face revision SHA")
+        if artifact_manifest is None or not Path(artifact_manifest).is_file():
+            raise ValueError("a verified vggt_artifact_manifest.json is required")
+        manifest=json.loads(Path(artifact_manifest).read_text())
+        if manifest.get('hf_revision') != revision or manifest.get('status') != 'VERIFIED':
+            raise RuntimeError("VGGT artifact manifest revision/status is not verified")
         verify_official_source_revision()
         from huggingface_hub import snapshot_download
+        asset_root=manifest.get('asset_root');cache_rel=manifest.get('cache_dir')
+        if not asset_root or not cache_rel:
+            raise RuntimeError("VGGT artifact manifest must lock the local Hugging Face cache path")
+        cache_dir=Path(asset_root)/cache_rel
         snapshot = Path(snapshot_download(VGGT_MODEL_ID, revision=revision,
-                                         local_files_only=local_files_only))
+                                         cache_dir=cache_dir,local_files_only=local_files_only))
         revision = snapshot.name
         weights = sorted(p for p in snapshot.rglob("*") if p.is_file() and p.suffix in (".safetensors", ".bin", ".pt"))
         if not weights:
@@ -129,6 +143,21 @@ class FrozenVGGT(nn.Module):
         identity = {"repository": VGGT_REPOSITORY, "model_id": VGGT_MODEL_ID,
                     "revision": revision, "snapshot": str(snapshot),
                     "files": [{"path": str(p.relative_to(snapshot)), "sha256": _sha256(p)} for p in weights]}
+        manifest_by_path={x['path']:x for x in manifest.get('files',[])}
+        config_path=snapshot/'config.json';config_expected=manifest_by_path.get('config.json')
+        if not config_path.is_file() or config_expected is None or _sha256(config_path)!=config_expected.get('sha256'):
+            raise RuntimeError("VGGT config.json identity mismatch")
+        if config_expected.get('size_bytes') is not None and config_path.stat().st_size!=config_expected['size_bytes']:
+            raise RuntimeError("VGGT config.json size mismatch")
+        identity['files'].append({'path':'config.json','sha256':_sha256(config_path)})
+        for row in identity['files']:
+            expected=manifest_by_path.get(row['path'])
+            if expected is None or row['sha256'] != expected.get('sha256'):
+                raise RuntimeError(f"VGGT weight file identity mismatch: {row['path']}")
+            if expected.get('size_bytes') is not None and Path(snapshot/row['path']).stat().st_size!=expected['size_bytes']:
+                raise RuntimeError(f"VGGT weight file size mismatch: {row['path']}")
+        if set(manifest_by_path)-{r['path'] for r in identity['files']}-{'config.json'}:
+            raise RuntimeError("VGGT manifest lists unrecognized model files")
         try:
             from vggt.models.vggt import VGGT
         except ImportError as exc:
@@ -161,9 +190,17 @@ class FrozenVGGT(nn.Module):
             raise RuntimeError(f"official VGGT checkpoint mismatch: missing={missing[:20]}, extra={extra[:20]}, shape={mismatch[:20]}")
         model.load_state_dict(participating,strict=True)
         identity["explicitly_unused_source_keys"]=unused
+        identity["target_model_key_count"]=len(target)
+        identity["loaded_source_key_count"]=len(participating)
+        identity["explicitly_excluded_source_key_count"]=len(unused)
+        identity["loaded_key_sha256"]=hashlib.sha256("\n".join(sorted(participating)).encode()).hexdigest()
+        identity["missing_key_count"]=len(missing)
+        identity["unexpected_key_count"]=len(extra)
+        identity["shape_mismatch_key_count"]=len(mismatch)
         identity["loaded_subtrees"]=["aggregator","camera_head","depth_head"]
         identity["loading"]="explicit key/shape audit then strict=True"
-        return cls(model=model, source_identity=identity)
+        identity['verification_status']='VERIFIED'
+        return cls(model=model, source_identity=identity,verified_artifact=True)
 
     def train(self, mode: bool = True):
         super().train(False)

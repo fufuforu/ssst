@@ -9,6 +9,7 @@ import socket
 import time
 from pathlib import Path
 import random
+import traceback
 
 import numpy as np
 import torch
@@ -31,6 +32,7 @@ WINDOWS_PER_EPOCH=8344
 UPDATES_PER_EPOCH=1043
 TOTAL_UPDATES=8344
 TOTAL_EXPOSURES=66752
+VGGT_ARTIFACT_MANIFEST=REPO/'vggt_artifact_manifest.json'
 
 REMOVED_SOURCE_PREFIXES=(
     'patch_embed.', 'patch_plucker_embed.', 'enc_dec_backbone.encoder.',
@@ -223,34 +225,85 @@ def install_gradients(parameters, gradients, *, world_size=None):
     flush(indices)
 
 
-def train_microbatch_window(model,optimizer,batches,update,*,base_exposure):
-    """Two-microbatch synchronous GC step; caller supplies the fixed rank shard."""
+def synchronized_error(error,device,stage,update):
+    """Make local failures visible to every rank before the next collective."""
+    distributed=torch.distributed.is_available() and torch.distributed.is_initialized()
+    rank=torch.distributed.get_rank() if distributed else 0
+    flag=torch.tensor(int(error is not None),device=device,dtype=torch.int32)
+    if distributed: torch.distributed.all_reduce(flag,op=torch.distributed.ReduceOp.MAX)
+    if flag.item():
+        detail=f"{type(error).__name__}: {error}" if error is not None else "peer rank failed"
+        if error is not None: detail += "\n"+traceback.format_exc()
+        raise RuntimeError(f"synchronized {stage} error at update {update} on rank {rank}: {detail}") from error
+
+
+def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world_size=None):
+    """Two-microbatch GC step with one accumulated gradient family per parameter."""
     if len(batches)!=ACCUMULATION: raise ValueError("each rank must receive exactly two accumulation microbatches")
     named=sorted((n,p) for n,p in model.named_parameters() if p.requires_grad)
     names=[n for n,_ in named];params=[p for _,p in named]
     optimizer.zero_grad(set_to_none=True)
-    rec_acc=[None]*len(params);under_acc=[None]*len(params)
+    combined_acc=[None]*len(params)
     weight,beta=exposure_schedule(base_exposure)
-    for batch in batches:
-        _,metrics=model.step_loss(batch,step=base_exposure,understanding_weight=weight)
-        if not all(torch.isfinite(metrics[key]).all() for key in ('loss_recon','loss_understanding')):
-            raise FloatingPointError('nonfinite reconstruction/understanding loss')
-        rec=torch.autograd.grad(metrics['loss_recon']/ACCUMULATION,params,retain_graph=True,allow_unused=True)
-        under=torch.autograd.grad(metrics['loss_understanding']*weight/ACCUMULATION,params,allow_unused=True)
-        rec_acc=[None if g is None and old is None else (torch.zeros_like(p) if old is None else old)+(torch.zeros_like(p) if g is None else g)
-                 for p,old,g in zip(params,rec_acc,rec)]
-        under_acc=[None if g is None and old is None else (torch.zeros_like(p) if old is None else old)+(torch.zeros_like(p) if g is None else g)
-                   for p,old,g in zip(params,under_acc,under)]
-    grads=gc_combine(names,rec_acc,under_acc)
-    if any(g is not None and not torch.isfinite(g).all() for g in grads):
-        raise FloatingPointError('nonfinite GC-combined local gradient')
-    install_gradients(params,grads,world_size=WORLD_SIZE)
-    norm=torch.nn.utils.clip_grad_norm_(params,1.0,error_if_nonfinite=True)
-    mult=lr_multiplier(update)
-    for group in optimizer.param_groups: group['lr']=group['peak_lr']*mult
-    optimizer.step()
-    return {'completed_updates':int(update)+1,'completed_exposures':(int(update)+1)*GLOBAL_BATCH,
-            'understanding_weight':weight,'beta':beta,'lr_multiplier':mult,'preclip_norm':float(norm)}
+    device=next(model.parameters()).device
+    local_rows=[]
+    for micro_index,batch in enumerate(batches):
+        output=metrics=None;error=None
+        try:
+            output,metrics=model.step_loss(batch,step=base_exposure,understanding_weight=weight)
+            if not all(torch.isfinite(metrics[key]).all() for key in ('loss_recon','loss_understanding')):
+                raise FloatingPointError('nonfinite reconstruction/understanding loss')
+        except Exception as exc:error=exc
+        synchronized_error(error,device,'forward',int(update))
+        error=None
+        try:
+            rec=torch.autograd.grad(metrics['loss_recon']/ACCUMULATION,params,
+                retain_graph=weight>0,allow_unused=True)
+            under=(torch.autograd.grad(metrics['loss_understanding']*weight/ACCUMULATION,params,
+                allow_unused=True) if weight>0 else (None,)*len(params))
+            mixed=gc_combine(names,rec,under)
+            if any(g is not None and not torch.isfinite(g).all() for g in mixed):
+                raise FloatingPointError('nonfinite per-microbatch GC-combined gradient')
+            combined_acc=[None if g is None and old is None else
+                (torch.zeros_like(p) if old is None else old)+(torch.zeros_like(p) if g is None else g)
+                for p,old,g in zip(params,combined_acc,mixed)]
+            local_rows.append({'loss_recon':float(metrics['loss_recon'].detach()),
+                'loss_understanding':float(metrics['loss_understanding'].detach())})
+            del rec,under,mixed
+        except Exception as exc:
+            error=exc
+        try: synchronized_error(error,device,'autograd',int(update))
+        finally:
+            if output is not None: del output
+            if metrics is not None: del metrics
+            del batch
+    grads=combined_acc
+    error=None
+    try:
+        if any(g is not None and not torch.isfinite(g).all() for g in grads):
+            raise FloatingPointError('nonfinite accumulated GC gradient')
+    except Exception as exc:error=exc
+    synchronized_error(error,device,'local_finite',int(update))
+    install_gradients(params,grads,world_size=world_size or WORLD_SIZE)
+    del grads,combined_acc
+    error=None
+    try:
+        norm=torch.nn.utils.clip_grad_norm_(params,1.0,error_if_nonfinite=True)
+        mult=lr_multiplier(update)
+        for group in optimizer.param_groups: group['lr']=group['peak_lr']*mult
+        optimizer.step()
+        if any(not torch.isfinite(p).all() for p in params): raise FloatingPointError('nonfinite parameter after optimizer.step')
+    except Exception as exc:error=exc;norm=torch.tensor(float('nan'))
+    synchronized_error(error,device,'optimizer',int(update))
+    row={'completed_updates':int(update)+1,'completed_exposures':(int(update)+1)*(GLOBAL_BATCH if (world_size or WORLD_SIZE)==4 else ACCUMULATION),
+         'understanding_weight':weight,'beta':beta,'lr_multiplier':mult,'preclip_norm':float(norm),
+         'loss_recon':sum(x['loss_recon'] for x in local_rows)/len(local_rows),
+         'loss_understanding':sum(x['loss_understanding'] for x in local_rows)/len(local_rows),
+         'group_lr':{g['name']:g['lr'] for g in optimizer.param_groups}}
+    if device.type=='cuda':
+        row.update(allocated=torch.cuda.memory_allocated(device),reserved=torch.cuda.memory_reserved(device),
+                   peak_allocated=torch.cuda.max_memory_allocated(device),peak_reserved=torch.cuda.max_memory_reserved(device))
+    return row
 
 
 def plan_record():
@@ -263,14 +316,20 @@ def plan_record():
             'new_training_clock_origin':0}
 
 
-def build_model(*, vggt=None, checkpoint: Path=CHECKPOINT, opt=None):
+def seed_everything(seed: int):
+    random.seed(seed);np.random.seed(seed);torch.manual_seed(seed)
+    if torch.cuda.is_available(): torch.cuda.manual_seed_all(seed)
+
+
+def build_model(*, checkpoint: Path=CHECKPOINT, opt=None,
+                artifact_manifest: Path=VGGT_ARTIFACT_MANIFEST):
     """Construct, initialize the retained panoptic modules, then strict-copy epoch 06."""
     from tokengs.models.object_locus_frozen_vggt_posefree import LocusGSObjectLocusFrozenVGGT
-    if vggt is None:
-        revision=os.environ.get('VGGT_HF_REVISION')
-        if not revision:
-            raise RuntimeError('set VGGT_HF_REVISION to the reviewed Hugging Face commit before model construction')
-        vggt=FrozenVGGT.from_pretrained(local_files_only=True,revision=revision)
+    revision=os.environ.get('VGGT_HF_REVISION')
+    if not revision:
+        raise RuntimeError('set VGGT_HF_REVISION to the reviewed Hugging Face commit before model construction')
+    vggt=FrozenVGGT.from_pretrained(local_files_only=True,revision=revision,
+                                    artifact_manifest=artifact_manifest)
     if opt is None:
         from tokengs.options import config_defaults
         opt=config_defaults['train_siu3r_object_locus_frozen_vggt_posefree_v1']
@@ -294,9 +353,39 @@ def build_model(*, vggt=None, checkpoint: Path=CHECKPOINT, opt=None):
     return model,opt,transfer,provenance
 
 
+def capture_rank_rng():
+    return {'python':random.getstate(),'numpy':np.random.get_state(),
+        'torch_cpu':torch.get_rng_state(),'torch_cuda':torch.cuda.get_rng_state_all() if torch.cuda.is_available() else []}
+
+
+def restore_rank_rng(state):
+    random.setstate(state['python']);np.random.set_state(state['numpy']);torch.set_rng_state(state['torch_cpu'])
+    if torch.cuda.is_available() and state.get('torch_cuda'):torch.cuda.set_rng_state_all(state['torch_cuda'])
+
+
+def checkpoint_model_state(model):
+    return {k:v.detach().cpu() for k,v in model.state_dict().items() if not k.startswith('frozen_vggt.')}
+
+
+def restore_model_state_strict(model, saved):
+    current=model.state_dict();expected={k:v for k,v in current.items() if not k.startswith('frozen_vggt.')}
+    if set(saved)!=set(expected):
+        raise RuntimeError(f"checkpoint non-VGGT key set mismatch: missing={sorted(set(expected)-set(saved))[:20]}, extra={sorted(set(saved)-set(expected))[:20]}")
+    mismatched=[k for k in expected if saved[k].shape!=expected[k].shape]
+    if mismatched:raise RuntimeError(f"checkpoint non-VGGT shape mismatch: {mismatched[:20]}")
+    merged=dict(current);merged.update(saved)
+    model.load_state_dict(merged,strict=True)
+
+
+def _atomic_save(payload,path: Path):
+    path.parent.mkdir(parents=True,exist_ok=True)
+    temp=path.with_name(path.name+'.tmp')
+    torch.save(payload,temp);os.replace(temp,path)
+
+
 def run_training(*, manifest_path: Path=MANIFEST, checkpoint: Path=CHECKPOINT,
                  run_dir: Path=Path('/space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1'),
-                 hf_revision: str):
+                 hf_revision: str, resume: bool=False):
     """Explicit next-phase 4xRTX4090 launcher. Never called by prepare-only/help."""
     import torch.distributed as dist
     if socket.gethostname().split('.')[0] != '3dimage-14':
@@ -310,11 +399,16 @@ def run_training(*, manifest_path: Path=MANIFEST, checkpoint: Path=CHECKPOINT,
     rank=dist.get_rank();device=torch.device('cuda',local)
     torch.backends.cuda.matmul.allow_tf32=False;torch.backends.cudnn.allow_tf32=False
     torch.set_num_threads(4)
-    if run_dir.exists() and any(run_dir.iterdir()): raise RuntimeError(f'run directory is not empty: {run_dir}')
+    latest=run_dir/'checkpoint_latest.pt'
+    if resume:
+        if not latest.is_file():raise FileNotFoundError(f'--resume requires {latest}')
+    elif run_dir.exists() and any(run_dir.iterdir()): raise RuntimeError(f'run directory is not empty: {run_dir}; pass --resume to restore')
     manifest,scenes,windows=load_manifest(manifest_path)
     manifest_digest=sha256(manifest_path)
     os.environ['VGGT_HF_REVISION']=hf_revision
+    seed_everything(42)
     model,opt,transfer,provenance=build_model(checkpoint=checkpoint)
+    seed_everything(42+rank)
     model=model.to(device)
     model.train()
     model.frozen_vggt.eval()
@@ -322,24 +416,51 @@ def run_training(*, manifest_path: Path=MANIFEST, checkpoint: Path=CHECKPOINT,
     from scripts import object_locus_v3_set_runtime as provider_runtime
     if rank==0:
         run_dir.mkdir(parents=True,exist_ok=True)
-        (run_dir/'run_manifest.json').write_text(json.dumps({
+        if not resume:(run_dir/'run_manifest.json').write_text(json.dumps({
             'status':'TRAINING_STARTED_AFTER_EXPLICIT_FLAG','branch':'object-locus-frozen-vggt-posefree-v1',
             'source_science_sha':'9ce7b18b68bae9c4c7c519b670ad1fa79a66f9a0',
             'manifest_sha256':manifest_digest,'checkpoint_provenance':provenance,
             'transfer_counts':transfer['counts'],'plan':plan_record(),
             'vggt_source':model.frozen_vggt.source_identity,'optimizer':'AdamW',
+            'seeds':{'common_model_initialization':42,'per_rank_training_rng':[42+r for r in range(WORLD_SIZE)],'memory_adapter_isolated':31415},
             'optimizer_state_restored':False,'scheduler_state_restored':False,'rng_state_restored':False,
             'evaluation_launched':False},indent=2)+'\n')
     dist.barrier()
     total_counts=np.zeros(EXPECTED_WINDOWS,dtype=np.int64)
-    completed=0;last_row=None
-    for epoch in range(EPOCHS):
+    completed=0;start_epoch=0;last_row=None
+    if resume:
+        payload=torch.load(latest,map_location='cpu',weights_only=False)
+        execution_sha=subprocess.check_output(['git','-C',str(REPO),'rev-parse','HEAD'],text=True).strip()
+        artifact_keys=('repository','model_id','revision','files','loaded_subtrees',
+                       'loaded_source_key_count','explicitly_excluded_source_key_count','loaded_key_sha256')
+        current_artifact={k:model.frozen_vggt.source_identity.get(k) for k in artifact_keys}
+        required={'manifest_sha256':manifest_digest,'source_checkpoint_sha256':EXPECTED_CHECKPOINT_SHA,
+                  'vggt_revision':hf_revision,'world_size':WORLD_SIZE,'total_updates':TOTAL_UPDATES,
+                  'git_sha':execution_sha,'vggt_artifact_identity':current_artifact}
+        for key,value in required.items():
+            if payload.get(key)!=value:raise RuntimeError(f'resume provenance mismatch for {key}: {payload.get(key)!r} != {value!r}')
+        restore_model_state_strict(model,payload['model'])
+        optimizer.load_state_dict(payload['optimizer'])
+        completed=int(payload['completed_updates']);start_epoch=int(payload['epoch'])
+        if completed!=start_epoch*UPDATES_PER_EPOCH or payload.get('next_position')!=0:
+            raise RuntimeError('resume checkpoint is not at the recorded epoch sampler boundary')
+        total_counts=np.asarray(payload['rank_window_exposure_counts'][rank],dtype=np.int64)
+        rngs=payload['rank_rng']
+        if len(rngs)!=WORLD_SIZE:raise RuntimeError('resume rank RNG count mismatch')
+        restore_rank_rng(rngs[rank])
+        del payload
+    elif rank==0:
+        run_dir.mkdir(parents=True,exist_ok=True)
+    for epoch in range(start_epoch,EPOCHS):
         order=epoch_order(epoch)
         for epoch_update in range(UPDATES_PER_EPOCH):
             update=epoch*UPDATES_PER_EPOCH+epoch_update
             indices=rank_microbatch_indices(epoch,epoch_update,rank)
-            batches=[provider_runtime.build_batch(opt,windows[index],device) for index in indices]
-            result=train_microbatch_window(model,optimizer,batches,update,base_exposure=update*GLOBAL_BATCH)
+            batches=[];error=None
+            try:batches=[provider_runtime.build_batch(opt,windows[index],device) for index in indices]
+            except Exception as exc:error=exc
+            synchronized_error(error,device,'batch',update)
+            result=train_microbatch_window(model,optimizer,batches,update,base_exposure=update*GLOBAL_BATCH,world_size=WORLD_SIZE)
             for index in indices: total_counts[index]+=1
             completed=update+1;last_row=result
             if rank==0 and (completed%20==0 or completed==TOTAL_UPDATES):
@@ -353,20 +474,138 @@ def run_training(*, manifest_path: Path=MANIFEST, checkpoint: Path=CHECKPOINT,
         for completed_epoch in range(epoch+1): np.add.at(expected,epoch_order(completed_epoch),1)
         if not np.array_equal(counts.cpu().numpy(),expected):
             raise RuntimeError(f'window exposure accounting mismatch at epoch {epoch+1}')
+        rank_rng=[None for _ in range(WORLD_SIZE)];dist.all_gather_object(rank_rng,capture_rank_rng())
+        rank_counts=[None for _ in range(WORLD_SIZE)];dist.all_gather_object(rank_counts,total_counts.tolist())
         if rank==0:
-            payload={'model':model.state_dict(),'optimizer':optimizer.state_dict(),
+            payload={'model':checkpoint_model_state(model),'optimizer':optimizer.state_dict(),
                      'completed_updates':completed,'completed_exposures':completed*GLOBAL_BATCH,
-                     'epoch':epoch+1,'manifest_sha256':manifest_digest,
+                     'epoch':epoch+1,'next_position':0,'manifest_sha256':manifest_digest,
+                     'window_exposure_counts':counts.cpu().tolist(),'rank_window_exposure_counts':rank_counts,'rank_rng':rank_rng,
+                     'world_size':WORLD_SIZE,'total_updates':TOTAL_UPDATES,
+                     'vggt_revision':hf_revision,
+                     'git_sha':subprocess.check_output(['git','-C',str(REPO),'rev-parse','HEAD'],text=True).strip(),
                      'source_checkpoint_sha256':EXPECTED_CHECKPOINT_SHA,
                      'initialization_provenance':provenance,
-                     'vggt_source_identity':model.frozen_vggt.source_identity,
+                     'vggt_artifact_identity':{k:model.frozen_vggt.source_identity.get(k) for k in ('repository','model_id','revision','files','loaded_subtrees','loaded_source_key_count','explicitly_excluded_source_key_count','loaded_key_sha256')},
+                     'config':{'global_batch':GLOBAL_BATCH,'microbatch':MICRO_BATCH,'accumulation':ACCUMULATION,
+                        'epochs':EPOCHS,'gc_alpha':.01,'understanding_weight':'min(new_exposure/200,1)',
+                        'beta':'0.1*min(new_exposure/1000,1)','lr_peak':{'reconstruction':1e-5,
+                        'understanding':1e-5,'object_memory':1e-4},'warmup_updates':200,
+                        'cosine_final_fraction':.1,'clip_global_norm':1.0,'weight_decay':.05,
+                        'source_exposure':50064,'new_exposure_origin':0},
+                     'sampler':{'rule':'default_rng(42+epoch) permutation padded by prefix to multiple of 8',
+                        'completed_epoch':epoch+1,'next_position':0},
+                     'initial_seeds':{'common_model_initialization':42,'rank_training_rng':[42+r for r in range(WORLD_SIZE)],
+                        'adapter_isolated':31415},
                      'scheduler':{'warmup_updates':200,'total_updates':TOTAL_UPDATES,'completed_updates':completed},
                      'loss_config':{'gc_alpha':.01}}
-            temp=run_dir/f'checkpoint_epoch_{epoch+1:02d}.tmp'
-            torch.save(payload,temp);os.replace(temp,run_dir/f'checkpoint_epoch_{epoch+1:02d}.pt')
+            _atomic_save(payload,latest)
+            if epoch+1 in (4,8):_atomic_save(payload,run_dir/f'checkpoint_epoch_{epoch+1:02d}.pt')
             (run_dir/'progress.json').write_text(json.dumps({'completed_updates':completed,
                 'completed_exposures':completed*GLOBAL_BATCH,'epoch':epoch+1,
                 'window_counts':counts.cpu().tolist()},indent=2)+'\n')
         dist.barrier()
     dist.destroy_process_group()
     return {'completed_updates':completed,'completed_exposures':completed*GLOBAL_BATCH,'last_row':last_row}
+
+
+def run_real_smoke(*, mode: str, manifest_path: Path=MANIFEST, checkpoint: Path=CHECKPOINT,
+                   output_dir: Path, hf_revision: str, artifact_manifest: Path=VGGT_ARTIFACT_MANIFEST):
+    """Future real-weight GPU smoke. This function is never called by CPU contracts."""
+    import time
+    import torch.distributed as dist
+    from scripts.object_locus_v3_set_runtime import build_batch
+    if mode not in ('single','four'):raise ValueError('smoke mode must be single or four')
+    distributed=mode=='four'
+    if socket.gethostname().split('.')[0]!='3dimage-14':raise RuntimeError('real VGGT smoke is pinned to 3dimage-14')
+    if not torch.cuda.is_available():raise RuntimeError('real VGGT smoke requires an allocated CUDA device')
+    local=int(os.environ.get('LOCAL_RANK','0'));world=int(os.environ.get('WORLD_SIZE','1'))
+    expected=4 if distributed else 1
+    if world!=expected:raise RuntimeError(f'{mode} smoke requires torchrun world size {expected}, got {world}')
+    torch.cuda.set_device(local)
+    if '4090' not in torch.cuda.get_device_name(local):raise RuntimeError('RTX4090 smoke device required')
+    if distributed:dist.init_process_group('nccl')
+    rank=dist.get_rank() if distributed else 0
+    seed_everything(42);os.environ['VGGT_HF_REVISION']=hf_revision
+    model,opt,transfer,provenance=build_model(checkpoint=checkpoint,artifact_manifest=artifact_manifest)
+    seed_everything(42+rank)
+    model.to(device=f'cuda:{local}',dtype=torch.float32);model.train();model.frozen_vggt.eval()
+    optimizer=build_optimizer(model)
+    manifest,_,windows=load_manifest(manifest_path)
+    order=epoch_order(0)
+    all_indices=[rank_microbatch_indices(0,u,r) for u in range(2) for r in range(4)]
+    if distributed:
+        selected=[all_indices[u*4+rank] for u in range(2)]
+    else:
+        selected=[(int(order[0]),int(order[0])),(int(order[0]),int(order[0]))]
+    if distributed:
+        torch.cuda.synchronize();dist.barrier()
+    if rank==0:output_dir.mkdir(parents=True,exist_ok=False)
+    if distributed:dist.barrier()
+    device=torch.device(f'cuda:{local}')
+    version_before={id(p):p._version for p in model.frozen_vggt.parameters()}
+    first_window=windows[int(order[0])]
+    preview_batch=build_batch(opt,first_window,device)
+    with torch.no_grad():
+        raw_vggt=model.frozen_vggt(preview_batch['images_input'])
+        if len(raw_vggt.patch_layers)!=4 or any(x.shape!=(1,2,1369,2048) for x in raw_vggt.patch_layers):
+            raise RuntimeError('smoke VGGT selected patch layer shape mismatch')
+        if raw_vggt.c2w_cv.shape!=(1,2,4,4) or raw_vggt.depth518.shape!=(1,2,1,518,518):
+            raise RuntimeError('smoke VGGT camera/depth output shape mismatch')
+        if not all(torch.isfinite(x).all() for x in (*raw_vggt.patch_layers,raw_vggt.c2w_cv,raw_vggt.intrinsics518,raw_vggt.depth518)):
+            raise FloatingPointError('smoke VGGT outputs contain nonfinite values')
+        del raw_vggt
+        preview_generated=model.generate(preview_batch['images_input'])
+        preview_calibration=model.calibrate_targets(preview_batch['images_all'],preview_generated)
+        preview_view=model.render_generated_at(preview_generated,
+            torch.linalg.inv(preview_calibration['c2w']).transpose(-1,-2),preview_calibration['intrinsics'])
+    for key in ('gaussians','gaussian_membership','p_class','region_mass','semantic_scores','alpha'):
+        value=preview_view.get(key)
+        if value is None or not torch.isfinite(value).all():raise FloatingPointError(f'smoke invalid {key}')
+    if rank==0:
+        torch.save({k:preview_view[k].detach().cpu() for k in ('gaussians','gaussian_membership','p_class','region_mass','semantic_scores','alpha')},output_dir/'generated_preview.pt')
+    del preview_view,preview_generated,preview_calibration,preview_batch
+    torch.cuda.reset_peak_memory_stats(device)
+    rows=[]
+    for update,index_pair in enumerate(selected):
+        batches=[build_batch(opt,windows[index],device) for index in index_pair]
+        base_exposure=update*(GLOBAL_BATCH if distributed else ACCUMULATION)
+        started=time.perf_counter()
+        row=train_microbatch_window(model,optimizer,batches,update,base_exposure=base_exposure,
+                                    world_size=expected)
+        torch.cuda.synchronize(device);row['seconds']=time.perf_counter()-started
+        row['smoke_mode']=mode;row['rank']=rank;row['window_indices']=list(index_pair)
+        row['gradient_family_norms']={family:float(torch.sqrt(sum((p.grad.detach().float().square().sum() for n,p in model.named_parameters() if p.grad is not None and parameter_family(n)==family),torch.zeros((),device=device))))
+            for family in ('reconstruction','understanding','object_memory')}
+        if not any(p.grad is not None and p.grad.norm()>0 for n,p in model.named_parameters() if n.startswith('vggt_memory_adapter.')):
+            raise RuntimeError('smoke memory adapter has no reconstruction gradient')
+        if any(p.grad is not None for p in model.frozen_vggt.parameters()) or model.frozen_vggt.training:
+            raise RuntimeError('frozen VGGT grad/eval contract failed')
+        if any(p._version!=version_before[id(p)] for p in model.frozen_vggt.parameters()):
+            raise RuntimeError('frozen VGGT parameter version changed')
+        rows.append(row)
+    # Separate path-only understanding backward: no optimizer step and no clock update.
+    formal_completed_exposure=4 if not distributed else 16
+    model.understanding_step=formal_completed_exposure
+    diagnostic_batch=build_batch(opt,windows[int(order[0])],device)
+    diagnostic_output,diagnostic_metrics=model.step_loss(diagnostic_batch,step=formal_completed_exposure,understanding_weight=1.0)
+    adapter_params=[p for n,p in model.named_parameters() if n.startswith('vggt_memory_adapter.') and p.requires_grad]
+    diagnostic_grads=torch.autograd.grad(diagnostic_metrics['loss_understanding'],adapter_params,allow_unused=True)
+    if not any(g is not None and torch.isfinite(g).all() and g.norm()>0 for g in diagnostic_grads):
+        raise RuntimeError('weight=1 understanding diagnostic has no memory-adapter gradient')
+    del diagnostic_output,diagnostic_metrics,diagnostic_batch,diagnostic_grads
+    if rank==0:
+        payload={'mode':mode,'world_size':expected,'rows':rows,'updates':2,
+            'exposures':formal_completed_exposure,'formal_schedule_start_exposure':0,
+            'understanding_diagnostic':'separate weight=1 backward; no optimizer step or clock increment',
+            'source_checkpoint':provenance,'migration_counts':transfer['counts'],
+            'initial_seeds':{'common_model_initialization':42,'rank_training_rng':[42+r for r in range(expected)],'memory_adapter_isolated':31415},
+            'vggt_artifact':model.frozen_vggt.source_identity,
+            'manifest_sha256':sha256(manifest_path),'window_indices':selected,
+            'lr_schedule':'formal schedule indices 0 and 1; single-card world_size=1 averaging',
+            'status':'GPU_SMOKE_COMPLETED'}
+        _atomic_save({'model':checkpoint_model_state(model),'optimizer':optimizer.state_dict(),
+            'completed_updates':2,'completed_exposures':payload['exposures'],'mode':mode},output_dir/'smoke_state.pt')
+        (output_dir/'smoke_report.json').write_text(json.dumps(payload,indent=2,allow_nan=False)+'\n')
+    if distributed:dist.barrier();dist.destroy_process_group()
+    return {'mode':mode,'updates':2,'exposures':formal_completed_exposure}

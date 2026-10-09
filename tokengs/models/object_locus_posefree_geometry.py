@@ -48,6 +48,8 @@ def posefree_scene(c2w_cv: torch.Tensor, k518: torch.Tensor, depths: torch.Tenso
         raise ValueError("context prediction contains no finite positive depth")
     scale = .25 / med
     first_inv = torch.linalg.inv(c2w_cv[:, 0])
+    if not torch.isfinite(first_inv).all() or not torch.isfinite(scale).all():
+        raise FloatingPointError("nonfinite first-camera transform or scene scale")
     relative = first_inv[:, None] @ c2w_cv
     relative = relative.clone()
     relative[..., :3, 3] *= scale[:, None, None]
@@ -79,7 +81,7 @@ def _project_so3(matrix: torch.Tensor) -> torch.Tensor:
 
 def align_cameras_by_shared_context(c2w_all: torch.Tensor, context_pair: torch.Tensor,
                                    context_scene: torch.Tensor, a_scale: torch.Tensor,
-                                   first_camera_inverse: torch.Tensor | None = None,
+                                   first_camera_inverse: torch.Tensor,
                                    *, baseline_eps: float = 1e-6):
     """Align independent calibration pass to context-only generation using shared pose."""
     if c2w_all.ndim != 4 or c2w_all.shape[1] < 3 or context_pair.shape != (c2w_all.shape[0],2,4,4):
@@ -97,29 +99,37 @@ def align_cameras_by_shared_context(c2w_all: torch.Tensor, context_pair: torch.T
         centered = c_all[:2]-ca
         rotated = centered @ R.T
         denominator = centered.square().sum()
-        baseline = (c_pair[1]-c_pair[0]).norm()
-        if not torch.isfinite(denominator) or denominator <= baseline_eps or baseline <= baseline_eps:
+        baseline_all = (c_all[1]-c_all[0]).norm()
+        baseline_pair = (c_pair[1]-c_pair[0]).norm()
+        if (not torch.isfinite(baseline_all) or not torch.isfinite(baseline_pair) or
+                baseline_all <= baseline_eps or baseline_pair <= baseline_eps):
             raise ValueError("degenerate shared-context camera baseline")
         s = ((c_pair-cp)*rotated).sum()/denominator
         if not torch.isfinite(s) or s <= 0:
             raise ValueError("camera calibration Sim(3) has nonpositive/nonfinite scale")
         t = cp-s*(R@ca)
+        if not all(torch.isfinite(x).all() for x in (R, t, denominator)):
+            raise FloatingPointError("nonfinite camera calibration Sim(3)")
         centers=s*(c_all@R.T)+t
         orientations=R[None]@o_all
         aligned=torch.eye(4,device=all_cam.device,dtype=all_cam.dtype).expand_as(all_cam).clone()
         aligned[:,:3,:3]=orientations
         aligned[:,:3,3]=centers
         # Context-only generation frame and median-depth normalization.
-        inv0=(torch.linalg.inv(context_scene[b,0]) if first_camera_inverse is None
-              else first_camera_inverse[b])
+        inv0=first_camera_inverse[b]
         aligned=inv0[None]@aligned
         aligned[:,:3,3]*=a_scale[b]
+        if not torch.isfinite(aligned).all():
+            raise FloatingPointError("nonfinite aligned target camera")
         outputs.append(aligned)
-        records.append({"R":R,"s":s,"t":t,"baseline_pair":baseline})
+        records.append({"R":R,"s":s,"t":t,"baseline_all":baseline_all,
+                        "baseline_pair":baseline_pair,"denominator_squared":denominator})
     return torch.stack(outputs).detach(), records
 
 
-def rays_to_patch_plucker(c2w: torch.Tensor, k256: torch.Tensor, *, patch_size: int = 14):
+def rays_to_patch_plucker(c2w_scene: torch.Tensor, k518: torch.Tensor, *, patch_size: int = 14):
     from tokengs.models.canonical_recon_models import patch_plucker_rays
-    origins,directions=pixel_rays(c2w,k256,518,518)
+    if k518.shape[-2:] != (3, 3):
+        raise ValueError("patch rays require 518-resolution pixel intrinsics K518")
+    origins,directions=pixel_rays(c2w_scene,k518,518,518)
     return patch_plucker_rays(origins,directions,patch_size=patch_size)

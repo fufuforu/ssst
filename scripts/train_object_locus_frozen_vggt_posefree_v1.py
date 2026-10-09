@@ -22,6 +22,8 @@ def main(argv=None):
     parser.add_argument('--manifest',type=Path,default=None)
     parser.add_argument('--checkpoint',type=Path,default=CHECKPOINT)
     parser.add_argument('--run-dir',type=Path,default=Path('/space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1'))
+    parser.add_argument('--artifact-manifest',type=Path,default=Path(__file__).resolve().parents[1]/'vggt_artifact_manifest.json')
+    parser.add_argument('--resume',action='store_true',help='restore latest model, optimizer, clock, sampler and per-rank RNG')
     parser.add_argument('--vggt-revision',default=os.environ.get('VGGT_HF_REVISION'),
                         help='pinned facebook/VGGT-1B Hugging Face commit SHA')
     parser.add_argument('--run-training',action='store_true',help='reserved for a separately reviewed next phase')
@@ -31,7 +33,7 @@ def main(argv=None):
             raise SystemExit('--run-training requires --vggt-revision with a reviewed full 40-character HF SHA')
         from scripts.object_locus_frozen_vggt_posefree_runtime import run_training
         result=run_training(manifest_path=args.manifest or Path('/space/mawb/ssst/group_plus/object_locus_panoptic_full1201_8gpu/manifest.json'),
-                            checkpoint=args.checkpoint,run_dir=args.run_dir,hf_revision=args.vggt_revision)
+                            checkpoint=args.checkpoint,run_dir=args.run_dir,hf_revision=args.vggt_revision,resume=args.resume)
         print(json.dumps(result,indent=2,sort_keys=True))
         return result
     record=plan_record()

@@ -9,21 +9,27 @@ The independent branch is `object-locus-frozen-vggt-posefree-v1`.
 The official VGGT source repository is
 `https://github.com/facebookresearch/vggt`, source commit
 `a288dd0f14786c93483e45524328726ab7b1b4ce` (remote `main` SHA observed during
-implementation). The model identifier is `facebook/VGGT-1B`. The wrapper loads
+implementation and checked out locally with `git rev-parse`). The model
+identifier is `facebook/VGGT-1B`. The wrapper loads
 only official aggregator, camera head, and depth head weights; it constructs the
 official model with point and track heads disabled, explicitly records their
 source keys, shape-checks participating keys, then calls `load_state_dict` with
 `strict=True`.
 
-**VGGT artifact identity is incomplete for this review.** This host could not
-reach Hugging Face because its configured proxy refused the connection. No HF
-revision or actual model-file SHA256 was therefore observed, and no VGGT weights
-were downloaded. Runtime construction requires a pinned `VGGT_HF_REVISION`, a
-local HF cache (`local_files_only=True`), and an imported source Git checkout at
-the exact source commit. `FrozenVGGT.from_pretrained` records
-resolved snapshot revision and SHA256 for each model file when the official
-artifact is available. This source commit does not substitute for model-file
-identity.
+The official Hugging Face metadata resolved the full model revision to
+`860abec7937da0a4c03c41d3c269c366e82abdf9`. The single `model.safetensors`
+file (5,026,367,224 bytes; SHA256
+`f164acf60724910d8fe1578bb499d800850c7bb0948db7555c413f9fbe60467e`) and
+`config.json` (62 bytes; SHA256
+`a73e929a168b900546a84fe88cd70dfaaf2f8e39cf77355b12984eaa686f3855`) are in
+the task-owned local cache. CPU strict key/shape loading passed for 1341 source
+keys across aggregator, camera head and depth head. The real checkpoint's 456
+unused keys are explicitly listed: 62 `point_head` keys and 394 `track_head`
+keys. Missing, unexpected and shape-mismatch counts were zero. Parameters are
+frozen; the aggregator is BF16 and both heads are FP32. No forward was run.
+The task artifact manifest records paths, hashes, source/HF identities and the
+full exclusion list. The loader only accepts that manifest, its fixed local
+cache and the same revision; the future launcher disables network access.
 
 ## Pipeline
 
@@ -84,7 +90,12 @@ The edge-origin pixel resize transform is recorded as
 `(column+0.5,row+0.5)`. Renderer inputs use transposed homogeneous world-to-camera
 `cam_view` and `[fx,fy,cx,cy]` pixel intrinsics. Memory keys align one-to-one with
 the 2738 Plucker rays made from dense `518x518` rays and the existing average
-pooling method with `patch_size=14`.
+pooling method with `patch_size=14`. Patch rays consume pixel-space `K518`
+directly; the renderer and context lifting use pixel-space `K256=A@K518`.
+This distinction is enforced in the actual `generate()` call. CPU references
+compare directions and moments, verify corresponding continuous pixel
+coordinates across resolutions, and show that substituting `K256` for `K518`
+fails the reference.
 
 ## Training camera calibration and evaluation boundary
 
@@ -103,13 +114,19 @@ The loss wrapper shallow-copies the batch and substitutes predicted/aligned
 camera matrices, pixel intrinsics, and rays. It leaves provider storage, RGB,
 semantic labels, and instance masks untouched.
 
-The evaluation helper follows the same boundary: `generate` receives contexts;
-an independent camera-only pass calibrates the requested context/target images;
-`render_generated_at` then accepts that target camera for rendering.
+The official evaluator follows the same boundary: `generate` receives contexts;
+an independent camera-only pass calibrates the fixed full-validation views;
+`render_generated_at` then re-renders reconstruction and feature channels at
+those cameras. It reuses the exact generated Gaussian membership and `p_class`;
+it does not regenerate queries, lift understanding features, or call `_readout`
+again. The existing exporter writes true-novel target IDs without adding the
+first two context IDs to the novel set, and the pinned official SIU3R evaluator
+continues to own candidate filtering, packing, void handling, and metrics.
+The full-validation pair file is pinned to SHA256
+`59cf5594ec2f3223a41d27d7af4da49d348ce9b00c1d151020378c9a8f4b4b3b` and
+1860 fixed pairs.
 
-**Scene generation uses only two context views; supervision/target cameras use
-independent image calibration.** This does not mean that a requested novel view
-can be rendered without its target camera.
+“场景生成只使用两张context；监督/目标相机使用独立图像标定。指定新视角渲染仍需要目标相机。”
 
 ## Initialization and training plan (not executed)
 
@@ -159,9 +176,44 @@ errors, explicit migration/optimizer exclusions, exposure/LR/sampler/GC math,
 and a controlled VGGT stub. Stub results are not real VGGT validation. CPU
 construction of the actual Object-Locus model matched and copied all 1377
 retained checkpoint entries against the epoch-06 source; 68 removed entries were
-excluded with no unknown, missing, or mismatched keys. No real VGGT checkpoint,
-HF-unused-head key inventory, or GPU forward was available for verification;
-the runtime enumerates and records exact point/track source keys when the
-pinned official artifact is loaded.
+excluded with no unknown, missing, or mismatched keys. The migration source
+remains epoch 6 / 6258 updates / 50064 exposures; optimizer, scheduler, and RNG
+are fresh. Resume checkpoints exclude frozen VGGT tensors, strictly restore all
+other keys and shapes, retain optimizer and per-rank RNG state, and record source
+and new exposure clocks separately. A CPU miniature checkpoint test verifies
+parameters, optimizer state, clock, and the next RNG sample.
 
-No GPU smoke, training, evaluation, or Slurm submission is part of this review.
+The real-weight GPU smoke is prepared as separate single-card and four-card
+entry points, with the actual factory, local official artifact, fixed epoch-0
+windows, two optimizer updates, generation/render checks, gradient-path probes,
+and isolated outputs. It has not run. The four-card training runtime syncs
+batch, forward, autograd, finite-gradient, and optimizer errors across ranks;
+it stores a rolling atomic latest checkpoint and epoch-4/8 endpoints. It records
+detached losses, exposure, beta, group LRs, preclip norm, and GPU memory. The
+launcher does not submit jobs.
+
+The real official VGGT weight file was CPU-loaded with strict key and shape
+checks. The CPU suite covers 18 contracts, including patch/view order with spatially
+varying features, actual `generate()` K wiring, orientation-constrained Sim(3)
+with a nontrivial first camera, degenerate and valid small baselines, the
+four-rank gradient average against an eight-sample reference, and small-model
+checkpoint/RNG restoration. It does not establish real GPU operator
+compatibility.
+
+No GPU forward/backward, smoke, training, formal evaluation, or Slurm submission
+is part of this review. CPU official-weight key loading is permitted and is
+recorded separately from stub contracts.
+
+## Next-phase commands (not run in this review)
+
+The task launcher sets the pinned source/cache paths and disables HF network
+access. Run each command only after design review and GPU allocation on
+`3dimage-14`:
+
+```bash
+scripts/run_object_locus_frozen_vggt_posefree_v1.sh single-smoke /space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1_smoke_single
+scripts/run_object_locus_frozen_vggt_posefree_v1.sh four-smoke /space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1_smoke_four
+scripts/run_object_locus_frozen_vggt_posefree_v1.sh train
+scripts/run_object_locus_frozen_vggt_posefree_v1.sh resume
+PYTHONPATH=/space/mawb/ssst_object_locus_frozen_vggt_posefree_v1_assets/vggt_source_checkout:/space/mawb/ssst_object_locus_frozen_vggt_posefree_v1 HF_HUB_CACHE=/space/mawb/ssst_object_locus_frozen_vggt_posefree_v1_assets/hf_cache/hub HF_HUB_OFFLINE=1 python scripts/eval_object_locus_frozen_vggt_posefree_v1.py --checkpoint /space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1/checkpoint_epoch_08.pt --manifest /space/mawb/ssst/group_plus/object_locus_panoptic_full1201_8gpu/manifest.json --cohort full_validation --output-root /space/mawb/ssst/group_plus/object_locus_frozen_vggt_posefree_v1_eval_epoch08 --vggt-revision 860abec7937da0a4c03c41d3c269c366e82abdf9 --artifact-manifest /space/mawb/ssst_object_locus_frozen_vggt_posefree_v1/vggt_artifact_manifest.json --device cuda
+```
