@@ -7,7 +7,7 @@ from scripts.object_locus_probe_metrics import classification_summary,validate_g
 import pytest
 import json
 from scripts.object_locus_probe_metrics import normalize_official_result
-from scripts.report_object_locus_frozen_probe import metric_result,aggregate_scene_rows
+from scripts.report_object_locus_frozen_probe import metric_result,aggregate_scene_rows,_focus_json_default
 from scripts.object_locus_r3d_registration import normalize_r3d_registration,registered_outcome
 
 
@@ -29,6 +29,11 @@ def test_duplicate_good_mask_is_ambiguous_and_low_iou_is_negative():
 def test_empty_iou_and_threshold_boundary():
     assert diagnostic_max_cardinality(np.empty((0,4)),.5)['objective']==[0,0.0]
     assert diagnostic_max_cardinality(np.array([[.5]]),.5)['objective'][0]==1
+
+def test_focus_case_json_serializes_numpy_scalar_ids_without_string_fallback():
+    encoded=json.dumps({'query_id':np.int64(7),'score':np.float32(.25)},default=_focus_json_default)
+    assert json.loads(encoded)=={'query_id':7,'score':pytest.approx(.25)}
+    with pytest.raises(TypeError):json.dumps(object(),default=_focus_json_default)
 
 
 def test_region_pool_zero_mass_has_no_query_fallback():

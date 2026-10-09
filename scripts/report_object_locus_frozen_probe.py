@@ -32,6 +32,11 @@ def parse_json(x,default=None):
  except Exception:return default
 def ci(x):return np.percentile(np.asarray(x,dtype=np.float64),[2.5,97.5]).tolist()
 
+def _focus_json_default(value):
+    """Serialize NumPy scalars produced by focus matching as JSON scalars."""
+    if isinstance(value,np.generic):return value.item()
+    raise TypeError(f'Object of type {type(value).__name__} is not JSON serializable')
+
 def assemble_environment(root,report_runtime=None):
     """Keep historical stage runtimes separate from this report process."""
     root=Path(root)
@@ -546,7 +551,7 @@ def focus_cases(root):
             'target_iou_per_query':iou[gi].tolist(),'readouts':readout_roles,
             'focus_scope':'preselected GC001 true-novel G1; descriptive only'})
     with (root/'focus20_cases.jsonl').open('w') as f:
-        for r in out:f.write(json.dumps(r,ensure_ascii=False)+'\n')
+        for r in out:f.write(json.dumps(r,ensure_ascii=False,default=_focus_json_default)+'\n')
     return out
 
 def reconstruction_reduce(root):
