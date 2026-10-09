@@ -31,10 +31,13 @@ fi
 SNAPSHOT="$REPORT/snapshots/$CODE_SHA"
 if [[ ! -d "$SNAPSHOT" ]]; then
   mkdir -p "$(dirname "$SNAPSHOT")"
-  git clone --quiet --shared --no-checkout "$REPO" "$SNAPSHOT"
-  git -C "$SNAPSHOT" checkout --quiet --detach "$CODE_SHA"
+  PREPARING="${SNAPSHOT}.preparing.$$"
+  GIT_LFS_SKIP_SMUDGE=1 git clone --quiet --shared --no-checkout "$REPO" "$PREPARING"
+  GIT_LFS_SKIP_SMUDGE=1 git -C "$PREPARING" checkout --quiet --detach "$CODE_SHA"
+  mv "$PREPARING" "$SNAPSHOT"
 fi
 [[ "$(git -C "$SNAPSHOT" rev-parse HEAD)" == "$CODE_SHA" ]]
+[[ -z "$(git -C "$SNAPSHOT" status --porcelain --untracked-files=no)" ]] || { echo "incomplete or modified snapshot" >&2; exit 2; }
 TASK_REPO="$SNAPSHOT" TASK_CODE_SHA="$CODE_SHA" TASK_RESUME="$TASK_RESUME" \
   sbatch --partition=3090 --nodelist=3dimage-13 --nodes=1 --ntasks=1 --gres=gpu:8 \
     --cpus-per-task=32 --mem=128G --time=48:00:00 \
