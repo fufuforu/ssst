@@ -1,0 +1,15 @@
+# U128 single-model fresh full-data training
+
+This supersedes the cancelled paired continuation. Train only U128; C32 and the every-layer-interaction proposal are not launched. Scientific baseline is Full1201 / `7300b6ff6ae963ea7228ae7bc0c7d0e0446eefa3` (Full training SHA `b2624d57ea9ad5a73fd6a8375bafbe4e4c263c9c`). All scientific model/loss/provider/renderer code is unchanged except native128 image memory. Object interactions remain L6/L8/L10/L12. Input and reconstruction output resolutions remain unchanged.
+
+Fresh initialization reproduces Full1201: reconstruction step47500 (`/space/mawb/ssst/workspace_recon_diag/full_train/run_lrcap2e5/best_monitor/model.pt`, SHA256 `5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f`), original MASt3R encoder and panoptic adapter/mask-decoder pretraining, object fork_rng seed31415. Transfer counts450/292/187/326, MASt3R remaining725 excluded. Global seed42 and per-rank42+100003*rank. No Full1201 trained model, old four-GPU model, optimizer, scheduler or RNG is loaded. Joint update/exposure counts start0, beta follows original exposure schedule from0, understanding warmup min(8*update/200,1). Fresh optimizer retains original groups and WD, including both level_embed WD0. All branches remain trainable.
+
+The immutable Full1201 manifest and per-epoch order are reused:1191 scenes,8337 two-context windows, GT poses,1043 updates/epoch,7 padding positions/epoch. Eight epochs,8344 updates,66752 exposures, including56 padding exposures. Original LR peaks1e-6/1e-5/1e-4, AdamW(.9,.95),eps1e-8,clip1,FP32,TF32disabled,GC alpha.01. Warmup200 global optimizer updates then original cosine to10% at8344. Existing loss and beta definitions remain unchanged.
+
+Node3dimage-17,partition4090,8RTX4090,one window/rank,global batch8,one rank average/clip/optimizer step. Rankr reads order[8*k+r]. No gradient accumulation. Hardware differs from original3090 benchmark and must be disclosed in future reports; no claim of bitwise equivalence. No additional loss, module or evaluator changes.
+
+CPU source/shape/order/plan/group/gradient/checkpoint contracts, single real U128 forward/backward and eight-rank two-update smoke precede formal launch. Temporary states discarded. No task metric gate or evaluation job. Commit/push/remote identity is verified on login; compute hosts never query GitHub or checkout hooks.
+
+Save one atomic full latest per epoch with RNG/counts/plan/code/provenance, remove preceding latest after read-back verification. Epoch4 model-only; epoch8 full endpoint hardlinks latest. No large epoch0 copy. Checkpoint resolution128 and completed_exposures must be explicitly restored. Stop executor monitoring once10 finite formal updates and actual exposure counts match the plan.
+
+Old jobs59621/59622 cancelled on explicit user instruction. Only their exact temporary checkpoint paths removed; logs/manifest/plan/receipts retained under the old report directory. Full1201 selected/reference checkpoints, datasets and shared weights remain protected. Cleanup record: `/space/mawb/ssst/group_plus/object_locus_image_memory_full128_v1/four_gpu_cleanup.json`.

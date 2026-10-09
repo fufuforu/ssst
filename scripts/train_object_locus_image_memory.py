@@ -7,7 +7,7 @@ from scripts.object_locus_image_memory_runtime import *
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--arm',choices=ARMS,required=True)
-    parser.add_argument('--mode',choices=('single','four','train'),required=True);parser.add_argument('--resume')
+    parser.add_argument('--mode',choices=('single','eight','train'),required=True);parser.add_argument('--resume')
     args=parser.parse_args();device=init_device();rank,world=base.rank_world()
     manifest,plan,plan_sha=prepare_plan();report=ROOT/args.arm
     base.REPORT_ROOT=report;os.environ['TASK_ARM']=args.arm
@@ -16,13 +16,13 @@ def main():
         receipt=json.loads((ROOT/'git_provenance.json').read_text())
         if receipt['training_sha']!=code_sha or receipt['plan_sha256']!=plan_sha or not receipt['remote_verified']:raise RuntimeError('launch provenance mismatch')
         if subprocess.check_output(['git','status','--porcelain'],cwd=base.REPO,text=True).strip():raise RuntimeError('dirty formal checkout')
-        for gate in ('cpu_contracts.json','single_smoke.json','four_smoke_c32.json','four_smoke_u128.json','checkpoint_loading_contract.json','checkpoint_recovery_contract.json'):
+        for gate in ('cpu_contracts.json','single_smoke.json','eight_smoke_u128.json'):
             if json.loads((ROOT/gate).read_text())['status']!='PASS':raise RuntimeError('missing required gate '+gate)
     model,opt,optimizer,identity=construct(args.arm,device);model.train();torch.cuda.reset_peak_memory_stats()
     counts=[0]*plan['N'];start=0
     if args.resume:start,counts=restore(args.resume,model,optimizer,args.arm,plan_sha)
     if rank==0:write_json(report/(args.mode+'_initialization.json'),dict(source=identity,arm=args.arm,object_image_memory_size=ARMS[args.arm],fresh_optimizer=not bool(args.resume),code_sha=code_sha))
-    single=args.mode=='single';limit=1 if single else 2 if args.mode=='four' else plan['total_updates']
+    single=args.mode=='single';limit=1 if single else 2 if args.mode=='eight' else plan['total_updates']
     rows=[]
     for step in range(start,limit):
         epoch=step//plan['U'];offset=step%plan['U'];ids=plan['orders'][epoch][8*offset:8*offset+8]
@@ -44,7 +44,7 @@ def main():
             if step==9 and rank==0:
                 write_json(report/'startup_confirmation.json',dict(status='PASS',job_id=os.environ.get('SLURM_JOB_ID'),arm=args.arm,code_sha=code_sha,
                     plan_sha256=plan_sha,fresh_initialization=not bool(args.resume),completed_new_updates=10,completed_new_exposures=80,
-                    source_checkpoint_sha256=base.SOURCE_SHA256,finite=True,window_ids=plan['orders'][0][:80],last_update=row))
+                    source_checkpoint_sha256=PRETRAINED_SHA,finite=True,window_ids=plan['orders'][0][:80],last_update=row))
             if (step+1)%plan['U']==0:save_checkpoint(model,opt,optimizer,args.arm,epoch+1,step+1,plan_sha,code_sha,counts)
     if args.mode!='train':
         from scripts.smoke_object_locus_gc_sweep import digest_state,digest_optimizer
@@ -55,7 +55,7 @@ def main():
         all_rows=[None]*world
         if world>1:dist.all_gather_object(all_rows,rows)
         else:all_rows=[rows]
-        if rank==0:write_json(ROOT/('single_smoke.json' if single else f'four_smoke_{args.arm}.json'),
+        if rank==0:write_json(ROOT/('single_smoke.json' if single else f'eight_smoke_{args.arm}.json'),
             dict(status='PASS',discarded=True,arm=args.arm,code_sha=code_sha,updates=limit,ranks=world,global_batch=1 if single else 8,
                  synchronized=True,source=identity,per_rank=all_rows))
     elif rank==0:write_json(report/'training_complete.json',dict(status='PASS',completed_new_updates=limit,completed_new_exposures=8*limit,code_sha=code_sha))

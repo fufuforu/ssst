@@ -12,14 +12,14 @@ def checkpoint_contract(plan_sha):
         from types import SimpleNamespace
         tiny=torch.nn.Linear(2,1);tiny.opt=SimpleNamespace();tiny.anchor_decoder=SimpleNamespace(opt=tiny.opt)
         tiny_opt=torch.optim.AdamW(tiny.parameters())
-        payload.update(model=tiny.state_dict(),optimizer=tiny_opt.state_dict(),world_size=4,microsteps=2,alpha=.01,
-                       completed_exposures=50064+8*1043,rank_states=[{'rng':base.capture_rng(),'window_counts':[1,2]}]*4)
+        payload.update(model=tiny.state_dict(),optimizer=tiny_opt.state_dict(),world_size=8,microsteps=1,alpha=.01,
+                       completed_exposures=8*1043,rank_states=[{'rng':base.capture_rng(),'window_counts':[1,2]}]*8)
         atomic_checkpoint(path,payload)
         step,restored=restore(path,tiny,tiny_opt,'u128',plan_sha)
-        assert step==1043 and restored==[1,2] and tiny.understanding_step==50064+8*1043
-        try:restore(path,tiny,tiny_opt,'c32',plan_sha)
+        assert step==1043 and restored==[1,2] and tiny.understanding_step==8*1043
+        try:restore(path,tiny,tiny_opt,'u128','wrong-plan')
         except RuntimeError:pass
-        else:raise AssertionError('cross-arm restore accepted')
+        else:raise AssertionError('wrong-plan restore accepted')
 
 
 def main():
@@ -43,30 +43,36 @@ def main():
         values=monitors[split]
         if isinstance(values,dict):values=values.get('windows',values.get('entries'))
         assert not train.intersection(w['scene'] for w in values)
-    # Independent eight-sample numeric reference versus two-local/four-rank accumulator.
+    # Independent eight-sample numeric reference versus eight-rank mean.
     names=['reconstruction.weight','understanding.weight','panoptic.weight'];reference=[];ranks=[]
     recs=torch.arange(8*3*2,dtype=torch.float64).reshape(8,3,2)/17
     unders=torch.flip(recs,[0])*0.37
-    for rank in range(4):
+    for rank in range(8):
         acc=[None]*3
-        for micro in range(2):
-            i=4*micro+rank;accumulate(acc,names,list(recs[i]),list(unders[i]),2)
+        accumulate(acc,names,list(recs[rank]),list(unders[rank]),1)
         ranks.append(torch.stack(acc))
     weights=torch.tensor([.01,1,1],dtype=torch.float64).reshape(1,3,1)
     reference=(recs+weights*unders).mean(0)
     assert torch.allclose(torch.stack(ranks).mean(0),reference,rtol=0,atol=1e-14)
     # Verify the source and complete strict state once; configuration introduces no state.
-    model,opt,optimizer,identity=construct('c32','cpu')
+
+    for value in json.loads((SOURCE/'weights_provenance.json').read_text())['weights'].values():
+        assert sha256(value['path'])==value['sha256']
+    model,opt,optimizer,identity=construct('u128','cpu')
     initial=[(name,tuple(value.shape),value.dtype) for name,value in model.state_dict().items()]
     groups=[(g['name'],g['param_names'],g['weight_decay'],g['peak_lr']) for g in optimizer.param_groups]
-    opt.object_image_memory_size=128;model.opt.object_image_memory_size=128;model.anchor_decoder.opt.object_image_memory_size=128
+    opt.object_image_memory_size=32;model.opt.object_image_memory_size=32;model.anchor_decoder.opt.object_image_memory_size=32
     other=base.build_optimizer(model)
     assert initial==[(name,tuple(value.shape),value.dtype) for name,value in model.state_dict().items()]
     assert groups==[(g['name'],g['param_names'],g['weight_decay'],g['peak_lr']) for g in other.param_groups]
     levels=[(name,g[2],g[3]) for g in groups for name in g[1] if name.endswith('.level_embed')]
     assert len(levels)==2 and all(wd==0 and lr==1e-5 for _,wd,lr in levels)
-    blob=torch.load(base.SOURCE_CHECKPOINT,map_location='cpu',mmap=True,weights_only=False)
-    assert all(torch.equal(v.cpu(),blob['model'][name]) for name,v in model.state_dict().items())
+    reconstruction=original.load_checkpoint_state()
+    assert len(reconstruction)==450
+    assert all(torch.equal(v.cpu(),model.state_dict()[name]) for name,v in reconstruction.items())
+    mapping=json.loads((ROOT/'u128'/'weights_mapping.json').read_text())
+    assert mapping['counts']=={'reconstruction':450,'encoder':292,'mast3r_excluded':725,'adapter':187,'mask_decoder':326}
+    assert model.understanding_step==0
     checkpoint_contract(plan_sha)
     write_json(ROOT/'cpu_contracts.json',{'status':'PASS','plan_sha256':plan_sha,'source':identity,'memory32_exact':True,'memory128_order':True,'state_compatible':True,
         'identical_initialization':True,'optimizer_groups_identical':True,'grouped_gradient_8_sample_mean':True,'S':1191,'N':8337,'U':1043,'P':7,
