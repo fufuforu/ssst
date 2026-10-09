@@ -10,10 +10,7 @@ import sys
 REPO=Path(__file__).resolve().parents[1]
 if str(REPO) not in sys.path: sys.path.insert(0,str(REPO))
 
-from scripts.object_locus_frozen_vggt_posefree_runtime import (
-    CHECKPOINT, EXPECTED_CHECKPOINT_SHA, EXPECTED_VGGT_COMMIT,
-    load_manifest, plan_record, sha256,
-)
+CHECKPOINT=Path('/space/mawb/ssst/workspace_group_plus/object_locus_panoptic_full1201_8gpu/checkpoint_epoch_06.pt')
 
 
 def main(argv=None):
@@ -28,6 +25,12 @@ def main(argv=None):
                         help='pinned facebook/VGGT-1B Hugging Face commit SHA')
     parser.add_argument('--run-training',action='store_true',help='reserved for a separately reviewed next phase')
     args=parser.parse_args(argv)
+    # Keep --help lightweight: importing the runtime initializes PyTorch and its
+    # optional compiler workers even though argparse exits before main continues.
+    from scripts.object_locus_frozen_vggt_posefree_runtime import (
+        EXPECTED_CHECKPOINT_SHA, EXPECTED_VGGT_COMMIT,
+        load_manifest, plan_record, sha256,
+    )
     if args.run_training:
         if args.vggt_revision is None or re.fullmatch(r'[0-9a-fA-F]{40}',args.vggt_revision) is None:
             raise SystemExit('--run-training requires --vggt-revision with a reviewed full 40-character HF SHA')

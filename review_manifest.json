@@ -1,108 +1,122 @@
 {
-  "status": "IMPLEMENTED_FOR_REVIEW",
+  "status": "READY_FOR_REVIEW",
   "repository": "https://github.com/fufuforu/ssst",
   "worktree": "/space/mawb/ssst_object_locus_frozen_vggt_posefree_v1",
   "branch": "object-locus-frozen-vggt-posefree-v1",
-  "base": {
-    "branch": "object-locus-gc-sweep-v1",
-    "sha": "9ce7b18b68bae9c4c7c519b670ad1fa79a66f9a0"
-  },
-  "remote_at_start": {
-    "object-locus-gc-sweep-v1": "9ce7b18b68bae9c4c7c519b670ad1fa79a66f9a0",
-    "main": "f49b492bf3030d434a39f7cb7321bc149561022e"
-  },
+  "review_base_sha": "bd3329a110803e3750aaeef573650237e536f9e2",
+  "science_baseline_sha": "9ce7b18b68bae9c4c7c519b670ad1fa79a66f9a0",
+  "code_commit_sha": "6e27010adb83f8fd7db9336f0200d6174e2add0f",
   "official_vggt": {
     "repository": "https://github.com/facebookresearch/vggt",
     "source_commit": "a288dd0f14786c93483e45524328726ab7b1b4ce",
     "model_id": "facebook/VGGT-1B",
-    "source_revision_verified_from_remote": true,
-    "hf_model_revision": null,
-    "weight_files_sha256": null,
-    "status": "NOT_VERIFIED_HF_UNREACHABLE",
-    "reason": "Configured proxy refused connection; direct HF metadata request timed out; no local VGGT-1B cache found. Code requires a full HF revision SHA and strict local key/shape audit."
+    "hf_revision": "860abec7937da0a4c03c41d3c269c366e82abdf9",
+    "config": {
+      "relative_path": "models--facebook--VGGT-1B/snapshots/860abec7937da0a4c03c41d3c269c366e82abdf9/config.json",
+      "size_bytes": 62,
+      "sha256": "a73e929a168b900546a84fe88cd70dfaaf2f8e39cf77355b12984eaa686f3855"
+    },
+    "weights": {
+      "relative_path": "models--facebook--VGGT-1B/snapshots/860abec7937da0a4c03c41d3c269c366e82abdf9/model.safetensors",
+      "size_bytes": 5026367224,
+      "sha256": "f164acf60724910d8fe1578bb499d800850c7bb0948db7555c413f9fbe60467e"
+    },
+    "external_asset_root": "/space/mawb/ssst_object_locus_frozen_vggt_posefree_v1_assets",
+    "network_proxy_used": true,
+    "cpu_strict_load": {
+      "status": "PASS",
+      "loaded_keys": 1341,
+      "excluded_keys": 456,
+      "excluded_point_head_keys": 62,
+      "excluded_track_head_keys": 394,
+      "missing_keys": 0,
+      "unexpected_keys": 0,
+      "shape_mismatches": 0,
+      "loaded_subtrees": [
+        "aggregator",
+        "camera_head",
+        "depth_head"
+      ],
+      "aggregator_dtype": "bfloat16",
+      "camera_depth_head_dtype": "float32",
+      "frozen_eval": true,
+      "real_forward_executed": false
+    }
   },
   "initialization_checkpoint": {
     "path": "/space/mawb/ssst/workspace_group_plus/object_locus_panoptic_full1201_8gpu/checkpoint_epoch_06.pt",
-    "expected_sha256": "68de912a60340f65d675a521c514641845c43822657f07d5851770c96cbf912a",
-    "actual_sha256": "68de912a60340f65d675a521c514641845c43822657f07d5851770c96cbf912a",
-    "epoch": 6,
-    "completed_updates": 6258,
-    "completed_exposures": 50064,
-    "migration_cpu_result": {
+    "sha256": "68de912a60340f65d675a521c514641845c43822657f07d5851770c96cbf912a",
+    "source_epoch": 6,
+    "source_completed_updates": 6258,
+    "source_completed_exposures": 50064,
+    "cpu_migration": {
       "loaded": 1377,
       "explicitly_excluded": 68,
       "new_memory_adapter_parameters": 17,
       "missing": 0,
       "shape_mismatch": 0,
-      "unknown": 0,
-      "model_structure": "real Object-Locus model; controlled VGGT stub; no forward"
+      "unknown": 0
     }
   },
   "training_manifest": {
     "path": "/space/mawb/ssst/group_plus/object_locus_panoptic_full1201_8gpu/manifest.json",
     "sha256": "87e3cde298569c4e7735cf75ee596868eadf01e9a6a95438c6be51e42f55a523",
-    "actual_train_scenes": 1191,
+    "train_scenes": 1191,
     "fixed_windows": 8337,
     "contexts_per_window": 2,
-    "sampler_reused_without_resampling": true
+    "resampling": false
+  },
+  "evaluation_cohort": {
+    "name": "full_validation",
+    "manifest": "data/Objaverse-A/val_pair.json",
+    "sha256": "59cf5594ec2f3223a41d27d7af4da49d348ce9b00c1d151020378c9a8f4b4b3b",
+    "scenes": 1860
   },
   "cpu_checks": {
-    "status": "PASS",
-    "unittest_command": "CUDA_VISIBLE_DEVICES= python -m unittest tests.test_object_locus_frozen_vggt_posefree_contracts -v",
-    "contracts_passed": 13,
+    "contract_command": "CUDA_VISIBLE_DEVICES= TORCHINDUCTOR_COMPILE_THREADS=1 /space/mawb/anaconda3/envs/tokengs/bin/python -u scripts/smoke_object_locus_frozen_vggt_posefree_v1.py --cpu-contracts",
+    "contracts_passed": 18,
     "contracts_failed": 0,
-    "covered": [
-      "official layer indices/None/patch shape",
-      "memory and K/V shape",
-      "context-only generate stub independence",
-      "frozen/no-grad boundary with stub",
-      "pixel projection and backprojection",
-      "first-camera coordinate and median depth scale",
-      "518 dense rays and 14-pixel Plucker pooling",
-      "orientation-aware Sim(3) and degenerate baseline",
-      "migration whitelist/optimizer exclusion",
-      "gradient accumulation/GC/exposure/LR/sampler",
-      "fixed full1201 manifest counts"
+    "contract_result": "PASS",
+    "coverage": [
+      "real generate patch-ray parameter wiring and independent reference directions/moments",
+      "corresponding continuous 518/256 pixel ray equality and wrong-K failure",
+      "multi-view nonconstant raster/view-major memory and ray ordering",
+      "orientation-constrained Sim(3), nontrivial first camera, zero and valid small baseline",
+      "context-only generate and target render membership/p_class reuse",
+      "strict migration, frozen optimizer exclusion, GC gradient reference and resume RNG/clock",
+      "fixed manifest and eval CLI contracts"
     ],
-    "python_syntax": "PASS",
-    "train_entry_help": "PASS with CUDA_VISIBLE_DEVICES empty",
-    "smoke_entry_help": "PASS with CUDA_VISIBLE_DEVICES empty",
-    "eval_entry_help": "PASS with CUDA_VISIBLE_DEVICES empty",
-    "smoke_cpu_contract_entry": "PASS (13 tests)",
-    "bash_syntax": "PASS (bash -n existing full1201 submit script)"
+    "real_weight_cpu_audit_command": "CUDA_VISIBLE_DEVICES= /space/mawb/anaconda3/envs/tokengs/bin/python scripts/audit_frozen_vggt_artifact_cpu.py --manifest vggt_artifact_manifest.json",
+    "real_weight_cpu_audit": "PASS; strict 1341 loaded, 456 explicitly excluded, 0 missing/unexpected/shape mismatch; no forward",
+    "python_compile": "PASS",
+    "bash_syntax": "PASS",
+    "entry_help": {
+      "eval": "PASS",
+      "smoke": "PASS",
+      "train": "PASS (runtime import deferred until prepare/train execution)"
+    }
   },
-  "not_verified": [
-    "HF model revision and model file SHA256",
-        "real official VGGT aggregator/camera/depth forward",
-        "exact point_head/track_head unused checkpoint key inventory (runtime enumerates it from the pinned source file)",
-    "real GPU generate/render",
-    "distributed 4xRTX4090 training step",
-    "evaluation metrics"
+  "not_run": {
+    "gpu_forward_or_backward": true,
+    "single_gpu_smoke": true,
+    "four_gpu_smoke": true,
+    "training": true,
+    "evaluation": true,
+    "slurm_submission": true
+  },
+  "unverified_next_phase": [
+    "real aggregator/head BF16/FP32 GPU operator compatibility",
+    "single and four RTX4090 smoke results and memory/runtime",
+    "official target-view evaluation metrics"
   ],
-  "gpu_forward": "NOT_RUN",
-  "gpu_smoke": "NOT_RUN",
-  "training": "NOT_RUN",
-  "evaluation": "NOT_RUN",
-  "slurm_submission": "NOT_SUBMITTED",
-  "review_files": [
+  "review_documents": [
     "docs/object_locus_frozen_vggt_posefree_v1.md",
+    "docs/object_locus_frozen_vggt_posefree_v1_review_fix.md",
+    "docs/object_locus_frozen_vggt_posefree_v1_cpu_checks.md",
     "docs/object_locus_frozen_vggt_posefree_weight_mapping.json",
-    "review_manifest.json",
-    "scripts/eval_object_locus_frozen_vggt_posefree_v1.py",
-    "scripts/object_locus_frozen_vggt_posefree_runtime.py",
-    "scripts/smoke_object_locus_frozen_vggt_posefree_v1.py",
-    "scripts/train_object_locus_frozen_vggt_posefree_v1.py",
-    "tests/test_object_locus_frozen_vggt_posefree_contracts.py",
-    "tokengs/models/__init__.py",
-    "tokengs/models/frozen_vggt_posefree.py",
-    "tokengs/models/object_locus_frozen_vggt_posefree.py",
-    "tokengs/models/object_locus_posefree_geometry.py",
-    "tokengs/options.py"
+    "vggt_artifact_manifest.json"
   ],
-  "next_phase_entry": "scripts/train_object_locus_frozen_vggt_posefree_v1.py --run-training --vggt-revision <reviewed-40-char-HF-SHA> (requires local official VGGT source at pinned Git commit, local pinned weight snapshot, 3dimage-14, and torchrun -nproc_per_node=4)",
-  "mapping_report": "docs/object_locus_frozen_vggt_posefree_weight_mapping.json",
-  "design_document": "docs/object_locus_frozen_vggt_posefree_v1.md",
-  "deviations": [
-    "The official VGGT-1B Hugging Face revision and file hashes could not be obtained because network metadata access failed and no local artifact was available. No alternate VGGT or weights were substituted. Real VGGT forward remains unverified."
-  ]
+  "launcher": "scripts/run_object_locus_frozen_vggt_posefree_v1.sh",
+  "scientific_deviations": [],
+  "weights_committed_to_git": false
 }
