@@ -123,12 +123,12 @@ again. The existing exporter writes true-novel target IDs without adding the
 first two context IDs to the novel set, and the pinned official SIU3R evaluator
 continues to own candidate filtering, packing, void handling, and metrics.
 The full-validation pair file is pinned to SHA256
-`59cf5594ec2f3223a41d27d7af4da49d348ce9b00c1d151020378c9a8f4b4b3b` and
-1860 fixed pairs.
+`59cf5594ec2f3223a41d27d7af4da49d348ce9b00c1d151020378c9a8f4b4b3b`: 1860
+windows across 312 unique scenes.
 
 “场景生成只使用两张context；监督/目标相机使用独立图像标定。指定新视角渲染仍需要目标相机。”
 
-## Initialization and training plan (not executed)
+## Initialization and fixed eight-card training plan
 
 The epoch-06 source checkpoint is
 `/space/mawb/ssst/workspace_group_plus/object_locus_panoptic_full1201_8gpu/checkpoint_epoch_06.pt`.
@@ -151,12 +151,13 @@ and found no missing, mismatched, or unclassified checkpoint keys. The full
 key-by-key mapping is included in
 `object_locus_frozen_vggt_posefree_weight_mapping.json`.
 
-The existing full1201 manifest was read in place: 1191 actual training scenes,
-8337 fixed windows, two contexts per window. No resampling is performed. Planned
-phase one is 8 epochs, global batch 8, four RTX4090 workers, rank batch 1,
-accumulation 2. Each epoch uses `default_rng(42+epoch)` permutation, padded by
-repeating its prefix to 8344 windows / 1043 optimizer updates. Totals are 8344
-updates and 66752 exposures. Understanding weight is
+The existing full1201 manifest is read in place: 1191 training scenes, 8337 fixed
+windows, two contexts per window. No resampling is performed. The reviewed resource
+adaptation uses `3dimage-13` with eight RTX3090 workers, per-rank microbatch 1,
+accumulation 1 and global batch 8. Each update consumes eight consecutive entries
+from `default_rng(42+epoch)`; rank `r` consumes the entry at offset `r`. Each epoch
+pads to 8344 exposures / 1043 updates; totals remain 8344 updates and 66752 new
+exposures. Understanding weight is
 `min(exposure/200,1)` and beta is `0.1*min(exposure/1000,1)`. Gradient composition
 is `g_rec + 0.01*g_under` for reconstruction parameters and
 `g_rec + g_under` for understanding/object/memory parameters. Peak LRs are
@@ -183,37 +184,36 @@ other keys and shapes, retain optimizer and per-rank RNG state, and record sourc
 and new exposure clocks separately. A CPU miniature checkpoint test verifies
 parameters, optimizer state, clock, and the next RNG sample.
 
-The real-weight GPU smoke is prepared as separate single-card and four-card
-entry points, with the actual factory, local official artifact, fixed epoch-0
+The real-weight GPU smoke entry points run first on one allocated RTX3090, then
+eight RTX3090s. Both use the actual factory, local official artifact, fixed epoch-0
 windows, two optimizer updates, generation/render checks, gradient-path probes,
-and isolated outputs. It has not run. The four-card training runtime syncs
+and isolated outputs. Eight-card smoke records every rank. The eight-rank training runtime syncs
 batch, forward, autograd, finite-gradient, and optimizer errors across ranks;
 it stores a rolling atomic latest checkpoint and epoch-4/8 endpoints. It records
 detached losses, exposure, beta, group LRs, preclip norm, and GPU memory. The
 launcher does not submit jobs.
 
 The real official VGGT weight file was CPU-loaded with strict key and shape
-checks. The CPU suite covers 18 contracts, including patch/view order with spatially
+checks. The adapted CPU suite covers 20 contracts, including patch/view order with spatially
 varying features, actual `generate()` K wiring, orientation-constrained Sim(3)
 with a nontrivial first camera, degenerate and valid small baselines, the
-four-rank gradient average against an eight-sample reference, and small-model
+eight-rank gradient average (one sample per rank) against an eight-sample reference, and small-model
 checkpoint/RNG restoration. It does not establish real GPU operator
 compatibility.
 
-No GPU forward/backward, smoke, training, formal evaluation, or Slurm submission
-is part of this review. CPU official-weight key loading is permitted and is
-recorded separately from stub contracts.
+The prior design review did not run GPU smoke or training. This resource-adaptation
+revision prepares a single Slurm job that runs single-card smoke, eight-card smoke,
+then fresh training (or strict compatible eight-card resume when a valid latest
+checkpoint already exists). The job writes startup confirmation after 20 synchronized
+updates / 160 exposures. Formal evaluation remains a separate, unlaunched step.
 
-## Next-phase commands (not run in this review)
+## Approved launch and later evaluation commands
 
 The task launcher sets the pinned source/cache paths and disables HF network
-access. Run each command only after design review and GPU allocation on
-`3dimage-14`:
+access. The approved launcher targets `3dimage-13`; it submits one 8-GPU job with
+32 CPUs, 128 GiB host memory and a 48-hour walltime:
 
 ```bash
-scripts/run_object_locus_frozen_vggt_posefree_v1.sh single-smoke /space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1_smoke_single
-scripts/run_object_locus_frozen_vggt_posefree_v1.sh four-smoke /space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1_smoke_four
-scripts/run_object_locus_frozen_vggt_posefree_v1.sh train
-scripts/run_object_locus_frozen_vggt_posefree_v1.sh resume
+scripts/submit_object_locus_frozen_vggt_posefree_v1.sh
 PYTHONPATH=/space/mawb/ssst_object_locus_frozen_vggt_posefree_v1_assets/vggt_source_checkout:/space/mawb/ssst_object_locus_frozen_vggt_posefree_v1 HF_HUB_CACHE=/space/mawb/ssst_object_locus_frozen_vggt_posefree_v1_assets/hf_cache/hub HF_HUB_OFFLINE=1 python scripts/eval_object_locus_frozen_vggt_posefree_v1.py --checkpoint /space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1/checkpoint_epoch_08.pt --manifest /space/mawb/ssst/group_plus/object_locus_panoptic_full1201_8gpu/manifest.json --cohort full_validation --output-root /space/mawb/ssst/group_plus/object_locus_frozen_vggt_posefree_v1_eval_epoch08 --vggt-revision 860abec7937da0a4c03c41d3c269c366e82abdf9 --artifact-manifest /space/mawb/ssst_object_locus_frozen_vggt_posefree_v1/vggt_artifact_manifest.json --device cuda
 ```

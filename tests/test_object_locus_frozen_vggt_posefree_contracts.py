@@ -22,8 +22,11 @@ from scripts.object_locus_frozen_vggt_posefree_runtime import (
     epoch_order, exposure_schedule, gc_combine, lr_multiplier, parameter_family,
     rank_microbatch_indices, migrate_model_state, train_microbatch_window,
     load_manifest, checkpoint_model_state, restore_model_state_strict,
-    capture_rank_rng, restore_rank_rng, _atomic_save,
+    capture_rank_rng, restore_rank_rng, _atomic_save, training_configuration,
+    smoke_exposure_count, WORLD_SIZE, GLOBAL_BATCH, ACCUMULATION,
 )
+
+REPO=Path(__file__).resolve().parents[1]
 
 
 def _camera(rotation=None, center=None):
@@ -208,6 +211,26 @@ class FrozenVGGTContracts(unittest.TestCase):
             self.assertEqual(sorted(p.name for p in pred.glob('*.png')),
                 ['scene0000_00_pred12.png','scene0000_00_pred13.png'])
 
+    def test_posefree_eval_cache_keeps_context_target_and_rendered_depth(self):
+        from scripts.eval_object_locus_frozen_vggt_posefree_v1 import _official_export_view,_save_reconstruction_cache
+        batch={'frame_ids':torch.tensor([[10,11,12,13]]),
+            'images_all':torch.rand(1,4,3,4,4),
+            'depth_gt_m_all':torch.ones(1,4,1,4,4),
+            'depth_gt_valid_all':torch.ones(1,4,1,4,4,dtype=torch.bool)}
+        render={'images_pred':torch.rand(1,4,3,4,4),
+            'depths_pred':torch.rand(1,4,1,4,4)}
+        exported=_official_export_view(render)
+        self.assertIs(exported['render']['images_pred'],render['images_pred'])
+        self.assertIs(exported['render']['depths_pred'],render['depths_pred'])
+        with tempfile.TemporaryDirectory() as directory:
+            path=_save_reconstruction_cache(directory,{'scene':'scene0000_00','context':[10,11],'novel':[10,11,12,13]},batch,render)
+            with __import__('numpy').load(path) as cache:
+                self.assertEqual(cache['frame_ids'].tolist(),[10,11,12,13])
+                self.assertEqual(cache['context_ids'].tolist(),[10,11])
+                self.assertEqual(cache['novel_ids'].tolist(),[12,13])
+                self.assertEqual(cache['pred_rgb'].shape,(4,3,4,4))
+                self.assertEqual(cache['pred_depth'].shape,(4,1,4,4))
+
 
 class MemoryContracts(unittest.TestCase):
     def test_adapter_shape_weights_view_major_and_seed_isolation(self):
@@ -340,6 +363,20 @@ class MigrationAndTrainingContracts(unittest.TestCase):
         self.assertEqual((len(scenes),len(windows)),(1191,8337))
         self.assertEqual((len(windows[0]['context']),len(windows[0]['novel'])),(2,2))
 
+    def test_eight_rank_launcher_and_resume_recipe_are_locked(self):
+        submit=(REPO/'scripts/submit_object_locus_frozen_vggt_posefree_v1.sh').read_text()
+        job=(REPO/'scripts/run_object_locus_frozen_vggt_posefree_v1_job.sh').read_text()
+        plan=__import__('scripts.object_locus_frozen_vggt_posefree_runtime',fromlist=['plan_record']).plan_record()
+        self.assertIn('--nodelist=3dimage-13',submit)
+        self.assertIn('--gres=gpu:8',submit)
+        self.assertIn('--cpus-per-task=32',submit)
+        self.assertIn('--mem=128G',submit)
+        self.assertIn('--time=48:00:00',submit)
+        self.assertIn('--nproc_per_node=8',job)
+        self.assertIn('--eight-card-real',job)
+        self.assertEqual((plan['world_size'],plan['microbatch_per_rank'],plan['accumulation'],plan['global_batch']),(8,1,1,8))
+        self.assertEqual((plan['updates_per_epoch'],plan['total_updates'],plan['total_exposures']),(1043,8344,66752))
+
     def test_explicit_migration_whitelist_and_unknown_key_error(self):
         class Tiny(nn.Module):
             def __init__(self):
@@ -372,8 +409,17 @@ class MigrationAndTrainingContracts(unittest.TestCase):
         self.assertAlmostEqual(lr_multiplier(8343),.1)
         self.assertEqual(len(epoch_order(0)),8344)
         self.assertEqual(epoch_order(0).tolist(),epoch_order(0).tolist())
-        shards=[rank_microbatch_indices(2,4,r) for r in range(4)]
+        epoch,update=2,4
+        shards=[rank_microbatch_indices(epoch,update,r) for r in range(8)]
+        expected=epoch_order(epoch)[update*8:(update+1)*8]
+        self.assertEqual([shard[0] for shard in shards],expected.tolist())
         self.assertEqual(len({i for shard in shards for i in shard}),8)
+        smoke_first16=[rank_microbatch_indices(0,u,r)[0] for u in range(2) for r in range(8)]
+        self.assertEqual(smoke_first16,epoch_order(0)[:16].tolist())
+        self.assertEqual((WORLD_SIZE,GLOBAL_BATCH,ACCUMULATION),(8,8,1))
+        self.assertEqual(smoke_exposure_count('single',2),2)
+        self.assertEqual(smoke_exposure_count('eight',2),16)
+        self.assertEqual(training_configuration()['total_updates'],8344)
         params=[torch.nn.Parameter(torch.zeros(1)) for _ in range(3)]
         grads=gc_combine(['reconstruction.weight','understanding.weight','panoptic.weight'],
             [torch.ones(1)]*3,[torch.full((1,),2.)]*3)
@@ -381,7 +427,7 @@ class MigrationAndTrainingContracts(unittest.TestCase):
         self.assertTrue(torch.allclose(grads[1],torch.tensor([3.])))
         self.assertTrue(torch.allclose(grads[2],torch.tensor([3.])))
 
-    def test_two_microbatch_gradient_accumulation_and_exposure_clock(self):
+    def test_single_microbatch_accumulation_and_exposure_clock(self):
         class TinyTrain(nn.Module):
             def __init__(self):
                 super().__init__(); self.reconstruction=nn.Linear(1,1,bias=False); self.understanding=nn.Linear(1,1,bias=False); self.panoptic=nn.Linear(1,1,bias=False); self.vggt_memory_adapter=nn.Linear(1,1,bias=False); self.frozen_vggt=nn.Linear(1,1,bias=False); self.frozen_vggt.requires_grad_(False); self.steps=[]
@@ -392,12 +438,12 @@ class MigrationAndTrainingContracts(unittest.TestCase):
                 under=self.understanding(x).square().mean()+self.panoptic(x).square().mean()+self.vggt_memory_adapter(x).square().mean()
                 return {},{'loss_recon':rec,'loss_understanding':under}
         model=TinyTrain(); optimizer=__import__('scripts.object_locus_frozen_vggt_posefree_runtime',fromlist=['build_optimizer']).build_optimizer(model)
-        row=train_microbatch_window(model,optimizer,[torch.ones(2,1),torch.full((2,1),2.)],0,base_exposure=0)
-        self.assertEqual(model.steps,[(0,0.),(0,0.)])
-        self.assertEqual(row['completed_updates'],1); self.assertEqual(row['completed_exposures'],8)
+        row=train_microbatch_window(model,optimizer,[torch.ones(1,1)],0,base_exposure=0)
+        self.assertEqual(model.steps,[(0,0.)])
+        self.assertEqual(row['completed_updates'],1); self.assertEqual(row['completed_exposures'],1)
         self.assertEqual(row['understanding_weight'],0.); self.assertEqual(row['beta'],0.)
 
-    def test_gc_microbatch_and_four_rank_average_match_eight_sample_reference(self):
+    def test_gc_eight_rank_one_sample_average_matches_eight_sample_reference(self):
         class Toy(nn.Module):
             def __init__(self):
                 super().__init__();self.shared=nn.Parameter(torch.tensor(.2));self.understanding_head=nn.Parameter(torch.tensor(.3));self.panoptic=nn.Parameter(torch.tensor(.1));self.vggt_memory_adapter=nn.Parameter(torch.tensor(.15));self.unused=nn.Parameter(torch.tensor(.4));self.frozen_vggt=nn.Parameter(torch.tensor(.7),requires_grad=False)
@@ -409,16 +455,16 @@ class MigrationAndTrainingContracts(unittest.TestCase):
         from scripts.object_locus_frozen_vggt_posefree_runtime import build_optimizer
         samples=[(torch.tensor([.2+i*.01]),torch.tensor([.5-i*.01])) for i in range(8)]
         rank_grads=[]
-        for rank in range(4):
+        for rank in range(8):
             model=Toy();opt=__import__('scripts.object_locus_frozen_vggt_posefree_runtime',fromlist=['build_optimizer']).build_optimizer(model)
-            pair=samples[rank*2:rank*2+2]
-            train_microbatch_window(model,opt,pair,0,base_exposure=100,world_size=4)
+            pair=[samples[rank]]
+            train_microbatch_window(model,opt,pair,0,base_exposure=100,world_size=8)
             rank_grads.append({n:p.grad.detach().clone() if p.grad is not None else None for n,p in model.named_parameters()})
         names=['shared','understanding_head','panoptic','vggt_memory_adapter','unused']
         averaged={}
         for name in names:
             vals=[row[name] for row in rank_grads if row[name] is not None]
-            averaged[name]=sum(vals)/4 if vals else None
+            averaged[name]=sum(vals)/8 if vals else None
         reference=Toy();params=[p for n,p in reference.named_parameters() if n in names]
         rec_total=0.;under_total=0.
         for x,y in samples:
@@ -441,9 +487,12 @@ class MigrationAndTrainingContracts(unittest.TestCase):
         torch.manual_seed(314)
         model=Tiny();optimizer=__import__('scripts.object_locus_frozen_vggt_posefree_runtime',fromlist=['build_optimizer']).build_optimizer(model)
         loss=model.reconstruction(torch.ones(1,2)).square().mean();loss.backward();optimizer.step()
+        rank_rng=[capture_rank_rng() for _ in range(8)]
         payload={'model':checkpoint_model_state(model),'optimizer':optimizer.state_dict(),
-            'completed_updates':9,'completed_exposures':72,'rank_rng':[capture_rank_rng()]}
+            'completed_updates':9,'completed_exposures':72,'rank_rng':rank_rng,'world_size':8,
+            'config':training_configuration()}
         expected_rng=payload['rank_rng'][0]
+        self.assertEqual(len(payload['rank_rng']),8)
         expected_next=torch.rand(5)
         torch.manual_seed(9)
         with tempfile.TemporaryDirectory() as directory:

@@ -14,14 +14,14 @@ Command:
 CUDA_VISIBLE_DEVICES= TORCHINDUCTOR_COMPILE_THREADS=1 /space/mawb/anaconda3/envs/tokengs/bin/python -u scripts/smoke_object_locus_frozen_vggt_posefree_v1.py --cpu-contracts
 ```
 
-Result: `Ran 18 tests ... OK` (exit 0).
+Result: `Ran 20 tests ... OK` (exit 0).
 
 The contracts cover actual `generate()` use of 518 intrinsics for 14-pixel
 patch rays, independent ray/moment references, 518-to-256 continuous pixel
 projection, the wrong-`K256` failure case, view/raster ordering with spatially
 varying features, context-only API/legacy-camera rejection, target rendering
 with fixed membership and classes, known orientation-constrained Sim(3), zero
-and valid small baselines, optimizer exclusions, four-rank/two-microbatch GC
+and valid small baselines, optimizer exclusions, eight-rank/one-microbatch GC
 against an eight-sample gradient reference, and small checkpoint/optimizer/RNG
 restore.
 
@@ -56,3 +56,13 @@ The epoch-06 migration source checkpoint SHA and the 1377-loaded/68-excluded
 strict CPU migration report are retained in
 `docs/object_locus_frozen_vggt_posefree_weight_mapping.json` and
 `review_manifest.json`; the source checkpoint itself is not part of this repo.
+
+## 8xRTX3090 resource adaptation contracts
+
+The adapted CPU suite checks that each update shards the next eight padded
+epoch-order entries once across ranks, one sample per rank; GC averaged across
+eight simulated rank gradients matches a direct eight-sample reference with
+nonzero understanding weight; single/eight smoke exposures are 2/16; and the
+resume configuration records eight rank RNG states while retaining the fixed
+8344-update/66752-exposure schedule. The submit/job wrappers target only
+`3dimage-13`, eight GPUs, 32 CPUs, 128 GiB host memory and 48 hours.

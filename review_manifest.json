@@ -1,11 +1,10 @@
 {
-  "status": "READY_FOR_REVIEW",
+  "status": "ADAPTED_READY_TO_LAUNCH",
   "repository": "https://github.com/fufuforu/ssst",
   "worktree": "/space/mawb/ssst_object_locus_frozen_vggt_posefree_v1",
   "branch": "object-locus-frozen-vggt-posefree-v1",
   "review_base_sha": "bd3329a110803e3750aaeef573650237e536f9e2",
   "science_baseline_sha": "9ce7b18b68bae9c4c7c519b670ad1fa79a66f9a0",
-  "code_commit_sha": "6e27010adb83f8fd7db9336f0200d6174e2add0f",
   "official_vggt": {
     "repository": "https://github.com/facebookresearch/vggt",
     "source_commit": "a288dd0f14786c93483e45524328726ab7b1b4ce",
@@ -68,13 +67,13 @@
   },
   "evaluation_cohort": {
     "name": "full_validation",
-    "manifest": "data/Objaverse-A/val_pair.json",
     "sha256": "59cf5594ec2f3223a41d27d7af4da49d348ce9b00c1d151020378c9a8f4b4b3b",
-    "scenes": 1860
+    "windows": 1860,
+    "unique_scenes": 312
   },
   "cpu_checks": {
     "contract_command": "CUDA_VISIBLE_DEVICES= TORCHINDUCTOR_COMPILE_THREADS=1 /space/mawb/anaconda3/envs/tokengs/bin/python -u scripts/smoke_object_locus_frozen_vggt_posefree_v1.py --cpu-contracts",
-    "contracts_passed": 18,
+    "contracts_passed": 20,
     "contracts_failed": 0,
     "contract_result": "PASS",
     "coverage": [
@@ -84,7 +83,11 @@
       "orientation-constrained Sim(3), nontrivial first camera, zero and valid small baseline",
       "context-only generate and target render membership/p_class reuse",
       "strict migration, frozen optimizer exclusion, GC gradient reference and resume RNG/clock",
-      "fixed manifest and eval CLI contracts"
+      "fixed manifest and eval CLI contracts",
+      "eight rank shard covers each consecutive padded epoch-order group of eight exactly once",
+      "one-sample-per-rank GC gradient average and smoke exposure clocks",
+      "eight-rank RNG checkpoint structure and launcher resource/config agreement",
+      "pose-free evaluation caches per-view RGB/depth and summarizes context, target-all and true-novel with SIU3R fits"
     ],
     "real_weight_cpu_audit_command": "CUDA_VISIBLE_DEVICES= /space/mawb/anaconda3/envs/tokengs/bin/python scripts/audit_frozen_vggt_artifact_cpu.py --manifest vggt_artifact_manifest.json",
     "real_weight_cpu_audit": "PASS; strict 1341 loaded, 456 explicitly excluded, 0 missing/unexpected/shape mismatch; no forward",
@@ -94,29 +97,64 @@
       "eval": "PASS",
       "smoke": "PASS",
       "train": "PASS (runtime import deferred until prepare/train execution)"
-    }
+    },
+    "status": "PASS"
   },
   "not_run": {
     "gpu_forward_or_backward": true,
     "single_gpu_smoke": true,
-    "four_gpu_smoke": true,
+    "eight_gpu_smoke": true,
     "training": true,
     "evaluation": true,
     "slurm_submission": true
   },
   "unverified_next_phase": [
-    "real aggregator/head BF16/FP32 GPU operator compatibility",
-    "single and four RTX4090 smoke results and memory/runtime",
-    "official target-view evaluation metrics"
+    "RTX3090 BF16/FP32 operator compatibility",
+    "single/eight GPU smoke memory and runtime",
+    "formal training startup and loss/gradient stability",
+    "official full validation reconstruction and panoptic metrics"
   ],
   "review_documents": [
     "docs/object_locus_frozen_vggt_posefree_v1.md",
     "docs/object_locus_frozen_vggt_posefree_v1_review_fix.md",
     "docs/object_locus_frozen_vggt_posefree_v1_cpu_checks.md",
     "docs/object_locus_frozen_vggt_posefree_weight_mapping.json",
-    "vggt_artifact_manifest.json"
+    "vggt_artifact_manifest.json",
+    "scripts/submit_object_locus_frozen_vggt_posefree_v1.sh",
+    "scripts/run_object_locus_frozen_vggt_posefree_v1_job.sh",
+    "scripts/eval_object_locus_frozen_vggt_posefree_v1.py"
   ],
-  "launcher": "scripts/run_object_locus_frozen_vggt_posefree_v1.sh",
+  "launcher": "scripts/submit_object_locus_frozen_vggt_posefree_v1.sh",
   "scientific_deviations": [],
-  "weights_committed_to_git": false
+  "weights_committed_to_git": false,
+  "resource_adaptation": {
+    "approved_after_review_sha": "66de6f52654eebd669c93c78e1fd7e34bf1c2648",
+    "target_node": "3dimage-13",
+    "gpu_model": "RTX3090",
+    "gpu_count": 8,
+    "observed_node_state": "IDLE at code adaptation check",
+    "observed_node_gres": "gpu:3090:8",
+    "world_size": 8,
+    "microbatch_per_rank": 1,
+    "accumulation": 1,
+    "global_batch": 8,
+    "epochs": 8,
+    "updates_per_epoch": 1043,
+    "total_updates": 8344,
+    "total_exposures": 66752,
+    "slurm_cpus": 32,
+    "slurm_host_memory": "128G",
+    "slurm_walltime": "48:00:00",
+    "single_smoke_exposures": 2,
+    "eight_smoke_exposures": 16,
+    "submit_entry": "scripts/submit_object_locus_frozen_vggt_posefree_v1.sh",
+    "ordered_job_entry": "scripts/run_object_locus_frozen_vggt_posefree_v1_job.sh",
+    "cpu_contracts": "PASS: 20/20; eight-rank sample order and gradients match global-batch reference",
+    "node_memory_observed_mb": 512000,
+    "formal_run_root": "/space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1",
+    "formal_run_root_prelaunch_state": "absent; no duplicate formal run detected",
+    "startup_confirmation_path": "/space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1/startup_confirmation.json",
+    "gpu_job": "ordered single smoke -> eight-rank smoke -> fresh full training; Slurm job not yet submitted in this manifest snapshot"
+  },
+  "previous_review_commit_sha": "6e27010adb83f8fd7db9336f0200d6174e2add0f"
 }

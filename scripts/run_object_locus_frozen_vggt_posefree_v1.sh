@@ -10,7 +10,7 @@ RUN_DIR=/space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_
 ARTIFACT="$REPO/vggt_artifact_manifest.json"
 
 if [[ $# -lt 1 ]]; then
-  echo "usage: $0 {single-smoke|four-smoke|train|resume} [smoke-output-dir]" >&2
+  echo "usage: $0 {single-smoke|eight-smoke|train|resume} [smoke-output-dir]" >&2
   exit 2
 fi
 MODE=$1
@@ -27,19 +27,19 @@ case "$MODE" in
       --single-card-real --manifest "$MANIFEST" --checkpoint "$SOURCE" \
       --output-dir "$2" --vggt-revision "$REVISION" --artifact-manifest "$ARTIFACT"
     ;;
-  four-smoke)
-    [[ $# -eq 2 ]] || { echo "four-smoke requires a fresh output directory" >&2; exit 2; }
-    exec "$PYTHON" -m torch.distributed.run --standalone --nproc_per_node=4 scripts/smoke_object_locus_frozen_vggt_posefree_v1.py \
-      --four-card-real --manifest "$MANIFEST" --checkpoint "$SOURCE" \
+  eight-smoke)
+    [[ $# -eq 2 ]] || { echo "eight-smoke requires a fresh output directory" >&2; exit 2; }
+    exec "$PYTHON" -m torch.distributed.run --standalone --nproc_per_node=8 scripts/smoke_object_locus_frozen_vggt_posefree_v1.py \
+      --eight-card-real --manifest "$MANIFEST" --checkpoint "$SOURCE" \
       --output-dir "$2" --vggt-revision "$REVISION" --artifact-manifest "$ARTIFACT"
     ;;
   train)
-    exec "$PYTHON" -m torch.distributed.run --standalone --nproc_per_node=4 scripts/train_object_locus_frozen_vggt_posefree_v1.py \
+    exec "$PYTHON" -m torch.distributed.run --standalone --nproc_per_node=8 scripts/train_object_locus_frozen_vggt_posefree_v1.py \
       --run-training --manifest "$MANIFEST" --checkpoint "$SOURCE" --run-dir "$RUN_DIR" \
       --vggt-revision "$REVISION" --artifact-manifest "$ARTIFACT"
     ;;
   resume)
-    exec "$PYTHON" -m torch.distributed.run --standalone --nproc_per_node=4 scripts/train_object_locus_frozen_vggt_posefree_v1.py \
+    exec "$PYTHON" -m torch.distributed.run --standalone --nproc_per_node=8 scripts/train_object_locus_frozen_vggt_posefree_v1.py \
       --run-training --resume --manifest "$MANIFEST" --checkpoint "$SOURCE" --run-dir "$RUN_DIR" \
       --vggt-revision "$REVISION" --artifact-manifest "$ARTIFACT"
     ;;
