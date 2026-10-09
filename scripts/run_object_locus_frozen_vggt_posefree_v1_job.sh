@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-#SBATCH --job-name=vggt-pf-8x3090
+#SBATCH --job-name=vggt-pf-v2-8x3090
 #SBATCH --partition=3090
 #SBATCH --nodelist=3dimage-13
 #SBATCH --nodes=1
@@ -15,14 +15,17 @@ PYTHON=/space/mawb/anaconda3/envs/tokengs/bin/python
 ASSET_ROOT=/space/mawb/ssst_object_locus_frozen_vggt_posefree_v1_assets
 MANIFEST=/space/mawb/ssst/group_plus/object_locus_panoptic_full1201_8gpu/manifest.json
 SOURCE=/space/mawb/ssst/workspace_group_plus/object_locus_panoptic_full1201_8gpu/checkpoint_epoch_06.pt
-RUN_DIR=/space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1
-REPORT=/space/mawb/ssst/group_plus/object_locus_frozen_vggt_posefree_v1
+RUN_DIR=/space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1_calibration_v2
+REPORT=/space/mawb/ssst/group_plus/object_locus_frozen_vggt_posefree_v1/calibration_v2
 ARTIFACT="$REPO/vggt_artifact_manifest.json"
-JOB_SMOKE="$REPORT/smoke/${SLURM_JOB_ID}"
+ATTEMPT="$REPORT/attempts/${SLURM_JOB_ID}"
+JOB_SMOKE="$ATTEMPT/smoke"
+WINDOW_REPORT="$ATTEMPT/window4253"
 SINGLE_REPORT="$JOB_SMOKE/single/smoke_report.json"
 EIGHT_REPORT="$JOB_SMOKE/eight/smoke_report.json"
 
-mkdir -p "$JOB_SMOKE"
+mkdir -p "$ATTEMPT" "$REPORT/slurm" "$JOB_SMOKE"
+export POSEFREE_V2_EVIDENCE_DIR="$ATTEMPT"
 export HF_HUB_CACHE="$ASSET_ROOT/hf_cache/hub"
 export HF_HUB_OFFLINE=1
 export PYTHONPATH="$ASSET_ROOT/vggt_source_checkout:$REPO${PYTHONPATH:+:$PYTHONPATH}"
@@ -40,7 +43,29 @@ IFS=',' read -r -a allocated_gpus <<< "$CUDA_VISIBLE_DEVICES"
 free -h
 [[ "$(/space/mawb/anaconda3/envs/tokengs/bin/python -c 'import json,sys;print(json.load(open(sys.argv[1]))["hf_revision"])' "$ARTIFACT")" == 860abec7937da0a4c03c41d3c269c366e82abdf9 ]]
 
+ATTEMPT_ROOT="$ATTEMPT" TASK_CODE_SHA="$TASK_CODE_SHA" TASK_JOB_ID="$SLURM_JOB_ID" \
+  "$PYTHON" - <<'PY'
+import json,os
+from pathlib import Path
+root=Path(os.environ['ATTEMPT_ROOT'])
+record={'slurm_job_id':os.environ['TASK_JOB_ID'],'execution_git_sha':os.environ['TASK_CODE_SHA'],
+        'calibration_protocol':'shared_context_depth_sim3_v2','node':'3dimage-13',
+        'gpu':'RTX3090','world_size':8,'microbatch_per_rank':1,'accumulation':1}
+(root/'attempt_manifest.json').write_text(json.dumps(record,indent=2)+'\n')
+jobs=root.parent/'jobs.json';rows=json.loads(jobs.read_text()) if jobs.is_file() else []
+rows.append(record);tmp=jobs.with_suffix('.json.tmp');tmp.write_text(json.dumps(rows,indent=2)+'\n');tmp.replace(jobs)
+PY
+
 single_gpu=${CUDA_VISIBLE_DEVICES%%,*}
+printf 'stage=window4253_calibration_v2_start gpu=%s time=%s\n' "$single_gpu" "$(date -Is)"
+env -u RANK -u WORLD_SIZE -u LOCAL_RANK -u MASTER_ADDR -u MASTER_PORT \
+  CUDA_VISIBLE_DEVICES="$single_gpu" HF_HUB_CACHE="$HF_HUB_CACHE" HF_HUB_OFFLINE=1 \
+  PYTHONPATH="$PYTHONPATH" OMP_NUM_THREADS=4 "$PYTHON" -u \
+  scripts/smoke_object_locus_frozen_vggt_posefree_v1.py --window-4253-calibration \
+  --manifest "$MANIFEST" --checkpoint "$SOURCE" --output-dir "$WINDOW_REPORT" \
+  --vggt-revision 860abec7937da0a4c03c41d3c269c366e82abdf9 --artifact-manifest "$ARTIFACT"
+printf 'stage=window4253_calibration_v2_pass time=%s\n' "$(date -Is)"
+
 printf 'stage=single_smoke_start gpu=%s time=%s\n' "$single_gpu" "$(date -Is)"
 env -u RANK -u WORLD_SIZE -u LOCAL_RANK -u MASTER_ADDR -u MASTER_PORT \
   CUDA_VISIBLE_DEVICES="$single_gpu" HF_HUB_CACHE="$HF_HUB_CACHE" HF_HUB_OFFLINE=1 \
@@ -60,7 +85,9 @@ export POSEFREE_SINGLE_SMOKE_REPORT="$SINGLE_REPORT"
 export POSEFREE_EIGHT_SMOKE_REPORT="$EIGHT_REPORT"
 
 TRAIN_ARGS=(--run-training --manifest "$MANIFEST" --checkpoint "$SOURCE" --run-dir "$RUN_DIR" \
-  --vggt-revision 860abec7937da0a4c03c41d3c269c366e82abdf9 --artifact-manifest "$ARTIFACT")
+  --vggt-revision 860abec7937da0a4c03c41d3c269c366e82abdf9 --artifact-manifest "$ARTIFACT" \
+  --calibration-report "$WINDOW_REPORT/window4253_context_sim3_v2.json" \
+  --single-smoke-report "$SINGLE_REPORT" --eight-smoke-report "$EIGHT_REPORT")
 if [[ "${TASK_RESUME:-0}" == 1 ]]; then TRAIN_ARGS+=(--resume); fi
 printf 'stage=formal_training_start resume=%s time=%s\n' "${TASK_RESUME:-0}" "$(date -Is)"
 exec "$PYTHON" -m torch.distributed.run --standalone --nnodes=1 --nproc_per_node=8 \

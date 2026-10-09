@@ -1,5 +1,5 @@
 {
-  "status": "ADAPTED_READY_TO_LAUNCH",
+  "status": "V2_IMPLEMENTED_AWAITING_GPU_VALIDATION",
   "repository": "https://github.com/fufuforu/ssst",
   "worktree": "/space/mawb/ssst_object_locus_frozen_vggt_posefree_v1",
   "branch": "object-locus-frozen-vggt-posefree-v1",
@@ -73,7 +73,7 @@
   },
   "cpu_checks": {
     "contract_command": "CUDA_VISIBLE_DEVICES= TORCHINDUCTOR_COMPILE_THREADS=1 /space/mawb/anaconda3/envs/tokengs/bin/python -u scripts/smoke_object_locus_frozen_vggt_posefree_v1.py --cpu-contracts",
-    "contracts_passed": 20,
+    "contracts_passed": 24,
     "contracts_failed": 0,
     "contract_result": "PASS",
     "coverage": [
@@ -87,7 +87,9 @@
       "eight rank shard covers each consecutive padded epoch-order group of eight exactly once",
       "one-sample-per-rank GC gradient average and smoke exposure clocks",
       "eight-rank RNG checkpoint structure and launcher resource/config agreement",
-      "pose-free evaluation caches per-view RGB/depth and summarizes context, target-all and true-novel with SIU3R fits"
+      "pose-free evaluation caches per-view RGB/depth and summarizes context, target-all and true-novel with SIU3R fits",
+      "shared-context depth point weighted Umeyama with fixed five-step Huber IRLS, geometry gates, and output immutability",
+      "shared-context depth point weighted Umeyama with current-residual five-step Huber IRLS, geometry gates, old-scale evidence, and generated-state immutability"
     ],
     "real_weight_cpu_audit_command": "CUDA_VISIBLE_DEVICES= /space/mawb/anaconda3/envs/tokengs/bin/python scripts/audit_frozen_vggt_artifact_cpu.py --manifest vggt_artifact_manifest.json",
     "real_weight_cpu_audit": "PASS; strict 1341 loaded, 456 explicitly excluded, 0 missing/unexpected/shape mismatch; no forward",
@@ -101,7 +103,7 @@
     "status": "PASS"
   },
   "not_run": {
-    "gpu_forward_or_backward": true,
+    "window_4253_real_calibration": true,
     "single_gpu_smoke": true,
     "eight_gpu_smoke": true,
     "training": true,
@@ -156,5 +158,7 @@
     "startup_confirmation_path": "/space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1/startup_confirmation.json",
     "gpu_job": "ordered single smoke -> eight-rank smoke -> fresh full training; Slurm job not yet submitted in this manifest snapshot"
   },
-  "previous_review_commit_sha": "6e27010adb83f8fd7db9336f0200d6174e2add0f"
+  "previous_review_commit_sha": "6e27010adb83f8fd7db9336f0200d6174e2add0f",
+  "calibration_protocol": "shared_context_depth_sim3_v2",
+  "v2_gpu_validation": "pending ordered task job; no GPU forward run on login host"
 }

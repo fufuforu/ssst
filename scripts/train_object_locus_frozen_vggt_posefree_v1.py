@@ -18,7 +18,10 @@ def main(argv=None):
     parser.add_argument('--prepare-only',action='store_true',help='validate local manifest and print the review plan')
     parser.add_argument('--manifest',type=Path,default=None)
     parser.add_argument('--checkpoint',type=Path,default=CHECKPOINT)
-    parser.add_argument('--run-dir',type=Path,default=Path('/space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1'))
+    parser.add_argument('--run-dir',type=Path,default=Path('/space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1_calibration_v2'))
+    parser.add_argument('--calibration-report',type=Path,help='passed fixed-window 4253 v2 report (required for fresh training)')
+    parser.add_argument('--single-smoke-report',type=Path,help='passed one-card real smoke report (required for fresh training)')
+    parser.add_argument('--eight-smoke-report',type=Path,help='passed eight-card real smoke report (required for fresh training)')
     parser.add_argument('--artifact-manifest',type=Path,default=Path(__file__).resolve().parents[1]/'vggt_artifact_manifest.json')
     parser.add_argument('--resume',action='store_true',help='restore latest model, optimizer, clock, sampler and per-rank RNG')
     parser.add_argument('--vggt-revision',default=os.environ.get('VGGT_HF_REVISION'),
@@ -36,7 +39,9 @@ def main(argv=None):
             raise SystemExit('--run-training requires --vggt-revision with a reviewed full 40-character HF SHA')
         from scripts.object_locus_frozen_vggt_posefree_runtime import run_training
         result=run_training(manifest_path=args.manifest or Path('/space/mawb/ssst/group_plus/object_locus_panoptic_full1201_8gpu/manifest.json'),
-                            checkpoint=args.checkpoint,run_dir=args.run_dir,hf_revision=args.vggt_revision,resume=args.resume)
+                            checkpoint=args.checkpoint,run_dir=args.run_dir,hf_revision=args.vggt_revision,resume=args.resume,
+                            calibration_report=args.calibration_report,single_smoke_report=args.single_smoke_report,
+                            eight_smoke_report=args.eight_smoke_report)
         print(json.dumps(result,indent=2,sort_keys=True))
         return result
     record=plan_record()

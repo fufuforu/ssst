@@ -100,22 +100,23 @@ fails the reference.
 ## Training camera calibration and evaluation boundary
 
 Training makes a separate frozen VGGT pass over the existing two-context plus
-supervision-view RGB crops. It exposes only calibration cameras to the loss
-wrapper; generated Gaussians, features, depth, and query never consume this pass.
-The shared context camera orientations determine the SO(3) Procrustes rotation;
-the shared context baseline determines a positive least-squares scale; shared
-centers determine translation. The target cameras are transformed into the
-context-only first-camera frame and receive `a_scale`. The two context loss
-cameras are replaced by exact context-only predictions. Novel cameras use the
-independently aligned calibration pass. Degenerate baselines, nonpositive scales,
-and nonfinite cameras raise errors.
+supervision-view RGB crops. It exposes only calibration cameras and the two
+shared-context depth/confidence maps to the calibration wrapper; generated
+Gaussians, generation features, and queries never consume this pass. It uses the
+fixed shared pixel correspondences and weighted FP64 point Sim(3) specified in
+the v2 section below. The resulting transform maps the independent cameras
+directly into the context-only normalized generation scene. It does not apply
+first-camera normalization or `a_scale` again. The two context loss cameras are
+replaced by exact context-only predictions; novel cameras use the independently
+aligned calibration pass. Geometry gates fail explicitly without GT fallback.
 
 The loss wrapper shallow-copies the batch and substitutes predicted/aligned
 camera matrices, pixel intrinsics, and rays. It leaves provider storage, RGB,
 semantic labels, and instance masks untouched.
 
 The official evaluator follows the same boundary: `generate` receives contexts;
-an independent camera-only pass calibrates the fixed full-validation views;
+an independent camera/depth calibration pass fits shared context points and
+calibrates the fixed full-validation views;
 `render_generated_at` then re-renders reconstruction and feature channels at
 those cameras. It reuses the exact generated Gaussian membership and `p_class`;
 it does not regenerate queries, lift understanding features, or call `_readout`
@@ -217,3 +218,44 @@ access. The approved launcher targets `3dimage-13`; it submits one 8-GPU job wit
 scripts/submit_object_locus_frozen_vggt_posefree_v1.sh
 PYTHONPATH=/space/mawb/ssst_object_locus_frozen_vggt_posefree_v1_assets/vggt_source_checkout:/space/mawb/ssst_object_locus_frozen_vggt_posefree_v1 HF_HUB_CACHE=/space/mawb/ssst_object_locus_frozen_vggt_posefree_v1_assets/hf_cache/hub HF_HUB_OFFLINE=1 python scripts/eval_object_locus_frozen_vggt_posefree_v1.py --checkpoint /space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1/checkpoint_epoch_08.pt --manifest /space/mawb/ssst/group_plus/object_locus_panoptic_full1201_8gpu/manifest.json --cohort full_validation --output-root /space/mawb/ssst/group_plus/object_locus_frozen_vggt_posefree_v1_eval_epoch08 --vggt-revision 860abec7937da0a4c03c41d3c269c366e82abdf9 --artifact-manifest /space/mawb/ssst_object_locus_frozen_vggt_posefree_v1/vggt_artifact_manifest.json --device cuda
 ```
+
+## Shared-context depth point calibration v2 (2026-10-09)
+
+The reviewed calibration protocol is now `shared_context_depth_sim3_v2`. The
+independent full-window VGGT pass runs its aggregator once over context plus
+supervision RGB, decodes all cameras, and applies the official depth head to the
+first two view tokens from that same aggregated window. Because global/frame
+attention may mix information from all input views, the independent context
+features and resulting depth can depend on target RGB; these tensors remain
+calibration-only and never enter `generate` or its Gaussian/query/membership
+state.
+
+At fixed rows/columns `7 + 14*i`, pixel centers in 518 coordinates, the
+independent context axial depth and K518 produce raw-world points X. The
+context-only pass's `predicted_points` provide target points Y directly in the
+first-context normalized scene. Confidence scores from both passes are finite,
+positive validity signals and are converted to within-view empirical midranks;
+they are not interpreted as probabilities. The fixed base confidence weight is
+`0.05 + 0.95*sqrt(pct_A*pct_B)` and each shared view contributes total weight
+0.5. A weighted FP64 Umeyama Sim(3) is fit after weighted centering and RMS
+normalization, followed by exactly one initial fit and five fixed Huber IRLS
+refits. Normalized source and target covariance must have second/first
+ eigenvalue ratio at least `1e-6`; planar sets are allowed, collinear sets fail.
+The transform maps independent raw world points and cameras directly into the
+context-only scene, so there is no second first-camera inverse or median-depth
+scale application.
+
+Every window must have at least 32 valid sampled correspondences in each view,
+positive Z ratio at least 95%, reprojection median at most 4 pixels and p90 at
+most 12 pixels at 256 resolution. The fit checks finite camera/transform values,
+SO(3) at FP64 tolerance `1e-8`, and positive scale. Failure is a geometry block;
+there is no GT fallback, window skipping, threshold relaxation, or old-method
+fallback. Reports include per-view point counts, 3D residuals normalized by the
+context scene median depth, reprojection residuals, positive-Z counts, confidence
+weight sums and pre-override shared camera differences. Fixed window 4253 saves
+old signed-baseline diagnostics and compact point/camera evidence; each training
+window only adds compact scalars unless calibration fails.
+
+The ordered 3dimage-13 job first runs window 4253, then fresh one-card and
+eight-card real smokes, then starts a fresh eight-card formal run. This v2
+calibration and all GPU stages remain unverified until those job reports exist.

@@ -26,6 +26,7 @@ from scripts.runtime_bootstrap import prepare_runtime
 prepare_runtime(REPO)
 
 from tokengs.models.frozen_vggt_posefree import FrozenVGGT
+from tokengs.models.object_locus_posefree_geometry import ContextDepthSim3Error, old_shared_context_alignment_diagnostics
 
 MANIFEST=Path('/space/mawb/ssst/group_plus/object_locus_panoptic_full1201_8gpu/manifest.json')
 CHECKPOINT=Path('/space/mawb/ssst/workspace_group_plus/object_locus_panoptic_full1201_8gpu/checkpoint_epoch_06.pt')
@@ -43,6 +44,7 @@ UPDATES_PER_EPOCH=1043
 TOTAL_UPDATES=8344
 TOTAL_EXPOSURES=66752
 VGGT_ARTIFACT_MANIFEST=REPO/'vggt_artifact_manifest.json'
+CALIBRATION_PROTOCOL='shared_context_depth_sim3_v2'
 if WORLD_SIZE*MICRO_BATCH*ACCUMULATION!=GLOBAL_BATCH:
     raise RuntimeError('resource adaptation must preserve global batch 8')
 
@@ -249,6 +251,20 @@ def synchronized_error(error,device,stage,update):
         raise RuntimeError(f"synchronized {stage} error at update {update} on rank {rank}: {detail}") from error
 
 
+def save_calibration_failure(error,update,rank,stage='formal_training'):
+    if not isinstance(error,ContextDepthSim3Error): return None
+    root=os.environ.get('POSEFREE_V2_EVIDENCE_DIR')
+    if not root: return None
+    directory=Path(root)/'geometry_failures'/stage/f'update_{int(update):06d}_rank_{int(rank)}'
+    directory.mkdir(parents=True,exist_ok=True)
+    _write_json_atomic(directory/'calibration_failure.json',{'protocol':CALIBRATION_PROTOCOL,
+        'status':'GEOMETRY_BLOCKED','update':int(update),'rank':int(rank),
+        'error':str(error),'diagnostics':error.diagnostics})
+    if error.points:
+        np.savez_compressed(directory/'calibration_failure_points.npz',**error.points)
+    return str(directory)
+
+
 def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world_size=None):
     """Two-microbatch GC step with one accumulated gradient family per parameter."""
     if len(batches)!=ACCUMULATION: raise ValueError(f"each rank must receive exactly {ACCUMULATION} accumulation microbatches")
@@ -265,7 +281,13 @@ def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world
             output,metrics=model.step_loss(batch,step=base_exposure,understanding_weight=weight)
             if not all(torch.isfinite(metrics[key]).all() for key in ('loss_recon','loss_understanding')):
                 raise FloatingPointError('nonfinite reconstruction/understanding loss')
-        except Exception as exc:error=exc
+        except Exception as exc:
+            error=exc
+            if isinstance(error,ContextDepthSim3Error):
+                rank=torch.distributed.get_rank() if torch.distributed.is_initialized() else 0
+                try: save_calibration_failure(error,update,rank)
+                except Exception as save_exc:
+                    error=RuntimeError(f"{exc}; saving geometry evidence failed: {save_exc}")
         synchronized_error(error,device,'forward',int(update))
         error=None
         try:
@@ -279,8 +301,20 @@ def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world
             combined_acc=[None if g is None and old is None else
                 (torch.zeros_like(p) if old is None else old)+(torch.zeros_like(p) if g is None else g)
                 for p,old,g in zip(params,combined_acc,mixed)]
+            calibration_row=None
+            calibration=output.get('prediction',{}).get('target_camera_calibration') if isinstance(output,dict) else None
+            if calibration is not None:
+                ds=calibration['diagnostics'][0]
+                calibration_row={'protocol':CALIBRATION_PROTOCOL,'scale':ds['s'],
+                    'valid_points':[v['valid_count'] for v in ds['views']],
+                    'positive_z_ratio':[v['positive_z_ratio'] for v in ds['views']],
+                    'reprojection_median_px':[v['reprojection_median_px'] for v in ds['views']],
+                    'reprojection_p90_px':[v['reprojection_p90_px'] for v in ds['views']],
+                    'residual_3d_median_over_scene_median_depth':[
+                        v['residual_3d_median_over_scene_median_depth'] for v in ds['views']]}
             local_rows.append({'loss_recon':float(metrics['loss_recon'].detach()),
-                'loss_understanding':float(metrics['loss_understanding'].detach())})
+                'loss_understanding':float(metrics['loss_understanding'].detach()),
+                'calibration':calibration_row})
             del rec,under,mixed
         except Exception as exc:
             error=exc
@@ -313,6 +347,7 @@ def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world
          'understanding_weight':weight,'beta':beta,'lr_multiplier':mult,'preclip_norm':float(norm),
          'loss_recon':sum(x['loss_recon'] for x in local_rows)/len(local_rows),
          'loss_understanding':sum(x['loss_understanding'] for x in local_rows)/len(local_rows),
+         'calibration':local_rows[0]['calibration'],
          'group_lr':{g['name']:g['lr'] for g in optimizer.param_groups}}
     if device.type=='cuda':
         row.update(allocated=torch.cuda.memory_allocated(device),reserved=torch.cuda.memory_reserved(device),
@@ -331,7 +366,11 @@ def plan_record():
 
 
 def training_configuration():
-    return {'node':'3dimage-13','gpu_model':'RTX3090','world_size':WORLD_SIZE,
+    return {'calibration_protocol':CALIBRATION_PROTOCOL,
+        'calibration_acceptance':{'min_valid_points_per_view':32,'min_positive_z_ratio':.95,
+            'max_reprojection_median_px':4.,'max_reprojection_p90_px':12.,
+            'min_covariance_second_eigen_ratio':1e-6,'huber_irls_iterations':5},
+        'node':'3dimage-13','gpu_model':'RTX3090','world_size':WORLD_SIZE,
         'global_batch':GLOBAL_BATCH,'microbatch':MICRO_BATCH,
         'accumulation':ACCUMULATION,'epochs':EPOCHS,'updates_per_epoch':UPDATES_PER_EPOCH,
         'total_updates':TOTAL_UPDATES,'gc_alpha':.01,
@@ -385,6 +424,121 @@ def build_model(*, checkpoint: Path=CHECKPOINT, opt=None,
     return model,opt,transfer,provenance
 
 
+def _json_finite(value):
+    if torch.is_tensor(value): return _json_finite(value.detach().cpu().tolist())
+    if isinstance(value,np.ndarray): return _json_finite(value.tolist())
+    if isinstance(value,dict): return {str(k):_json_finite(v) for k,v in value.items()}
+    if isinstance(value,(list,tuple)): return [_json_finite(v) for v in value]
+    if isinstance(value,(float,np.floating)) and not math.isfinite(float(value)): return None
+    if isinstance(value,(np.integer,np.floating)): return value.item()
+    return value
+
+
+def _write_json_atomic(path: Path, value):
+    path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)
+    temp=path.with_suffix(path.suffix+'.tmp')
+    temp.write_text(json.dumps(_json_finite(value),indent=2,allow_nan=False)+'\n')
+    os.replace(temp,path)
+
+
+def run_window4253_calibration(*, output_dir: Path, manifest_path: Path=MANIFEST,
+                               checkpoint: Path=CHECKPOINT, hf_revision: str,
+                               artifact_manifest: Path=VGGT_ARTIFACT_MANIFEST):
+    """Capture old signed-baseline evidence and validate v2 on fixed window 4253."""
+    if socket.gethostname().split('.')[0]!='3dimage-13':
+        raise RuntimeError('window 4253 real calibration check is pinned to 3dimage-13')
+    if not torch.cuda.is_available(): raise RuntimeError('window 4253 calibration requires its allocated CUDA device')
+    if int(os.environ.get('WORLD_SIZE','1'))!=1:
+        raise RuntimeError('window 4253 calibration evidence must run as a single process')
+    local=int(os.environ.get('LOCAL_RANK','0'));torch.cuda.set_device(local)
+    device=torch.device(f'cuda:{local}')
+    if '3090' not in torch.cuda.get_device_name(local): raise RuntimeError('RTX3090 required for window 4253 calibration')
+    seed_everything(42);os.environ['VGGT_HF_REVISION']=hf_revision
+    output_dir=Path(output_dir);output_dir.mkdir(parents=True,exist_ok=False)
+    from scripts.object_locus_v3_set_runtime import build_batch
+    model,opt,transfer,provenance=build_model(checkpoint=checkpoint,artifact_manifest=artifact_manifest)
+    model.to(device);model.eval();model.frozen_vggt.eval()
+    manifest,_,windows=load_manifest(manifest_path)
+    if len(windows)<=4253: raise RuntimeError('locked manifest has no window index 4253')
+    window=windows[4253]
+    batch=build_batch(opt,window,device)
+    context=batch['images_input'];all_rgb=batch['images_all']
+    shared_equal=torch.equal(context,all_rgb[:,:2])
+    if not shared_equal: raise RuntimeError('window 4253 context RGB differs between generation and calibration inputs')
+    with torch.no_grad():
+        generated=model.generate(context)
+        calibration_pass=model.frozen_vggt.calibration_with_context_depth(all_rgb)
+    old=old_shared_context_alignment_diagnostics(
+        calibration_pass['c2w_cv'][:,:3],generated['coordinates']['raw_c2w_cv'])
+    old_payload={'window_index':4253,'window':window,'status':'RECORDED',
+        'old_protocol':'orientation constrained SO(3) plus signed least squares center baseline scale',
+        'context_rgb_exactly_shared':shared_equal,
+        'c2w_all_raw':calibration_pass['c2w_cv'].detach().cpu().tolist(),
+        'c2w_context_only_raw':generated['coordinates']['raw_c2w_cv'].detach().cpu().tolist(),
+        'old_alignment':old,'official_vggt':generated['vggt_source_identity'],
+        'source_checkpoint':provenance,'manifest_sha256':sha256(manifest_path)}
+    _write_json_atomic(output_dir/'window4253_old_alignment.json',old_payload)
+    observed={key:generated[key].detach().clone() for key in
+        ('gaussians','gaussian_membership','p_class','predicted_points') if torch.is_tensor(generated.get(key))}
+    if generated.get('states'):
+        observed['last_state_tokens']=generated['states'][-1]['tokens'].detach().clone()
+    try:
+        calibrated=model._calibrate_result(generated,calibration_pass)
+    except Exception as exc:
+        status='GEOMETRY_BLOCKED' if isinstance(exc,ContextDepthSim3Error) else 'ENGINEERING_ERROR'
+        new_payload={'window_index':4253,'window':window,'status':status,
+            'error_type':type(exc).__name__,'error':str(exc),
+            'diagnostics':getattr(exc,'diagnostics',None),
+            'c2w_all_raw':calibration_pass['c2w_cv'].detach().cpu().tolist(),
+            'k518_all':calibration_pass['intrinsics518'].detach().cpu().tolist(),
+            'c2w_context_only_raw':generated['coordinates']['raw_c2w_cv'].detach().cpu().tolist(),
+            'k518_context_only':generated['predicted_context_intrinsics518'].detach().cpu().tolist(),
+            'depth_context_from_full_window_aggregator':True,
+            'old_alignment_file':'window4253_old_alignment.json'}
+        # Record actual context K and the generated scene projection matrix.
+        new_payload['k256_context_only']=generated['predicted_context_intrinsics_matrix'].detach().cpu().tolist()
+        new_payload['official_vggt']=generated['vggt_source_identity']
+        _write_json_atomic(output_dir/'window4253_context_sim3_v2.json',new_payload)
+        point_rows=getattr(exc,'points',{})
+        np.savez_compressed(output_dir/'window4253_context_sim3_v2_points.npz',**point_rows,
+            c2w_all_raw=calibration_pass['c2w_cv'].detach().cpu().numpy(),
+            k518_all=calibration_pass['intrinsics518'].detach().cpu().numpy(),
+            c2w_context_only_raw=generated['coordinates']['raw_c2w_cv'].detach().cpu().numpy(),
+            k256_context_only=generated['predicted_context_intrinsics_matrix'].detach().cpu().numpy())
+        raise
+    changed=[key for key,value in observed.items() if not torch.equal(value,
+        generated['states'][-1]['tokens'] if key=='last_state_tokens' else generated[key])]
+    if changed: raise RuntimeError(f'calibration mutated generated model outputs: {changed}')
+    point_row=calibrated['point_records'][0]
+    np.savez_compressed(output_dir/'window4253_context_sim3_v2_points.npz',**point_row,
+        c2w_all_raw=calibration_pass['c2w_cv'].detach().cpu().numpy(),
+        k518_all=calibration_pass['intrinsics518'].detach().cpu().numpy(),
+        c2w_aligned=calibrated['c2w'].detach().cpu().numpy(),
+        c2w_context_only=generated['predicted_context_c2w'].detach().cpu().numpy(),
+        k256_context_only=generated['predicted_context_intrinsics_matrix'].detach().cpu().numpy())
+    payload={'window_index':4253,'window':window,'status':'PASS',
+        'calibration_protocol':CALIBRATION_PROTOCOL,'context_rgb_exactly_shared':shared_equal,
+        'depth_context_from_full_window_aggregator':True,
+        'diagnostics':calibrated['diagnostics'],
+        'c2w_all_raw':calibration_pass['c2w_cv'].detach().cpu().tolist(),
+        'c2w_aligned':calibrated['c2w'].detach().cpu().tolist(),
+        'c2w_context_only':generated['predicted_context_c2w'].detach().cpu().tolist(),
+        'k518_all':calibration_pass['intrinsics518'].detach().cpu().tolist(),
+        'k256_aligned':calibrated['intrinsics_matrix'].detach().cpu().tolist(),
+        'old_alignment_file':'window4253_old_alignment.json',
+        'points_file':'window4253_context_sim3_v2_points.npz',
+        'generated_outputs_unchanged_after_calibration':True,
+        'official_vggt':generated['vggt_source_identity'],'source_checkpoint':provenance,
+        'migration_counts':transfer['counts'],'manifest_sha256':sha256(manifest_path)}
+    _write_json_atomic(output_dir/'window4253_context_sim3_v2.json',payload)
+    print(json.dumps({'window_index':4253,'status':'PASS','s':calibrated['diagnostics'][0]['s'],
+        'reprojection_median_px':[v['reprojection_median_px'] for v in calibrated['diagnostics'][0]['views']],
+        'reprojection_p90_px':[v['reprojection_p90_px'] for v in calibrated['diagnostics'][0]['views']]},allow_nan=False),flush=True)
+    del model,generated,calibration_pass,batch
+    torch.cuda.empty_cache()
+    return payload
+
+
 def capture_rank_rng():
     return {'python':random.getstate(),'numpy':np.random.get_state(),
         'torch_cpu':torch.get_rng_state(),'torch_cuda':torch.cuda.get_rng_state_all() if torch.cuda.is_available() else []}
@@ -416,8 +570,11 @@ def _atomic_save(payload,path: Path):
 
 
 def run_training(*, manifest_path: Path=MANIFEST, checkpoint: Path=CHECKPOINT,
-                 run_dir: Path=Path('/space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1'),
-                 hf_revision: str, resume: bool=False):
+                 run_dir: Path=Path('/space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1_calibration_v2'),
+                 hf_revision: str, resume: bool=False,
+                 calibration_report: Path | None=None,
+                 single_smoke_report: Path | None=None,
+                 eight_smoke_report: Path | None=None):
     """Explicit 8xRTX3090 launcher for the reviewed resource adaptation."""
     import torch.distributed as dist
     if socket.gethostname().split('.')[0] != '3dimage-13':
@@ -436,6 +593,24 @@ def run_training(*, manifest_path: Path=MANIFEST, checkpoint: Path=CHECKPOINT,
     if resume:
         if not latest.is_file():raise FileNotFoundError(f'--resume requires {latest}')
     elif run_dir.exists() and any(run_dir.iterdir()): raise RuntimeError(f'run directory is not empty: {run_dir}; pass --resume to restore')
+    if not resume:
+        required_reports=(('window4253',calibration_report,'window4253_context_sim3_v2.json','PASS'),
+                          ('single smoke',single_smoke_report,'smoke_report.json','GPU_SMOKE_COMPLETED'),
+                          ('eight-card smoke',eight_smoke_report,'smoke_report.json','GPU_SMOKE_COMPLETED'))
+        for label,path,filename,status in required_reports:
+            if path is None:raise RuntimeError(f'fresh training requires the passed {label} report')
+            path=Path(path)
+            if path.is_dir():path=path/filename
+            if not path.is_file():raise FileNotFoundError(f'required {label} report missing: {path}')
+            report=json.loads(path.read_text())
+            if report.get('status')!=status:
+                raise RuntimeError(f'{label} has not passed: {path} status={report.get("status")!r}')
+            if label=='window4253' and report.get('calibration_protocol')!=CALIBRATION_PROTOCOL:
+                raise RuntimeError('window 4253 report uses the wrong calibration protocol')
+            if label=='single smoke' and (report.get('mode')!='single' or report.get('world_size')!=1):
+                raise RuntimeError('single-card smoke report identity mismatch')
+            if label=='eight-card smoke' and (report.get('mode')!='eight' or report.get('world_size')!=WORLD_SIZE):
+                raise RuntimeError('eight-card smoke report identity mismatch')
     manifest,scenes,windows=load_manifest(manifest_path)
     manifest_digest=sha256(manifest_path)
     os.environ['VGGT_HF_REVISION']=hf_revision
@@ -458,7 +633,13 @@ def run_training(*, manifest_path: Path=MANIFEST, checkpoint: Path=CHECKPOINT,
             'vggt_source':model.frozen_vggt.source_identity,'optimizer':'AdamW',
             'seeds':{'common_model_initialization':42,'per_rank_training_rng':[42+r for r in range(WORLD_SIZE)],'memory_adapter_isolated':31415},
             'optimizer_state_restored':False,'scheduler_state_restored':False,'rng_state_restored':False,
+            'calibration_protocol':CALIBRATION_PROTOCOL,
             'evaluation_launched':False},indent=2)+'\n')
+        if not resume:
+            _write_json_atomic(run_dir/'training_plan.json',{
+                'calibration_protocol':CALIBRATION_PROTOCOL,'plan':plan_record(),
+                'training_configuration':training_configuration(),
+                'manifest_sha256':manifest_digest,'execution_git_sha':execution_sha})
     dist.barrier()
     total_counts=np.zeros(EXPECTED_WINDOWS,dtype=np.int64)
     completed=0;start_epoch=0;last_row=None
@@ -643,6 +824,8 @@ def run_real_smoke(*, mode: str, manifest_path: Path=MANIFEST, checkpoint: Path=
             raise RuntimeError('smoke VGGT camera/depth output shape mismatch')
         if not all(torch.isfinite(x).all() for x in (*raw_vggt.patch_layers,raw_vggt.c2w_cv,raw_vggt.intrinsics518,raw_vggt.depth518)):
             raise FloatingPointError('smoke VGGT outputs contain nonfinite values')
+        if raw_vggt.confidence518.shape!=(1,2,1,518,518) or not torch.isfinite(raw_vggt.confidence518).all():
+            raise FloatingPointError('smoke VGGT confidence output is malformed or nonfinite')
         del raw_vggt
         preview_generated=model.generate(preview_batch['images_input'])
         preview_calibration=model.calibrate_targets(preview_batch['images_all'],preview_generated)
@@ -651,6 +834,7 @@ def run_real_smoke(*, mode: str, manifest_path: Path=MANIFEST, checkpoint: Path=
             not torch.isfinite(preview_calibration['c2w']).all() or
             not torch.isfinite(preview_calibration['intrinsics']).all()):
             raise RuntimeError('smoke calibrated camera outputs are malformed or nonfinite')
+        preview_calibration_diagnostics=preview_calibration['diagnostics']
         preview_view=model.render_generated_at(preview_generated,
             torch.linalg.inv(preview_calibration['c2w']).transpose(-1,-2),preview_calibration['intrinsics'])
     for key in ('images_pred','gaussians','gaussian_membership','p_class','region_mass','semantic_scores','alpha'):
@@ -700,6 +884,8 @@ def run_real_smoke(*, mode: str, manifest_path: Path=MANIFEST, checkpoint: Path=
             'exposures':formal_completed_exposure,'formal_schedule_start_exposure':0,
             'understanding_diagnostic':'separate weight=1 backward; no optimizer step or clock increment',
             'source_checkpoint':provenance,'migration_counts':transfer['counts'],
+            'calibration_protocol':CALIBRATION_PROTOCOL,
+            'target_calibration_diagnostics':preview_calibration_diagnostics,
             'initial_seeds':{'common_model_initialization':42,'rank_training_rng':[42+r for r in range(expected)],'memory_adapter_isolated':31415},
             'vggt_artifact':model.frozen_vggt.source_identity,
             'manifest_sha256':sha256(manifest_path),'window_indices':planned_windows,

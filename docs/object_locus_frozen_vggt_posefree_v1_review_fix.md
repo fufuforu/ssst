@@ -27,3 +27,15 @@ single-card, eight-card, training, resume, and evaluation commands.
 | Smoke reporting retained only rank 0 and did not encode the new exposure clock. | The single smoke records 2 exposures; eight-rank smoke records all ranks and 16 exposures; formal run writes startup confirmation only after eight ranks synchronize update 20 (160 exposures). | CPU tests check config and smoke clocks; real GPU results and startup confirmation are written by the authorized ordered Slurm run. |
 | Resume required the exact prior Git SHA. | Resume permits pure code/logging/interface revisions while requiring matching manifest, eight-rank recipe, artifact identity, strict non-VGGT keys/shapes and sampler boundary. | Resume configuration and eight RNG slots are covered by CPU contracts; formal resume is selected only when an eight-rank latest checkpoint exists. |
 | Full-validation count was reported as scenes and reconstruction quality metrics were omitted. | Manifest now records 1860 windows / 312 unique scenes. Pose-free evaluator saves RGB/depth reconstruction caches and reduces context, target-all and true-novel PSNR/SSIM/LPIPS and SIU3R per-image scale-and-shift AbsRel/RMSE. | CPU cache contract checks view IDs and RGB/depth shapes. Formal evaluation remains unlaunched. |
+
+## Shared-context depth calibration v2
+
+| Original issue | Fix | Evidence |
+|---|---|---|
+| The old orientation-plus-baseline fit produced a scale error on fixed window 4253; its actual signed value had never been captured. | Added a non-throwing old-formula diagnostic with raw cameras, baselines, lengths, SO(3), numerator/denominator, signed scale, angle, center-formula comparison, finite flags and nonfinite element indices. The 4253 runtime writes this before attempting v2. | CPU diagnostic verifies signed scale/center formula agreement and records a NaN camera index without aborting. The real 4253 values await the node-13 run. |
+| A camera baseline alone can fail to align two independent VGGT passes. | Replaced training calibration with fixed shared-pixel depth correspondences, per-view confidence midrank weights, FP64 normalized weighted Umeyama and exactly five Huber IRLS refits. Cameras map directly to context-only generation coordinates. | CPU fixtures recover a known transform, accept planar data, reject collinear/missing data, and robustly handle fixed outliers. Actual threshold compliance awaits fixed-window real validation. |
+| A target calibration call could alter generated prediction state or fresh training could bypass required real validation. | Calibration asserts exact context RGB reuse, uses a separate aggregator pass, does not expose those features to generate, and CPU checks generated tensors remain unchanged. Fresh training requires successful 4253, single-card and eight-card reports as explicit inputs. | 24 CPU contracts pass; GPU stage reports are still pending. |
+
+The fixed v2 thresholds are documented in
+`object_locus_frozen_vggt_posefree_v1_calibration_v2.md`; they are treated as
+stop conditions, never tuned from observed results.

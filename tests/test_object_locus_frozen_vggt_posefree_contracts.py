@@ -14,8 +14,9 @@ from tokengs.models.frozen_vggt_posefree import FrozenVGGT, select_patch_layers
 from tokengs.models.object_locus_frozen_vggt_posefree import VGGTMemoryAdapter, initialize_memory_adapter
 from tokengs.models.object_locus_frozen_vggt_posefree import LocusGSObjectLocusFrozenVGGT
 from tokengs.models.object_locus_posefree_geometry import (
-    align_cameras_by_shared_context, camera_vectors, intrinsics518_to_256,
-    pixel_rays, posefree_scene, rays_to_patch_plucker,
+    align_cameras_by_shared_context, align_cameras_by_shared_context_depth_v2,
+    ContextDepthSim3Error, old_shared_context_alignment_diagnostics,
+    camera_vectors, intrinsics518_to_256, pixel_rays, posefree_scene, rays_to_patch_plucker,
 )
 from tokengs.models.input_types import ModelInput
 from scripts.object_locus_frozen_vggt_posefree_runtime import (
@@ -118,6 +119,7 @@ class FrozenVGGTContracts(unittest.TestCase):
         self.assertFalse(result.patch_layers[0].requires_grad)
         self.assertEqual(result.patch_layers[0].shape,(1,2,1369,2048))
         self.assertEqual(tuple(result.depth518.shape),(1,2,1,518,518))
+        self.assertEqual(tuple(result.confidence518.shape),(1,2,1,518,518))
         self.assertEqual(tuple(result.c2w_cv.shape),(1,2,4,4))
         self.assertEqual(tuple(stub.aggregator.received.shape),(1,2,3,518,518))
         self.assertTrue(torch.allclose(stub.aggregator.received,torch.full_like(stub.aggregator.received,.375,dtype=torch.bfloat16)))
@@ -187,6 +189,22 @@ class FrozenVGGTContracts(unittest.TestCase):
         self.assertIs(out['p_class'],pclass);self.assertIs(out['gaussian_membership'],membership)
         self.assertEqual(out['semantic_scores'].shape,(1,2,20,3,3))
         self.assertEqual(out['region_mass'].shape,(1,2,102,3,3))
+
+    def test_calibration_entry_keeps_generated_state_immutable(self):
+        model=LocusGSObjectLocusFrozenVGGT.__new__(LocusGSObjectLocusFrozenVGGT);nn.Module.__init__(model)
+        context=torch.rand(1,2,3,8,8)
+        generated={'generation_context_rgb':context.clone(),'gaussians':torch.randn(1,7,6),
+            'gaussian_membership':torch.randn(1,7,100),'p_class':torch.randn(1,100,19),
+            'predicted_points':torch.randn(1,2,518,518,3),'states':[{'tokens':torch.randn(1,1024,16)}]}
+        before={key:value.clone() for key,value in generated.items() if torch.is_tensor(value)}
+        before['state_tokens']=generated['states'][-1]['tokens'].clone()
+        model.frozen_vggt=types.SimpleNamespace(calibration_with_context_depth=lambda images:{'marker':images.clone()})
+        model._calibrate_result=types.MethodType(lambda self,result,raw:raw,model)
+        returned=model.calibrate_targets(torch.cat((context,torch.rand(1,1,3,8,8)),dim=1),generated)
+        self.assertEqual(returned['marker'].shape,(1,3,3,8,8))
+        for key,value in before.items():
+            actual=generated['states'][-1]['tokens'] if key=='state_tokens' else generated[key]
+            self.assertTrue(torch.equal(actual,value),key)
 
     def test_eval_cli_has_locked_contract_arguments(self):
         from scripts.eval_object_locus_frozen_vggt_posefree_v1 import build_parser,DISCLOSURE
@@ -356,6 +374,109 @@ class CameraGeometryContracts(unittest.TestCase):
         result,_=align_cameras_by_shared_context(tiny[None],tiny[:2][None],tiny[:2][None],torch.ones(1),torch.eye(4,dtype=torch.float64)[None])
         self.assertTrue(torch.isfinite(result).all())
 
+    @staticmethod
+    def _v2_fixture(planar=False, outliers=False):
+        dtype=torch.float64
+        rows=torch.arange(7,518,14,dtype=dtype);cols=torch.arange(7,518,14,dtype=dtype)
+        row_grid,col_grid=torch.meshgrid(rows,cols,indexing='ij')
+        row_center,col_center=row_grid+.5,col_grid+.5
+        pixels=torch.stack((col_center,row_center,torch.ones_like(row_center)),-1).reshape(1369,3)
+        k=torch.tensor([[420.,0,251.],[0,405.,263.],[0,0,1.]],dtype=dtype)
+        k_all=k.reshape(1,1,3,3).repeat(1,4,1,1)
+        k256=intrinsics518_to_256(k.reshape(1,1,3,3).repeat(1,2,1,1))[0]
+        c_all=torch.eye(4,dtype=dtype).reshape(1,1,4,4).repeat(1,4,1,1)
+        c_all[0,1,:3,3]=torch.tensor([.8,.05,0. if planar else .02],dtype=dtype)
+        c_all[0,2,:3,3]=torch.tensor([-.3,.4,.02],dtype=dtype)
+        c_all[0,3,:3,3]=torch.tensor([.2,-.5,.1],dtype=dtype)
+        theta=.08
+        camera_rotation=torch.tensor([[math.cos(theta),0,math.sin(theta)],[0,1,0],[-math.sin(theta),0,math.cos(theta)]],dtype=dtype)
+        c_all[0,1,:3,:3]=torch.eye(3,dtype=dtype) if planar else camera_rotation
+        c_all[0,2,:3,:3]=camera_rotation.T
+        c_all[0,3,:3,:3]=camera_rotation
+        depth=torch.ones((1,2,1,518,518),dtype=dtype)
+        if not planar:
+            row_full,col_full=torch.meshgrid(torch.arange(518,dtype=dtype),torch.arange(518,dtype=dtype),indexing='ij')
+            depth[:,:,0]=1.+.0008*row_full+.0012*col_full
+        conf_a=torch.ones_like(depth);conf_b=torch.ones_like(depth)
+        row_rank=torch.arange(518,dtype=dtype)
+        conf_a[:,:,0]=.2+.8*(row_rank[None,:,None].expand(2,518,518)%29)/28
+        conf_b[:,:,0]=.3+.7*(row_rank[None,None,:].expand(2,518,518)%31)/30
+        x_views=[]
+        for view in range(2):
+            dep=depth[0,view,0,row_grid.long(),col_grid.long()].reshape(-1)
+            # Axial Z depth multiplies inv(K) @ pixel directly, without unit-ray normalization.
+            cam_points=(torch.linalg.inv(k)@pixels.T).T*dep[:,None]
+            x_views.append(torch.einsum('ij,nj->ni',c_all[0,view,:3,:3],cam_points)+c_all[0,view,None,:3,3])
+        x=torch.cat(x_views)
+        angle=.35
+        expected_r=torch.tensor([[math.cos(angle),-math.sin(angle),0],[math.sin(angle),math.cos(angle),0],[0,0,1]],dtype=dtype)
+        expected_s=.72;expected_t=torch.tensor([.4,-.2,.15],dtype=dtype)
+        y=expected_s*(x@expected_r.T)+expected_t
+        if outliers:
+            y[100]+=torch.tensor([.35,-.28,.2],dtype=dtype)
+            y[1500]+=torch.tensor([-.3,.25,.1],dtype=dtype)
+        points=torch.zeros((1,2,518,518,3),dtype=dtype)
+        for view in range(2):
+            points[0,view,row_grid.long(),col_grid.long()]=y[view*1369:(view+1)*1369].reshape(37,37,3)
+        c_context=torch.eye(4,dtype=dtype).reshape(1,1,4,4).repeat(1,2,1,1)
+        c_context[0,:,:3,:3]=torch.einsum('ij,vjk->vik',expected_r,c_all[0,:2,:3,:3])
+        c_context[0,:,:3,3]=expected_s*(c_all[0,:2,:3,3]@expected_r.T)+expected_t
+        return {"c2w_all":c_all,"k518_all":k_all,"depth_all":depth,"confidence_all":conf_b,
+            "predicted_points":points,"confidence_context":conf_a,"c2w_context":c_context,
+            "k256_context":k256,"a_scale":torch.tensor([.25],dtype=dtype),
+            "median_depth":torch.tensor([1.],dtype=dtype),"expected_r":expected_r,
+            "expected_s":expected_s,"expected_t":expected_t}
+
+    def _fit_v2(self, fixture):
+        args={k:v for k,v in fixture.items() if not k.startswith('expected_')}
+        return align_cameras_by_shared_context_depth_v2(**args)
+
+    def test_depth_sim3_v2_recovers_known_transform_and_robustly_rejects_outliers(self):
+        for outliers in (False,True):
+            f=self._v2_fixture(outliers=outliers)
+            aligned,diagnostics,points=self._fit_v2(f)
+            row=diagnostics[0]
+            self.assertEqual(row['status'],'PASS')
+            self.assertAlmostEqual(row['s'],f['expected_s'],places=5 if outliers else 8)
+            self.assertTrue(torch.allclose(torch.tensor(row['R'],dtype=torch.float64),f['expected_r'],atol=2e-5 if outliers else 1e-8))
+            self.assertTrue(torch.allclose(torch.tensor(row['t'],dtype=torch.float64),f['expected_t'],atol=2e-5 if outliers else 1e-8))
+            self.assertEqual(tuple(aligned.shape),(1,4,4,4))
+            self.assertEqual(tuple(points[0]['X_source_world'].shape),(2738,3))
+            self.assertAlmostEqual(row['final_weight_sum_by_view'][0],.5,places=8)
+            self.assertAlmostEqual(row['final_weight_sum_by_view'][1],.5,places=8)
+            self.assertTrue(all(view['positive_z_ratio']>=.95 for view in row['views']))
+            self.assertTrue(all(view['reprojection_median_px']<=4 and view['reprojection_p90_px']<=12 for view in row['views']))
+
+    def test_depth_sim3_v2_accepts_planar_and_rejects_collinear_or_missing(self):
+        _,diagnostics,_=self._fit_v2(self._v2_fixture(planar=True))
+        self.assertEqual(diagnostics[0]['status'],'PASS')
+        collinear=self._v2_fixture()
+        pix=torch.arange(1369,dtype=torch.float64)
+        line=torch.stack((pix,torch.zeros_like(pix),torch.zeros_like(pix)),-1).reshape(37,37,3)
+        rows=torch.arange(7,518,14);cols=torch.arange(7,518,14)
+        collinear['predicted_points'][0,:,rows[:,None],cols[None,:]]=line
+        with self.assertRaisesRegex(ContextDepthSim3Error,'target points'):
+            self._fit_v2(collinear)
+        missing=self._v2_fixture();missing['confidence_context'][:,0]=0
+        with self.assertRaisesRegex(ContextDepthSim3Error,'valid depth correspondences'):
+            self._fit_v2(missing)
+
+    def test_old_alignment_diagnostic_reports_signed_scale_and_angle_without_raising(self):
+        f=self._v2_fixture()
+        # Reverse the context-only baseline while keeping each camera finite.
+        pair=f['c2w_context'][0].clone()
+        pair[0,:3,3],pair[1,:3,3]=pair[1,:3,3].clone(),pair[0,:3,3].clone()
+        row=old_shared_context_alignment_diagnostics(f['c2w_all'],pair[None])[0]
+        self.assertTrue(row['all_finite'])
+        self.assertGreater(row['theta_degrees'],90.)
+        self.assertAlmostEqual(row['s_old'],row['centered_formula_scale'],places=10)
+        self.assertAlmostEqual(row['numerator']/row['denominator'],
+            row['centered_formula_numerator']/row['centered_formula_denominator'],places=10)
+        nonfinite=f['c2w_all'].clone();nonfinite[0,2,1,2]=float('nan')
+        invalid=old_shared_context_alignment_diagnostics(nonfinite,f['c2w_context'])[0]
+        self.assertFalse(invalid['all_finite'])
+        self.assertIn([2,1,2],invalid['nonfinite_c2w_all_indices'])
+
 
 class MigrationAndTrainingContracts(unittest.TestCase):
     def test_fixed_full1201_manifest_is_used_without_resampling(self):
@@ -374,6 +495,10 @@ class MigrationAndTrainingContracts(unittest.TestCase):
         self.assertIn('--time=48:00:00',submit)
         self.assertIn('--nproc_per_node=8',job)
         self.assertIn('--eight-card-real',job)
+        self.assertIn('--window-4253-calibration',job)
+        self.assertIn('--calibration-report',job)
+        self.assertIn('--single-smoke-report',job)
+        self.assertIn('--eight-smoke-report',job)
         self.assertEqual((plan['world_size'],plan['microbatch_per_rank'],plan['accumulation'],plan['global_batch']),(8,1,1,8))
         self.assertEqual((plan['updates_per_epoch'],plan['total_updates'],plan['total_exposures']),(1043,8344,66752))
 

@@ -9,6 +9,7 @@ from tokengs.models.frozen_vggt_posefree import FrozenVGGT
 from tokengs.models.object_locus_panoptic_v1 import LocusGSObjectLocusPanopticV1Recon
 from tokengs.models.object_locus_posefree_geometry import (
     align_cameras_by_shared_context, camera_vectors, intrinsics518_to_256,
+    align_cameras_by_shared_context_depth_v2, old_shared_context_alignment_diagnostics,
     pixel_rays, posefree_scene, rays_to_patch_plucker,
 )
 from tokengs.models.input_types import EncoderLatent, ModelInput, ModelInputDecoder, ModelInputEncoder
@@ -63,6 +64,7 @@ def initialize_memory_adapter(adapter: nn.Module, seed: int = 31415):
 
 class LocusGSObjectLocusFrozenVGGT(LocusGSObjectLocusPanopticV1Recon):
     architecture_name = "LOCUSGS_OBJECT_LOCUS_FROZEN_VGGT_POSEFREE_V1"
+    calibration_protocol = "shared_context_depth_sim3_v2"
 
     def __init__(self, opt, *, vggt: FrozenVGGT | None = None,
                  test_only_vggt: bool=False):
@@ -136,24 +138,42 @@ class LocusGSObjectLocusFrozenVGGT(LocusGSObjectLocusPanopticV1Recon):
                     ray_stats=ray_stats,beta=final['beta'],F_m=fm,q_pre=qpre,
                     predicted_context_c2w=c2w_scene,predicted_context_intrinsics=camera_vectors(k256),
                     predicted_context_intrinsics_matrix=k256,depth=depth_scaled,
+                    predicted_context_intrinsics518=vggt_result.intrinsics518.detach(),
+                    confidence518=vggt_result.confidence518.detach(),
                     predicted_points=points,coordinates=coordinate_record,
+                    generation_context_rgb=context_rgb.detach(),
                     vggt_source_identity=vggt_result.source_identity)
         output.update(self._readout(final,gaussians,fm,render_decoder,output_decoder))
         return output
 
     def calibrate_targets(self, context_and_target_rgb: torch.Tensor, generated: dict):
-        """Independent frozen image calibration pass; returns only aligned camera data."""
-        result=self.frozen_vggt.camera_only(context_and_target_rgb)
+        """Independent full-window pass aligned by shared context depth point maps."""
+        if not torch.equal(context_and_target_rgb[:,:2],generated['generation_context_rgb']):
+            raise ValueError("calibration context RGB must exactly match context-only generate inputs")
+        result=self.frozen_vggt.calibration_with_context_depth(context_and_target_rgb)
+        return self._calibrate_result(generated,result)
+
+    def _calibrate_result(self, generated: dict, result: dict):
+        """Apply v2 alignment to a completed calibration pass (also used by evidence capture)."""
         raw=result['c2w_cv']
         context_raw=generated['coordinates']['raw_c2w_cv']
-        aligned,sim3=align_cameras_by_shared_context(raw,context_raw,
-            generated['predicted_context_c2w'],generated['coordinates']['a_scale'],
-            generated['coordinates']['first_camera_inverse'])
+        old=old_shared_context_alignment_diagnostics(raw[:,:3],context_raw)
+        aligned,diagnostics,point_records=align_cameras_by_shared_context_depth_v2(
+            c2w_all=raw,k518_all=result['intrinsics518'],depth_all=result['depth518'],
+            confidence_all=result['confidence518'],predicted_points=generated['predicted_points'],
+            confidence_context=generated['confidence518'],c2w_context=generated['predicted_context_c2w'],
+            k256_context=generated['predicted_context_intrinsics_matrix'],
+            a_scale=generated['coordinates']['a_scale'],median_depth=generated['coordinates']['median_depth'])
         k256,A=intrinsics518_to_256(result['intrinsics518'])
         k256=k256.clone(); k256[:,:2]=generated['predicted_context_intrinsics_matrix']
         aligned=aligned.clone(); aligned[:,:2]=generated['predicted_context_c2w']
+        sim3=[{key:row[key] for key in ('R','s','t','det_R','source_rms','target_rms')}
+              for row in diagnostics]
         return {"c2w":aligned,"intrinsics_matrix":k256,"intrinsics":camera_vectors(k256),
-                "sim3":sim3,"A_518_to_256":A.detach(),"source_identity":result['source_identity']}
+                "sim3":sim3,"diagnostics":diagnostics,"point_records":point_records,
+                "old_alignment_diagnostics":old,"calibration_protocol":self.calibration_protocol,
+                "A_518_to_256":A.detach(),"source_identity":result['source_identity'],
+                "depth_context_from_full_window_aggregator":True}
 
     def render_generated_at(self, generated: dict, cam_view: torch.Tensor, intrinsics: torch.Tensor):
         """Render reconstruction and fixed panoptic state at a supplied camera.

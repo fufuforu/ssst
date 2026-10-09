@@ -97,6 +97,7 @@ class VGGTResult:
     c2w_cv: torch.Tensor       # [B,2,4,4], OpenCV camera-to-world
     intrinsics518: torch.Tensor  # [B,2,3,3], pixel coordinates
     depth518: torch.Tensor      # [B,2,1,518,518]
+    confidence518: torch.Tensor # [B,2,1,518,518], official confidence score (not a probability)
     source_identity: dict
 
 
@@ -221,6 +222,23 @@ class FrozenVGGT(nn.Module):
         return nullcontext()
 
     @staticmethod
+    def _dense_depth_confidence(depth_output, batch_size: int, view_count: int):
+        if not isinstance(depth_output, (tuple, list)) or len(depth_output) != 2:
+            raise TypeError("official VGGT depth head must return (depth, confidence)")
+        depth, confidence = depth_output
+        outputs=[]
+        for value, name in ((depth,"depth"),(confidence,"confidence")):
+            if value.ndim == 5 and value.shape[-1] == 1:
+                value=value.permute(0,1,4,2,3)
+            if value.ndim == 4:
+                value=value.unsqueeze(2)
+            if value.ndim != 5 or value.shape[:3] != (batch_size,view_count,1):
+                raise ValueError(f"official VGGT {name} must be [B,V,1,H,W], got {tuple(value.shape)}")
+            value=F.interpolate(value.flatten(0,1).float(),(INPUT_SIZE,INPUT_SIZE),mode="bilinear",align_corners=False)
+            outputs.append(value.reshape(batch_size,view_count,1,INPUT_SIZE,INPUT_SIZE).float().detach())
+        return outputs[0],outputs[1]
+
+    @staticmethod
     def _world_to_camera(extrinsics: torch.Tensor) -> torch.Tensor:
         if extrinsics.shape[-2:] != (3,4):
             raise ValueError(f"official pose decoder must return OpenCV [3,4] extrinsics, got {tuple(extrinsics.shape)}")
@@ -246,17 +264,47 @@ class FrozenVGGT(nn.Module):
             decode=pose_encoding_to_extri_intri
         extrinsics, intrinsics = decode(camera_encoding_list[-1], image_size_hw=(INPUT_SIZE,INPUT_SIZE))
         c2w = torch.linalg.inv(self._world_to_camera(extrinsics.float()))
-        depth_out = self.model.depth_head(aggregated_fp32, images=images.float(), patch_start_idx=int(patch_start_idx))
-        depth = depth_out[0] if isinstance(depth_out, (tuple,list)) else depth_out
-        if depth.ndim == 5 and depth.shape[-1] == 1: depth=depth.permute(0,1,4,2,3)
-        if depth.ndim == 4: depth = depth.unsqueeze(2)
-        depth = F.interpolate(depth.flatten(0, 1), (INPUT_SIZE, INPUT_SIZE), mode="bilinear", align_corners=False)
-        depth = depth.reshape(b, 2, 1, INPUT_SIZE, INPUT_SIZE).float()
+        depth,confidence=self._dense_depth_confidence(
+            self.model.depth_head(aggregated_fp32,images=images.float(),patch_start_idx=int(patch_start_idx)),b,2)
         c2w = c2w.reshape(b, 2, 4, 4).float()
         intrinsics = intrinsics.reshape(b, 2, 3, 3).float()
         if not (torch.isfinite(c2w).all() and torch.isfinite(intrinsics).all() and torch.isfinite(depth).all()):
             raise FloatingPointError("VGGT produced nonfinite camera/depth values")
-        return VGGTResult(layers, int(patch_start_idx), c2w.detach(), intrinsics.detach(), depth.detach(), self.source_identity)
+        if not torch.isfinite(confidence).all():
+            raise FloatingPointError("VGGT produced nonfinite depth confidence")
+        return VGGTResult(layers, int(patch_start_idx), c2w.detach(), intrinsics.detach(),
+                          depth.detach(), confidence.detach(), self.source_identity)
+
+    @torch.no_grad()
+    def calibration_with_context_depth(self, images_rgb: torch.Tensor) -> dict:
+        """One independent full-window aggregator pass; decode all cameras but only shared-context depth."""
+        self.eval()
+        if images_rgb.ndim != 5 or images_rgb.shape[2] != 3 or images_rgb.shape[1] < 3:
+            raise ValueError("calibration input must be [B,>=3,3,H,W]")
+        b,v=images_rgb.shape[:2]
+        images=F.interpolate(images_rgb.flatten(0,1),(INPUT_SIZE,INPUT_SIZE),mode="bilinear",
+                             align_corners=False).reshape(b,v,3,INPUT_SIZE,INPUT_SIZE)
+        aggregated,patch_start_idx=self.model.aggregator(images.to(torch.bfloat16))
+        aggregated_fp32=[None if token is None else token.float() for token in aggregated]
+        encoding=self.model.camera_head(aggregated_fp32)[-1]
+        decode=self.pose_decoder
+        if decode is None:
+            from vggt.utils.pose_enc import pose_encoding_to_extri_intri
+            decode=pose_encoding_to_extri_intri
+        extrinsics,intrinsics=decode(encoding,image_size_hw=(INPUT_SIZE,INPUT_SIZE))
+        c2w=torch.linalg.inv(self._world_to_camera(extrinsics.float()))
+        c2w=c2w.reshape(b,v,4,4).detach()
+        intrinsics=intrinsics.reshape(b,v,3,3).detach().float()
+        context_tokens=[None if token is None else token[:,:2] for token in aggregated_fp32]
+        depth,confidence=self._dense_depth_confidence(
+            self.model.depth_head(context_tokens,images=images[:,:2].float(),
+                                  patch_start_idx=int(patch_start_idx)),b,2)
+        if not torch.isfinite(c2w).all() or not torch.isfinite(intrinsics).all():
+            raise FloatingPointError("VGGT calibration pass produced nonfinite cameras")
+        return {"c2w_cv":c2w,"intrinsics518":intrinsics,"depth518":depth,
+                "confidence518":confidence,"patch_start_idx":int(patch_start_idx),
+                "source_identity":self.source_identity,
+                "depth_context_from_full_window_aggregator":True}
 
     @torch.no_grad()
     def camera_only(self, images_rgb: torch.Tensor) -> dict:
