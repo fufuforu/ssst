@@ -27,16 +27,20 @@ cd "$REPO"
 mkdir -p "$ROOT"
 EXTRA=()
 if [[ -n "${EVAL_LIMIT:-}" ]]; then EXTRA+=(--limit "$EVAL_LIMIT"); fi
+if [[ "${EVAL_SCORE_ONLY:-0}" != 1 ]]; then
 printf 'stage=export job=%s sha=%s shards=%s time=%s\n' "$SLURM_JOB_ID" "$TASK_CODE_SHA" "$SHARDS" "$(date -Is)"
 "$PYTHON" -m torch.distributed.run --standalone --nproc_per_node="$SHARDS" scripts/eval_object_locus_frozen_vggt_posefree_v1.py \
  --checkpoint /space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1_calibration_v2_monitor/checkpoint_epoch_08.pt \
  --manifest /space/mawb/ssst/group_plus/object_locus_panoptic_full1201_8gpu/manifest.json \
  --cohort full_validation --output-root "$ROOT" --vggt-revision 860abec7937da0a4c03c41d3c269c366e82abdf9 \
  --artifact-manifest "$REPO/vggt_artifact_manifest.json" --official-png-export --shards "$SHARDS" --resume-export "${EXTRA[@]}"
+fi
+SCORE_EXTRA=()
+if [[ "${EVAL_GPU_SEGMENTATION:-0}" == 1 ]]; then SCORE_EXTRA+=(--segmentation-device cuda); fi
 printf 'stage=score time=%s\n' "$(date -Is)"
-"$OFFICIAL_PYTHON" -m torch.distributed.run --standalone --nproc_per_node="$SHARDS" scripts/score_object_locus_posefree_official.py --root "$ROOT" --shards "$SHARDS"
+"$OFFICIAL_PYTHON" -m torch.distributed.run --standalone --nproc_per_node="$SHARDS" scripts/score_object_locus_posefree_official.py --root "$ROOT" --shards "$SHARDS" "${SCORE_EXTRA[@]}"
 EXTRA=()
 if [[ -n "${EVAL_LIMIT:-}" ]]; then EXTRA+=(--partial); fi
 printf 'stage=reduce time=%s\n' "$(date -Is)"
-"$OFFICIAL_PYTHON" scripts/score_object_locus_posefree_official.py --root "$ROOT" --shards "$SHARDS" --reduce "${EXTRA[@]}"
+"$OFFICIAL_PYTHON" scripts/score_object_locus_posefree_official.py --root "$ROOT" --shards "$SHARDS" --reduce "${EXTRA[@]}" "${SCORE_EXTRA[@]}"
 printf 'stage=complete time=%s\n' "$(date -Is)"

@@ -7,7 +7,7 @@ sys.path.insert(0,str(REPO))
 import numpy as np
 import torch
 from scripts.invoke_siu3r_official_evaluator import evaluate, SIU3R_COMMIT
-from scripts.posefree_official_state_helpers import create, update, states, merge, itemize
+from scripts.posefree_official_state_helpers import create, update, states, merge, itemize, METRICS
 
 
 def write(path,value):
@@ -16,7 +16,22 @@ def write(path,value):
     temp.write_text(json.dumps(itemize(value),indent=2,allow_nan=False)+'\n');temp.replace(path)
 
 
-def contract(root,names):
+def cpu_tree(value):
+    if torch.is_tensor(value): return value.cpu()
+    if isinstance(value,dict): return {k:cpu_tree(v) for k,v in value.items()}
+    if isinstance(value,list): return [cpu_tree(v) for v in value]
+    if isinstance(value,tuple): return tuple(cpu_tree(v) for v in value)
+    return value
+
+
+def create_worker(path,device='cpu'):
+    e=create(path)
+    e.device=device;e.cfg.device=device
+    for metric in METRICS: getattr(e,metric).to(device)
+    return e
+
+
+def contract(root,names,device='cpu'):
     """Real-window contract for state merging against unmodified Evaluator.evaluate."""
     checks=[]
     for arm in ('all','novel'):
@@ -27,11 +42,11 @@ def contract(root,names):
             expected=evaluate(temp,device='cpu',image_quality=False,depth_quality=False)
             blobs=[]
             for name in chosen:
-                e=create(root/arm)
+                e=create_worker(root/arm,device)
                 for view in ('context','target'):
                     pair=root/arm/name
                     update(e,e.process_segmentation(pair/f'{view}_seg_pred',pair/f'{view}_seg_gt'),view)
-                blobs.append({'names':[name],'states':states(e)})
+                blobs.append({'names':[name],'states':cpu_tree(states(e))})
             actual=merge(list(reversed(blobs)),root/arm)
             for view in ('context','target'):
                 for metric in ('miou','pq'):
@@ -40,7 +55,7 @@ def contract(root,names):
                 for metric in ('map','map_50','map_75'):
                     assert abs(actual[f'{view}_map'][metric]-expected[f'{view}_map'][metric])<1e-7,(arm,view,metric)
             checks.append({'arm':arm,'names':chosen,'status':'PASS'})
-    write(root/'official_merge_contract.json',{'status':'PASS','checks':checks,'official_commit':SIU3R_COMMIT})
+    write(root/f"official_merge_contract_{'cuda' if device.startswith('cuda') else 'cpu'}.json",{'status':'PASS','checks':checks,'official_commit':SIU3R_COMMIT,'segmentation_device':device})
 
 
 def score_shard(args):
@@ -52,15 +67,16 @@ def score_shard(args):
     names=sorted(row['name'] for row in done['records'])
     assert len(names)==done['identity']['windows'] and len(set(names))==len(names)
     if (root/'score_complete.json').exists():print(f'SCORE_REUSED rank={rank}',flush=True);return
+    segmentation_device=device if args.segmentation_device=='cuda' else 'cpu'
     if names:
         if not (root/'official_reconstruction.json').exists():
             reconstruction=evaluate(root/'all',device=device,segmentation=False)
             write(root/'official_reconstruction.json',reconstruction)
-        if not (root/'official_merge_contract.json').exists():contract(root,names)
+        if not (root/f'official_merge_contract_{args.segmentation_device}.json').exists():contract(root,names,segmentation_device)
     saved={}
     started=time.monotonic()
     for arm in ('all','novel'):
-        e=create(root/arm)
+        e=create_worker(root/arm,segmentation_device)
         for i,name in enumerate(names,1):
             pair=root/arm/name
             for view in ('context','target'):
@@ -70,9 +86,9 @@ def score_shard(args):
             write(root/'score_progress.json',{'stage':'SEGMENTATION','arm':arm,'completed':i,'total':len(names),
                 'elapsed_seconds':time.monotonic()-started,'latest':name})
             if i%10==0:print(f'SCORE rank={rank} arm={arm} completed={i}/{len(names)}',flush=True)
-        saved[arm]={'names':names,'states':states(e)}
+        saved[arm]={'names':names,'states':cpu_tree(states(e))}
     temp=root/'official_states.pt.tmp';torch.save(saved,temp);temp.replace(root/'official_states.pt')
-    write(root/'score_complete.json',{'status':'COMPLETE','windows':len(names),'official_commit':SIU3R_COMMIT})
+    write(root/'score_complete.json',{'status':'COMPLETE','windows':len(names),'official_commit':SIU3R_COMMIT,'segmentation_device':segmentation_device})
 
 
 def reduce(args):
@@ -121,7 +137,7 @@ def reduce(args):
     report={'status':'PARTIAL_ENGINEERING_CHECK' if args.partial else 'EVALUATED',
         'windows':len(names),'unique_scenes':len({n.split('_context')[0] for n in names}),
         'scopes':scopes,'official_segmentation':{'all':allseg,'novel':novelseg},
-        'official_commit':SIU3R_COMMIT,'evaluation_code_sha':subprocess.check_output(['git','-C',str(REPO),'rev-parse','HEAD'],text=True).strip(),
+        'official_commit':SIU3R_COMMIT,'inference_code_sha':metadata[0]['evaluation_code_sha'],'scoring_device':args.segmentation_device,'evaluation_code_sha':subprocess.check_output(['git','-C',str(REPO),'rev-parse','HEAD'],text=True).strip(),
         'training_checkpoint_metadata':metadata[0],'export_identity':identities[0],
         'checkpoint_sha256':'40e93e3e9d1157f1d6af97e51414bb098a116f6f2444b190993dbc0a33a47824',
         'image_protocol':'Unmodified pinned SIU3R Evaluator.evaluate on exported RGB uint8 PNG and depth millimetre uint16 PNG; per-image RGB/depth metrics averaged over images; GT-positive per-image scale-and-shift depth alignment. Context/novel reconstruction scopes filter the native per-image scores.',
@@ -145,7 +161,7 @@ def reduce(args):
 
 def main():
     p=argparse.ArgumentParser();p.add_argument('--root',type=Path,required=True);p.add_argument('--shards',type=int,required=True)
-    p.add_argument('--shard',type=int);p.add_argument('--reduce',action='store_true');p.add_argument('--partial',action='store_true')
+    p.add_argument('--segmentation-device',choices=('cpu','cuda'),default='cpu');p.add_argument('--shard',type=int);p.add_argument('--reduce',action='store_true');p.add_argument('--partial',action='store_true')
     a=p.parse_args()
     assert subprocess.check_output(['git','-C','/space/mawb/SIU3R','rev-parse','HEAD'],text=True).strip()==SIU3R_COMMIT
     assert not subprocess.check_output(['git','-C','/space/mawb/SIU3R','diff','--name-only','HEAD','--','src'],text=True).strip()
