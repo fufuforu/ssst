@@ -15,7 +15,10 @@ export POSEFREE_V2_EVIDENCE_DIR="$ATTEMPT"
 unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy
 cd "$REPO"
 [[ "$(git rev-parse HEAD)" == "$TASK_CODE_SHA" ]]
-[[ "$(hostname -s)" == 3dimage-13 ]]
+case "$(hostname -s)" in
+  3dimage-11|3dimage-13|3dimage-14|3dimage-17|3dimage-18) ;;
+  *) echo 'node outside the authorized five-node pool' >&2; exit 2 ;;
+esac
 mkdir -p "$ATTEMPT"
 printf 'job=%s mode=%s sha=%s time=%s\n' "$SLURM_JOB_ID" "$TASK_MODE" "$TASK_CODE_SHA" "$(date -Is)"
 COMMON=(--run-training --staged-vggt-adapt --vggt-revision 860abec7937da0a4c03c41d3c269c366e82abdf9 --artifact-manifest "$REPO/vggt_artifact_manifest.json")
@@ -28,7 +31,13 @@ import json,sys
 from scripts.object_locus_frozen_vggt_posefree_runtime import STAGED_RECIPE,staged_training_configuration
 d=json.load(open(sys.argv[1]))
 assert d['status']=='GPU_SMOKE_COMPLETED' and d['mode']=='single_smoke' and d['world_size']==1
-assert d['recipe']==STAGED_RECIPE and d['training_configuration']==staged_training_configuration()
+assert d['recipe']==STAGED_RECIPE
+# Reuse the completed node13 proof, comparing every scientific configuration
+# field exactly while allowing the newly authorized hardware pool metadata.
+previous=dict(d['training_configuration']);current=staged_training_configuration()
+for field in ('node','gpu_model'):
+    previous.pop(field);current.pop(field)
+assert previous==current
 PY
 printf 'stage=eight_smoke time=%s\n' "$(date -Is)"
 "$PYTHON" -m torch.distributed.run --standalone --nproc_per_node=8 scripts/train_object_locus_frozen_vggt_posefree_v1.py "${COMMON[@]}" --staged-mode eight_smoke --run-dir "$ATTEMPT/eight_smoke"

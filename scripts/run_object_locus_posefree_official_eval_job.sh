@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 #SBATCH --job-name=vggt-pf-official-eval
-#SBATCH --partition=3090
-#SBATCH --nodelist=3dimage-13
+#SBATCH --partition=3090,4090
+#SBATCH --exclude=3dimage-12
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
 #SBATCH --gres=gpu:7
@@ -25,6 +25,10 @@ export POSEFREE_V2_EVIDENCE_DIR="$ROOT/evidence"
 unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy
 cd "$REPO"
 [[ "$(git rev-parse HEAD)" == "$TASK_CODE_SHA" ]]
+case "$(hostname -s)" in
+  3dimage-11|3dimage-13|3dimage-14|3dimage-17|3dimage-18) ;;
+  *) echo 'node outside the authorized five-node pool' >&2; exit 2 ;;
+esac
 mkdir -p "$ROOT"
 EXTRA=()
 if [[ -n "${EVAL_LIMIT:-}" ]]; then EXTRA+=(--limit "$EVAL_LIMIT"); fi

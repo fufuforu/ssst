@@ -682,11 +682,14 @@ def _atomic_save(payload,path: Path):
 
 
 STAGED_RECIPE = 'vggt_reconstruction_adapt2_frozen_joint4_v1'
+STAGED_NODE_GPU = {'3dimage-11':'3090','3dimage-13':'3090',
+                   '3dimage-14':'4090','3dimage-17':'4090','3dimage-18':'4090'}
 
 
 def staged_training_configuration():
     config = training_configuration()
-    config.update(recipe=STAGED_RECIPE, epochs=6, total_updates=6*UPDATES_PER_EPOCH,
+    config.update(recipe=STAGED_RECIPE, node='one of 3dimage-[11,13,14,17,18]',
+        gpu_model='RTX3090 or RTX4090', epochs=6, total_updates=6*UPDATES_PER_EPOCH,
         total_exposures=6*WINDOWS_PER_EPOCH, stage_epochs={'reconstruction_adaptation':2,'frozen_joint':4},
         stage_updates={'reconstruction_adaptation':2*UPDATES_PER_EPOCH,'frozen_joint':4*UPDATES_PER_EPOCH},
         adaptation_trainable_vggt=['aggregator.frame_blocks','aggregator.global_blocks'],
@@ -762,9 +765,12 @@ def run_staged_training(*, run_dir, hf_revision, mode='train', resume=False, art
     if mode not in ('train','single_smoke','eight_smoke'): raise ValueError(mode)
     smoke=mode!='train'
     if world!=(1 if mode=='single_smoke' else 8): raise RuntimeError('staged recipe world-size mismatch')
-    if socket.gethostname().split('.')[0]!='3dimage-13': raise RuntimeError('staged recipe pinned to 3dimage-13')
+    node=socket.gethostname().split('.')[0]
+    if node not in STAGED_NODE_GPU: raise RuntimeError('staged recipe node outside authorized pool')
     torch.cuda.set_device(local);device=torch.device('cuda',local)
-    if '3090' not in torch.cuda.get_device_name(local): raise RuntimeError('RTX3090 required')
+    if STAGED_NODE_GPU[node] not in torch.cuda.get_device_name(local):
+        raise RuntimeError('staged recipe GPU does not match authorized node type')
+    hardware={'node':node,'gpu_models':[torch.cuda.get_device_name(i) for i in range(torch.cuda.device_count())]}
     if world>1: dist.init_process_group('nccl')
     rank=dist.get_rank() if world>1 else 0
     execution_sha=subprocess.check_output(['git','-C',str(REPO),'rev-parse','HEAD'],text=True).strip()
@@ -781,7 +787,8 @@ def run_staged_training(*, run_dir, hf_revision, mode='train', resume=False, art
         _write_json_atomic(run_dir/manifest_name,dict(status='SMOKE_STARTED' if smoke else 'TRAINING_STARTED',
             execution_git_sha=execution_sha,recipe=STAGED_RECIPE,training_configuration=config,source_checkpoint=provenance,
             vggt_source=model.frozen_vggt.source_identity,manifest_sha256=manifest_digest,mode=mode,
-            slurm_job_id=os.environ.get('SLURM_JOB_ID'),optimizer_clock_origin=0,smoke_clock_in_formal_training=False))
+            slurm_job_id=os.environ.get('SLURM_JOB_ID'),hardware=hardware,
+            optimizer_clock_origin=0,smoke_clock_in_formal_training=False))
     completed=0;total_counts=np.zeros(EXPECTED_WINDOWS,dtype=np.int64);adapted_identity=None;payload=None
     if resume:
         payload=torch.load(latest,map_location='cpu',weights_only=False,mmap=True)
@@ -872,7 +879,7 @@ def run_staged_training(*, run_dir, hf_revision, mode='train', resume=False, art
                         _write_json_atomic(run_dir/f'startup_confirmation_{phase}.json',dict(status='TRAINING_CONFIRMED',
                             recipe=STAGED_RECIPE,phase=phase,confirmed_phase_updates=phase_update+1,confirmed_phase_exposures=(phase_update+1)*8,
                             execution_git_sha=execution_sha,slurm_job_id=os.environ.get('SLURM_JOB_ID'),
-                            geometry_quality_policy='monitor_v1',rank_rows=gathered,training_configuration=config))
+                            geometry_quality_policy='monitor_v1',rank_rows=gathered,training_configuration=config,hardware=hardware))
                     else: phase_rows.append(gathered)
             save_due=not smoke and (phase_update+1==20 or completed%UPDATES_PER_EPOCH==0)
             if save_due:
@@ -920,7 +927,7 @@ def run_staged_training(*, run_dir, hf_revision, mode='train', resume=False, art
                 world_size=world,updates_per_phase=2,exposures_per_phase=2*world,rank_rows=phase_rows,
                 execution_git_sha=execution_sha,manifest_sha256=manifest_digest,source_checkpoint=provenance,
                 geometry_quality_policy='monitor_v1',formal_updates=0,training_configuration=config,
-                understanding_and_vggt_gradient_paths_checked=True))
+                understanding_and_vggt_gradient_paths_checked=True,hardware=hardware))
         else:
             _write_json_atomic(run_dir/'COMPLETE.json',dict(status='TRAINING_COMPLETED',recipe=STAGED_RECIPE,
                 completed_updates=completed,completed_exposures=completed*GLOBAL_BATCH,stage_epochs=config['stage_epochs'],
