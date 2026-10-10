@@ -8,6 +8,7 @@ import numpy as np
 import torch
 from scripts.invoke_siu3r_official_evaluator import evaluate, SIU3R_COMMIT
 from scripts.posefree_official_state_helpers import create, update, states, merge, itemize, METRICS
+from scripts.format_object_locus_posefree_siu3r_table import markdown_table, write_table, PROTOCOL_NOTE
 
 
 def write(path,value):
@@ -146,13 +147,10 @@ def reduce(args):
         'camera_disclosure':'场景生成只使用两张context；监督/目标相机使用独立图像标定。指定新视角渲染仍需要目标相机。',
         'optimizer_updates':0,'job_id':os.environ.get('SLURM_JOB_ID')}
     write(args.root/'metrics.json',report)
+    write_table(report,args.root)
     lines=['# Final epoch 8 official SIU3R evaluation','',f"Status: {report['status']}; {len(names)} windows / {report['unique_scenes']} scenes.",'',
-        '| Scope | AbsRel↓ | RMSE↓ | PSNR↑ | SSIM↑ | LPIPS↓ | mIoUₛ↑ | mAP↑ | PQ↑ | mIoUₜ↑ |',
-        '|---|---:|---:|---:|---:|---:|---:|---:|---:|---|']
-    for scope,row in scopes.items():
-        values=[f"{row[k]:.6f}" for k in ('absrel','rmse','psnr','ssim','lpips','mIoU_s','mAP','PQ')]
-        lines.append('| '+scope+' | '+' | '.join(values)+' | NOT_TRAINED |')
-    lines+=['',report['text_metric_note'],'',report['image_protocol'],'',report['segmentation_protocol'],'',report['camera_disclosure'],
+        markdown_table(report),'',PROTOCOL_NOTE]
+    lines+=['',report['image_protocol'],'',report['segmentation_protocol'],'',report['camera_disclosure'],
         '',f"Training: 8 epochs / 8344 updates / 66752 new exposures; SHA {metadata[0]['git_sha']}.",
         f"SIU3R evaluator: {SIU3R_COMMIT}; evaluation code: {report['evaluation_code_sha']}."]
     (args.root/'summary.md').write_text('\n'.join(lines)+'\n')
