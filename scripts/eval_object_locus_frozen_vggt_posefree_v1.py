@@ -283,8 +283,10 @@ def export_official_pngs(args, windows, cohort_source):
         blob=_restore_checkpoint(model,args.checkpoint,args.vggt_revision,sha256(args.manifest))
         meta={k:blob.get(k) for k in ('git_sha','evaluation_code_sha','completed_updates',
             'completed_exposures','epoch','geometry_quality_policy')}
-        if meta['epoch']!=8 or meta['completed_updates']!=8344 or meta['completed_exposures']!=66752:
-            raise RuntimeError('official final evaluation requires completed epoch 8')
+        from scripts.object_locus_frozen_vggt_posefree_runtime import UPDATES_PER_EPOCH, GLOBAL_BATCH
+        epoch=meta['epoch']
+        if epoch not in (4,8) or meta['completed_updates']!=epoch*UPDATES_PER_EPOCH or meta['completed_exposures']!=epoch*UPDATES_PER_EPOCH*GLOBAL_BATCH:
+            raise RuntimeError('official endpoint evaluation requires a complete retained epoch 4 or 8 checkpoint')
         if meta['geometry_quality_policy']!='monitor_v1': raise RuntimeError('checkpoint policy mismatch')
         del blob
         _write_json_atomic(root/'checkpoint_metadata.json',meta)

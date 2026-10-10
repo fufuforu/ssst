@@ -57,13 +57,14 @@ def markdown_table(report):
 
 def write_table(report, root):
     root = Path(root)
+    epoch = report["training_checkpoint_metadata"]["epoch"]
     values = table_values(report)
     with (root / "siu3r_table1.csv").open("w", newline="", encoding="utf-8") as handle:
         writer = csv.writer(handle)
         writer.writerow(FIELDS)
         writer.writerow(values)  # csv writes None as an empty cell.
     payload = {
-        "method": "object_locus_frozen_vggt_posefree_v1 / final epoch 08",
+        "method": f"object_locus_frozen_vggt_posefree_v1 / epoch {epoch:02d}",
         "status": report["status"], "windows": report["windows"],
         "unique_scenes": report["unique_scenes"], "paper_table": PAPER,
         "columns": list(FIELDS), "values": values,
@@ -80,7 +81,7 @@ def write_table(report, root):
     (root / "siu3r_table1.json").write_text(
         json.dumps(payload, ensure_ascii=False, indent=2, allow_nan=False) + "\n")
     (root / "siu3r_table1.md").write_text(
-        "# Final epoch 08 — SIU3R Table 1\n\n"
+        f"# Epoch {epoch:02d} — SIU3R Table 1\n\n"
         f"{report['status']}; {report['windows']} windows / {report['unique_scenes']} scenes.\n\n"
         + markdown_table(report) + "\n\n" + PROTOCOL_NOTE
         + f"\n\n[SIU3R Table 1]({PAPER}) · [完整原始指标](metrics.json) · [CSV](siu3r_table1.csv)\n")

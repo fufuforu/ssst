@@ -1,6 +1,6 @@
 """Score native PNG exports with pinned SIU3R; merge global official segmentation states."""
 from __future__ import annotations
-import argparse, json, os, sys, subprocess, tempfile, time
+import argparse, hashlib, json, os, sys, subprocess, tempfile, time
 from pathlib import Path
 REPO=Path(__file__).resolve().parents[1]
 sys.path.insert(0,str(REPO))
@@ -135,12 +135,21 @@ def reduce(args):
         scopes[scope]=recon[scope]|{'mIoU_s':seg[f'{view}_miou'],'mAP':seg[f'{view}_map']['map'],
             'PQ':seg[f'{view}_pq'],'mIoU_t':None,'mIoU_t_status':'NOT_TRAINED'}
     assert all(m['git_sha']=='e80c99380a4eb04456dc7fb69c7382ff11af1051' for m in metadata)
+    assert all(m==metadata[0] for m in metadata), 'shards used different checkpoints/code/clocks'
+    epoch=metadata[0]['epoch']
+    assert epoch in (4,8) and metadata[0]['completed_updates']==epoch*1043 and metadata[0]['completed_exposures']==epoch*8344
+    checkpoint=Path(identities[0]['checkpoint'])
+    assert all(i['checkpoint']==str(checkpoint) for i in identities)
+    assert all(i['checkpoint_size']==checkpoint.stat().st_size and i['checkpoint_mtime_ns']==checkpoint.stat().st_mtime_ns for i in identities)
+    checkpoint_hash=hashlib.sha256()
+    with checkpoint.open('rb') as handle:
+        for chunk in iter(lambda:handle.read(16*1024*1024),b''):checkpoint_hash.update(chunk)
     report={'status':'PARTIAL_ENGINEERING_CHECK' if args.partial else 'EVALUATED',
         'windows':len(names),'unique_scenes':len({n.split('_context')[0] for n in names}),
         'scopes':scopes,'official_segmentation':{'all':allseg,'novel':novelseg},
         'official_commit':SIU3R_COMMIT,'inference_code_sha':metadata[0]['evaluation_code_sha'],'scoring_device':args.segmentation_device,'evaluation_code_sha':subprocess.check_output(['git','-C',str(REPO),'rev-parse','HEAD'],text=True).strip(),
         'training_checkpoint_metadata':metadata[0],'export_identity':identities[0],
-        'checkpoint_sha256':'40e93e3e9d1157f1d6af97e51414bb098a116f6f2444b190993dbc0a33a47824',
+        'checkpoint_sha256':checkpoint_hash.hexdigest(),
         'image_protocol':'Unmodified pinned SIU3R Evaluator.evaluate on exported RGB uint8 PNG and depth millimetre uint16 PNG; per-image RGB/depth metrics averaged over images; GT-positive per-image scale-and-shift depth alignment. Context/novel reconstruction scopes filter the native per-image scores.',
         'segmentation_protocol':'Unchanged existing panoptic exporter and pinned process_segmentation/metric classes; merged sufficient states and canonical pair order; global COCO AP, never a scene/shard AP average. Real two-window contracts match native evaluator at 1e-7.',
         'text_metric_note':'mIoU_t means text-referred segmentation. The locked visual model has no trained text branch; unmeasured, not zero and not target-view semantic IoU.',
@@ -148,10 +157,10 @@ def reduce(args):
         'optimizer_updates':0,'job_id':os.environ.get('SLURM_JOB_ID')}
     write(args.root/'metrics.json',report)
     write_table(report,args.root)
-    lines=['# Final epoch 8 official SIU3R evaluation','',f"Status: {report['status']}; {len(names)} windows / {report['unique_scenes']} scenes.",'',
+    lines=[f'# Epoch {epoch} official SIU3R evaluation','',f"Status: {report['status']}; {len(names)} windows / {report['unique_scenes']} scenes.",'',
         markdown_table(report),'',PROTOCOL_NOTE]
     lines+=['',report['image_protocol'],'',report['segmentation_protocol'],'',report['camera_disclosure'],
-        '',f"Training: 8 epochs / 8344 updates / 66752 new exposures; SHA {metadata[0]['git_sha']}.",
+        '',f"Checkpoint: {epoch} epochs / {metadata[0]['completed_updates']} updates / {metadata[0]['completed_exposures']} new exposures; SHA {metadata[0]['git_sha']}.",
         f"SIU3R evaluator: {SIU3R_COMMIT}; evaluation code: {report['evaluation_code_sha']}."]
     (args.root/'summary.md').write_text('\n'.join(lines)+'\n')
     print(json.dumps(scopes,indent=2),flush=True)
