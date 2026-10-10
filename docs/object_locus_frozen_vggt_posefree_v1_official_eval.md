@@ -38,3 +38,24 @@ Evidence directory: `/space/mawb/ssst/group_plus/object_locus_frozen_vggt_posefr
 The final deliverable is `siu3r_table1.csv` (exactly 13 columns, full precision, two empty cells), `siu3r_table1.md`, and `siu3r_table1.json`. The formatter `scripts/format_object_locus_posefree_siu3r_table.py --root <evidence-directory>` only reads the completed metrics and writes presentation artifacts. No inference, scoring, or training is repeated. The original three-scope summary is preserved under `report_versions/summary_three_scopes_original.md`; raw `metrics.json` and evaluation identity remain unchanged.
 
 The Table 1 “Novel Views” columns map to the pinned official evaluator's `target_miou`, `target_map.map`, and `target_pq` on the original six-frame target set. `src/data/components/scannet_dataset.py` loads `target_ids` directly; `src/visualizer.py` exports all configured targets; `src/evaluator.py` aggregates all exported target images and segmentation masks without excluding input frames. The separately filtered four-frame output stays diagnostic and is not mixed into this official table row. Both context and target masks use the existing model's Gaussian readout, consistent with the official validation pipeline's rendered mask path.
+
+## Completed epoch 4 comparison (2026-10-10)
+
+Job 60306 completed with exit 0:0 at 15:53:25 Asia/Shanghai (elapsed 00:34:42). Epoch 4 checkpoint: 4172 updates / 33376 new exposures; SHA256 ef5ae41cb850e05a8e47b91863662c98828f7fbe4bac7b26fab3a77099b48761. Inference/scoring snapshot SHA f54fe66121c1e1ae7c1ac68f07ffd8ea47417911. Epoch 8 training and results were retained; no new optimizer updates were submitted. Model, training math, data and camera conditions did not change.
+
+| Checkpoint | AbsRel↓ | RMSE↓ | PSNR↑ | SSIM↑ | LPIPS↓ | 输入 mIoUₛ↑ | 输入 mAP↑ | 输入 PQ↑ | 输入 mIoUₜ↑ | 新视图 mIoUₛ↑ | 新视图 mAP↑ | 新视图 PQ↑ | 新视图 mIoUₜ↑ |
+|---|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|---:|
+| epoch4 | 0.18202 | 0.3937 | 18.45 | 0.6486 | 0.6145 | 0.5596 | 0.2408 | 0.6166 |  | 0.5566 | 0.2274 | 0.5989 |  |
+| epoch8 | 0.18276 | 0.3969 | 18.55 | 0.6491 | 0.6177 | 0.5553 | 0.2378 | 0.6184 |  | 0.5518 | 0.2240 | 0.6029 |  |
+
+The 13 metric columns follow the same official mapping described above; both mIoU_t cells remain empty. The CSV has exactly 13 metric columns, with data rows in epoch 4/8 order.
+
+Both checkpoints cover identical 1860 windows / 312 scenes / 11160 target image observations. Epoch 4 passes finite-value, exact-coverage, clock/hash and all seven real CUDA/CPU metric contracts. Geometry is 1808 OK / 52 WARNING; all windows remain included under monitor_v1. Frozen VGGT prediction/calibration diagnostics match epoch 8 for all windows. Epoch 8 raw metrics SHA256 remains 1d6b6be9f8604994a989337e68eddfb1ca4076a2c1361343e84bc60f87393af7.
+
+From epoch 4 to 8: PSNR +0.096956dB, SSIM +0.000520, LPIPS +0.003234 (worse), AbsRel +0.000740 (worse), RMSE +0.003180 (worse). Context mIoU/mAP decrease 0.4278/0.3004 percentage points while PQ increases 0.1815 points; official target mIoU/mAP decrease 0.4727/0.3382 points while PQ increases 0.4062 points. This weak/mixed change provides little support for assuming additional epochs alone will recover prior reconstruction quality; it does not isolate the causal effect of freezing or cameras.
+
+Evidence: `.../evaluation/epoch04_official` contains COMPLETE/validation/raw metrics; `.../evaluation/epoch04_vs_epoch08` contains the exact-column CSV, paired comparison and full precision JSON. The paired PSNR mean over 11160 matching observations agrees with the difference of official aggregates to 1e-10. No column-wise best checkpoint selection was made.
+
+Read-only progress/results: `scripts/show_object_locus_posefree_official_progress.py --epoch 4` or `--epoch 8`. `scripts/finalize_object_locus_posefree_official_eval.py` validates completed evidence without repeating inference/scoring. `scripts/compare_object_locus_posefree_epochs.py` matches frame IDs and provenance before generating the comparison.
+
+See [the six-paper VGGT / ScanNet research review](object_locus_vggt_scannet_literature_20261010.md) for prior reconstruction adaptation, frozen teacher versus trainable student, camera-input differences, and the limits of applying paper recipes to this locked experiment.

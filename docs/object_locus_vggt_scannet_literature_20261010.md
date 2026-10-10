@@ -13,6 +13,7 @@
 | [C3G，2512.04021v2](https://arxiv.org/pdf/2512.04021v2)，§4 Implementation details、§3.2 | Gaussian 阶段视觉编码器 LR=1e-6、decoder LR=1e-4，进行骨干微调；feature lifting 阶段只训练 value projections。 | 同样区分“先训练重建”与“之后冻结/限制更新读出”。论文主训练 450K steps，数据以 RE10K 为主；不能把其 ScanNet 评测当成相同 ScanNet 专项训练。官方 gaussian_head 配置 backbone_lr_multiplier=0.01，与上述 LR 边界相符；当前代码 batch preset 与论文 batch 不完全相同，未照搬。 |
 | [IGGT，2510.22706v2](https://arxiv.org/pdf/2510.22706v2)，Appendix A Training details、§3 | VGGT 初始化，骨干 LR=1e-6，geometry/instance heads LR=1e-5；在 InsScene-15K 上联合微调。 | 支持 geometry 与 instance 表征共同适配；使用 pose/depth/pointmap 和实例监督，15K scenes、8 A800/2 天，既不是完全冻结，也不是与我们同监督条件。不是 Gaussian 新视图渲染模型，不能直接比较 SIU3R 表中的 PSNR/mAP。 |
 | [AnySplat，2505.23716v2](https://arxiv.org/html/2505.23716v2)，§4.1、§4.4、Table 5 | 仅冻结 patch embedding，继续训练 VGGT 初始化的 Transformer 和头；使用冻结教师蒸馏。 | 是相机/深度/渲染共同适应的参照，主要是重建。冻结全部 Transformer=17.84 PSNR，完整模型=18.25，仅约 0.41dB；证明“冻结”对不同结构的影响差异很大，不支持断言冻结解释我们全部约 6dB 差距。其跳过大 loss 更新的规则不适用我们既定的完整曝光要求。 |
+| [UNITE，2512.14364v3 / TMLR 2026](https://arxiv.org/html/2512.14364v3)，§3、附录 A、D、Table 8 | 用 VGGT-1B 初始化统一几何/语义网络；另作 ScanNet 10K steps 的几何或几何+语义微调消融。 | 原始 VGGT、几何微调、几何+语义微调的 AbsRel 分别为 0.260、0.256、0.251；作者也说明收益较小、VGGT 原先已训练过 ScanNet。支持微调能改善，却不支持期待大幅恢复。主模型训练 150K steps、12-frame sequences；没有 Gaussian RGB 渲染，部分主评测提供 GT depth/poses，和我们的双视图 SIU3R 条件不同。 |
 
 上述“先冻结后微调”措辞必须针对具体模块：视觉 patch tokenizer、跨视图 Transformer、几何教师、Gaussian decoder、对象 tokenizer 或 semantic readout。仅看到论文里的 frozen 字样不能判断整个 VGGT 永久冻结。
 
@@ -28,9 +29,19 @@ InsTok3D 的 sequential 消融是先训练 anchor decoder、再冻结它训练 g
 
 rank 0 每 20 updates 的训练抽样（非验证、非全 rank 完整 epoch 平均）重建 loss 均值：epochs 1–8 分别为 0.08155、0.05322、0.04864、0.05018、0.04859、0.04556、0.04640、0.04810。训练抽样趋于平缓，但不能证明验证收敛，也不支持保证继续加轮数会追平。
 
+现有 epoch8 的 1860 窗口中，1808 个几何一致性 OK 窗口的平均 PSNR=18.5607，52 个 WARNING 窗口为 18.2000；重投影一致性诊断与 PSNR 的 Pearson 相关为 -0.0816。这只是既有证据的描述性统计，诊断比较的是 VGGT 不同预测调用的一致性，不是预测相机对 GT 的误差。因此既不能将所有下降归因于少数 WARNING，也不能据此排除相机因素；全部窗口仍参与官方评测。
+
+## Epoch4 与 epoch8 的实际对照
+
+完整 1860 窗口的原生重建计算已完成：epoch4→epoch8 的 PSNR=18.45367→18.55063（+0.09696dB），SSIM=0.648603→0.649123（+0.000520），LPIPS=0.614499→0.617734（变差 +0.003234），AbsRel=0.182015→0.182756（变差 +0.000740），RMSE=0.393733→0.396913（变差 +0.003180）。这是多项重建指标分化、收益很小的结果，不能据此断言当前配方延长几轮就会恢复旧重建质量。
+
+理解也呈现分化：输入视图 mIoUₛ/mAP 分别下降 0.4278/0.3004 个百分点，PQ 上升 0.1815 个百分点；官方 target 集合 mIoUₛ/mAP 分别下降 0.4727/0.3382 个百分点，PQ 上升 0.4062 个百分点。不能把这种变化概括为所有理解指标持续改善。完整对照表位于 `evaluation/epoch04_vs_epoch08/comparison.md`，CSV 仍为恰好 13 个指标列。
+
+两轮的全部 1860 条冻结 VGGT 几何诊断完全相同（忽略循环 instrumentation 的 epoch/update/rank/stage 字段）；因此此对比检验的是固定几何条件下下游适配的变化，不是微调 VGGT 后的效果。
+
 ## 当前建议与证据边界
 
-先完成用户指定的 epoch4/epoch8 同窗口、同相机条件、同官方指标对比，报告全部 13 列，不拼接各 checkpoint 的最优指标。若 epoch8 的重建和理解明显改善，继续适配时间仍有直接支持；若改善很小、恶化或任务分化，单纯延长当前日程的依据变弱。只有两个 checkpoint 仍不能排除优化、泛化和几何教师造成的瓶颈。
+用户指定的 epoch4/epoch8 同窗口、同相机条件、同官方指标对比已完成；报告全部 13 列，不拼接各 checkpoint 的最优指标。观察到的重建收益很小且重建/理解指标分化，让单纯延长当前日程的依据变弱。相对于直接追加轮数，前置重建/尺度适配更值得作为下一轮候选检验；但只有两个 checkpoint，仍不能证明冻结骨干是唯一瓶颈，也不能排除优化与泛化因素。
 
 下一轮研究更值得优先考虑**独立的 ScanNet 重建适配，再冻结 VGGT，训练原有下游模型**，而非直接解除本轮全部冻结约束并沿用旧 optimizer/scheduler。需要明确哪些 VGGT 模块更新、相机/深度头与更新后 aggregator 是否一致、训练期/评测期是否仍纯图像输入、原理解权重如何迁移，以及对几何和分割的回归检查。文献没有给出可直接适用本模型的学习率、轮数或增益保证。
 
@@ -47,4 +58,4 @@ rank 0 每 20 updates 的训练抽样（非验证、非全 rank 完整 epoch 平
 - [Uni3R](https://github.com/HorizonRobotics/Uni3R/tree/4a5dd00b6737a95afd4c6b1760cad166cf17d3d4)：训练入口、README、模型与训练代码。
 - [AnySplat](https://github.com/InternRobotics/AnySplat/tree/5f5e208a7dd57d52e43ea0d553a95eab526e8775)：`src/model/encoder/anysplat.py` 的教师/学生与 freeze_module 分支。
 
-另一个 TMLR 几何/语义联合微调候选的 OpenReview PDF 遇到 HTTP403/浏览器挑战，未获得全文，未据搜索摘要写入结论。
+UNITE 的 OpenReview PDF 遇到 HTTP403/浏览器挑战；随后通过作者项目页确认 arXiv 对应版本，读取了 arXiv v3 正文和附录。以上 UNITE 结论依据原始全文，而非仅依据搜索摘要。
