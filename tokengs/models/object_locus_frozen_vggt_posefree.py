@@ -98,7 +98,7 @@ class LocusGSObjectLocusFrozenVGGT(LocusGSObjectLocusPanopticV1Recon):
 
     def train(self, mode=True):
         super().train(mode)
-        self.frozen_vggt.eval()
+        self.frozen_vggt.train(mode)
         return self
 
     def _latent_from_vggt(self, result):
@@ -121,6 +121,8 @@ class LocusGSObjectLocusFrozenVGGT(LocusGSObjectLocusPanopticV1Recon):
         del runtime_config
         if context_rgb.ndim!=5 or context_rgb.shape[1:]!=(2,3,256,256):
             raise ValueError(f"generate expects [B,2,3,256,256], got {tuple(context_rgb.shape)}")
+        if getattr(self, 'reconstruction_adaptation', False):
+            return self._generate_reconstruction_adaptation(context_rgb)
         vggt_result=self.frozen_vggt(context_rgb)
         c2w_scene,k256,depth_scaled,points,coordinate_record=posefree_scene(
             vggt_result.c2w_cv,vggt_result.intrinsics518,vggt_result.depth518)
@@ -148,6 +150,21 @@ class LocusGSObjectLocusFrozenVGGT(LocusGSObjectLocusPanopticV1Recon):
                     vggt_source_identity=vggt_result.source_identity)
         output.update(self._readout(final,gaussians,fm,render_decoder,output_decoder))
         return output
+
+    def _generate_reconstruction_adaptation(self, context_rgb):
+        """Original Gaussian decoder, with object feedback disabled in pretraining."""
+        from torch.utils.checkpoint import checkpoint
+        result = self.frozen_vggt(context_rgb)
+        c2w,k256,depth,points,coordinates = posefree_scene(result.c2w_cv,result.intrinsics518,result.depth518)
+        latent = self._latent_from_vggt(result)
+        rays = rays_to_patch_plucker(c2w,result.intrinsics518,patch_size=14)
+        args = (self.get_gs_tokens(batch_size=context_rgb.shape[0]),latent,rays)
+        states,stats = checkpoint(self.anchor_decoder,*args,use_reentrant=False,preserve_rng_state=True) if self.training else self.anchor_decoder(*args)
+        return dict(states=states,ray_stats=stats,beta=0.,predicted_context_c2w=c2w,
+                    predicted_context_intrinsics_matrix=k256,predicted_context_intrinsics=camera_vectors(k256),
+                    predicted_context_intrinsics518=result.intrinsics518.detach(),confidence518=result.confidence518,
+                    depth=depth,predicted_points=points,coordinates=coordinates,
+                    generation_context_rgb=context_rgb.detach(),vggt_source_identity=result.source_identity)
 
     def calibrate_targets(self, context_and_target_rgb: torch.Tensor, generated: dict):
         """Independent full-window pass aligned by shared context depth point maps."""
@@ -234,8 +251,11 @@ class LocusGSObjectLocusFrozenVGGT(LocusGSObjectLocusPanopticV1Recon):
         loss_batch['intrinsics_input']=calibration['intrinsics'][:,:2]
         decoder=ModelInputDecoder(cam_view=cam_view,intrinsics=calibration['intrinsics'])
         recon,metrics,*_=self._layer_objective(prediction['states'],decoder,_full_supervision(loss_batch))
-        from tokengs.models.object_locus_v3_set_loss import object_locus_v3_set_losses
-        under,under_metrics=object_locus_v3_set_losses(prediction,loss_batch,self.opt)
+        if getattr(self, 'reconstruction_adaptation', False):
+            under,under_metrics = recon.new_zeros(()), {}
+        else:
+            from tokengs.models.object_locus_v3_set_loss import object_locus_v3_set_losses
+            under,under_metrics=object_locus_v3_set_losses(prediction,loss_batch,self.opt)
         metrics.update(under_metrics)
         metrics.update(loss_recon=recon,loss_understanding=under,
                        understanding_weight=float(understanding_weight),

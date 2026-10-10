@@ -70,6 +70,23 @@ def _restore_checkpoint(model, checkpoint_path, revision, manifest_sha256):
         'source_checkpoint_sha256':EXPECTED_CHECKPOINT_SHA,
         'vggt_artifact_identity':artifact_identity}.items():
         if blob.get(key)!=value:raise RuntimeError(f'checkpoint provenance mismatch for {key}')
+    if blob.get('recipe'):
+        from scripts.object_locus_frozen_vggt_posefree_runtime import (
+            STAGED_RECIPE,staged_training_configuration,restore_adapted_vggt,UPDATES_PER_EPOCH)
+        if blob['recipe']!=STAGED_RECIPE or blob['config']!=staged_training_configuration():
+            raise RuntimeError('staged evaluation recipe/config mismatch')
+        if blob['world_size']!=8 or len(blob['rank_rng'])!=8 or blob['phase']!='frozen_joint':
+            raise RuntimeError('staged evaluation requires an eight-rank frozen-joint checkpoint')
+        phase_updates=blob['phase_completed_updates']
+        if blob['completed_updates']!=2*UPDATES_PER_EPOCH+phase_updates or blob['completed_exposures']!=8*blob['completed_updates']:
+            raise RuntimeError('staged evaluation clock mismatch')
+        restore_model_state_strict(model,blob['model'])
+        identity=blob['adapted_vggt_identity']
+        restore_adapted_vggt(model,Path(identity['path']),identity['sha256'])
+        model.frozen_vggt.set_reconstruction_adaptation(False)
+        model.reconstruction_adaptation=False;model.understanding_step=phase_updates*8
+        blob['evaluation_code_sha']=current_sha
+        return blob
     if blob.get('world_size')!=WORLD_SIZE or blob.get('total_updates')!=TOTAL_UPDATES:
         raise RuntimeError('evaluation checkpoint is not from the locked eight-rank schedule')
     if blob.get('config')!=training_configuration() or len(blob.get('rank_rng',[]))!=WORLD_SIZE:
@@ -285,7 +302,12 @@ def export_official_pngs(args, windows, cohort_source):
             'completed_exposures','epoch','geometry_quality_policy')}
         from scripts.object_locus_frozen_vggt_posefree_runtime import UPDATES_PER_EPOCH, GLOBAL_BATCH
         epoch=meta['epoch']
-        if epoch not in (4,8) or meta['completed_updates']!=epoch*UPDATES_PER_EPOCH or meta['completed_exposures']!=epoch*UPDATES_PER_EPOCH*GLOBAL_BATCH:
+        if blob.get('recipe'):
+            if epoch!=6 or blob['phase_completed_updates']!=4*UPDATES_PER_EPOCH:
+                raise RuntimeError('staged official evaluation requires completed adaptation2 + joint4')
+            meta.update(recipe=blob['recipe'],phase=blob['phase'],phase_epoch=4,
+                        adapted_vggt_identity=blob['adapted_vggt_identity'])
+        elif epoch not in (4,8) or meta['completed_updates']!=epoch*UPDATES_PER_EPOCH or meta['completed_exposures']!=epoch*UPDATES_PER_EPOCH*GLOBAL_BATCH:
             raise RuntimeError('official endpoint evaluation requires a complete retained epoch 4 or 8 checkpoint')
         if meta['geometry_quality_policy']!='monitor_v1': raise RuntimeError('checkpoint policy mismatch')
         del blob

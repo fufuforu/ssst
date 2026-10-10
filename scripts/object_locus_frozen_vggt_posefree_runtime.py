@@ -158,10 +158,11 @@ def exposure_schedule(exposure: int):
     return min(exposure/200,1.0),0.1*min(exposure/1000,1.0)
 
 
-def lr_multiplier(update: int):
+def lr_multiplier(update: int, total_updates: int | None=None):
     step=int(update)+1
-    if not 1<=step<=TOTAL_UPDATES: raise ValueError("optimizer update outside planned range")
-    return step/200 if step<=200 else .1+.9*(1+math.cos(math.pi*(step-200)/(TOTAL_UPDATES-200)))/2
+    total=TOTAL_UPDATES if total_updates is None else int(total_updates)
+    if not 1<=step<=total: raise ValueError("optimizer update outside planned range")
+    return step/200 if step<=200 else .1+.9*(1+math.cos(math.pi*(step-200)/(total-200)))/2
 
 
 def parameter_family(name: str):
@@ -267,7 +268,8 @@ def save_calibration_failure(error,update,rank,stage='formal_training'):
 
 
 def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world_size=None,
-                            monitor=None,window_metadata=None,stage="formal_training"):
+                            monitor=None,window_metadata=None,stage="formal_training",total_updates=None,
+                            reconstruction_adaptation=False):
     """Two-microbatch GC step with one accumulated gradient family per parameter."""
     if len(batches)!=ACCUMULATION: raise ValueError(f"each rank must receive exactly {ACCUMULATION} accumulation microbatches")
     named=sorted((n,p) for n,p in model.named_parameters() if p.requires_grad)
@@ -275,6 +277,7 @@ def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world
     optimizer.zero_grad(set_to_none=True)
     combined_acc=[None]*len(params)
     weight,beta=exposure_schedule(base_exposure)
+    if reconstruction_adaptation: weight,beta=0.,0.
     device=next(model.parameters()).device
     local_rows=[]
     for micro_index,batch in enumerate(batches):
@@ -343,7 +346,7 @@ def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world
     error=None
     try:
         norm=torch.nn.utils.clip_grad_norm_(params,1.0,error_if_nonfinite=True)
-        mult=lr_multiplier(update)
+        mult=lr_multiplier(update,total_updates)
         for group in optimizer.param_groups: group['lr']=group['peak_lr']*mult
         optimizer.step()
         if any(not torch.isfinite(p).all() for p in params): raise FloatingPointError('nonfinite parameter after optimizer.step')
@@ -407,14 +410,16 @@ def seed_everything(seed: int):
 
 
 def build_model(*, checkpoint: Path=CHECKPOINT, opt=None,
-                artifact_manifest: Path=VGGT_ARTIFACT_MANIFEST):
+                artifact_manifest: Path=VGGT_ARTIFACT_MANIFEST,
+                preserve_fp32_aggregator: bool=False):
     """Construct, initialize the retained panoptic modules, then strict-copy epoch 06."""
     from tokengs.models.object_locus_frozen_vggt_posefree import LocusGSObjectLocusFrozenVGGT
     revision=os.environ.get('VGGT_HF_REVISION')
     if not revision:
         raise RuntimeError('set VGGT_HF_REVISION to the reviewed Hugging Face commit before model construction')
     vggt=FrozenVGGT.from_pretrained(local_files_only=True,revision=revision,
-                                    artifact_manifest=artifact_manifest)
+                                    artifact_manifest=artifact_manifest,
+                                    preserve_fp32_aggregator=preserve_fp32_aggregator)
     if opt is None:
         from tokengs.options import config_defaults
         opt=config_defaults['train_siu3r_object_locus_frozen_vggt_posefree_v1']
@@ -674,6 +679,248 @@ def _atomic_save(payload,path: Path):
     path.parent.mkdir(parents=True,exist_ok=True)
     temp=path.with_name(path.name+'.tmp')
     torch.save(payload,temp);os.replace(temp,path)
+
+
+STAGED_RECIPE = 'vggt_reconstruction_adapt2_frozen_joint4_v1'
+
+
+def staged_training_configuration():
+    config = training_configuration()
+    config.update(recipe=STAGED_RECIPE, epochs=6, total_updates=6*UPDATES_PER_EPOCH,
+        total_exposures=6*WINDOWS_PER_EPOCH, stage_epochs={'reconstruction_adaptation':2,'frozen_joint':4},
+        stage_updates={'reconstruction_adaptation':2*UPDATES_PER_EPOCH,'frozen_joint':4*UPDATES_PER_EPOCH},
+        adaptation_trainable_vggt=['aggregator.frame_blocks','aggregator.global_blocks'],
+        adaptation_frozen_vggt=['aggregator.patch_embed','aggregator.camera_token','aggregator.register_token','camera_head','depth_head'],
+        adaptation_lr_peak={'vggt':1e-6,'reconstruction':1e-5,'memory_adapter':1e-4},
+        adaptation_precision='FP32 AA parameters/master/moments; BF16 autocast; original FP32 decoder/head/loss',
+        adaptation_optimizer='native FP32 AdamW CPU offload; betas=(0.9,0.95), eps=1e-8',
+        adaptation_understanding='frozen and unused; object feedback disabled; original reconstruction loss only',
+        stage_transition='retain adapted VGGT/decoder/adapter and original understanding; fresh joint optimizer and exposure warmup',
+        frozen_joint_precision='adapted VGGT aggregator BF16, camera/depth FP32; unchanged downstream precision',
+        camera_inputs='predicted/detached in both phases; original shared_context_depth_sim3_v2; no GT camera input')
+    return config
+
+
+def configure_staged_phase(model, phase, device):
+    if phase not in ('reconstruction_adaptation','frozen_joint'): raise ValueError(phase)
+    if not hasattr(model,'_staged_original_trainable'):
+        model._staged_original_trainable={n:p.requires_grad for n,p in model.named_parameters() if not n.startswith('frozen_vggt.')}
+    for name,parameter in model.named_parameters():
+        if name in model._staged_original_trainable:
+            parameter.requires_grad_(model._staged_original_trainable[name])
+    adapting = phase == 'reconstruction_adaptation'
+    model.reconstruction_adaptation = adapting
+    model.frozen_vggt.set_reconstruction_adaptation(adapting)
+    for module in (model.understanding,model.panoptic):
+        if adapting: module.requires_grad_(False)
+        module.to('cpu' if adapting else device)
+        module.train(not adapting)
+    model.train()
+    if not adapting: return build_optimizer(model)
+    from scripts.posefree_cpu_adamw import CPUOffloadAdamW
+    groups=[]
+    for family,peak in (('vggt',1e-6),('reconstruction',1e-5),('memory_adapter',1e-4)):
+        def selected(name):
+            if family=='vggt': return name.startswith('frozen_vggt.')
+            if family=='memory_adapter': return name.startswith('vggt_memory_adapter.')
+            return not name.startswith(('frozen_vggt.','vggt_memory_adapter.'))
+        for decay in (False,True):
+            named=[(n,p) for n,p in sorted(model.named_parameters()) if p.requires_grad and selected(n)
+                   and (family!='reconstruction' and p.ndim>1 and not n.endswith('.bias') and not getattr(p,'_no_weight_decay',False))==decay]
+            if named: groups.append(dict(name=f'{family}_{"decay" if decay else "nodecay"}',
+                params=[p for _,p in named],param_names=[n for n,_ in named],peak_lr=peak,lr=peak,weight_decay=.05 if decay else 0.))
+    identifiers=[id(p) for group in groups for p in group['params']]
+    assert len(identifiers)==len(set(identifiers)) and set(identifiers)=={id(p) for p in model.parameters() if p.requires_grad}
+    return CPUOffloadAdamW(groups)
+
+
+def restore_adapted_vggt(model, path, expected_sha, expected_updates=2*UPDATES_PER_EPOCH):
+    if sha256(path) != expected_sha: raise RuntimeError('adapted VGGT artifact SHA mismatch')
+    payload=torch.load(path,map_location='cpu',weights_only=False,mmap=True)
+    if payload.get('recipe')!=STAGED_RECIPE or payload.get('adaptation_updates')!=expected_updates:
+        raise RuntimeError('adapted VGGT artifact recipe/clock mismatch')
+    if payload.get('base_hf_revision')!=model.frozen_vggt.source_identity['revision']:
+        raise RuntimeError('adapted VGGT base revision mismatch')
+    model.frozen_vggt.model.load_state_dict(payload['model'],strict=True)
+    model.frozen_vggt.source_identity['derived_asset']={'path':str(path),'sha256':expected_sha,'recipe':STAGED_RECIPE}
+
+
+def run_staged_training(*, run_dir, hf_revision, mode='train', resume=False, artifact_manifest=VGGT_ARTIFACT_MANIFEST):
+    """Execute the authorized two-stage recipe using the existing data/step runtime."""
+    import torch.distributed as dist
+    from scripts import object_locus_v3_set_runtime as provider_runtime
+    world=int(os.environ.get('WORLD_SIZE','1'));local=int(os.environ.get('LOCAL_RANK','0'))
+    if mode not in ('train','single_smoke','eight_smoke'): raise ValueError(mode)
+    smoke=mode!='train'
+    if world!=(1 if mode=='single_smoke' else 8): raise RuntimeError('staged recipe world-size mismatch')
+    if socket.gethostname().split('.')[0]!='3dimage-13': raise RuntimeError('staged recipe pinned to 3dimage-13')
+    torch.cuda.set_device(local);device=torch.device('cuda',local)
+    if '3090' not in torch.cuda.get_device_name(local): raise RuntimeError('RTX3090 required')
+    if world>1: dist.init_process_group('nccl')
+    rank=dist.get_rank() if world>1 else 0
+    execution_sha=subprocess.check_output(['git','-C',str(REPO),'rev-parse','HEAD'],text=True).strip()
+    config=staged_training_configuration();manifest,_,windows=load_manifest();manifest_digest=sha256(MANIFEST)
+    latest=run_dir/'checkpoint_latest.pt'
+    if not resume and run_dir.exists() and any(run_dir.iterdir()): raise RuntimeError('staged output is not empty')
+    if rank==0: run_dir.mkdir(parents=True,exist_ok=True)
+    if world>1: dist.barrier()
+    seed_everything(42);os.environ['VGGT_HF_REVISION']=hf_revision
+    model,opt,transfer,provenance=build_model(artifact_manifest=artifact_manifest,preserve_fp32_aggregator=True)
+    model.to(device);seed_everything(42+rank)
+    if rank==0:
+        manifest_name=f'resume_manifest_{os.environ.get("SLURM_JOB_ID","manual")}.json' if resume else 'run_manifest.json'
+        _write_json_atomic(run_dir/manifest_name,dict(status='SMOKE_STARTED' if smoke else 'TRAINING_STARTED',
+            execution_git_sha=execution_sha,recipe=STAGED_RECIPE,training_configuration=config,source_checkpoint=provenance,
+            vggt_source=model.frozen_vggt.source_identity,manifest_sha256=manifest_digest,mode=mode,
+            slurm_job_id=os.environ.get('SLURM_JOB_ID'),optimizer_clock_origin=0,smoke_clock_in_formal_training=False))
+    completed=0;total_counts=np.zeros(EXPECTED_WINDOWS,dtype=np.int64);adapted_identity=None;payload=None
+    if resume:
+        payload=torch.load(latest,map_location='cpu',weights_only=False,mmap=True)
+        for key,value in {'recipe':STAGED_RECIPE,'config':config,'manifest_sha256':manifest_digest,
+                          'source_checkpoint_sha256':EXPECTED_CHECKPOINT_SHA,'vggt_revision':hf_revision,'world_size':world}.items():
+            if payload.get(key)!=value: raise RuntimeError(f'staged resume identity mismatch: {key}')
+        completed=payload['completed_updates'];total_counts=np.asarray(payload['rank_window_exposure_counts'][rank])
+        restore_model_state_strict(model,payload['model']);adapted_identity=payload.get('adapted_vggt_identity')
+        if completed>=2*UPDATES_PER_EPOCH and adapted_identity is None:
+            # An epoch-2 adaptation checkpoint precedes writing the derived asset.
+            # Recover from its exact FP32 tensors, preserving an existing artifact.
+            identity=[None]
+            if rank==0:
+                path=run_dir/f'adapted_vggt_recovered_{os.environ.get("SLURM_JOB_ID","manual")}.pt'
+                _atomic_save(dict(recipe=STAGED_RECIPE,adaptation_updates=2*UPDATES_PER_EPOCH,
+                    base_hf_revision=hf_revision,base_artifact=model.frozen_vggt.source_identity,
+                    model=payload['vggt_model']),path)
+                identity[0]={'path':str(path.resolve()),'sha256':sha256(path),'recipe':STAGED_RECIPE}
+            dist.broadcast_object_list(identity,src=0);adapted_identity=identity[0]
+    phase_rows=[]
+    for phase_idx,(phase,phase_epochs) in enumerate((('reconstruction_adaptation',2),('frozen_joint',4))):
+        phase_total=phase_epochs*UPDATES_PER_EPOCH
+        offset=0 if phase_idx==0 else 2*UPDATES_PER_EPOCH
+        limit=2 if smoke else phase_total
+        if completed>=offset+limit: continue
+        optimizer=configure_staged_phase(model,phase,device)
+        if payload is not None:
+            if phase=='reconstruction_adaptation': model.frozen_vggt.model.load_state_dict(payload['vggt_model'],strict=True)
+            if payload['phase']==phase:
+                optimizer.load_state_dict(payload['optimizer']);restore_rank_rng(payload['rank_rng'][rank])
+            payload=None
+        if phase_idx==1:
+            restore_adapted_vggt(model,Path(adapted_identity['path']),adapted_identity['sha256'],
+                                 expected_updates=2 if smoke else 2*UPDATES_PER_EPOCH)
+        monitor=GeometryMonitor(run_dir,rank,mode+'_'+phase)
+        probe=next(p for n,p in model.frozen_vggt.named_parameters() if 'frame_blocks.0.attn.qkv.weight' in n)
+        probe_before=probe.detach().clone();frozen_versions={id(p):p._version for p in model.frozen_vggt.parameters()}
+        phase_start=max(0,completed-offset)
+        phase_started=time.monotonic()
+        for phase_update in range(phase_start,limit):
+            absolute_update=offset+phase_update
+            epoch,epoch_update=divmod(absolute_update,UPDATES_PER_EPOCH)
+            indices=(int(epoch_order(0)[0]),) if mode=='single_smoke' else rank_microbatch_indices(epoch,epoch_update,rank)
+            batches=[];error=None
+            try: batches=[provider_runtime.build_batch(opt,windows[index],device) for index in indices]
+            except Exception as exc: error=exc
+            synchronized_error(error,device,'staged_batch',absolute_update)
+            row=train_microbatch_window(model,optimizer,batches,phase_update,
+                base_exposure=phase_update*(world if smoke else GLOBAL_BATCH),world_size=world,
+                monitor=monitor,window_metadata=[window_identity(i,windows[i]) for i in indices],
+                stage=mode+'_'+phase,total_updates=phase_total,reconstruction_adaptation=phase_idx==0)
+            row.update(phase=phase,phase_update=phase_update+1,absolute_update=absolute_update+1 if not smoke else None,
+                       absolute_new_exposures=(absolute_update+1)*GLOBAL_BATCH if not smoke else None)
+            if phase=='reconstruction_adaptation':
+                aa=[p for p in model.frozen_vggt.parameters() if p.requires_grad]
+                if not aa or not any(p.grad is not None and p.grad.norm()>0 for p in aa): raise RuntimeError('VGGT adaptation gradient missing')
+            elif any(p.grad is not None for p in model.frozen_vggt.parameters()): raise RuntimeError('frozen joint VGGT gradient present')
+            if smoke and phase_idx==1 and phase_update==1:
+                for prefix in ('understanding.','vggt_memory_adapter.'):
+                    if not any(p.grad is not None and p.grad.norm()>0 for n,p in model.named_parameters() if n.startswith(prefix)):
+                        raise RuntimeError(f'joint smoke gradient path missing: {prefix}')
+            if phase=='frozen_joint' and any(p._version!=frozen_versions[id(p)] for p in model.frozen_vggt.parameters()):
+                raise RuntimeError('frozen joint mutated adapted VGGT parameters')
+            for index in indices: total_counts[index]+=1
+            completed=absolute_update+1
+            if rank==0 and ((phase_update+1)%20==0 or smoke or phase_update+1==limit):
+                with (run_dir/'training_rank0.jsonl').open('a') as stream: stream.write(json.dumps(row,allow_nan=False)+'\n')
+                if not smoke:
+                    elapsed=time.monotonic()-phase_started
+                    eta=elapsed/(phase_update-phase_start+1)*(phase_total-phase_update-1)
+                    _write_json_atomic(run_dir/'progress.json',dict(phase=phase,phase_update=phase_update+1,
+                        phase_total_updates=phase_total,completed_updates=completed,completed_exposures=completed*GLOBAL_BATCH,
+                        total_updates=6*UPDATES_PER_EPOCH,estimated_phase_remaining_seconds=eta,
+                        updated_at_utc=time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())))
+            if (phase_update+1)%20==0: monitor.write_summary(phase_update+1)
+            startup_due=phase_update+1==20 or (resume and phase_update==phase_start)
+            if smoke or startup_due:
+                local_row={'rank':rank,**row,'geometry_monitor':monitor.summary(),
+                           'vggt_probe_change_norm':float((probe.detach()-probe_before).norm())}
+                gathered=[None]*world
+                if world>1: dist.all_gather_object(gathered,local_row)
+                else: gathered=[local_row]
+                if rank==0:
+                    if mode=='eight_smoke' and phase_idx==0 and phase_update==1:
+                        if not any(r['geometry_monitor']['latest']['manifest_index']==6923 for r in gathered):
+                            raise RuntimeError('eight-smoke did not visit mandatory window 6923')
+                    if not smoke:
+                        if any(r['phase_update']!=phase_update+1 for r in gathered): raise RuntimeError('staged startup clocks disagree')
+                        if phase_idx==0 and any(r['vggt_probe_change_norm']<=0 for r in gathered): raise RuntimeError('VGGT weights did not update')
+                        _write_json_atomic(run_dir/f'startup_confirmation_{phase}.json',dict(status='TRAINING_CONFIRMED',
+                            recipe=STAGED_RECIPE,phase=phase,confirmed_phase_updates=phase_update+1,confirmed_phase_exposures=(phase_update+1)*8,
+                            execution_git_sha=execution_sha,slurm_job_id=os.environ.get('SLURM_JOB_ID'),
+                            geometry_quality_policy='monitor_v1',rank_rows=gathered,training_configuration=config))
+                    else: phase_rows.append(gathered)
+            save_due=not smoke and (phase_update+1==20 or completed%UPDATES_PER_EPOCH==0)
+            if save_due:
+                rank_rng=[None]*world;rank_counts=[None]*world
+                dist.all_gather_object(rank_rng,capture_rank_rng());dist.all_gather_object(rank_counts,total_counts.tolist())
+                counts=np.sum(np.asarray(rank_counts),axis=0);expected=np.zeros(EXPECTED_WINDOWS,dtype=np.int64)
+                full_epochs,position=divmod(completed,UPDATES_PER_EPOCH)
+                for e in range(full_epochs): np.add.at(expected,epoch_order(e),1)
+                np.add.at(expected,epoch_order(full_epochs)[:position*GLOBAL_BATCH],1)
+                if not np.array_equal(counts,expected): raise RuntimeError('staged full exposure accounting mismatch')
+                if rank==0:
+                    saved=dict(recipe=STAGED_RECIPE,config=config,model=checkpoint_model_state(model),optimizer=optimizer.state_dict(),
+                        phase=phase,phase_completed_updates=phase_update+1,completed_updates=completed,completed_exposures=completed*GLOBAL_BATCH,
+                        epoch=completed//UPDATES_PER_EPOCH,next_position=completed%UPDATES_PER_EPOCH,
+                        rank_rng=rank_rng,rank_window_exposure_counts=rank_counts,window_exposure_counts=counts.tolist(),
+                        manifest_sha256=manifest_digest,source_checkpoint_sha256=EXPECTED_CHECKPOINT_SHA,vggt_revision=hf_revision,
+                        world_size=world,git_sha=execution_sha,geometry_quality_policy='monitor_v1',adapted_vggt_identity=adapted_identity,
+                        total_updates=6*UPDATES_PER_EPOCH,
+                        vggt_artifact_identity={k:model.frozen_vggt.source_identity.get(k) for k in ('repository','model_id','revision','files','loaded_subtrees','loaded_source_key_count','explicitly_excluded_source_key_count','loaded_key_sha256')})
+                    if phase_idx==0: saved['vggt_model']={k:v.detach().cpu() for k,v in model.frozen_vggt.model.state_dict().items()}
+                    _atomic_save(saved,latest)
+                    if completed%UPDATES_PER_EPOCH==0: _atomic_save(saved,run_dir/f'checkpoint_{phase}_epoch_{(phase_update+1)//UPDATES_PER_EPOCH:02d}.pt')
+                    _write_json_atomic(run_dir/'progress.json',dict(phase=phase,completed_updates=completed,completed_exposures=completed*GLOBAL_BATCH,
+                        phase_update=phase_update+1,total_updates=6*UPDATES_PER_EPOCH))
+                dist.barrier()
+        change=float((probe.detach()-probe_before).norm())
+        if phase_idx==0 and change<=0: raise RuntimeError('adaptation produced no VGGT change')
+        optimizer.zero_grad(set_to_none=True);del optimizer,probe_before,probe
+        if phase_idx==0:
+            identity=[None]
+            if rank==0:
+                path=run_dir/('adapted_vggt_smoke.pt' if smoke else 'adapted_vggt.pt')
+                _atomic_save(dict(recipe=STAGED_RECIPE,adaptation_updates=2 if smoke else phase_total,
+                    base_hf_revision=hf_revision,base_artifact=model.frozen_vggt.source_identity,
+                    model={k:v.detach().cpu() for k,v in model.frozen_vggt.model.state_dict().items()}),path)
+                identity[0]={'path':str(path.resolve()),'sha256':sha256(path),'recipe':STAGED_RECIPE}
+            if world>1: dist.broadcast_object_list(identity,src=0)
+            adapted_identity=identity[0];model.frozen_vggt.source_identity['derived_asset']=adapted_identity
+            # Smoke has two isolated updates per phase, not 2086 adaptation updates.
+            completed=2*UPDATES_PER_EPOCH
+        torch.cuda.empty_cache()
+    if rank==0:
+        if smoke:
+            _write_json_atomic(run_dir/'smoke_report.json',dict(status='GPU_SMOKE_COMPLETED',mode=mode,recipe=STAGED_RECIPE,
+                world_size=world,updates_per_phase=2,exposures_per_phase=2*world,rank_rows=phase_rows,
+                execution_git_sha=execution_sha,manifest_sha256=manifest_digest,source_checkpoint=provenance,
+                geometry_quality_policy='monitor_v1',formal_updates=0,training_configuration=config,
+                understanding_and_vggt_gradient_paths_checked=True))
+        else:
+            _write_json_atomic(run_dir/'COMPLETE.json',dict(status='TRAINING_COMPLETED',recipe=STAGED_RECIPE,
+                completed_updates=completed,completed_exposures=completed*GLOBAL_BATCH,stage_epochs=config['stage_epochs'],
+                execution_git_sha=execution_sha,adapted_vggt_identity=adapted_identity))
+    if world>1: dist.barrier();dist.destroy_process_group()
+    return {'status':'GPU_SMOKE_COMPLETED' if smoke else 'TRAINING_COMPLETED',
+            'completed_updates':4 if smoke else completed,'formal_updates':0 if smoke else completed}
 
 
 def run_training(*, manifest_path: Path=MANIFEST, checkpoint: Path=CHECKPOINT,

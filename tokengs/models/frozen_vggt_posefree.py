@@ -102,25 +102,29 @@ class VGGTResult:
 
 
 class FrozenVGGT(nn.Module):
-    """Official VGGT aggregator plus camera/depth heads, all permanently frozen."""
+    """Official VGGT, frozen by default; explicit reconstruction recipe adapts AA."""
     def __init__(self, *, model=None, source_identity: dict | None = None, pose_decoder=None,
-                 test_only: bool=False, verified_artifact: bool=False):
+                 test_only: bool=False, verified_artifact: bool=False,
+                 preserve_fp32_aggregator: bool=False):
         super().__init__()
         if model is None:
             raise ValueError("construct VGGT only with from_pretrained() using a verified pinned artifact; model injection is test-only")
         if not (test_only or verified_artifact):
             raise ValueError("model injection is reserved for explicit test_only stubs")
         self.model = model
+        self._adaptation_enabled = False
+        self._keep_fp32_aggregator = preserve_fp32_aggregator
         self.pose_decoder = pose_decoder
         self.source_identity = source_identity or {"model_id": VGGT_MODEL_ID, "revision": "unverified-local"}
         self.requires_grad_(False)
         if getattr(self.model, "aggregator", None) is not None:
-            self.model.aggregator.to(dtype=torch.bfloat16)
+            self.model.aggregator.to(dtype=torch.float32 if preserve_fp32_aggregator else torch.bfloat16)
         self.eval()
 
     @classmethod
     def from_pretrained(cls, *, local_files_only: bool = False, revision: str | None = None,
-                        artifact_manifest: Path | None = None):
+                        artifact_manifest: Path | None = None,
+                        preserve_fp32_aggregator: bool=False):
         """Load official HF artifact; emit the resolved revision and weight SHA256."""
         if revision is None or re.fullmatch(r"[0-9a-fA-F]{40}",revision) is None:
             raise ValueError("pin facebook/VGGT-1B to a full 40-character Hugging Face revision SHA")
@@ -201,18 +205,47 @@ class FrozenVGGT(nn.Module):
         identity["loaded_subtrees"]=["aggregator","camera_head","depth_head"]
         identity["loading"]="explicit key/shape audit then strict=True"
         identity['verification_status']='VERIFIED'
-        return cls(model=model, source_identity=identity,verified_artifact=True)
+        return cls(model=model, source_identity=identity,verified_artifact=True,
+                   preserve_fp32_aggregator=preserve_fp32_aggregator)
+
+    def set_reconstruction_adaptation(self, enabled):
+        """Adapt official AA blocks only; all geometry outputs stay detached."""
+        self._adaptation_enabled = bool(enabled)
+        self._keep_fp32_aggregator = bool(enabled)
+        self.requires_grad_(False)
+        if enabled:
+            self.model.aggregator.float()
+            for blocks in (self.model.aggregator.frame_blocks, self.model.aggregator.global_blocks):
+                blocks.requires_grad_(True)
+            if next(self.parameters()).device.type == 'cuda':
+                self.model.aggregator.patch_embed.bfloat16()
+        else:
+            self.model.aggregator.bfloat16()
+        self.train(bool(enabled))
+
+    def _aggregate(self, images):
+        if not self._keep_fp32_aggregator:
+            with torch.no_grad():
+                return self.model.aggregator(images.bfloat16())
+        enabled = self._adaptation_enabled and torch.is_grad_enabled()
+        with torch.set_grad_enabled(enabled), self._autocast_context(images.device):
+            return self.model.aggregator(images.float() if self._keep_fp32_aggregator else images.bfloat16())
 
     def train(self, mode: bool = True):
-        super().train(False)
+        super().train(bool(mode and self._adaptation_enabled))
         self.model.eval()
+        if self._adaptation_enabled:
+            self.model.aggregator.train(mode)
+            self.model.aggregator.patch_embed.eval()
         return self
 
     def _apply(self, fn):
         super()._apply(fn)
         if getattr(self.model, "aggregator", None) is not None:
-            self.model.aggregator.to(dtype=torch.bfloat16)
-        self.model.eval()
+            self.model.aggregator.to(dtype=torch.float32 if self._keep_fp32_aggregator else torch.bfloat16)
+            if self._adaptation_enabled and next(self.parameters()).device.type == 'cuda':
+                self.model.aggregator.patch_embed.bfloat16()
+        self.train(self.training)
         return self
 
     def _autocast_context(self, device):
@@ -246,17 +279,16 @@ class FrozenVGGT(nn.Module):
         matrix[...,:3,:4]=extrinsics
         return matrix
 
-    @torch.no_grad()
     def forward(self, context_rgb: torch.Tensor) -> VGGTResult:
-        self.eval()
+        self.train(self.training)
         rgb = resize_context_rgb(context_rgb)
         b = rgb.shape[0]
         images = rgb
-        aggregated, patch_start_idx = self.model.aggregator(images.to(torch.bfloat16))
+        aggregated, patch_start_idx = self._aggregate(images)
         layers = select_patch_layers(aggregated, int(patch_start_idx), batch=b)
         # Camera and depth heads plus pose decoding remain FP32, matching the
         # official boundary after BF16 aggregator tokens.
-        aggregated_fp32 = [None if x is None else x.float() for x in aggregated]
+        aggregated_fp32 = [None if x is None else x.detach().float() for x in aggregated]
         camera_encoding_list = self.model.camera_head(aggregated_fp32)
         decode=self.pose_decoder
         if decode is None:
@@ -278,13 +310,13 @@ class FrozenVGGT(nn.Module):
     @torch.no_grad()
     def calibration_with_context_depth(self, images_rgb: torch.Tensor) -> dict:
         """One independent full-window aggregator pass; decode all cameras but only shared-context depth."""
-        self.eval()
+        self.train(self.training)
         if images_rgb.ndim != 5 or images_rgb.shape[2] != 3 or images_rgb.shape[1] < 3:
             raise ValueError("calibration input must be [B,>=3,3,H,W]")
         b,v=images_rgb.shape[:2]
         images=F.interpolate(images_rgb.flatten(0,1),(INPUT_SIZE,INPUT_SIZE),mode="bilinear",
                              align_corners=False).reshape(b,v,3,INPUT_SIZE,INPUT_SIZE)
-        aggregated,patch_start_idx=self.model.aggregator(images.to(torch.bfloat16))
+        aggregated,patch_start_idx=self._aggregate(images)
         aggregated_fp32=[None if token is None else token.float() for token in aggregated]
         encoding=self.model.camera_head(aggregated_fp32)[-1]
         decode=self.pose_decoder
@@ -309,14 +341,14 @@ class FrozenVGGT(nn.Module):
     @torch.no_grad()
     def camera_only(self, images_rgb: torch.Tensor) -> dict:
         """Calibration-only independent pass; does not expose patch/depth outputs."""
-        self.eval()
+        self.train(self.training)
         if images_rgb.ndim != 5 or images_rgb.shape[2] != 3:
             raise ValueError("camera calibration input must be [B,V,3,H,W]")
         batch_size,view_count=images_rgb.shape[:2]
         images_rgb=F.interpolate(images_rgb.flatten(0,1),(INPUT_SIZE,INPUT_SIZE),mode="bilinear",align_corners=False).reshape(batch_size,view_count,3,INPUT_SIZE,INPUT_SIZE)
         # A single aggregator call covers the full context+supervision window.
         images=images_rgb
-        aggregated,patch_start_idx=self.model.aggregator(images.to(torch.bfloat16))
+        aggregated,patch_start_idx=self._aggregate(images)
         encoding=self.model.camera_head([None if x is None else x.float() for x in aggregated])[-1]
         decode=self.pose_decoder
         if decode is None:

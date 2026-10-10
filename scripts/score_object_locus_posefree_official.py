@@ -134,10 +134,14 @@ def reduce(args):
     for scope,seg,view in (('context',allseg,'context'),('target-all',allseg,'target'),('true-novel',novelseg,'target')):
         scopes[scope]=recon[scope]|{'mIoU_s':seg[f'{view}_miou'],'mAP':seg[f'{view}_map']['map'],
             'PQ':seg[f'{view}_pq'],'mIoU_t':None,'mIoU_t_status':'NOT_TRAINED'}
-    assert all(m['git_sha']=='e80c99380a4eb04456dc7fb69c7382ff11af1051' for m in metadata)
+    if metadata[0].get('recipe'):
+        assert all(m['recipe']=='vggt_reconstruction_adapt2_frozen_joint4_v1' and m['phase']=='frozen_joint' and m['phase_epoch']==4 for m in metadata)
+        assert all(len(m['git_sha'])==40 and len(m['adapted_vggt_identity']['sha256'])==64 for m in metadata)
+    else:
+        assert all(m['git_sha']=='e80c99380a4eb04456dc7fb69c7382ff11af1051' for m in metadata)
     assert all(m==metadata[0] for m in metadata), 'shards used different checkpoints/code/clocks'
     epoch=metadata[0]['epoch']
-    assert epoch in (4,8) and metadata[0]['completed_updates']==epoch*1043 and metadata[0]['completed_exposures']==epoch*8344
+    assert epoch in ((6,) if metadata[0].get('recipe') else (4,8)) and metadata[0]['completed_updates']==epoch*1043 and metadata[0]['completed_exposures']==epoch*8344
     checkpoint=Path(identities[0]['checkpoint'])
     assert all(i['checkpoint']==str(checkpoint) for i in identities)
     assert all(i['checkpoint_size']==checkpoint.stat().st_size and i['checkpoint_mtime_ns']==checkpoint.stat().st_mtime_ns for i in identities)

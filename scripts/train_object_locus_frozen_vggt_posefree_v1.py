@@ -27,6 +27,8 @@ def main(argv=None):
     parser.add_argument('--vggt-revision',default=os.environ.get('VGGT_HF_REVISION'),
                         help='pinned facebook/VGGT-1B Hugging Face commit SHA')
     parser.add_argument('--run-training',action='store_true',help='run the authorized locked monitor_v1 training recipe')
+    parser.add_argument('--staged-vggt-adapt',action='store_true',help='authorized VGGT reconstruction adaptation 2 epochs, then frozen joint 4 epochs')
+    parser.add_argument('--staged-mode',choices=('train','single_smoke','eight_smoke'),default='train')
     args=parser.parse_args(argv)
     # Keep --help lightweight: importing the runtime initializes PyTorch and its
     # optional compiler workers even though argparse exits before main continues.
@@ -37,6 +39,11 @@ def main(argv=None):
     if args.run_training:
         if args.vggt_revision is None or re.fullmatch(r'[0-9a-fA-F]{40}',args.vggt_revision) is None:
             raise SystemExit('--run-training requires --vggt-revision with a reviewed full 40-character HF SHA')
+        if args.staged_vggt_adapt:
+            from scripts.object_locus_frozen_vggt_posefree_runtime import run_staged_training
+            result=run_staged_training(run_dir=args.run_dir,hf_revision=args.vggt_revision,
+                mode=args.staged_mode,resume=args.resume,artifact_manifest=args.artifact_manifest)
+            print(json.dumps(result,indent=2));return result
         from scripts.object_locus_frozen_vggt_posefree_runtime import run_training
         result=run_training(manifest_path=args.manifest or Path('/space/mawb/ssst/group_plus/object_locus_panoptic_full1201_8gpu/manifest.json'),
                             checkpoint=args.checkpoint,run_dir=args.run_dir,hf_revision=args.vggt_revision,resume=args.resume,
@@ -45,6 +52,9 @@ def main(argv=None):
         print(json.dumps(result,indent=2,sort_keys=True))
         return result
     record=plan_record()
+    if args.staged_vggt_adapt:
+        from scripts.object_locus_frozen_vggt_posefree_runtime import staged_training_configuration
+        record.update(staged_training_configuration())
     manifest_path=args.manifest or Path(record['manifest'])
     manifest,scenes,windows=load_manifest(manifest_path)
     record['manifest']=str(manifest_path)
