@@ -9,8 +9,12 @@ RUN=Path('/space/mawb/ssst/workspace_group_plus/object_locus_vggt_recon_adapt_fr
 
 def main():
     print(subprocess.run(['squeue','-u','mawb','-o','%i %j %T %M %R'],capture_output=True,text=True).stdout.strip())
+    evaluation=REPORT/'evaluation/final_adapt2_joint4_official'
+    if (evaluation/'siu3r_table1.md').exists():
+        print((evaluation/'siu3r_table1.md').read_text());return
     if (RUN/'COMPLETE.json').exists():
-        print((RUN/'COMPLETE.json').read_text());return
+        print((RUN/'COMPLETE.json').read_text())
+        print('Training complete; official evaluation is queued/running until its table is written.');return
     if not (RUN/'progress.json').exists():
         print('No formal updates recorded yet. Plan: reconstruction adaptation 2 epochs, frozen joint 4 epochs.');return
     d=json.loads((RUN/'progress.json').read_text())

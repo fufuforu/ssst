@@ -39,6 +39,18 @@ def decode(encoding,image_size_hw):
 
 
 class Contracts(unittest.TestCase):
+    def test_boundary_resume_preserves_rng_with_fresh_optimizer(self):
+        from scripts.object_locus_frozen_vggt_posefree_runtime import (
+            restore_staged_phase_state,capture_rank_rng,seed_everything)
+        class FreshOptimizer:
+            def load_state_dict(self, state): raise AssertionError('previous-phase optimizer restored')
+        seed_everything(312);torch.rand(3)
+        saved=capture_rank_rng();expected=torch.rand(5)
+        seed_everything(999)
+        restore_staged_phase_state(None,FreshOptimizer(),
+            {'phase':'reconstruction_adaptation','rank_rng':[saved]},'frozen_joint',0)
+        torch.testing.assert_close(torch.rand(5),expected,rtol=0,atol=0)
+
     def test_phase_transition_restores_original_trainable_set(self):
         from scripts.object_locus_frozen_vggt_posefree_runtime import configure_staged_phase
         vggt=nn.Module();vggt.aggregator=TinyAggregator();vggt.camera_head=Camera();vggt.depth_head=Depth()

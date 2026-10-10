@@ -745,6 +745,15 @@ def restore_adapted_vggt(model, path, expected_sha, expected_updates=2*UPDATES_P
     model.frozen_vggt.source_identity['derived_asset']={'path':str(path),'sha256':expected_sha,'recipe':STAGED_RECIPE}
 
 
+def restore_staged_phase_state(model, optimizer, payload, phase, rank):
+    if phase=='reconstruction_adaptation':
+        model.frozen_vggt.model.load_state_dict(payload['vggt_model'],strict=True)
+    if payload['phase']==phase:
+        optimizer.load_state_dict(payload['optimizer'])
+    # Across the boundary the optimizer is fresh, but RNG must still continue.
+    restore_rank_rng(payload['rank_rng'][rank])
+
+
 def run_staged_training(*, run_dir, hf_revision, mode='train', resume=False, artifact_manifest=VGGT_ARTIFACT_MANIFEST):
     """Execute the authorized two-stage recipe using the existing data/step runtime."""
     import torch.distributed as dist
@@ -800,9 +809,7 @@ def run_staged_training(*, run_dir, hf_revision, mode='train', resume=False, art
         if completed>=offset+limit: continue
         optimizer=configure_staged_phase(model,phase,device)
         if payload is not None:
-            if phase=='reconstruction_adaptation': model.frozen_vggt.model.load_state_dict(payload['vggt_model'],strict=True)
-            if payload['phase']==phase:
-                optimizer.load_state_dict(payload['optimizer']);restore_rank_rng(payload['rank_rng'][rank])
+            restore_staged_phase_state(model,optimizer,payload,phase,rank)
             payload=None
         if phase_idx==1:
             restore_adapted_vggt(model,Path(adapted_identity['path']),adapted_identity['sha256'],
