@@ -47,12 +47,18 @@ def build_parser():
         help='verified full Hugging Face revision SHA for facebook/VGGT-1B')
     parser.add_argument('--artifact-manifest',type=Path,default=REPO/'vggt_artifact_manifest.json')
     parser.add_argument('--device',default='cuda')
+    parser.add_argument('--official-png-export',action='store_true',
+        help='Export native official RGB/depth PNGs and both all/novel segmentation scopes; scoring runs separately')
+    parser.add_argument('--shards',type=int,default=1)
+    parser.add_argument('--shard',type=int,default=None)
+    parser.add_argument('--resume-export',action='store_true')
+    parser.add_argument('--limit',type=int,default=None,help='Engineering validation only; never a full-cohort result')
     return parser
 
 
 def _restore_checkpoint(model, checkpoint_path, revision, manifest_sha256):
     from scripts.object_locus_frozen_vggt_posefree_runtime import restore_model_state_strict
-    blob=torch.load(checkpoint_path,map_location='cpu',weights_only=False)
+    blob=torch.load(checkpoint_path,map_location='cpu',weights_only=False,mmap=True)
     from scripts.object_locus_frozen_vggt_posefree_runtime import (
         EXPECTED_CHECKPOINT_SHA, WORLD_SIZE, TOTAL_UPDATES, training_configuration,
     )
@@ -156,7 +162,7 @@ def summarize_reconstruction_caches(root):
 
 def run_evaluation(args):
     import hashlib
-    if args.output_root.exists() and any(args.output_root.iterdir()):
+    if not args.official_png_export and args.output_root.exists() and any(args.output_root.iterdir()):
         raise RuntimeError(f'evaluation output root must be fresh; refusing to overwrite existing files: {args.output_root}')
     from scripts.object_locus_frozen_vggt_posefree_runtime import (
         MANIFEST, build_model, load_manifest, sha256,
@@ -187,6 +193,8 @@ def run_evaluation(args):
             if len(context)!=2 or not novel:raise ValueError('malformed locked full-validation pair')
             windows.append({'scene':item['scan'],'context':context,'novel':novel,
                             'pair_iou':item.get('iou')})
+    if args.official_png_export:
+        return export_official_pngs(args,windows,cohort_source)
     os.environ['VGGT_HF_REVISION']=args.vggt_revision
     model,opt,_,_=build_model(artifact_manifest=args.artifact_manifest)
     model=model.to(device=args.device,dtype=torch.float32)
@@ -207,7 +215,7 @@ def run_evaluation(args):
         # handling, packed format and score definition unchanged.
         row=write_official_pair(export_view,batch,window,args.output_root,target_frames='novel')
         records.append(row)
-        del output,generated,calibrated,batch
+        del export_view,cam_view,output,generated,calibrated,batch
         if (index+1)%100==0:print(f'prepared {index+1}/{len(windows)} fixed windows',flush=True)
     official=_official_run(args.output_root,args.output_root/'official_metrics.json')
     reconstruction_metrics=summarize_reconstruction_caches(args.output_root)
@@ -226,6 +234,97 @@ def run_evaluation(args):
         'official_result':official.get('result')}
     (args.output_root/'evaluation_manifest.json').write_text(json.dumps(report,indent=2)+'\n')
     return report
+
+
+def export_official_pngs(args, windows, cohort_source):
+    """Shard existing inference/export by scene without changing model or protocol."""
+    import time
+    from scripts.object_locus_frozen_vggt_posefree_runtime import (
+        build_model, sha256, GeometryMonitor, window_identity, _write_json_atomic,
+    )
+    from scripts.object_locus_v3_set_runtime import build_batch, seed_everything
+    from scripts.export_object_locus_v3_set_official import write_official_pair
+    from scripts.evaluate_ssst_validation import save_rgb, save_depth
+    shard = int(os.environ.get('RANK','0')) if args.shard is None else args.shard
+    if not 0 <= shard < args.shards: raise ValueError('invalid scene shard')
+    device = f"cuda:{os.environ.get('LOCAL_RANK','0')}" if args.device == 'cuda' else args.device
+    if device.startswith('cuda'): torch.cuda.set_device(device)
+    torch.set_num_threads(4)
+    seed_everything(42)
+    scenes=sorted({w['scene'] for w in windows})
+    selected=set(scenes[shard::args.shards])
+    assigned=[(i,w) for i,w in enumerate(windows) if w['scene'] in selected]
+    if args.limit is not None: assigned=assigned[:args.limit]
+    root=args.output_root/f'rank{shard:02d}'
+    root.mkdir(parents=True,exist_ok=True)
+    identity={'checkpoint':str(args.checkpoint.resolve()),'checkpoint_size':args.checkpoint.stat().st_size,
+        'checkpoint_mtime_ns':args.checkpoint.stat().st_mtime_ns,'manifest_sha256':sha256(args.manifest),
+        'cohort_source_sha256':sha256(cohort_source) if cohort_source else sha256(args.manifest),
+        'shard':shard,'shards':args.shards,'limit':args.limit,'windows':len(assigned),
+        'vggt_revision':args.vggt_revision,'geometry_quality_policy':'monitor_v1'}
+    receipt=root/'export_identity.json'
+    if receipt.exists():
+        if not args.resume_export or json.loads(receipt.read_text()) != identity:
+            raise RuntimeError('existing export identity/resume mismatch')
+    else:
+        if any(root.iterdir()): raise RuntimeError('nonempty export directory without identity')
+        _write_json_atomic(receipt,identity)
+    pending=[]
+    records=[]
+    for i,w in assigned:
+        name=w['scene']+'_context'+'_'.join(map(str,w['context']))
+        marker=root/'completed'/f'{name}.json'
+        if marker.exists(): records.append(json.loads(marker.read_text()))
+        else: pending.append((i,w,name,marker))
+    if pending:
+        os.environ['VGGT_HF_REVISION']=args.vggt_revision
+        model,opt,_,_=build_model(artifact_manifest=args.artifact_manifest)
+        model=model.to(device=device,dtype=torch.float32)
+        blob=_restore_checkpoint(model,args.checkpoint,args.vggt_revision,sha256(args.manifest))
+        meta={k:blob.get(k) for k in ('git_sha','evaluation_code_sha','completed_updates',
+            'completed_exposures','epoch','geometry_quality_policy')}
+        if meta['epoch']!=8 or meta['completed_updates']!=8344 or meta['completed_exposures']!=66752:
+            raise RuntimeError('official final evaluation requires completed epoch 8')
+        if meta['geometry_quality_policy']!='monitor_v1': raise RuntimeError('checkpoint policy mismatch')
+        del blob
+        _write_json_atomic(root/'checkpoint_metadata.json',meta)
+        model.eval();model.frozen_vggt.eval()
+        monitor=GeometryMonitor(root,shard,'official_evaluation')
+        started=time.monotonic()
+        with torch.no_grad():
+            for done,(i,w,name,marker) in enumerate(pending,1):
+                batch=build_batch(opt,w,device)
+                pred=generate_and_render(model,batch['images_input'],batch['images_all'])
+                monitor.record(pred['camera_calibration'],i,window_identity(i,w))
+                rendered=pred['render']
+                for key in ('images_pred','depths_pred'):
+                    if not torch.isfinite(rendered[key]).all(): raise FloatingPointError(f'nonfinite {key}: {name}')
+                export=_official_export_view(rendered)
+                all_row=write_official_pair(export,batch,w,root/'all',target_frames='all')
+                novel_row=write_official_pair(export,batch,w,root/'novel',target_frames='novel')
+                pair=root/'all'/name
+                for sub in ('rgb','rgb_gt','depth','depth_gt'): (pair/sub).mkdir(exist_ok=True)
+                frames=batch['frame_ids'][0].cpu().tolist()
+                for v,f in enumerate(frames):
+                    filename=f"{w['scene']}_{f}.png"
+                    save_rgb(pair/'rgb'/filename,rendered['images_pred'][0,v])
+                    save_rgb(pair/'rgb_gt'/filename,batch['images_all'][0,v])
+                    save_depth(pair/'depth'/filename,rendered['depths_pred'][0,v]/0.15)
+                    save_depth(pair/'depth_gt'/filename,batch['depth_gt_m_all'][0,v])
+                row={'manifest_index':i,'name':name,'all':all_row,'novel':novel_row,'frame_ids':frames}
+                _write_json_atomic(marker,row);records.append(row)
+                elapsed=time.monotonic()-started
+                _write_json_atomic(root/'progress.json',{'stage':'EXPORT','completed':len(records),'total':len(assigned),
+                    'elapsed_seconds':elapsed,'estimated_remaining_seconds':elapsed/done*(len(pending)-done),
+                    'latest':name,'geometry':monitor.summary()})
+                print(f'EXPORT rank={shard} completed={len(records)}/{len(assigned)} remaining_s={elapsed/done*(len(pending)-done):.0f} {name}',flush=True)
+                del export,rendered,pred,batch
+        del model
+    result={'status':'EXPORTED','identity':identity,'records':sorted(records,key=lambda r:r['manifest_index']),
+        'disclosure':DISCLOSURE,'optimizer_updates':0,'mIoU_t':'NOT_TRAINED',
+        'text_metric_note':'mIoU_t is text-referred segmentation; this fixed visual checkpoint has no trained text branch.'}
+    _write_json_atomic(root/'export_complete.json',result)
+    return {k:v for k,v in result.items() if k!='records'}
 
 
 def main(argv=None):
