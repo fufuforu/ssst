@@ -15,3 +15,23 @@ CPU contract checks, syntax checks, and real GPU export/official-scoring validat
 ## Verified official metric device acceleration
 
 The initial full job 60299 completed all 1860 exports and all native RGB/depth scores, then ran segmentation on CPU. Measured CPU throughput projected about 46 additional minutes. Job 60302 verified that moving the **unchanged** official processing and metric objects to CUDA reproduces mIoU/PQ/mAP/AP50/AP75 for both real all/novel exports at 1e-7; warmed novel processing took 0.058 seconds per pair. The continuation uses `EVAL_SCORE_ONLY=1 EVAL_GPU_SEGMENTATION=1` to retain all existing exports and reconstruction scores, repeats device contracts on each shard, and computes remaining segmentation on allocated GPUs. Global AP reduction still uses the unchanged official state helpers on CPU. Historical CPU progress and logs remain retained; training is untouched. Inference SHA and scoring SHA are separately recorded in the final report.
+
+## Completed full-cohort results
+
+Final scoring job 60304 completed with exit 0:0 on 2026-10-10 at 14:42:34 Asia/Shanghai. All 1860 unique windows / 312 scenes were evaluated. Inference SHA: 3e114b8b5d5f3fb7efd05ca68aaf7277f8dd9d32; scoring SHA: f4a2254adae3a0082cef449fd10959d57cdc8d5f.
+
+| Metric | Context (2) | Target-all (6) | True-novel (4) |
+|---|---:|---:|---:|
+| AbsRel ↓ | 0.183012 | 0.182756 | 0.182628 |
+| RMSE ↓ (m) | 0.397442 | 0.396913 | 0.396649 |
+| PSNR ↑ (dB) | 18.667394 | 18.550626 | 18.492242 |
+| SSIM ↑ | 0.652257 | 0.649123 | 0.647556 |
+| LPIPS ↓ | 0.615719 | 0.617734 | 0.618741 |
+| mIoU_s ↑ | 0.555298 | 0.551823 | 0.550072 |
+| mAP ↑ | 0.237761 | 0.224000 | 0.227495 |
+| PQ ↑ | 0.618400 | 0.602949 | 0.605482 |
+| mIoU_t ↑ | NOT_TRAINED | NOT_TRAINED | NOT_TRAINED |
+
+Target-all includes both context frames. Image counts: context 3720, target-all 11160, true-novel 7440. Native per-image RGB/depth means, global official mIoU/PQ/COCO AP, complete coverage, finite results, and all seven CUDA/CPU contracts passed final checks. Geometry quality: 1808 OK / 52 WARNING; all fits numerically valid and all windows retained.
+
+Evidence directory: `/space/mawb/ssst/group_plus/object_locus_frozen_vggt_posefree_v1/calibration_v2_monitor/evaluation/final_epoch08_official`. `metrics.json` retains full precision and official per-class results; `summary.md`, `coverage_and_geometry.json`, `final_validation.json`, and `COMPLETE.json` record outcome and provenance. `../show_progress.py` is a read-only status/result viewer. Historical training and evaluation logs remain unchanged.
