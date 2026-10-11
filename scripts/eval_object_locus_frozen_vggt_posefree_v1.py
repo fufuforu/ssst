@@ -73,10 +73,10 @@ def _restore_checkpoint(model, checkpoint_path, revision, manifest_sha256):
     if blob.get('recipe'):
         from scripts.object_locus_frozen_vggt_posefree_runtime import (
             STAGED_RECIPE,staged_training_configuration,restore_adapted_vggt,UPDATES_PER_EPOCH)
-        if blob['recipe']!=STAGED_RECIPE or blob['config']!=staged_training_configuration():
+        if blob['recipe']!=STAGED_RECIPE or blob['config']!=staged_training_configuration(blob['world_size']):
             raise RuntimeError('staged evaluation recipe/config mismatch')
-        if blob['world_size']!=8 or len(blob['rank_rng'])!=8 or blob['phase']!='frozen_joint':
-            raise RuntimeError('staged evaluation requires an eight-rank frozen-joint checkpoint')
+        if blob['world_size'] not in (4,8) or len(blob['rank_rng'])!=blob['world_size'] or blob['phase']!='frozen_joint':
+            raise RuntimeError('staged evaluation requires a four/eight-rank frozen-joint checkpoint')
         phase_updates=blob['phase_completed_updates']
         if blob['completed_updates']!=2*UPDATES_PER_EPOCH+phase_updates or blob['completed_exposures']!=8*blob['completed_updates']:
             raise RuntimeError('staged evaluation clock mismatch')

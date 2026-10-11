@@ -8,6 +8,38 @@ from scripts.posefree_cpu_adamw import CPUOffloadAdamW
 from tokengs.models.frozen_vggt_posefree import FrozenVGGT
 
 
+class TinyStep(nn.Module):
+    def __init__(self):
+        super().__init__()
+        for name in ('decoder','understanding','vggt_memory_adapter'):
+            module=nn.Linear(2,1,bias=False)
+            with torch.no_grad(): module.weight.copy_(torch.tensor([[.2,-.3]]))
+            setattr(self,name,module)
+    def step_loss(self,batch,*,step,understanding_weight):
+        x,y=batch
+        value=self.decoder(x)+self.understanding(x)+self.vggt_memory_adapter(x)
+        rec=(value-y).square().mean();under=(value+2*y).square().mean()
+        return {},dict(loss_recon=rec,loss_understanding=under)
+
+
+def four_rank_cpu_step(rank,directory):
+    import os
+    import torch.distributed as dist
+    from scripts.object_locus_frozen_vggt_posefree_runtime import build_optimizer,train_microbatch_window
+    os.environ['GLOO_SOCKET_IFNAME']='lo';torch.set_num_threads(1)
+    dist.init_process_group('gloo',init_method='file://'+str(Path(directory)/'gloo'),rank=rank,world_size=4)
+    x=torch.arange(16,dtype=torch.float32).reshape(8,2)/4
+    y=torch.linspace(-.4,.8,8).reshape(8,1)
+    for adapting in (False,True):
+        model=TinyStep();optimizer=build_optimizer(model)
+        batches=[(x[i:i+1],y[i:i+1]) for i in (rank*2,rank*2+1)]
+        row=train_microbatch_window(model,optimizer,batches,1,base_exposure=100,
+            world_size=4,accumulation=2,reconstruction_adaptation=adapting)
+        torch.save(dict(model=model.state_dict(),row=row,optimizer=optimizer.state_dict()),
+                   Path(directory)/f'rank{rank}_{adapting}.pt')
+    dist.destroy_process_group()
+
+
 class TinyAggregator(nn.Module):
     def __init__(self):
         super().__init__()
@@ -39,6 +71,42 @@ def decode(encoding,image_size_hw):
 
 
 class Contracts(unittest.TestCase):
+    def test_four_rank_accumulation_matches_global_eight_sample_update(self):
+        from scripts.object_locus_frozen_vggt_posefree_runtime import build_optimizer,train_microbatch_window
+        x=torch.arange(16,dtype=torch.float32).reshape(8,2)/4
+        y=torch.linspace(-.4,.8,8).reshape(8,1)
+        with tempfile.TemporaryDirectory() as directory:
+            torch.multiprocessing.start_processes(four_rank_cpu_step,args=(directory,),
+                nprocs=4,join=True,start_method='fork')
+            for adapting in (False,True):
+                model=TinyStep();optimizer=build_optimizer(model)
+                reference=train_microbatch_window(model,optimizer,[(x,y)],1,base_exposure=100,
+                    world_size=1,reconstruction_adaptation=adapting)
+                for rank in range(4):
+                    actual=torch.load(Path(directory)/f'rank{rank}_{adapting}.pt',weights_only=True)
+                    self.assertEqual(actual['row']['completed_exposures'],16)
+                    self.assertAlmostEqual(actual['row']['preclip_norm'],reference['preclip_norm'],places=5)
+                    for name,value in model.state_dict().items():
+                        torch.testing.assert_close(actual['model'][name],value,rtol=1e-6,atol=1e-7)
+                    for state in actual['optimizer']['state'].values(): self.assertEqual(state['step'].item(),1)
+
+    def test_four_rank_sampler_preserves_original_update_windows_and_budget(self):
+        from scripts.object_locus_frozen_vggt_posefree_runtime import (
+            rank_microbatch_indices,UPDATES_PER_EPOCH,epoch_order,staged_training_configuration)
+        for epoch in range(6):
+            for update in (0,1,UPDATES_PER_EPOCH//2,UPDATES_PER_EPOCH-1):
+                old=[i for rank in range(8) for i in rank_microbatch_indices(epoch,update,rank)]
+                new=[i for rank in range(4) for i in rank_microbatch_indices(epoch,update,rank,world_size=4)]
+                self.assertEqual(old,new)
+        full=[i for update in range(UPDATES_PER_EPOCH) for rank in range(4)
+              for i in rank_microbatch_indices(0,update,rank,world_size=4)]
+        self.assertEqual(full,epoch_order(0).tolist())
+        old=staged_training_configuration(8);new=staged_training_configuration(4)
+        changed={key for key in old if old[key]!=new[key]}
+        self.assertEqual(changed,{'world_size','accumulation','node','gpu_model'})
+        self.assertEqual(new['world_size']*new['microbatch']*new['accumulation'],8)
+        self.assertEqual((new['total_updates'],new['total_exposures']),(6258,50064))
+
     def test_boundary_resume_preserves_rng_with_fresh_optimizer(self):
         from scripts.object_locus_frozen_vggt_posefree_runtime import (
             restore_staged_phase_state,capture_rank_rng,seed_everything)

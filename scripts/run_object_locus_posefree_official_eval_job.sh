@@ -4,14 +4,14 @@
 #SBATCH --exclude=3dimage-12
 #SBATCH --nodes=1
 #SBATCH --ntasks=1
-#SBATCH --gres=gpu:7
-#SBATCH --cpus-per-task=28
+#SBATCH --gres=gpu:4
+#SBATCH --cpus-per-task=16
 #SBATCH --mem=256G
 #SBATCH --time=12:00:00
 set -euo pipefail
 REPO=${TASK_REPO:?}
 ROOT=${EVAL_ROOT:?}
-SHARDS=${EVAL_SHARDS:-7}
+SHARDS=${EVAL_SHARDS:-4}
 CHECKPOINT=${EVAL_CHECKPOINT:-/space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1_calibration_v2_monitor/checkpoint_epoch_08.pt}
 PYTHON=/space/mawb/anaconda3/envs/tokengs/bin/python
 OFFICIAL_PYTHON=/space/mawb/SIU3R/.venv_gpu_v4/bin/python

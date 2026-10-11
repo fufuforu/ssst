@@ -15,13 +15,10 @@ export POSEFREE_V2_EVIDENCE_DIR="$ATTEMPT"
 unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy
 cd "$REPO"
 [[ "$(git rev-parse HEAD)" == "$TASK_CODE_SHA" ]]
-case "$(hostname -s)" in
-  3dimage-11|3dimage-13|3dimage-14|3dimage-17|3dimage-18) ;;
-  *) echo 'node outside the authorized five-node pool' >&2; exit 2 ;;
-esac
+[[ "$(hostname -s)" == 3dimage-13 ]]
 mkdir -p "$ATTEMPT"
 printf 'job=%s mode=%s sha=%s time=%s\n' "$SLURM_JOB_ID" "$TASK_MODE" "$TASK_CODE_SHA" "$(date -Is)"
-COMMON=(--run-training --staged-vggt-adapt --vggt-revision 860abec7937da0a4c03c41d3c269c366e82abdf9 --artifact-manifest "$REPO/vggt_artifact_manifest.json")
+COMMON=(--run-training --staged-vggt-adapt --staged-world-size 4 --vggt-revision 860abec7937da0a4c03c41d3c269c366e82abdf9 --artifact-manifest "$REPO/vggt_artifact_manifest.json")
 if [[ "$TASK_MODE" == single_smoke ]]; then
   exec "$PYTHON" scripts/train_object_locus_frozen_vggt_posefree_v1.py "${COMMON[@]}" --staged-mode single_smoke --run-dir "$ATTEMPT/single_smoke"
 fi
@@ -32,16 +29,18 @@ from scripts.object_locus_frozen_vggt_posefree_runtime import STAGED_RECIPE,stag
 d=json.load(open(sys.argv[1]))
 assert d['status']=='GPU_SMOKE_COMPLETED' and d['mode']=='single_smoke' and d['world_size']==1
 assert d['recipe']==STAGED_RECIPE
-# Reuse the completed node13 proof, comparing every scientific configuration
-# field exactly while allowing the newly authorized hardware pool metadata.
-previous=dict(d['training_configuration']);current=staged_training_configuration()
-for field in ('node','gpu_model'):
+# Reuse the completed node13 proof, comparing scientific fields exactly while
+# allowing four ranks x two microbatches in place of eight ranks x one.
+previous=dict(d['training_configuration']);current=staged_training_configuration(4)
+assert previous['world_size']*previous['microbatch']*previous['accumulation']==8
+assert current['world_size']*current['microbatch']*current['accumulation']==8
+for field in ('node','gpu_model','world_size','accumulation'):
     previous.pop(field);current.pop(field)
 assert previous==current
 PY
-printf 'stage=eight_smoke time=%s\n' "$(date -Is)"
-"$PYTHON" -m torch.distributed.run --standalone --nproc_per_node=8 scripts/train_object_locus_frozen_vggt_posefree_v1.py "${COMMON[@]}" --staged-mode eight_smoke --run-dir "$ATTEMPT/eight_smoke"
+printf 'stage=four_smoke time=%s\n' "$(date -Is)"
+"$PYTHON" -m torch.distributed.run --standalone --nproc_per_node=4 scripts/train_object_locus_frozen_vggt_posefree_v1.py "${COMMON[@]}" --staged-mode four_smoke --run-dir "$ATTEMPT/four_smoke"
 EXTRA=()
 if [[ -f "$RUN/checkpoint_latest.pt" ]]; then EXTRA+=(--resume); fi
 printf 'stage=formal_adapt2_then_joint4 time=%s\n' "$(date -Is)"
-exec "$PYTHON" -m torch.distributed.run --standalone --nproc_per_node=8 scripts/train_object_locus_frozen_vggt_posefree_v1.py "${COMMON[@]}" --run-dir "$RUN" "${EXTRA[@]}"
+exec "$PYTHON" -m torch.distributed.run --standalone --nproc_per_node=4 scripts/train_object_locus_frozen_vggt_posefree_v1.py "${COMMON[@]}" --run-dir "$RUN" "${EXTRA[@]}"

@@ -146,11 +146,13 @@ def epoch_order(epoch: int, n: int=EXPECTED_WINDOWS) -> np.ndarray:
     return order
 
 
-def rank_microbatch_indices(epoch: int, update: int, rank: int) -> tuple[int,...]:
-    if not 0<=rank<WORLD_SIZE or not 0<=update<UPDATES_PER_EPOCH: raise ValueError("rank/update out of range")
+def rank_microbatch_indices(epoch: int, update: int, rank: int, *, world_size: int=WORLD_SIZE) -> tuple[int,...]:
+    if world_size not in (4,8): raise ValueError('supported training world sizes are four or eight')
+    if not 0<=rank<world_size or not 0<=update<UPDATES_PER_EPOCH: raise ValueError("rank/update out of range")
     order=epoch_order(epoch)
-    start=update*GLOBAL_BATCH+rank*MICRO_BATCH*ACCUMULATION
-    return tuple(int(order[start+i]) for i in range(MICRO_BATCH*ACCUMULATION))
+    per_rank=GLOBAL_BATCH//world_size
+    start=update*GLOBAL_BATCH+rank*per_rank
+    return tuple(int(order[start+i]) for i in range(per_rank))
 
 
 def exposure_schedule(exposure: int):
@@ -269,9 +271,10 @@ def save_calibration_failure(error,update,rank,stage='formal_training'):
 
 def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world_size=None,
                             monitor=None,window_metadata=None,stage="formal_training",total_updates=None,
-                            reconstruction_adaptation=False):
+                            reconstruction_adaptation=False,accumulation=ACCUMULATION):
     """Two-microbatch GC step with one accumulated gradient family per parameter."""
-    if len(batches)!=ACCUMULATION: raise ValueError(f"each rank must receive exactly {ACCUMULATION} accumulation microbatches")
+    if accumulation not in (1,2) or len(batches)!=accumulation:
+        raise ValueError(f"each rank must receive exactly {accumulation} accumulation microbatches")
     named=sorted((n,p) for n,p in model.named_parameters() if p.requires_grad)
     names=[n for n,_ in named];params=[p for _,p in named]
     optimizer.zero_grad(set_to_none=True)
@@ -296,9 +299,9 @@ def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world
         synchronized_error(error,device,'forward',int(update))
         error=None
         try:
-            rec=torch.autograd.grad(metrics['loss_recon']/ACCUMULATION,params,
+            rec=torch.autograd.grad(metrics['loss_recon']/accumulation,params,
                 retain_graph=weight>0,allow_unused=True)
-            under=(torch.autograd.grad(metrics['loss_understanding']*weight/ACCUMULATION,params,
+            under=(torch.autograd.grad(metrics['loss_understanding']*weight/accumulation,params,
                 allow_unused=True) if weight>0 else (None,)*len(params))
             mixed=gc_combine(names,rec,under)
             if any(g is not None and not torch.isfinite(g).all() for g in mixed):
@@ -354,12 +357,14 @@ def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world
     synchronized_error(error,device,'optimizer',int(update))
     effective_world=world_size or (torch.distributed.get_world_size()
         if torch.distributed.is_available() and torch.distributed.is_initialized() else 1)
-    row={'completed_updates':int(update)+1,'completed_exposures':(int(update)+1)*effective_world*MICRO_BATCH*ACCUMULATION,
+    row={'completed_updates':int(update)+1,'completed_exposures':(int(update)+1)*effective_world*MICRO_BATCH*accumulation,
          'understanding_weight':weight,'beta':beta,'lr_multiplier':mult,'preclip_norm':float(norm),
          'loss_recon':sum(x['loss_recon'] for x in local_rows)/len(local_rows),
          'loss_understanding':sum(x['loss_understanding'] for x in local_rows)/len(local_rows),
          'calibration':local_rows[0]['calibration'],
          'group_lr':{g['name']:g['lr'] for g in optimizer.param_groups}}
+    if accumulation>1:
+        row['microbatch_calibrations']=[x['calibration'] for x in local_rows]
     if device.type=='cuda':
         row.update(allocated=torch.cuda.memory_allocated(device),reserved=torch.cuda.memory_reserved(device),
                    peak_allocated=torch.cuda.max_memory_allocated(device),peak_reserved=torch.cuda.max_memory_reserved(device))
@@ -686,10 +691,12 @@ STAGED_NODE_GPU = {'3dimage-11':'3090','3dimage-13':'3090',
                    '3dimage-14':'4090','3dimage-17':'4090','3dimage-18':'4090'}
 
 
-def staged_training_configuration():
+def staged_training_configuration(world_size=8):
+    if world_size not in (4,8): raise ValueError('staged training requires four or eight ranks')
     config = training_configuration()
-    config.update(recipe=STAGED_RECIPE, node='one of 3dimage-[11,13,14,17,18]',
-        gpu_model='RTX3090 or RTX4090', epochs=6, total_updates=6*UPDATES_PER_EPOCH,
+    config.update(recipe=STAGED_RECIPE,world_size=world_size,accumulation=GLOBAL_BATCH//world_size,
+        node='3dimage-13' if world_size==4 else 'one of 3dimage-[11,13,14,17,18]',
+        gpu_model='RTX3090' if world_size==4 else 'RTX3090 or RTX4090', epochs=6, total_updates=6*UPDATES_PER_EPOCH,
         total_exposures=6*WINDOWS_PER_EPOCH, stage_epochs={'reconstruction_adaptation':2,'frozen_joint':4},
         stage_updates={'reconstruction_adaptation':2*UPDATES_PER_EPOCH,'frozen_joint':4*UPDATES_PER_EPOCH},
         adaptation_trainable_vggt=['aggregator.frame_blocks','aggregator.global_blocks'],
@@ -757,16 +764,22 @@ def restore_staged_phase_state(model, optimizer, payload, phase, rank):
     restore_rank_rng(payload['rank_rng'][rank])
 
 
-def run_staged_training(*, run_dir, hf_revision, mode='train', resume=False, artifact_manifest=VGGT_ARTIFACT_MANIFEST):
+def run_staged_training(*, run_dir, hf_revision, mode='train', resume=False,
+                        artifact_manifest=VGGT_ARTIFACT_MANIFEST,training_world_size=8):
     """Execute the authorized two-stage recipe using the existing data/step runtime."""
     import torch.distributed as dist
     from scripts import object_locus_v3_set_runtime as provider_runtime
     world=int(os.environ.get('WORLD_SIZE','1'));local=int(os.environ.get('LOCAL_RANK','0'))
-    if mode not in ('train','single_smoke','eight_smoke'): raise ValueError(mode)
+    if mode not in ('train','single_smoke','eight_smoke','four_smoke'): raise ValueError(mode)
     smoke=mode!='train'
-    if world!=(1 if mode=='single_smoke' else 8): raise RuntimeError('staged recipe world-size mismatch')
+    config=staged_training_configuration(training_world_size)
+    expected_world={'single_smoke':1,'eight_smoke':8,'four_smoke':4,'train':training_world_size}[mode]
+    if world!=expected_world or (mode in ('four_smoke','eight_smoke') and world!=training_world_size):
+        raise RuntimeError('staged recipe world-size mismatch')
+    accumulation=1 if mode=='single_smoke' else GLOBAL_BATCH//world
     node=socket.gethostname().split('.')[0]
     if node not in STAGED_NODE_GPU: raise RuntimeError('staged recipe node outside authorized pool')
+    if training_world_size==4 and node!='3dimage-13': raise RuntimeError('four-card staged training requires node13')
     torch.cuda.set_device(local);device=torch.device('cuda',local)
     if STAGED_NODE_GPU[node] not in torch.cuda.get_device_name(local):
         raise RuntimeError('staged recipe GPU does not match authorized node type')
@@ -774,7 +787,7 @@ def run_staged_training(*, run_dir, hf_revision, mode='train', resume=False, art
     if world>1: dist.init_process_group('nccl')
     rank=dist.get_rank() if world>1 else 0
     execution_sha=subprocess.check_output(['git','-C',str(REPO),'rev-parse','HEAD'],text=True).strip()
-    config=staged_training_configuration();manifest,_,windows=load_manifest();manifest_digest=sha256(MANIFEST)
+    manifest,_,windows=load_manifest();manifest_digest=sha256(MANIFEST)
     latest=run_dir/'checkpoint_latest.pt'
     if not resume and run_dir.exists() and any(run_dir.iterdir()): raise RuntimeError('staged output is not empty')
     if rank==0: run_dir.mkdir(parents=True,exist_ok=True)
@@ -829,16 +842,17 @@ def run_staged_training(*, run_dir, hf_revision, mode='train', resume=False, art
         for phase_update in range(phase_start,limit):
             absolute_update=offset+phase_update
             epoch,epoch_update=divmod(absolute_update,UPDATES_PER_EPOCH)
-            indices=(int(epoch_order(0)[0]),) if mode=='single_smoke' else rank_microbatch_indices(epoch,epoch_update,rank)
+            indices=(int(epoch_order(0)[0]),) if mode=='single_smoke' else rank_microbatch_indices(epoch,epoch_update,rank,world_size=world)
             batches=[];error=None
             try: batches=[provider_runtime.build_batch(opt,windows[index],device) for index in indices]
             except Exception as exc: error=exc
             synchronized_error(error,device,'staged_batch',absolute_update)
             row=train_microbatch_window(model,optimizer,batches,phase_update,
-                base_exposure=phase_update*(world if smoke else GLOBAL_BATCH),world_size=world,
+                base_exposure=phase_update*world*accumulation,world_size=world,accumulation=accumulation,
                 monitor=monitor,window_metadata=[window_identity(i,windows[i]) for i in indices],
                 stage=mode+'_'+phase,total_updates=phase_total,reconstruction_adaptation=phase_idx==0)
-            row.update(phase=phase,phase_update=phase_update+1,absolute_update=absolute_update+1 if not smoke else None,
+            row.update(phase=phase,phase_update=phase_update+1,window_indices=list(indices),
+                       absolute_update=absolute_update+1 if not smoke else None,
                        absolute_new_exposures=(absolute_update+1)*GLOBAL_BATCH if not smoke else None)
             if phase=='reconstruction_adaptation':
                 aa=[p for p in model.frozen_vggt.parameters() if p.requires_grad]
@@ -870,9 +884,9 @@ def run_staged_training(*, run_dir, hf_revision, mode='train', resume=False, art
                 if world>1: dist.all_gather_object(gathered,local_row)
                 else: gathered=[local_row]
                 if rank==0:
-                    if mode=='eight_smoke' and phase_idx==0 and phase_update==1:
-                        if not any(r['geometry_monitor']['latest']['manifest_index']==6923 for r in gathered):
-                            raise RuntimeError('eight-smoke did not visit mandatory window 6923')
+                    if mode in ('eight_smoke','four_smoke') and phase_idx==0 and phase_update==1:
+                        if not any(6923 in r['window_indices'] for r in gathered):
+                            raise RuntimeError('distributed smoke did not visit mandatory window 6923')
                     if not smoke:
                         if any(r['phase_update']!=phase_update+1 for r in gathered): raise RuntimeError('staged startup clocks disagree')
                         if phase_idx==0 and any(r['vggt_probe_change_norm']<=0 for r in gathered): raise RuntimeError('VGGT weights did not update')
@@ -924,7 +938,8 @@ def run_staged_training(*, run_dir, hf_revision, mode='train', resume=False, art
     if rank==0:
         if smoke:
             _write_json_atomic(run_dir/'smoke_report.json',dict(status='GPU_SMOKE_COMPLETED',mode=mode,recipe=STAGED_RECIPE,
-                world_size=world,updates_per_phase=2,exposures_per_phase=2*world,rank_rows=phase_rows,
+                world_size=world,accumulation=accumulation,updates_per_phase=2,
+                exposures_per_phase=2*world*accumulation,rank_rows=phase_rows,
                 execution_git_sha=execution_sha,manifest_sha256=manifest_digest,source_checkpoint=provenance,
                 geometry_quality_policy='monitor_v1',formal_updates=0,training_configuration=config,
                 understanding_and_vggt_gradient_paths_checked=True,hardware=hardware))

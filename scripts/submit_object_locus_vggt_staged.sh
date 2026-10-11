@@ -11,8 +11,8 @@ cd "$REPO"
 SHA=$(git rev-parse HEAD)
 [[ "$SHA" == "$(git ls-remote origin "refs/heads/$BRANCH" | awk '{print $1}')" ]]
 NAME=vggt-adapt2-joint4
-GPUS=8
-CPUS=32
+GPUS=4
+CPUS=16
 MEM=256G
 DEPENDENCY=()
 if [[ "$MODE" == single_smoke ]]; then
@@ -38,9 +38,7 @@ if [[ ! -d "$SNAPSHOT" ]]; then
 fi
 [[ "$(git -C "$SNAPSHOT" rev-parse HEAD)" == "$SHA" ]]
 [[ -z "$(git -C "$SNAPSHOT" status --porcelain --untracked-files=no)" ]]
-# A nodelist requires every listed node; use the partition union minus node12
-# so the scheduler chooses ONE of 11,13,14,17,18 for the unchanged eight ranks.
-sbatch --parsable --partition=3090,4090 --exclude=3dimage-12 --nodes=1 --ntasks=1 \
+sbatch --parsable --partition=3090 --nodelist=3dimage-13 --nodes=1 --ntasks=1 \
   --gres="gpu:$GPUS" --cpus-per-task="$CPUS" --mem="$MEM" --time=48:00:00 \
   --job-name="$NAME" --output="$REPORT/slurm/%x-%j.out" --error="$REPORT/slurm/%x-%j.err" \
   "${DEPENDENCY[@]}" --export="ALL,TASK_REPO=$SNAPSHOT,TASK_CODE_SHA=$SHA,TASK_MODE=$MODE" \
