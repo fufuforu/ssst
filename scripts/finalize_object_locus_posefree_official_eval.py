@@ -17,14 +17,46 @@ def write(path, value):
     path.write_text(json.dumps(value, ensure_ascii=False, indent=2, allow_nan=False)+'\n')
 
 
+def sha256_file(path):
+    digest = hashlib.sha256()
+    with path.open('rb') as stream:
+        for block in iter(lambda: stream.read(8 * 1024 * 1024), b''):
+            digest.update(block)
+    return digest.hexdigest()
+
+
 def finalize(root):
     report, job = read(root/'metrics.json'), read(root/'job.json')
     assert report['status'] == 'EVALUATED'
     meta = report['training_checkpoint_metadata']
-    assert meta['epoch'] == job['checkpoint_epoch']
-    assert meta['completed_updates'] == job['completed_updates']
-    assert meta['completed_exposures'] == job['completed_exposures']
-    assert report['checkpoint_sha256'] == job['checkpoint_sha256']
+    staged = meta.get('recipe') == 'vggt_reconstruction_adapt2_frozen_joint4_v1'
+    if staged:
+        checkpoint = Path(job['checkpoint'])
+        training = read(checkpoint.parent/'COMPLETE.json')
+        assert training['status'] == 'TRAINING_COMPLETED'
+        assert training['recipe'] == job['training_recipe'] == meta['recipe']
+        assert training['stage_epochs'] == job['training_stage_epochs'] == {
+            'reconstruction_adaptation': 2, 'frozen_joint': 4}
+        assert meta['epoch'] == job['checkpoint_total_epoch'] == 6
+        assert meta['phase'] == 'frozen_joint' and meta['phase_epoch'] == 4
+        assert meta['phase_epoch'] == job['checkpoint_frozen_joint_epoch']
+        assert meta['completed_updates'] == training['completed_updates'] == 6258
+        assert meta['completed_exposures'] == training['completed_exposures'] == 50064
+        assert training['execution_git_sha'] == job['execution_git_sha'] == meta['git_sha']
+        assert meta['adapted_vggt_identity'] == training['adapted_vggt_identity']
+        assert sha256_file(checkpoint) == report['checkpoint_sha256']
+        adapted = meta['adapted_vggt_identity']
+        adapted_path = Path(adapted['path'])
+        # Compute nodes and the login host mount the same run under different prefixes.
+        if adapted_path.is_relative_to('/datapool/mawb'):
+            adapted_path = Path('/space/mawb')/adapted_path.relative_to('/datapool/mawb')
+        assert adapted_path == checkpoint.parent/'adapted_vggt.pt'
+        assert sha256_file(adapted_path) == adapted['sha256']
+    else:
+        assert meta['epoch'] == job['checkpoint_epoch']
+        assert meta['completed_updates'] == job['completed_updates']
+        assert meta['completed_exposures'] == job['completed_exposures']
+        assert report['checkpoint_sha256'] == job['checkpoint_sha256']
     assert meta['geometry_quality_policy'] == 'monitor_v1'
     assert report['official_commit'] == job['official_siu3r_commit']
     assert report['inference_code_sha'] == report['evaluation_code_sha'] == job['execution_git_sha']
@@ -39,14 +71,24 @@ def finalize(root):
     expected = {r['scan']+'_context'+'_'.join(map(str, r['context_ids'])) for r in manifest}
     records, geometry, reasons = [], [], Counter()
     ranks = sorted(root.glob('rank*'))
-    assert len(ranks) == job['scene_shards'] == 7
+    shards = job['evaluation_shards'] if staged else job['scene_shards']
+    assert len(ranks) == shards
     for rank in ranks:
         export, receipt = read(rank/'export_complete.json'), read(rank/'score_complete.json')
         assert export['status'] == 'EXPORTED' and receipt['status'] == 'COMPLETE'
         assert receipt['segmentation_device'].startswith('cuda')
+        assert receipt['official_commit'] == report['official_commit']
         assert read(rank/'checkpoint_metadata.json') == meta
         contract = read(rank/'official_merge_contract_cuda.json')
         assert contract['status'] == 'PASS' and contract['official_commit'] == report['official_commit']
+        assert all(check['status'] == 'PASS' for check in contract['checks'])
+        identity = export['identity']
+        for key in ('checkpoint', 'checkpoint_size', 'checkpoint_mtime_ns',
+                    'manifest_sha256', 'cohort_source_sha256', 'vggt_revision',
+                    'geometry_quality_policy'):
+            assert identity[key] == report['export_identity'][key]
+        assert identity['shards'] == shards and identity['limit'] is None
+        assert identity['shard'] == int(rank.name[4:])
         assert receipt['windows'] == len(export['records'])
         records.extend(export['records'])
         for line in (rank/f'geometry_monitor_rank{int(rank.name[4:])}.jsonl').read_text().splitlines():
@@ -82,6 +124,16 @@ def finalize(root):
     table = list(csv.reader((root/'siu3r_table1.csv').open()))
     assert len(table) == 2 and all(len(row) == 13 for row in table)
     assert table[1][8] == table[1][12] == ''
+    table_json = read(root/'siu3r_table1.json')
+    assert table[0] == table_json['columns']
+    reconstruction = [scopes['target-all'][key] for key in ('absrel','rmse','psnr','ssim','lpips')]
+    segmentation = report['official_segmentation']['all']
+    values = reconstruction + [segmentation['context_miou'], segmentation['context_map']['map'],
+              segmentation['context_pq'], None, segmentation['target_miou'],
+              segmentation['target_map']['map'], segmentation['target_pq'], None]
+    assert table_json['values'] == values
+    for cell, value in zip(table[1], values):
+        assert cell == '' if value is None else abs(float(cell)-value) < 1e-12
     coverage = {'status':'PASS','windows':1860,'unique_scenes':312,
                 'context_images':3720,'target_all_images':11160,'true_novel_images':7440,
                 'omitted_windows':0,'duplicate_windows':0,
@@ -96,6 +148,7 @@ def finalize(root):
           'real_gpu_cpu_contract_shards_passed':len(list(root.glob('rank*'))),
           'final_scoring_job_id':job['job_id'],'checkpoint_epoch':meta['epoch'],
           'text_metric_status':'NOT_TRAINED','metric_columns':13,
+          'checkpoint_and_adapted_weights_hashes_verified':staged,
           'inference_code_sha':report['inference_code_sha'],'scoring_code_sha':report['evaluation_code_sha'],
           'metrics_sha256':hashlib.sha256((root/'metrics.json').read_bytes()).hexdigest()})
     completion = {'status':'EVALUATED','job_id':job['job_id'],'slurm_state':status,'exit_code':exit_code,
@@ -108,6 +161,10 @@ def finalize(root):
                   'mIoU_t_status':'NOT_TRAINED','optimizer_updates':0}
     write(root/'COMPLETE.json', completion)
     job.update(status='EVALUATED', slurm_state=status, exit_code=exit_code, completed_at=completion['completed_at'])
+    if staged:
+        job.update(checkpoint_epoch=meta['epoch'], completed_updates=meta['completed_updates'],
+                   completed_exposures=meta['completed_exposures'],
+                   checkpoint_sha256=report['checkpoint_sha256'])
     write(root/'job.json', job)
     return completion
 

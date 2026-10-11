@@ -1,5 +1,7 @@
 # VGGT reconstruction adaptation 2 epochs → frozen joint training 4 epochs
 
+Completed on 2026-10-12 Asia/Shanghai: training61835 ended03:09:30 with6258 updates /50064 exposures; official four-card evaluation61836 ended03:41:34. Both Slurm jobs completed exit0:0. Full coverage and final artifact validation passed. See [the final 13-column results and baseline comparison](object_locus_vggt_adapt2_joint4_official_results_20261012.md). All11 measured metrics improved against the permanently frozen epoch4 and epoch8 baselines; both text metrics remain blank. The execution history below is retained.
+
 On 2026-10-10 the user authorized the preceding literature recommendation and a shorter training budget, following the full official epoch4/epoch8 comparison. This is a new experiment, separate from the completed permanently frozen baseline. It implements reconstruction adaptation inspired by InsTok3D/Uni3R/C3G/AnySplat; it is not a reproduction of their architectures or supervision.
 
 Branch/worktree: `object-locus-vggt-recon-adapt-freeze-v1`, `/space/mawb/ssst_object_locus_vggt_recon_adapt_freeze_v1`.
