@@ -1,0 +1,846 @@
+{
+  "selection": "Reuse prior diagnostic cohort(16): seed42, one window per distinct scene, no score selection",
+  "train": [
+    {
+      "scene": "scene0286_01",
+      "context": [
+        1899,
+        1911
+      ],
+      "novel": [
+        1904,
+        1906
+      ],
+      "pair_iou": 0.6600726246833801,
+      "semantic_classes_context": [
+        4,
+        7,
+        19
+      ],
+      "thing_instance_count": 2,
+      "thing_gt_area": {
+        "7": 17165,
+        "30": 1332
+      },
+      "sampling_seed": 42521,
+      "attempt": 2,
+      "window_index": 1,
+      "target": [
+        1899,
+        1911,
+        1904,
+        1906
+      ],
+      "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider",
+      "split": "train",
+      "source_index": 3620
+    },
+    {
+      "scene": "scene0057_01",
+      "context": [
+        791,
+        813
+      ],
+      "novel": [
+        793,
+        799
+      ],
+      "pair_iou": 0.4682714641094208,
+      "semantic_classes_context": [
+        2,
+        7,
+        19
+      ],
+      "thing_instance_count": 3,
+      "thing_gt_area": {
+        "5": 169,
+        "13": 2034,
+        "22": 5844
+      },
+      "sampling_seed": 42106,
+      "attempt": 2,
+      "scene_index": 104,
+      "piece": 0,
+      "index": 832,
+      "window_index": 832,
+      "target": [
+        791,
+        813,
+        793,
+        799
+      ],
+      "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider",
+      "split": "train",
+      "source_index": 728
+    },
+    {
+      "scene": "scene0060_01",
+      "context": [
+        143,
+        222
+      ],
+      "novel": [
+        199,
+        200
+      ],
+      "pair_iou": 0.31435543298721313,
+      "semantic_classes_context": [
+        2,
+        7
+      ],
+      "thing_instance_count": 2,
+      "thing_gt_area": {
+        "10": 31215,
+        "19": 3479
+      },
+      "sampling_seed": 42113,
+      "attempt": 8,
+      "scene_index": 111,
+      "piece": 3,
+      "index": 891,
+      "window_index": 891,
+      "target": [
+        143,
+        222,
+        199,
+        200
+      ],
+      "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider",
+      "split": "train",
+      "source_index": 780
+    },
+    {
+      "scene": "scene0493_00",
+      "context": [
+        1259,
+        1276
+      ],
+      "novel": [
+        1273,
+        1274
+      ],
+      "pair_iou": 0.6511338353157043,
+      "semantic_classes_context": [
+        4,
+        6
+      ],
+      "thing_instance_count": 5,
+      "thing_gt_area": {
+        "3": 1333,
+        "4": 1036,
+        "5": 10036,
+        "9": 514,
+        "10": 13918
+      },
+      "sampling_seed": 42881,
+      "attempt": 8,
+      "window_index": 7,
+      "target": [
+        1259,
+        1276,
+        1273,
+        1274
+      ],
+      "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider",
+      "split": "train",
+      "source_index": 6124
+    },
+    {
+      "scene": "scene0466_00",
+      "context": [
+        475,
+        486
+      ],
+      "novel": [
+        480,
+        482
+      ],
+      "pair_iou": 0.5552066564559937,
+      "semantic_classes_context": [
+        4
+      ],
+      "thing_instance_count": 9,
+      "thing_gt_area": {
+        "1": 114,
+        "4": 1767,
+        "10": 506,
+        "12": 258,
+        "13": 4059,
+        "20": 2502,
+        "22": 960,
+        "26": 3755,
+        "58": 957
+      },
+      "sampling_seed": 42830,
+      "attempt": 1,
+      "window_index": 0,
+      "target": [
+        475,
+        486,
+        480,
+        482
+      ],
+      "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider",
+      "split": "train",
+      "source_index": 5768
+    },
+    {
+      "scene": "scene0436_00",
+      "context": [
+        582,
+        595
+      ],
+      "novel": [
+        592,
+        593
+      ],
+      "pair_iou": 0.7259505391120911,
+      "semantic_classes_context": [
+        2,
+        11,
+        14,
+        17
+      ],
+      "thing_instance_count": 4,
+      "thing_gt_area": {
+        "5": 820,
+        "16": 35394,
+        "17": 22674,
+        "19": 15519
+      },
+      "sampling_seed": 42777,
+      "attempt": 8,
+      "window_index": 7,
+      "target": [
+        582,
+        595,
+        592,
+        593
+      ],
+      "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider",
+      "split": "train",
+      "source_index": 5403
+    },
+    {
+      "scene": "scene0350_00",
+      "context": [
+        813,
+        865
+      ],
+      "novel": [
+        816,
+        820
+      ],
+      "pair_iou": 0.422455757856369,
+      "semantic_classes_context": [
+        7,
+        17,
+        19
+      ],
+      "thing_instance_count": 5,
+      "thing_gt_area": {
+        "7": 5190,
+        "9": 4302,
+        "17": 4350,
+        "25": 19721,
+        "28": 416
+      },
+      "sampling_seed": 42630,
+      "attempt": 8,
+      "window_index": 5,
+      "target": [
+        813,
+        865,
+        816,
+        820
+      ],
+      "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider",
+      "split": "train",
+      "source_index": 4373
+    },
+    {
+      "scene": "scene0510_01",
+      "context": [
+        453,
+        467
+      ],
+      "novel": [
+        463,
+        464
+      ],
+      "pair_iou": 0.4060437083244324,
+      "semantic_classes_context": [
+        7
+      ],
+      "thing_instance_count": 3,
+      "thing_gt_area": {
+        "47": 1915,
+        "62": 7036,
+        "63": 22079
+      },
+      "sampling_seed": 42911,
+      "attempt": 3,
+      "window_index": 1,
+      "target": [
+        453,
+        467,
+        463,
+        464
+      ],
+      "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider",
+      "split": "train",
+      "source_index": 6329
+    },
+    {
+      "scene": "scene0528_01",
+      "context": [
+        82,
+        99
+      ],
+      "novel": [
+        91,
+        97
+      ],
+      "pair_iou": 0.4815983474254608,
+      "semantic_classes_context": [
+        4,
+        6,
+        19
+      ],
+      "thing_instance_count": 4,
+      "thing_gt_area": {
+        "1": 4375,
+        "8": 4076,
+        "10": 1892,
+        "11": 50654
+      },
+      "sampling_seed": 42943,
+      "attempt": 5,
+      "window_index": 4,
+      "target": [
+        82,
+        99,
+        91,
+        97
+      ],
+      "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider",
+      "split": "train",
+      "source_index": 6556
+    },
+    {
+      "scene": "scene0479_01",
+      "context": [
+        600,
+        620
+      ],
+      "novel": [
+        603,
+        617
+      ],
+      "pair_iou": 0.7157319784164429,
+      "semantic_classes_context": [
+        2,
+        11,
+        17
+      ],
+      "thing_instance_count": 5,
+      "thing_gt_area": {
+        "2": 4650,
+        "3": 28160,
+        "4": 9914,
+        "7": 31029,
+        "30": 16853
+      },
+      "sampling_seed": 42860,
+      "attempt": 2,
+      "window_index": 1,
+      "target": [
+        600,
+        620,
+        603,
+        617
+      ],
+      "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider",
+      "split": "train",
+      "source_index": 5972
+    },
+    {
+      "scene": "scene0282_00",
+      "context": [
+        576,
+        610
+      ],
+      "novel": [
+        581,
+        591
+      ],
+      "pair_iou": 0.46099868416786194,
+      "semantic_classes_context": [
+        3,
+        7
+      ],
+      "thing_instance_count": 2,
+      "thing_gt_area": {
+        "5": 57030,
+        "9": 17502
+      },
+      "sampling_seed": 42514,
+      "attempt": 7,
+      "window_index": 5,
+      "target": [
+        576,
+        610,
+        581,
+        591
+      ],
+      "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider",
+      "split": "train",
+      "source_index": 3575
+    },
+    {
+      "scene": "scene0056_00",
+      "context": [
+        1006,
+        1035
+      ],
+      "novel": [
+        1029,
+        1034
+      ],
+      "pair_iou": 0.39500296115875244,
+      "semantic_classes_context": [
+        4,
+        6,
+        8,
+        19
+      ],
+      "thing_instance_count": 7,
+      "thing_gt_area": {
+        "4": 22492,
+        "6": 2457,
+        "7": 3512,
+        "12": 2002,
+        "17": 22166,
+        "24": 3766,
+        "25": 3100
+      },
+      "sampling_seed": 42103,
+      "attempt": 6,
+      "scene_index": 101,
+      "piece": 4,
+      "index": 812,
+      "window_index": 812,
+      "target": [
+        1006,
+        1035,
+        1029,
+        1034
+      ],
+      "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider",
+      "split": "train",
+      "source_index": 711
+    },
+    {
+      "scene": "scene0581_01",
+      "context": [
+        747,
+        764
+      ],
+      "novel": [
+        750,
+        757
+      ],
+      "pair_iou": 0.5744419097900391,
+      "semantic_classes_context": [
+        2,
+        17
+      ],
+      "thing_instance_count": 2,
+      "thing_gt_area": {
+        "10": 56546,
+        "26": 8804
+      },
+      "sampling_seed": 43022,
+      "attempt": 3,
+      "window_index": 2,
+      "target": [
+        747,
+        764,
+        750,
+        757
+      ],
+      "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider",
+      "split": "train",
+      "source_index": 7100
+    },
+    {
+      "scene": "scene0674_01",
+      "context": [
+        1181,
+        1256
+      ],
+      "novel": [
+        1185,
+        1254
+      ],
+      "pair_iou": 0.3159407377243042,
+      "semantic_classes_context": [
+        2,
+        3,
+        19
+      ],
+      "thing_instance_count": 3,
+      "thing_gt_area": {
+        "2": 15000,
+        "5": 915,
+        "6": 49338
+      },
+      "sampling_seed": 43167,
+      "attempt": 1,
+      "window_index": 0,
+      "target": [
+        1181,
+        1256,
+        1185,
+        1254
+      ],
+      "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider",
+      "split": "train",
+      "source_index": 8106
+    },
+    {
+      "scene": "scene0514_00",
+      "context": [
+        551,
+        618
+      ],
+      "novel": [
+        589,
+        602
+      ],
+      "pair_iou": 0.7296112775802612,
+      "semantic_classes_context": [
+        5,
+        6,
+        7,
+        8
+      ],
+      "thing_instance_count": 5,
+      "thing_gt_area": {
+        "2": 3502,
+        "7": 50001,
+        "9": 15414,
+        "10": 1666,
+        "14": 465
+      },
+      "sampling_seed": 42917,
+      "attempt": 8,
+      "window_index": 7,
+      "target": [
+        551,
+        618,
+        589,
+        602
+      ],
+      "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider",
+      "split": "train",
+      "source_index": 6376
+    },
+    {
+      "scene": "scene0126_00",
+      "context": [
+        1407,
+        1428
+      ],
+      "novel": [
+        1409,
+        1411
+      ],
+      "pair_iou": 0.5795890688896179,
+      "semantic_classes_context": [
+        4,
+        7,
+        9,
+        12
+      ],
+      "thing_instance_count": 5,
+      "thing_gt_area": {
+        "4": 3068,
+        "9": 9192,
+        "14": 4368,
+        "18": 27374,
+        "31": 9951
+      },
+      "sampling_seed": 42240,
+      "attempt": 5,
+      "window_index": 3,
+      "target": [
+        1407,
+        1428,
+        1409,
+        1411
+      ],
+      "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider",
+      "split": "train",
+      "source_index": 1669
+    }
+  ],
+  "heldout": [
+    {
+      "scene": "scene0389_00",
+      "context": [
+        197,
+        217
+      ],
+      "novel": [
+        198,
+        199,
+        211,
+        216
+      ],
+      "pair_iou": 0.5088962316513062,
+      "split": "heldout",
+      "source_index": 783
+    },
+    {
+      "scene": "scene0084_01",
+      "context": [
+        260,
+        327
+      ],
+      "novel": [
+        265,
+        272,
+        274,
+        315
+      ],
+      "pair_iou": 0.32780274748802185,
+      "split": "heldout",
+      "source_index": 156
+    },
+    {
+      "scene": "scene0086_00",
+      "context": [
+        458,
+        486
+      ],
+      "novel": [
+        459,
+        466,
+        475,
+        478
+      ],
+      "pair_iou": 0.6458463668823242,
+      "split": "heldout",
+      "source_index": 171
+    },
+    {
+      "scene": "scene0609_00",
+      "context": [
+        352,
+        364
+      ],
+      "novel": [
+        353,
+        355,
+        357,
+        362
+      ],
+      "pair_iou": 0.7593522071838379,
+      "split": "heldout",
+      "source_index": 1357
+    },
+    {
+      "scene": "scene0593_01",
+      "context": [
+        229,
+        278
+      ],
+      "novel": [
+        236,
+        238,
+        273,
+        277
+      ],
+      "pair_iou": 0.3308323323726654,
+      "split": "heldout",
+      "source_index": 1257
+    },
+    {
+      "scene": "scene0574_02",
+      "context": [
+        370,
+        445
+      ],
+      "novel": [
+        399,
+        424,
+        428,
+        440
+      ],
+      "pair_iou": 0.7199355959892273,
+      "split": "heldout",
+      "source_index": 1167
+    },
+    {
+      "scene": "scene0474_02",
+      "context": [
+        1187,
+        1210
+      ],
+      "novel": [
+        1195,
+        1201,
+        1205,
+        1208
+      ],
+      "pair_iou": 0.6484500169754028,
+      "split": "heldout",
+      "source_index": 966
+    },
+    {
+      "scene": "scene0629_00",
+      "context": [
+        489,
+        554
+      ],
+      "novel": [
+        493,
+        494,
+        501,
+        544
+      ],
+      "pair_iou": 0.4747971296310425,
+      "split": "heldout",
+      "source_index": 1401
+    },
+    {
+      "scene": "scene0647_00",
+      "context": [
+        502,
+        513
+      ],
+      "novel": [
+        503,
+        506,
+        508,
+        512
+      ],
+      "pair_iou": 0.7581566572189331,
+      "split": "heldout",
+      "source_index": 1463
+    },
+    {
+      "scene": "scene0607_01",
+      "context": [
+        511,
+        539
+      ],
+      "novel": [
+        515,
+        516,
+        533,
+        535
+      ],
+      "pair_iou": 0.37906333804130554,
+      "split": "heldout",
+      "source_index": 1328
+    },
+    {
+      "scene": "scene0382_01",
+      "context": [
+        206,
+        218
+      ],
+      "novel": [
+        207,
+        210,
+        213,
+        215
+      ],
+      "pair_iou": 0.7149966955184937,
+      "split": "heldout",
+      "source_index": 780
+    },
+    {
+      "scene": "scene0700_01",
+      "context": [
+        1766,
+        1790
+      ],
+      "novel": [
+        1767,
+        1773,
+        1784,
+        1789
+      ],
+      "pair_iou": 0.645866870880127,
+      "split": "heldout",
+      "source_index": 1804
+    },
+    {
+      "scene": "scene0660_00",
+      "context": [
+        32,
+        63
+      ],
+      "novel": [
+        33,
+        35,
+        39,
+        40
+      ],
+      "pair_iou": 0.5156973600387573,
+      "split": "heldout",
+      "source_index": 1546
+    },
+    {
+      "scene": "scene0699_00",
+      "context": [
+        2100,
+        2173
+      ],
+      "novel": [
+        2134,
+        2136,
+        2162,
+        2171
+      ],
+      "pair_iou": 0.3521360754966736,
+      "split": "heldout",
+      "source_index": 1788
+    },
+    {
+      "scene": "scene0609_03",
+      "context": [
+        210,
+        228
+      ],
+      "novel": [
+        211,
+        219,
+        223,
+        225
+      ],
+      "pair_iou": 0.6264446377754211,
+      "split": "heldout",
+      "source_index": 1375
+    },
+    {
+      "scene": "scene0193_01",
+      "context": [
+        108,
+        146
+      ],
+      "novel": [
+        114,
+        122,
+        123,
+        141
+      ],
+      "pair_iou": 0.4032990336418152,
+      "split": "heldout",
+      "source_index": 367
+    }
+  ]
+}

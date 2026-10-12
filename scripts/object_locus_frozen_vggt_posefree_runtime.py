@@ -431,7 +431,7 @@ def seed_everything(seed: int):
 
 def build_model(*, checkpoint: Path=CHECKPOINT, opt=None,
                 artifact_manifest: Path=VGGT_ARTIFACT_MANIFEST,
-                preserve_fp32_aggregator: bool=False):
+                preserve_fp32_aggregator: bool=False, fresh_reconstruction_state=None):
     """Construct, initialize the retained panoptic modules, then strict-copy epoch 06."""
     from tokengs.models.object_locus_frozen_vggt_posefree import LocusGSObjectLocusFrozenVGGT
     revision=os.environ.get('VGGT_HF_REVISION')
@@ -444,6 +444,14 @@ def build_model(*, checkpoint: Path=CHECKPOINT, opt=None,
         from tokengs.options import config_defaults
         opt=config_defaults['train_siu3r_object_locus_frozen_vggt_posefree_v1']
     model=LocusGSObjectLocusFrozenVGGT(opt,vggt=vggt)
+    # Optional diagnostic capture, before any checkpoint migration. Constructors
+    # retain their original initialization, including zero residual heads,
+    # anchor geometry and shared decoder aliases; default callers are unchanged.
+    if fresh_reconstruction_state is not None:
+        if fresh_reconstruction_state:
+            raise ValueError('fresh reconstruction capture must be empty')
+        fresh_reconstruction_state.update({k:v.detach().cpu().clone()
+            for k,v in model.state_dict().items() if k.startswith(RETAINED_PREFIXES[:5])})
     torch.backends.cuda.matmul.allow_tf32=False
     torch.backends.cudnn.allow_tf32=False
     source_blob,source_state,provenance=load_epoch6_cpu(checkpoint)
