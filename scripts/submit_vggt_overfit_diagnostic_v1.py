@@ -31,7 +31,7 @@ def submit(snapshot, sha, name, output, mode, arm=None, dependency=None):
         env['TASK_ARM'] = arm
     args = ['sbatch', '--parsable', '--partition=4090', '--nodelist=3dimage-17',
             '--nodes=1', '--ntasks=1', '--gres=gpu:8', '--cpus-per-task=32',
-            '--mem=160G', '--time=12:00:00', '--job-name=' + name,
+            '--mem-per-gpu=20G', '--time=12:00:00', '--job-name=' + name,
             '--output=' + str(REPORT / 'slurm/%x-%j.out'),
             '--error=' + str(REPORT / 'slurm/%x-%j.err'), '--export=ALL']
     if dependency:
