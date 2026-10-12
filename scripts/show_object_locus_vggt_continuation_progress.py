@@ -1,4 +1,4 @@
-"""Read-only progress for both four-card continuation arms, including ETA."""
+"""Read-only progress for both continuation arms, including ETA."""
 import json
 import subprocess
 from pathlib import Path
@@ -29,6 +29,10 @@ def main():
                 print('No formal training manifest yet; queued, executing smoke, or loading the source.')
             continue
         d=json.loads(p.read_text())
+        expected=str(jobs.get(arm,{}).get('training_job','')) if plan.exists() else ''
+        if expected and not (RUN/arm/f'resume_manifest_{expected}.json').exists() and jobs[arm].get('migration_resume_update') is not None:
+            print(f"Migrating: restore update {jobs[arm]['migration_resume_update']}; waiting for new job's formal resume manifest.")
+            continue
         print(f"Continuation: {d['continuation_completed_updates']}/2086 updates; {d['continuation_completed_exposures']}/16688 new exposures")
         if 'estimated_phase_remaining_seconds' in d:
             print(f"Estimated remaining: {d['estimated_phase_remaining_seconds']/3600:.2f} hours")

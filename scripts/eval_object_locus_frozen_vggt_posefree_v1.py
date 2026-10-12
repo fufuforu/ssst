@@ -73,7 +73,7 @@ def _restore_checkpoint(model, checkpoint_path, revision, manifest_sha256):
     if blob.get('recipe')=='vggt_joint_continuation_ab2_v1':
         from scripts.object_locus_frozen_vggt_posefree_runtime import (
             continuation_configuration,CONTINUATION_SOURCE_SHA,CONTINUATION_VGGT_SHA,restore_adapted_vggt)
-        if blob['config']!=continuation_configuration(blob['branch']) or blob['world_size']!=4 or len(blob['rank_rng'])!=4:
+        if blob['world_size'] not in (4,8) or blob['config']!=continuation_configuration(blob['branch'],blob['world_size']) or len(blob['rank_rng'])!=blob['world_size']:
             raise RuntimeError('continuation evaluation configuration mismatch')
         if blob['continuation_source_sha256']!=CONTINUATION_SOURCE_SHA or blob['phase']!='joint_continuation':
             raise RuntimeError('continuation evaluation source mismatch')

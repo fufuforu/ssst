@@ -4,7 +4,12 @@ REPO=$(cd "$(dirname "${BASH_SOURCE[0]}")/.." && pwd)
 BRANCH=object-locus-vggt-joint-continuation-ab-v1
 REPORT=/space/mawb/ssst/group_plus/object_locus_vggt_joint_continuation_ab_v1
 ARM=${1:?choose frozen or joint_aa}
+NODE=${2:-3dimage-13}
+WORLD=${3:-4}
 [[ "$ARM" == frozen || "$ARM" == joint_aa ]]
+[[ "$NODE" == 3dimage-11 || "$NODE" == 3dimage-13 ]]
+[[ "$WORLD" == 4 || "$WORLD" == 8 ]]
+[[ "$WORLD" == 8 || "$NODE" == 3dimage-13 ]]
 cd "$REPO"
 [[ "$(git branch --show-current)" == "$BRANCH" && -z "$(git status --porcelain)" ]]
 SHA=$(git rev-parse HEAD)
@@ -23,9 +28,10 @@ if [[ ! -d "$SNAPSHOT" ]]; then
 fi
 [[ "$(git -C "$SNAPSHOT" rev-parse HEAD)" == "$SHA" ]]
 [[ -z "$(git -C "$SNAPSHOT" status --porcelain --untracked-files=no)" ]]
-# 2*240G fits node13's 512000MB; 2*256G would prevent simultaneous allocation.
-sbatch --parsable --partition=3090 --nodelist=3dimage-13 --nodes=1 --ntasks=1 \
-  --gres=gpu:4 --cpus-per-task=16 --mem=240G --time=48:00:00 \
+MEM=240G
+if [[ "$WORLD" == 8 ]]; then MEM=480G; fi
+sbatch --parsable --partition=3090 --nodelist="$NODE" --nodes=1 --ntasks=1 \
+  --gres="gpu:$WORLD" --cpus-per-task="$((WORLD*4))" --mem="$MEM" --time=48:00:00 \
   --job-name="$NAME" --output="$REPORT/slurm/%x-%j.out" --error="$REPORT/slurm/%x-%j.err" \
-  --export="ALL,TASK_REPO=$SNAPSHOT,TASK_CODE_SHA=$SHA,TASK_ARM=$ARM" \
+  --export="ALL,TASK_REPO=$SNAPSHOT,TASK_CODE_SHA=$SHA,TASK_ARM=$ARM,TASK_WORLD_SIZE=$WORLD,TASK_NODE=$NODE" \
   "$SNAPSHOT/scripts/run_object_locus_vggt_continuation_job.sh"

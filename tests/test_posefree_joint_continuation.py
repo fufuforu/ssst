@@ -7,11 +7,49 @@ from test_posefree_staged_adaptation import TinyStep, TinyAggregator, Camera, De
 from tokengs.models.frozen_vggt_posefree import FrozenVGGT
 from scripts.object_locus_frozen_vggt_posefree_runtime import (
     continuation_configuration,configure_joint_continuation,gc_combine,
-    build_optimizer,train_microbatch_window,rank_microbatch_indices,epoch_order)
+    build_optimizer,train_microbatch_window,rank_microbatch_indices,epoch_order,
+    reshard_continuation_counts,continuation_rank_rng,capture_rank_rng,seed_everything)
 from scripts.posefree_cpu_adamw import CPUOffloadAdamW
 
 
 class JointContinuationContracts(unittest.TestCase):
+    def test_eight_rank_configuration_changes_only_resources(self):
+        for branch in ('frozen','joint_aa'):
+            old=continuation_configuration(branch);new=continuation_configuration(branch,8)
+            self.assertEqual({k for k in old if old[k]!=new[k]},{'node','world_size','accumulation'})
+            self.assertEqual(new['world_size']*new['accumulation']*new['microbatch'],8)
+            for update in (0,19,20,1042):
+                self.assertEqual([i for r in range(4) for i in rank_microbatch_indices(6,update,r,world_size=4)],
+                    [i for r in range(8) for i in rank_microbatch_indices(6,update,r,world_size=8)])
+
+    def test_historical_exposures_reshard_without_recounting(self):
+        import numpy as np
+        for start,completed in ((0,6258),(6,20),(6,1100)):
+            old=np.zeros((4,8337),dtype=np.int64)
+            for update in range(completed):
+                epoch,position=divmod(update,1043)
+                for rank in range(4):
+                    np.add.at(old[rank],list(rank_microbatch_indices(start+epoch,position,rank,world_size=4)),1)
+            new=reshard_continuation_counts(old,start,completed,8)
+            np.testing.assert_array_equal(new.sum(axis=0),old.sum(axis=0))
+            self.assertEqual(int(new.sum()),completed*8)
+            old[0,0]+=1
+            with self.assertRaisesRegex(RuntimeError,'ownership'): reshard_continuation_counts(old,start,completed,8)
+
+    def test_rng_reshard_preserves_parent_and_derives_repeatable_children(self):
+        states=[]
+        for seed in range(4):
+            seed_everything(seed);states.append(capture_rank_rng())
+        for rank in range(8):
+            state=continuation_rank_rng(states,rank,8)
+            repeated=continuation_rank_rng(states,rank,8)
+            torch.testing.assert_close(state['torch_cpu'],repeated['torch_cpu'],rtol=0,atol=0)
+            if rank%2==0:
+                torch.testing.assert_close(state['torch_cpu'],states[rank//2]['torch_cpu'],rtol=0,atol=0)
+                self.assertEqual(state['python'],states[rank//2]['python'])
+            else: self.assertFalse(torch.equal(state['torch_cpu'],states[rank//2]['torch_cpu']))
+        with self.assertRaisesRegex(RuntimeError,'unsupported'):continuation_rank_rng(states,0,2)
+
     def test_only_branch_and_aa_trainability_differ(self):
         a=continuation_configuration('frozen');b=continuation_configuration('joint_aa')
         self.assertEqual({k for k in a if a[k]!=b[k]},{'branch','aa_trainable'})
