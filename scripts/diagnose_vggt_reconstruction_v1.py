@@ -100,10 +100,15 @@ def render(model, reconstruction, cams, intrinsics):
         cam_view=torch.linalg.inv(cams).transpose(-1, -2), intrinsics=intrinsics))
 
 
-def decode(model, latent, fm, qpre, context_cams, context_k, feedback=True):
+def decode(model, latent, fm, qpre, context_cams, context_k, feedback=True, *, original_k518=None):
     from tokengs.models.object_locus_posefree_geometry import rays_to_patch_plucker
-    k518 = context_k.clone()
-    k518[..., :2, :] *= 518 / 256
+    if original_k518 is None:
+        k518 = context_k.clone()
+        k518[..., :2, :] *= 518 / 256
+    else:
+        # Native predicted rays use the original K518. A K256 round trip can
+        # change one ULP, which propagates through decoder/rasterizer boundaries.
+        k518 = original_k518
     rays = rays_to_patch_plucker(context_cams, k518, patch_size=14)
     tokens = model.get_gs_tokens(batch_size=context_cams.shape[0])
     if feedback:
@@ -150,6 +155,8 @@ def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--output', type=Path, required=True)
     p.add_argument('--per-split', type=int, default=16)
+    p.add_argument('--reuse-old-results', type=Path,
+                   help='completed legacy inference from a preserved failed diagnostic attempt')
     args = p.parse_args()
     if args.output.exists():
         raise ValueError('diagnostic output must be new; no evidence overwrite')
@@ -174,17 +181,34 @@ def main():
         metric='Per-image floating RGB PSNR, default dynamic GT data range as pinned SIU3R; no scope subdivision. PNGs for visual inspection only.')
     (args.output / 'identity.json').write_text(json.dumps(receipt, indent=2) + '\n')
     rows = []
+    if args.reuse_old_results is not None:
+        previous = json.loads((args.reuse_old_results / 'identity.json').read_text())
+        if previous['windows'] != windows or previous['old_source_sha256'] != EXPECTED_CHECKPOINT_SHA:
+            raise ValueError('reused legacy results have a different source/cohort')
+        previous_rows = [json.loads(x) for x in (args.reuse_old_results / 'rows.jsonl').read_text().splitlines()]
+        rows = [r for r in previous_rows if r['variant'] == 'old_locus_gt']
+        expected = {(w['split'], w['scene'], tuple(w['context']), tuple(w['novel'])) for w in windows}
+        actual = {(r['split'], r['scene'], tuple(r['context']), tuple(r['novel'])) for r in rows}
+        if len(rows) != len(windows) or actual != expected:
+            raise ValueError('reused legacy results are incomplete or duplicated')
+        with (args.output / 'rows.jsonl').open('w') as f:
+            for row in rows:
+                row['reused_from'] = str(args.reuse_old_results)
+                f.write(json.dumps(row, allow_nan=False) + '\n')
+        receipt['old_inference_reused_from'] = str(args.reuse_old_results)
+        (args.output / 'identity.json').write_text(json.dumps(receipt, indent=2) + '\n')
     # Sequential models prevent peak GPU memory competing with A/B.
     from scripts.object_locus_panoptic_v1_runtime import build_model as build_old
     from tokengs.models.input_types import split_data, ModelInputDecoder
-    old, opt = build_old('cpu', report=False)
-    blob = torch.load(CHECKPOINT, map_location='cpu', mmap=True, weights_only=False)
-    old.load_state_dict(blob['model'], strict=True)
-    old.understanding_step = 50064
-    del blob
-    old = old.to('cuda').eval()
-    old_versions = [(id(p), p._version) for p in old.parameters()]
-    with torch.no_grad():
+    if args.reuse_old_results is None:
+      old, opt = build_old('cpu', report=False)
+      blob = torch.load(CHECKPOINT, map_location='cpu', mmap=True, weights_only=False)
+      old.load_state_dict(blob['model'], strict=True)
+      old.understanding_step = 50064
+      del blob
+      old = old.to('cuda').eval()
+      old_versions = [(id(p), p._version) for p in old.parameters()]
+      with torch.no_grad():
         for window in windows:
             batch = build_batch(opt, window, 'cuda')
             mi, _ = split_data(batch, opt)
@@ -194,7 +218,7 @@ def main():
             if old_versions != [(id(p), p._version) for p in old.parameters()]:
                 raise ValueError('old-model inference changed parameters')
             del output, mi, decoder, batch
-    del old
+      del old
     gc.collect()
     torch.cuda.empty_cache()
     os.environ['VGGT_HF_REVISION'] = REVISION
@@ -236,7 +260,8 @@ def main():
                 raise ValueError('diagnostic renderer differs from native production RGB')
             del official
             # Cached-feature replay must reproduce native GS before any intervention.
-            replay = decode(model, latent, generated['F_m'], generated['q_pre'], ctx_cams, ctx_k)
+            replay = decode(model, latent, generated['F_m'], generated['q_pre'], ctx_cams, ctx_k,
+                            original_k518=generated['predicted_context_intrinsics518'])
             replay_rgb = render(model, replay, pred_cams, pred_k)['images_pred']
             replay_error = float((baseline['images_pred'] - replay_rgb).abs().max())
             if replay_error > 1e-5:
@@ -258,14 +283,16 @@ def main():
                 ('same_features_gt_rays_legacy_units', gt_legacy[:, :2], gt_k[:, :2], gt_legacy, camera_vectors(gt_k), True),
                 ('feedback_off', ctx_cams, ctx_k, pred_cams, pred_k, False),
             ]:
-                altered = decode(model, latent, generated['F_m'], generated['q_pre'], ctx, k, feedback)
+                altered = decode(model, latent, generated['F_m'], generated['q_pre'], ctx, k, feedback,
+                    original_k518=generated['predicted_context_intrinsics518'] if variant == 'feedback_off' else None)
                 record(args.output, rows, window, variant, render(model, altered, target, intr), batch)
                 del altered
             for scale in (.5, 2.):
                 ctx, target = ctx_cams.clone(), pred_cams.clone()
                 ctx[..., :3, 3] *= scale
                 target[..., :3, 3] *= scale
-                altered = decode(model, latent, generated['F_m'], generated['q_pre'], ctx, ctx_k)
+                altered = decode(model, latent, generated['F_m'], generated['q_pre'], ctx, ctx_k,
+                                 original_k518=generated['predicted_context_intrinsics518'])
                 record(args.output, rows, window, f'predicted_ray_scale_{scale}', render(model, altered, target, pred_k), batch)
                 del altered
             if versions != [(id(p), p._version) for p in model.parameters()]:

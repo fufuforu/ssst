@@ -10,4 +10,6 @@ export POSEFREE_V2_EVIDENCE_DIR="$OUTPUT/geometry_evidence"
 unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy
 cd "$REPO"
 [[ "$(git rev-parse HEAD)" == "$TASK_CODE_SHA" ]]
-exec /space/mawb/anaconda3/envs/tokengs/bin/python scripts/diagnose_vggt_reconstruction_v1.py --output "$OUTPUT" --per-split "${TASK_PER_SPLIT:-16}"
+EXTRA=()
+if [[ -n "${TASK_REUSE_OLD:-}" ]]; then EXTRA+=(--reuse-old-results "$TASK_REUSE_OLD"); fi
+exec /space/mawb/anaconda3/envs/tokengs/bin/python -u scripts/diagnose_vggt_reconstruction_v1.py --output "$OUTPUT" --per-split "${TASK_PER_SPLIT:-16}" "${EXTRA[@]}"
