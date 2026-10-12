@@ -196,6 +196,7 @@ def main():
                 row['reused_from'] = str(args.reuse_old_results)
                 f.write(json.dumps(row, allow_nan=False) + '\n')
         receipt['old_inference_reused_from'] = str(args.reuse_old_results)
+        receipt['old_inference_code_sha'] = previous['code_sha']
         (args.output / 'identity.json').write_text(json.dumps(receipt, indent=2) + '\n')
     # Sequential models prevent peak GPU memory competing with A/B.
     from scripts.object_locus_panoptic_v1_runtime import build_model as build_old
@@ -265,10 +266,12 @@ def main():
             replay_rgb = render(model, replay, pred_cams, pred_k)['images_pred']
             replay_error = float((baseline['images_pred'] - replay_rgb).abs().max())
             if replay_error > 1e-5:
-                raise ValueError('cached-feature decoder replay changed native RGB')
+                raise ValueError(f"cached-feature decoder replay changed native RGB: max={replay_error}, scene={window['scene']}")
             del replay, replay_rgb
             record(args.output, rows, window, 'current', baseline, batch,
-                   native_renderer_error=identity_error, cached_replay_error=replay_error, gauges=gauges)
+                   native_renderer_error=identity_error, cached_replay_error=replay_error, gauges=gauges,
+                   cameras=dict(predicted_c2w=pred_cams.tolist(), gt_provider_c2w=cams.tolist(),
+                                predicted_intrinsics=pred_k.tolist(), gt_intrinsics=batch['intrinsics_all'].tolist()))
             for variant, camera, intr in [
                 ('same_gs_gt_k', pred_cams, camera_vectors(gt_k)),
                 ('same_gs_gt_pose_baseline', gt_base, pred_k),
