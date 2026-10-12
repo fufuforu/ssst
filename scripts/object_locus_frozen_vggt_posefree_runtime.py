@@ -969,10 +969,13 @@ CONTINUATION_SOURCE_SHA = '01d49b092c8dfc2e02f15b5216e5d6ed1cfd88fae2cf693ee6933
 CONTINUATION_VGGT_SHA = 'c1f6a8fe3865da3ed737d7dcb86cadbd5967dccc6c94b1483ad6c6b3f0767ace'
 
 
-def continuation_configuration(branch, world_size=4, global_batch=8):
+def continuation_configuration(branch, world_size=4, global_batch=8, gpu_model='RTX3090'):
     if branch not in ('frozen', 'joint_aa'): raise ValueError(branch)
     if world_size not in (4,8): raise ValueError(world_size)
     if global_batch not in (8,16) or (global_batch==16 and world_size!=8): raise ValueError('batch16 requires eight ranks')
+    if gpu_model not in ('RTX3090','RTX4090'): raise ValueError(gpu_model)
+    if gpu_model=='RTX4090' and (branch,world_size,global_batch)!=('frozen',8,16):
+        raise ValueError('4090 migration is authorized only for the eight-rank batch16 frozen arm')
     config = training_configuration()
     config.update(recipe=CONTINUATION_RECIPE, branch=branch, world_size=world_size, accumulation=8//world_size,
         epochs=2, total_updates=2*UPDATES_PER_EPOCH, total_exposures=2*WINDOWS_PER_EPOCH,
@@ -992,6 +995,7 @@ def continuation_configuration(branch, world_size=4, global_batch=8):
             warmup_updates=100,tail_global_batch=8,
             lr_clock='unchanged 200-step warmup/cosine on eight-sample-equivalent exposure clock; peaks unchanged',
             physical_batch='eight ranks x microbatch1 x accumulation2; accumulation1 for the final eight windows each epoch')
+    if gpu_model=='RTX4090': config.update(node='3dimage-18',gpu_model=gpu_model)
     return config
 
 
@@ -1070,19 +1074,20 @@ def configure_joint_continuation(model, branch, device):
 
 
 def run_joint_continuation(*, run_dir, hf_revision, branch, mode='train', resume=False,
-                          artifact_manifest=VGGT_ARTIFACT_MANIFEST, training_world_size=4, global_batch=8):
+                          artifact_manifest=VGGT_ARTIFACT_MANIFEST, training_world_size=4, global_batch=8, gpu_model='RTX3090'):
     """Two authorized continuation arms, reusing the original sampler/data/GC/step."""
     import torch.distributed as dist
     from scripts import object_locus_v3_set_runtime as provider_runtime
-    config=continuation_configuration(branch,training_world_size,global_batch);recipe=config['recipe']
+    config=continuation_configuration(branch,training_world_size,global_batch,gpu_model);recipe=config['recipe']
     if mode not in ('train','four_smoke','eight_smoke'): raise ValueError(mode)
     smoke=mode!='train';world=int(os.environ.get('WORLD_SIZE','1'))
     allowed_nodes=('3dimage-13',) if training_world_size==4 else ('3dimage-11','3dimage-13')
+    if gpu_model=='RTX4090': allowed_nodes=('3dimage-18',)
     if world!=training_world_size or socket.gethostname().split('.')[0] not in allowed_nodes:
         raise RuntimeError('continuation rank count or authorized node mismatch')
     if smoke and mode!=('four_smoke' if world==4 else 'eight_smoke'): raise RuntimeError('smoke world mismatch')
     local=int(os.environ['LOCAL_RANK']);torch.cuda.set_device(local);device=torch.device('cuda',local)
-    if '3090' not in torch.cuda.get_device_name(local): raise RuntimeError('continuation GPU mismatch')
+    if gpu_model.removeprefix('RTX') not in torch.cuda.get_device_name(local): raise RuntimeError('continuation GPU mismatch')
     dist.init_process_group('nccl');rank=dist.get_rank()
     if not resume and run_dir.exists() and any(run_dir.iterdir()): raise RuntimeError('continuation output is not empty')
     if rank==0: run_dir.mkdir(parents=True,exist_ok=True)
@@ -1118,7 +1123,7 @@ def run_joint_continuation(*, run_dir, hf_revision, branch, mode='train', resume
         payload=torch.load(run_dir/'checkpoint_latest.pt',map_location='cpu',weights_only=False,mmap=True)
         previous_world=payload['world_size']
         if previous_world!=world and (previous_world,world)!=(4,8): raise RuntimeError('unsupported rank migration')
-        for key,value in {'recipe':recipe,'config':continuation_configuration(branch,previous_world,global_batch),'branch':branch,
+        for key,value in {'recipe':recipe,'config':continuation_configuration(branch,previous_world,global_batch,gpu_model),'branch':branch,
                           'manifest_sha256':manifest_digest,'continuation_source_sha256':CONTINUATION_SOURCE_SHA,
                           'vggt_revision':hf_revision,'vggt_artifact_identity':identity}.items():
             if payload.get(key)!=value: raise RuntimeError(f'continuation resume mismatch: {key}')

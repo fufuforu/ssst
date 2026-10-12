@@ -36,6 +36,14 @@ def eight_rank_batch16_step(rank,directory):
 
 
 class JointContinuationContracts(unittest.TestCase):
+    def test_authorized_4090_migration_changes_only_hardware(self):
+        old=continuation_configuration('frozen',8,16)
+        new=continuation_configuration('frozen',8,16,'RTX4090')
+        self.assertEqual({k for k in old if old[k]!=new[k]},{'node','gpu_model'})
+        self.assertEqual((new['node'],new['gpu_model']),('3dimage-18','RTX4090'))
+        for args in [('joint_aa',8,16),('frozen',4,8),('frozen',8,8)]:
+            with self.assertRaises(ValueError):continuation_configuration(*args,gpu_model='RTX4090')
+
     def test_batch16_changes_batch_schedule_but_preserves_source_and_other_math(self):
         a=continuation_configuration('frozen',8,16);b=continuation_configuration('joint_aa',8,16)
         self.assertEqual({k for k in a if a[k]!=b[k]},{'branch','aa_trainable'})
@@ -93,6 +101,9 @@ class JointContinuationContracts(unittest.TestCase):
             actual=_restore_checkpoint(model,Path('/mock/checkpoint.pt'),revision,manifest)
             self.assertEqual(actual['completed_updates'],7302);restore.assert_called_once()
             self.assertEqual(model.understanding_step,66752)
+            migrated=dict(payload,config=continuation_configuration('frozen',8,16,'RTX4090'))
+            with mock.patch('torch.load',return_value=migrated):
+                self.assertEqual(_restore_checkpoint(model,Path('/mock/checkpoint.pt'),revision,manifest)['completed_updates'],7302)
             wrong=dict(payload,completed_updates=8344)
             with mock.patch('torch.load',return_value=wrong),self.assertRaisesRegex(RuntimeError,'endpoint clock'):
                 _restore_checkpoint(model,Path('/mock/checkpoint.pt'),revision,manifest)

@@ -10,7 +10,7 @@ EXPERIMENT=object_locus_vggt_joint_continuation_ab_v1
 if [[ "$GLOBAL_BATCH" == 16 ]]; then EXPERIMENT=object_locus_vggt_joint_continuation_ab_batch16_v1; fi
 REPORT=/space/mawb/ssst/group_plus/$EXPERIMENT
 [[ "$ARM" == frozen || "$ARM" == joint_aa ]]
-[[ "$NODE" == 3dimage-11 || "$NODE" == 3dimage-13 ]]
+[[ "$NODE" == 3dimage-11 || "$NODE" == 3dimage-13 || ( "$NODE" == 3dimage-18 && "$ARM" == frozen && "$WORLD" == 8 && "$GLOBAL_BATCH" == 16 ) ]]
 [[ "$WORLD" == 4 || "$WORLD" == 8 ]]
 [[ "$WORLD" == 8 || "$NODE" == 3dimage-13 ]]
 [[ "$GLOBAL_BATCH" == 8 || ( "$GLOBAL_BATCH" == 16 && "$WORLD" == 8 ) ]]
@@ -37,8 +37,11 @@ fi
 [[ -z "$(git -C "$SNAPSHOT" status --porcelain --untracked-files=no)" ]]
 MEM=240G
 if [[ "$WORLD" == 8 ]]; then MEM=480G; fi
-sbatch --parsable --partition=3090 --nodelist="$NODE" --nodes=1 --ntasks=1 \
+PARTITION=3090
+GPU_MODEL=RTX3090
+if [[ "$NODE" == 3dimage-18 ]]; then PARTITION=4090; GPU_MODEL=RTX4090; fi
+sbatch --parsable --partition="$PARTITION" --nodelist="$NODE" --nodes=1 --ntasks=1 \
   --gres="gpu:$WORLD" --cpus-per-task="$((WORLD*4))" --mem="$MEM" --time=48:00:00 \
   --job-name="$NAME" --output="$REPORT/slurm/%x-%j.out" --error="$REPORT/slurm/%x-%j.err" \
-  --export="ALL,TASK_REPO=$SNAPSHOT,TASK_CODE_SHA=$SHA,TASK_ARM=$ARM,TASK_WORLD_SIZE=$WORLD,TASK_NODE=$NODE,TASK_GLOBAL_BATCH=$GLOBAL_BATCH" \
+  --export="ALL,TASK_REPO=$SNAPSHOT,TASK_CODE_SHA=$SHA,TASK_ARM=$ARM,TASK_WORLD_SIZE=$WORLD,TASK_NODE=$NODE,TASK_GLOBAL_BATCH=$GLOBAL_BATCH,TASK_GPU_MODEL=$GPU_MODEL" \
   "$SNAPSHOT/scripts/run_object_locus_vggt_continuation_job.sh"

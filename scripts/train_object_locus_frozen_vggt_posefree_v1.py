@@ -34,6 +34,7 @@ def main(argv=None):
     parser.add_argument('--joint-continuation-mode',choices=('train','four_smoke','eight_smoke'),default='train')
     parser.add_argument('--joint-continuation-world-size',type=int,choices=(4,8),default=4)
     parser.add_argument('--joint-continuation-global-batch',type=int,choices=(8,16),default=8)
+    parser.add_argument('--joint-continuation-gpu-model',choices=('RTX3090','RTX4090'),default='RTX3090')
     args=parser.parse_args(argv)
     # Keep --help lightweight: importing the runtime initializes PyTorch and its
     # optional compiler workers even though argparse exits before main continues.
@@ -49,7 +50,7 @@ def main(argv=None):
             result=run_joint_continuation(run_dir=args.run_dir,hf_revision=args.vggt_revision,
                 branch=args.joint_continuation_branch,mode=args.joint_continuation_mode,
                 resume=args.resume,artifact_manifest=args.artifact_manifest,
-                training_world_size=args.joint_continuation_world_size,global_batch=args.joint_continuation_global_batch)
+                training_world_size=args.joint_continuation_world_size,global_batch=args.joint_continuation_global_batch,gpu_model=args.joint_continuation_gpu_model)
             print(json.dumps(result,indent=2));return result
         if args.staged_vggt_adapt:
             from scripts.object_locus_frozen_vggt_posefree_runtime import run_staged_training
