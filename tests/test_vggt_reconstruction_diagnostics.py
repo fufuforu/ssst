@@ -46,6 +46,11 @@ class DiagnosticGauges(unittest.TestCase):
         torch.testing.assert_close(torch.linalg.inv(k) @ pixel256,
                                    torch.linalg.inv(resized) @ pixel518)
 
+    def test_psnr_preserves_pinned_zero_endpoint_range(self):
+        gt = torch.linspace(.2, .9, 24).reshape(1, 3, 2, 4)
+        _, value = diag.image_psnr(gt + .1, gt)
+        torch.testing.assert_close(value, torch.tensor([19.08485031]))
+
 
 if __name__ == '__main__':
     unittest.main()

@@ -57,6 +57,16 @@ def k_matrix(vector):
     return k
 
 
+def image_psnr(pred, truth):
+    mse = (pred - truth).square().flatten(1).mean(1)
+    # Pinned torchmetrics initializes min_target/max_target at zero. Preserve
+    # that detail rather than silently substituting a conventional range.
+    ranges = truth.flatten(1).amax(1).clamp_min(0) - truth.flatten(1).amin(1).clamp_max(0)
+    if (mse <= 0).any() or (ranges <= 0).any():
+        raise ValueError('undefined image PSNR')
+    return mse, 10 * torch.log10(ranges.square() / mse)
+
+
 def cohort(n):
     from scripts.object_locus_frozen_vggt_posefree_runtime import MANIFEST, load_manifest
     from scripts.eval_object_locus_frozen_vggt_posefree_v1 import EXPECTED_FULL_VALIDATION_SHA256
@@ -111,12 +121,7 @@ def record(root, rows, window, variant, output, batch, **extras):
     pred, truth = output['images_pred'][0].float(), batch['images_all'][0].float()
     if not torch.isfinite(pred).all():
         raise FloatingPointError(f'nonfinite RGB in {variant}')
-    mse = (pred - truth).square().flatten(1).mean(1)
-    ranges = truth.flatten(1).amax(1) - truth.flatten(1).amin(1)
-    if (mse <= 0).any() or (ranges <= 0).any():
-        raise ValueError('undefined image PSNR')
-    # SIU3R uses torchmetrics PSNR with unspecified data_range, per image.
-    psnr = 10 * torch.log10(ranges.square() / mse)
+    mse, psnr = image_psnr(pred, truth)
     name = f"{window['split']}_{window['scene']}_" + '_'.join(map(str, window['context']))
     directory = root / 'images' / name / variant
     directory.mkdir(parents=True)
