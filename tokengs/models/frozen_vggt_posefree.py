@@ -208,15 +208,19 @@ class FrozenVGGT(nn.Module):
         return cls(model=model, source_identity=identity,verified_artifact=True,
                    preserve_fp32_aggregator=preserve_fp32_aggregator)
 
-    def set_reconstruction_adaptation(self, enabled):
+    def set_reconstruction_adaptation(self, enabled, *, keep_fp32=False):
         """Adapt official AA blocks only; all geometry outputs stay detached."""
         self._adaptation_enabled = bool(enabled)
-        self._keep_fp32_aggregator = bool(enabled)
+        self._keep_fp32_aggregator = bool(enabled or keep_fp32)
         self.requires_grad_(False)
         if enabled:
             self.model.aggregator.float()
             for blocks in (self.model.aggregator.frame_blocks, self.model.aggregator.global_blocks):
                 blocks.requires_grad_(True)
+            if next(self.parameters()).device.type == 'cuda':
+                self.model.aggregator.patch_embed.bfloat16()
+        elif keep_fp32:
+            self.model.aggregator.float()
             if next(self.parameters()).device.type == 'cuda':
                 self.model.aggregator.patch_embed.bfloat16()
         else:
@@ -243,7 +247,7 @@ class FrozenVGGT(nn.Module):
         super()._apply(fn)
         if getattr(self.model, "aggregator", None) is not None:
             self.model.aggregator.to(dtype=torch.float32 if self._keep_fp32_aggregator else torch.bfloat16)
-            if self._adaptation_enabled and next(self.parameters()).device.type == 'cuda':
+            if self._keep_fp32_aggregator and next(self.parameters()).device.type == 'cuda':
                 self.model.aggregator.patch_embed.bfloat16()
         self.train(self.training)
         return self

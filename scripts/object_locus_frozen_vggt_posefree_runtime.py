@@ -199,13 +199,14 @@ def build_optimizer(model: nn.Module):
     return torch.optim.AdamW(groups,betas=(.9,.95),eps=1e-8)
 
 
-def gc_combine(parameter_names, reconstruction_gradients, understanding_gradients):
+def gc_combine(parameter_names, reconstruction_gradients, understanding_gradients, *, vggt_reconstruction=False):
     combined=[]
     for name,gr,gu in zip(parameter_names,reconstruction_gradients,understanding_gradients):
         if gr is None and gu is None: combined.append(None); continue
         base=torch.zeros_like(gu if gr is None else gr)
         if gr is not None: base=base+gr
-        if gu is not None: base=base+(.01 if parameter_family(name)=='reconstruction' else 1.)*gu
+        reconstruction = parameter_family(name)=='reconstruction' or (vggt_reconstruction and name.startswith('frozen_vggt.'))
+        if gu is not None: base=base+(.01 if reconstruction else 1.)*gu
         combined.append(base)
     return combined
 
@@ -215,7 +216,7 @@ def install_gradients(parameters, gradients, *, world_size=None):
     world_size=world_size or 1
     distributed=torch.distributed.is_available() and torch.distributed.is_initialized()
     if not distributed:
-        for p,g in zip(parameters,gradients): p.grad=None if g is None else g.clone()
+        for p,g in zip(parameters,gradients): p.grad=None if g is None else g.to(p.device).clone()
         return
     present=torch.tensor([g is not None for g in gradients],device=parameters[0].device,dtype=torch.uint8)
     torch.distributed.all_reduce(present,op=torch.distributed.ReduceOp.MAX)
@@ -224,7 +225,7 @@ def install_gradients(parameters, gradients, *, world_size=None):
     def flush(which):
         if not which: return
         values=[gradients[i] if gradients[i] is not None else torch.zeros_like(parameters[i]) for i in which]
-        flat=torch.cat([value.reshape(-1) for value in values])
+        flat=torch.cat([value.to(parameters[0].device).reshape(-1) for value in values])
         torch.distributed.all_reduce(flat,op=torch.distributed.ReduceOp.SUM)
         flat.div_(world_size)
         offset=0
@@ -271,7 +272,8 @@ def save_calibration_failure(error,update,rank,stage='formal_training'):
 
 def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world_size=None,
                             monitor=None,window_metadata=None,stage="formal_training",total_updates=None,
-                            reconstruction_adaptation=False,accumulation=ACCUMULATION):
+                            reconstruction_adaptation=False,accumulation=ACCUMULATION,
+                            cpu_saved_tensors=False,cpu_gradient_accumulation=False,vggt_reconstruction=False):
     """Two-microbatch GC step with one accumulated gradient family per parameter."""
     if accumulation not in (1,2) or len(batches)!=accumulation:
         raise ValueError(f"each rank must receive exactly {accumulation} accumulation microbatches")
@@ -286,7 +288,10 @@ def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world
     for micro_index,batch in enumerate(batches):
         output=metrics=None;error=None
         try:
-            output,metrics=model.step_loss(batch,step=base_exposure,understanding_weight=weight)
+            from contextlib import nullcontext
+            context = torch.autograd.graph.save_on_cpu(pin_memory=True) if cpu_saved_tensors else nullcontext()
+            with context:
+                output,metrics=model.step_loss(batch,step=base_exposure,understanding_weight=weight)
             if not all(torch.isfinite(metrics[key]).all() for key in ('loss_recon','loss_understanding')):
                 raise FloatingPointError('nonfinite reconstruction/understanding loss')
         except Exception as exc:
@@ -301,13 +306,17 @@ def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world
         try:
             rec=torch.autograd.grad(metrics['loss_recon']/accumulation,params,
                 retain_graph=weight>0,allow_unused=True)
+            if cpu_gradient_accumulation:
+                rec=tuple(None if g is None else g.cpu() for g in rec)
             under=(torch.autograd.grad(metrics['loss_understanding']*weight/accumulation,params,
                 allow_unused=True) if weight>0 else (None,)*len(params))
-            mixed=gc_combine(names,rec,under)
+            if cpu_gradient_accumulation:
+                under=tuple(None if g is None else g.cpu() for g in under)
+            mixed=gc_combine(names,rec,under,vggt_reconstruction=vggt_reconstruction)
             if any(g is not None and not torch.isfinite(g).all() for g in mixed):
                 raise FloatingPointError('nonfinite per-microbatch GC-combined gradient')
             combined_acc=[None if g is None and old is None else
-                (torch.zeros_like(p) if old is None else old)+(torch.zeros_like(p) if g is None else g)
+                (torch.zeros_like(g) if old is None else old)+(torch.zeros_like(old) if g is None else g)
                 for p,old,g in zip(params,combined_acc,mixed)]
             calibration_row=None
             calibration=output.get('prediction',{}).get('target_camera_calibration') if isinstance(output,dict) else None
@@ -950,6 +959,210 @@ def run_staged_training(*, run_dir, hf_revision, mode='train', resume=False,
     if world>1: dist.barrier();dist.destroy_process_group()
     return {'status':'GPU_SMOKE_COMPLETED' if smoke else 'TRAINING_COMPLETED',
             'completed_updates':4 if smoke else completed,'formal_updates':0 if smoke else completed}
+
+
+CONTINUATION_RECIPE = 'vggt_joint_continuation_ab2_v1'
+CONTINUATION_SOURCE = Path('/space/mawb/ssst/workspace_group_plus/object_locus_vggt_recon_adapt_freeze_v1/checkpoint_frozen_joint_epoch_04.pt')
+CONTINUATION_SOURCE_SHA = '01d49b092c8dfc2e02f15b5216e5d6ed1cfd88fae2cf693ee69334e45a9410ba'
+CONTINUATION_VGGT_SHA = 'c1f6a8fe3865da3ed737d7dcb86cadbd5967dccc6c94b1483ad6c6b3f0767ace'
+
+
+def continuation_configuration(branch):
+    if branch not in ('frozen', 'joint_aa'): raise ValueError(branch)
+    config = training_configuration()
+    config.update(recipe=CONTINUATION_RECIPE, branch=branch, world_size=4, accumulation=2,
+        epochs=2, total_updates=2*UPDATES_PER_EPOCH, total_exposures=2*WINDOWS_PER_EPOCH,
+        source_checkpoint_sha256=CONTINUATION_SOURCE_SHA, source_adapted_vggt_sha256=CONTINUATION_VGGT_SHA,
+        source_completed_updates=6*UPDATES_PER_EPOCH, source_completed_exposures=6*WINDOWS_PER_EPOCH,
+        sampler_epoch_offset=6, optimizer='fresh native FP32 CPU-offload AdamW for both branches',
+        precision='FP32 AA parameters in BOTH branches, BF16 autocast; DINO BF16; heads/decoder/loss FP32',
+        activation_storage='saved tensors and accumulated gradients offloaded to CPU in BOTH branches',
+        understanding_weight='continue source exposure; saturated at1', beta='continue source exposure; saturated at0.1',
+        lr_peak={'reconstruction':1e-5,'understanding':1e-5,'object_memory':1e-4,'vggt_aa':1e-6},
+        aa_gc='g_rec + 0.01*g_under', aa_trainable=branch=='joint_aa',
+        aa_frozen=['aggregator.patch_embed','aggregator.camera_token','aggregator.register_token','camera_head','depth_head'])
+    return config
+
+
+def configure_joint_continuation(model, branch, device):
+    from scripts.posefree_cpu_adamw import CPUOffloadAdamW
+    # Restore the original joint trainable flags and exactly its optimizer groups.
+    native = configure_staged_phase(model, 'frozen_joint', device)
+    groups = native.param_groups
+    del native
+    model.reconstruction_adaptation = False  # Understanding/feedback stays enabled in BOTH arms.
+    model.frozen_vggt.set_reconstruction_adaptation(branch=='joint_aa', keep_fp32=True)
+    if branch=='joint_aa':
+        for decay in (False,True):
+            named=[(n,p) for n,p in sorted(model.named_parameters()) if n.startswith('frozen_vggt.') and p.requires_grad
+                   and (p.ndim>1 and not n.endswith('.bias') and not getattr(p,'_no_weight_decay',False))==decay]
+            if named: groups.append(dict(name=f'vggt_aa_{"decay" if decay else "nodecay"}',
+                params=[p for _,p in named],param_names=[n for n,_ in named],peak_lr=1e-6,lr=1e-6,
+                weight_decay=.05 if decay else 0.))
+    ids=[id(p) for group in groups for p in group['params']]
+    assert len(ids)==len(set(ids)) and set(ids)=={id(p) for p in model.parameters() if p.requires_grad}
+    model.train()
+    return CPUOffloadAdamW(groups)
+
+
+def run_joint_continuation(*, run_dir, hf_revision, branch, mode='train', resume=False,
+                          artifact_manifest=VGGT_ARTIFACT_MANIFEST):
+    """Two authorized continuation arms, reusing the original sampler/data/GC/step."""
+    import torch.distributed as dist
+    from scripts import object_locus_v3_set_runtime as provider_runtime
+    config=continuation_configuration(branch)
+    if mode not in ('train','four_smoke'): raise ValueError(mode)
+    smoke=mode=='four_smoke';world=int(os.environ.get('WORLD_SIZE','1'))
+    if world!=4 or socket.gethostname().split('.')[0]!='3dimage-13':
+        raise RuntimeError('continuation requires four ranks on node13')
+    local=int(os.environ['LOCAL_RANK']);torch.cuda.set_device(local);device=torch.device('cuda',local)
+    if '3090' not in torch.cuda.get_device_name(local): raise RuntimeError('continuation GPU mismatch')
+    dist.init_process_group('nccl');rank=dist.get_rank()
+    if not resume and run_dir.exists() and any(run_dir.iterdir()): raise RuntimeError('continuation output is not empty')
+    if rank==0: run_dir.mkdir(parents=True,exist_ok=True)
+    dist.barrier()
+    execution_sha=subprocess.check_output(['git','-C',str(REPO),'rev-parse','HEAD'],text=True).strip()
+    if sha256(CONTINUATION_SOURCE)!=CONTINUATION_SOURCE_SHA: raise RuntimeError('continuation source hash mismatch')
+    source=torch.load(CONTINUATION_SOURCE,map_location='cpu',weights_only=False,mmap=True)
+    assert source['recipe']==STAGED_RECIPE and source['config']==staged_training_configuration(4)
+    assert (source['epoch'],source['completed_updates'],source['completed_exposures'])==(6,6258,50064)
+    assert source['phase']=='frozen_joint' and source['phase_completed_updates']==4*UPDATES_PER_EPOCH
+    assert source['adapted_vggt_identity']['sha256']==CONTINUATION_VGGT_SHA and len(source['rank_rng'])==4
+    manifest,_,windows=load_manifest();manifest_digest=sha256(MANIFEST)
+    assert source['manifest_sha256']==manifest_digest and source['vggt_revision']==hf_revision
+    seed_everything(42);os.environ['VGGT_HF_REVISION']=hf_revision
+    model,opt,_,_=build_model(artifact_manifest=artifact_manifest,preserve_fp32_aggregator=True)
+    model.to(device);restore_model_state_strict(model,source['model'])
+    optimizer=configure_joint_continuation(model,branch,device)
+    # Restore AFTER phase configuration: converting a frozen BF16 model back to
+    # FP32 must not quantize either branch's common FP32 adaptation source.
+    source_asset=CONTINUATION_SOURCE.parent/'adapted_vggt.pt'
+    restore_adapted_vggt(model,source_asset,CONTINUATION_VGGT_SHA)
+    # CPU masters were allocated before the strict source reload.
+    for parameter,master in optimizer.pairs:
+        with torch.no_grad(): master.copy_(parameter.detach().cpu())
+    adapted_identity=dict(path=str(source_asset.resolve()),sha256=CONTINUATION_VGGT_SHA,recipe=STAGED_RECIPE)
+    restore_rank_rng(source['rank_rng'][rank])
+    source_counts=np.asarray(source['rank_window_exposure_counts'],dtype=np.int64)
+    base_counts=source_counts.sum(axis=0)
+    identity={k:model.frozen_vggt.source_identity.get(k) for k in ('repository','model_id','revision','files','loaded_subtrees','loaded_source_key_count','explicitly_excluded_source_key_count','loaded_key_sha256')}
+    del source
+    completed=0;counts=np.zeros(EXPECTED_WINDOWS,dtype=np.int64)
+    if resume:
+        payload=torch.load(run_dir/'checkpoint_latest.pt',map_location='cpu',weights_only=False,mmap=True)
+        for key,value in {'recipe':CONTINUATION_RECIPE,'config':config,'branch':branch,
+                          'manifest_sha256':manifest_digest,'continuation_source_sha256':CONTINUATION_SOURCE_SHA,
+                          'vggt_revision':hf_revision,'world_size':4,'vggt_artifact_identity':identity}.items():
+            if payload.get(key)!=value: raise RuntimeError(f'continuation resume mismatch: {key}')
+        completed=payload['continuation_completed_updates']
+        restore_model_state_strict(model,payload['model'])
+        if branch=='joint_aa': model.frozen_vggt.model.load_state_dict(payload['vggt_model'],strict=True)
+        optimizer.load_state_dict(payload['optimizer']);restore_rank_rng(payload['rank_rng'][rank])
+        counts=np.asarray(payload['continuation_rank_window_exposure_counts'][rank],dtype=np.int64)
+        adapted_identity=payload['adapted_vggt_identity'];del payload
+    hardware=dict(node=socket.gethostname().split('.')[0],gpu_models=[torch.cuda.get_device_name(i) for i in range(4)])
+    if rank==0:
+        _write_json_atomic(run_dir/(f'resume_manifest_{os.environ.get("SLURM_JOB_ID")}.json' if resume else 'run_manifest.json'),
+            dict(status='SMOKE_STARTED' if smoke else 'TRAINING_STARTED',recipe=CONTINUATION_RECIPE,branch=branch,
+                 execution_git_sha=execution_sha,training_configuration=config,continuation_source_sha256=CONTINUATION_SOURCE_SHA,
+                 manifest_sha256=manifest_digest,hardware=hardware,slurm_job_id=os.environ.get('SLURM_JOB_ID'),
+                 restored_common_source_rank_rng=True,smoke_clock_in_formal_training=False))
+    probe=next(p for n,p in model.frozen_vggt.named_parameters() if 'frame_blocks.0.attn.qkv.weight' in n)
+    before=probe.detach().clone();fixed={n:p._version for n,p in model.frozen_vggt.named_parameters() if not p.requires_grad}
+    monitor=GeometryMonitor(run_dir,rank,mode+'_'+branch)
+    total=2*UPDATES_PER_EPOCH;limit=2 if smoke else total;start=completed;started=time.monotonic();smoke_rows=[]
+    for update in range(start,limit):
+        epoch,position=divmod(update,UPDATES_PER_EPOCH)
+        indices=rank_microbatch_indices(0 if smoke else 6+epoch,position,rank,world_size=4)
+        error=None;batches=[]
+        try: batches=[provider_runtime.build_batch(opt,windows[index],device) for index in indices]
+        except Exception as exc: error=exc
+        synchronized_error(error,device,'continuation_batch',update)
+        row=train_microbatch_window(model,optimizer,batches,update,base_exposure=50064+update*8,
+            world_size=4,accumulation=2,monitor=monitor,window_metadata=[window_identity(i,windows[i]) for i in indices],
+            stage=mode+'_'+branch,total_updates=total,cpu_saved_tensors=True,cpu_gradient_accumulation=True,vggt_reconstruction=True)
+        completed=update+1
+        aa=[p for p in model.frozen_vggt.parameters() if p.requires_grad]
+        if branch=='joint_aa' and (not aa or not any(p.grad is not None and p.grad.norm()>0 for p in aa)):
+            raise RuntimeError('joint AA gradient missing')
+        if any(p._version!=fixed[n] or p.grad is not None for n,p in model.frozen_vggt.named_parameters() if n in fixed):
+            raise RuntimeError('continuation mutated a fixed VGGT parameter')
+        for index in indices: counts[index]+=1
+        row.update(branch=branch,phase='joint_continuation',phase_update=completed,window_indices=list(indices),
+            continuation_completed_updates=completed,continuation_completed_exposures=completed*8,
+            absolute_update=6258+completed,absolute_new_exposures=50064+completed*8)
+        if rank==0 and (completed%20==0 or smoke or completed==limit):
+            with (run_dir/'training_rank0.jsonl').open('a') as stream: stream.write(json.dumps(row,allow_nan=False)+'\n')
+            _write_json_atomic(run_dir/'progress.json',dict(phase='joint_continuation',branch=branch,
+                completed_updates=6258+completed,completed_exposures=50064+completed*8,
+                continuation_completed_updates=completed,continuation_completed_exposures=completed*8,
+                total_updates=8344,phase_update=completed,phase_total_updates=total,
+                estimated_phase_remaining_seconds=(time.monotonic()-started)/(completed-start)*(total-completed),
+                updated_at_utc=time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())))
+        if completed%20==0: monitor.write_summary(completed)
+        startup_due=completed==20 or (resume and update==start)
+        if smoke or startup_due:
+            for prefix in ('understanding.','vggt_memory_adapter.'):
+                if not any(p.grad is not None and p.grad.norm()>0 for n,p in model.named_parameters() if n.startswith(prefix)):
+                    raise RuntimeError(f'continuation joint gradient missing: {prefix}')
+            gathered=[None]*4
+            dist.all_gather_object(gathered,dict(rank=rank,**row,geometry_monitor=monitor.summary(),
+                vggt_probe_change_norm=float((probe.detach()-before).norm()),fixed_vggt_parameters_unchanged=True))
+            if rank==0:
+                assert all(r['phase_update']==completed for r in gathered)
+                assert all((r['vggt_probe_change_norm']>0 if branch=='joint_aa' else r['vggt_probe_change_norm']==0) for r in gathered)
+                if smoke:
+                    smoke_rows.append(gathered)
+                    if completed==2: assert any(6923 in r['window_indices'] for r in gathered)
+                else:
+                    _write_json_atomic(run_dir/'startup_confirmation.json',dict(status='TRAINING_CONFIRMED',recipe=CONTINUATION_RECIPE,
+                        branch=branch,confirmed_phase_updates=completed,confirmed_phase_exposures=completed*8,
+                        rank_rows=gathered,training_configuration=config,execution_git_sha=execution_sha,
+                        slurm_job_id=os.environ.get('SLURM_JOB_ID'),geometry_quality_policy='monitor_v1',hardware=hardware))
+        save_due=not smoke and (completed==20 or completed%UPDATES_PER_EPOCH==0)
+        if save_due:
+            rngs=[None]*4;rank_counts=[None]*4
+            dist.all_gather_object(rngs,capture_rank_rng());dist.all_gather_object(rank_counts,counts.tolist())
+            summed=np.sum(np.asarray(rank_counts),axis=0);expected=np.zeros(EXPECTED_WINDOWS,dtype=np.int64)
+            full,partial=divmod(completed,UPDATES_PER_EPOCH)
+            for e in range(full): np.add.at(expected,epoch_order(6+e),1)
+            np.add.at(expected,epoch_order(6+full)[:partial*8],1)
+            assert np.array_equal(summed,expected)
+            if rank==0:
+                if branch=='joint_aa' and completed==total:
+                    path=run_dir/'adapted_vggt_joint_final.pt'
+                    _atomic_save(dict(recipe=CONTINUATION_RECIPE,branch=branch,continuation_completed_updates=completed,
+                        source_adapted_vggt_sha256=CONTINUATION_VGGT_SHA,base_hf_revision=hf_revision,
+                        model={k:v.detach().cpu() for k,v in model.frozen_vggt.model.state_dict().items()}),path)
+                    adapted_identity=dict(path=str(path.resolve()),sha256=sha256(path),recipe=CONTINUATION_RECIPE)
+                saved=dict(recipe=CONTINUATION_RECIPE,branch=branch,config=config,model=checkpoint_model_state(model),
+                    optimizer=optimizer.state_dict(),phase='joint_continuation',phase_completed_updates=completed,
+                    continuation_completed_updates=completed,continuation_completed_exposures=completed*8,
+                    completed_updates=6258+completed,completed_exposures=50064+completed*8,
+                    epoch=6+completed//UPDATES_PER_EPOCH,next_position=completed%UPDATES_PER_EPOCH,
+                    rank_rng=rngs,continuation_rank_window_exposure_counts=rank_counts,
+                    rank_window_exposure_counts=(source_counts+np.asarray(rank_counts)).tolist(),
+                    window_exposure_counts=(base_counts+summed).tolist(),manifest_sha256=manifest_digest,
+                    source_checkpoint_sha256=EXPECTED_CHECKPOINT_SHA,continuation_source_sha256=CONTINUATION_SOURCE_SHA,
+                    world_size=4,vggt_revision=hf_revision,vggt_artifact_identity=identity,git_sha=execution_sha,
+                    geometry_quality_policy='monitor_v1',adapted_vggt_identity=adapted_identity,total_updates=8344)
+                if branch=='joint_aa': saved['vggt_model']={k:v.detach().cpu() for k,v in model.frozen_vggt.model.state_dict().items()}
+                _atomic_save(saved,run_dir/'checkpoint_latest.pt')
+                if completed%UPDATES_PER_EPOCH==0: _atomic_save(saved,run_dir/f'checkpoint_continuation_epoch_{completed//UPDATES_PER_EPOCH:02d}.pt')
+                del saved
+            dist.barrier()
+    if rank==0:
+        if smoke:
+            _write_json_atomic(run_dir/'smoke_report.json',dict(status='GPU_SMOKE_COMPLETED',recipe=CONTINUATION_RECIPE,
+                branch=branch,world_size=4,updates=2,exposures=16,formal_updates=0,rank_rows=smoke_rows,
+                execution_git_sha=execution_sha,training_configuration=config,geometry_quality_policy='monitor_v1'))
+        else:
+            _write_json_atomic(run_dir/'COMPLETE.json',dict(status='TRAINING_COMPLETED',recipe=CONTINUATION_RECIPE,
+                branch=branch,continuation_completed_updates=completed,continuation_completed_exposures=completed*8,
+                completed_updates=6258+completed,completed_exposures=50064+completed*8,execution_git_sha=execution_sha,
+                continuation_source_sha256=CONTINUATION_SOURCE_SHA,adapted_vggt_identity=adapted_identity))
+    dist.barrier();dist.destroy_process_group()
+    return dict(status='GPU_SMOKE_COMPLETED' if smoke else 'TRAINING_COMPLETED',formal_updates=0 if smoke else completed)
 
 
 def run_training(*, manifest_path: Path=MANIFEST, checkpoint: Path=CHECKPOINT,

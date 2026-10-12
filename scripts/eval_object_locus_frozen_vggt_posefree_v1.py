@@ -70,6 +70,31 @@ def _restore_checkpoint(model, checkpoint_path, revision, manifest_sha256):
         'source_checkpoint_sha256':EXPECTED_CHECKPOINT_SHA,
         'vggt_artifact_identity':artifact_identity}.items():
         if blob.get(key)!=value:raise RuntimeError(f'checkpoint provenance mismatch for {key}')
+    if blob.get('recipe')=='vggt_joint_continuation_ab2_v1':
+        from scripts.object_locus_frozen_vggt_posefree_runtime import (
+            continuation_configuration,CONTINUATION_SOURCE_SHA,CONTINUATION_VGGT_SHA,restore_adapted_vggt)
+        if blob['config']!=continuation_configuration(blob['branch']) or blob['world_size']!=4 or len(blob['rank_rng'])!=4:
+            raise RuntimeError('continuation evaluation configuration mismatch')
+        if blob['continuation_source_sha256']!=CONTINUATION_SOURCE_SHA or blob['phase']!='joint_continuation':
+            raise RuntimeError('continuation evaluation source mismatch')
+        if (blob['epoch'],blob['completed_updates'],blob['completed_exposures'],blob['continuation_completed_updates'])!=(8,8344,66752,2086):
+            raise RuntimeError('continuation evaluation endpoint clock mismatch')
+        restore_model_state_strict(model,blob['model'])
+        derived=blob['adapted_vggt_identity'];path=Path(derived['path'])
+        if blob['branch']=='frozen':
+            if derived['sha256']!=CONTINUATION_VGGT_SHA: raise RuntimeError('frozen continuation changed VGGT asset')
+            restore_adapted_vggt(model,path,derived['sha256'])
+        else:
+            if sha256(path)!=derived['sha256']: raise RuntimeError('joint continuation VGGT SHA mismatch')
+            asset=torch.load(path,map_location='cpu',weights_only=False,mmap=True)
+            if (asset['recipe'],asset['branch'],asset['continuation_completed_updates'],asset['source_adapted_vggt_sha256'],asset['base_hf_revision'])!=(blob['recipe'],'joint_aa',2086,CONTINUATION_VGGT_SHA,revision):
+                raise RuntimeError('joint continuation derived VGGT provenance mismatch')
+            model.frozen_vggt.model.load_state_dict(asset['model'],strict=True)
+            model.frozen_vggt.source_identity['derived_asset']=derived
+        model.frozen_vggt.set_reconstruction_adaptation(False)
+        model.reconstruction_adaptation=False;model.understanding_step=66752
+        blob['evaluation_code_sha']=current_sha
+        return blob
     if blob.get('recipe'):
         from scripts.object_locus_frozen_vggt_posefree_runtime import (
             STAGED_RECIPE,staged_training_configuration,restore_adapted_vggt,UPDATES_PER_EPOCH)
@@ -302,7 +327,14 @@ def export_official_pngs(args, windows, cohort_source):
             'completed_exposures','epoch','geometry_quality_policy')}
         from scripts.object_locus_frozen_vggt_posefree_runtime import UPDATES_PER_EPOCH, GLOBAL_BATCH
         epoch=meta['epoch']
-        if blob.get('recipe'):
+        if blob.get('recipe')=='vggt_joint_continuation_ab2_v1':
+            if epoch!=8 or blob['phase_completed_updates']!=2*UPDATES_PER_EPOCH:
+                raise RuntimeError('continuation official evaluation requires two completed continuation epochs')
+            meta.update(recipe=blob['recipe'],phase=blob['phase'],phase_epoch=2,branch=blob['branch'],
+                continuation_completed_updates=blob['continuation_completed_updates'],
+                continuation_completed_exposures=blob['continuation_completed_exposures'],
+                continuation_source_sha256=blob['continuation_source_sha256'],adapted_vggt_identity=blob['adapted_vggt_identity'])
+        elif blob.get('recipe'):
             if epoch!=6 or blob['phase_completed_updates']!=4*UPDATES_PER_EPOCH:
                 raise RuntimeError('staged official evaluation requires completed adaptation2 + joint4')
             meta.update(recipe=blob['recipe'],phase=blob['phase'],phase_epoch=4,

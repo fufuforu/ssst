@@ -30,6 +30,8 @@ def main(argv=None):
     parser.add_argument('--staged-vggt-adapt',action='store_true',help='authorized VGGT reconstruction adaptation 2 epochs, then frozen joint 4 epochs')
     parser.add_argument('--staged-mode',choices=('train','single_smoke','eight_smoke','four_smoke'),default='train')
     parser.add_argument('--staged-world-size',type=int,choices=(4,8),default=8)
+    parser.add_argument('--joint-continuation-branch',choices=('frozen','joint_aa'))
+    parser.add_argument('--joint-continuation-mode',choices=('train','four_smoke'),default='train')
     args=parser.parse_args(argv)
     # Keep --help lightweight: importing the runtime initializes PyTorch and its
     # optional compiler workers even though argparse exits before main continues.
@@ -40,6 +42,12 @@ def main(argv=None):
     if args.run_training:
         if args.vggt_revision is None or re.fullmatch(r'[0-9a-fA-F]{40}',args.vggt_revision) is None:
             raise SystemExit('--run-training requires --vggt-revision with a reviewed full 40-character HF SHA')
+        if args.joint_continuation_branch:
+            from scripts.object_locus_frozen_vggt_posefree_runtime import run_joint_continuation
+            result=run_joint_continuation(run_dir=args.run_dir,hf_revision=args.vggt_revision,
+                branch=args.joint_continuation_branch,mode=args.joint_continuation_mode,
+                resume=args.resume,artifact_manifest=args.artifact_manifest)
+            print(json.dumps(result,indent=2));return result
         if args.staged_vggt_adapt:
             from scripts.object_locus_frozen_vggt_posefree_runtime import run_staged_training
             result=run_staged_training(run_dir=args.run_dir,hf_revision=args.vggt_revision,

@@ -30,7 +30,33 @@ def finalize(root):
     assert report['status'] == 'EVALUATED'
     meta = report['training_checkpoint_metadata']
     staged = meta.get('recipe') == 'vggt_reconstruction_adapt2_frozen_joint4_v1'
-    if staged:
+    continuation = meta.get('recipe') == 'vggt_joint_continuation_ab2_v1'
+    if continuation:
+        checkpoint = Path(job['checkpoint'])
+        training = read(checkpoint.parent/'COMPLETE.json')
+        assert training['status'] == 'TRAINING_COMPLETED'
+        assert training['recipe'] == job['training_recipe'] == meta['recipe']
+        assert meta['branch'] == job['branch'] == training['branch']
+        assert meta['epoch'] == job['checkpoint_total_epoch'] == 8
+        assert meta['phase'] == 'joint_continuation' and meta['phase_epoch'] == 2
+        assert meta['completed_updates'] == training['completed_updates'] == 8344
+        assert meta['completed_exposures'] == training['completed_exposures'] == 66752
+        assert meta['continuation_completed_updates'] == training['continuation_completed_updates'] == 2086
+        assert meta['continuation_completed_exposures'] == training['continuation_completed_exposures'] == 16688
+        assert meta['continuation_source_sha256'] == training['continuation_source_sha256'] == job['continuation_source_sha256']
+        assert training['execution_git_sha'] == job['execution_git_sha'] == meta['git_sha']
+        assert meta['adapted_vggt_identity'] == training['adapted_vggt_identity']
+        assert sha256_file(checkpoint) == report['checkpoint_sha256']
+        adapted = meta['adapted_vggt_identity']; adapted_path = Path(adapted['path'])
+        if adapted_path.is_relative_to('/datapool/mawb'):
+            adapted_path = Path('/space/mawb')/adapted_path.relative_to('/datapool/mawb')
+        assert sha256_file(adapted_path) == adapted['sha256']
+        if meta['branch']=='frozen':
+            assert adapted['sha256']=='c1f6a8fe3865da3ed737d7dcb86cadbd5967dccc6c94b1483ad6c6b3f0767ace'
+        else:
+            assert adapted_path == checkpoint.parent/'adapted_vggt_joint_final.pt'
+            assert adapted['recipe'] == meta['recipe']
+    elif staged:
         checkpoint = Path(job['checkpoint'])
         training = read(checkpoint.parent/'COMPLETE.json')
         assert training['status'] == 'TRAINING_COMPLETED'
@@ -71,7 +97,7 @@ def finalize(root):
     expected = {r['scan']+'_context'+'_'.join(map(str, r['context_ids'])) for r in manifest}
     records, geometry, reasons = [], [], Counter()
     ranks = sorted(root.glob('rank*'))
-    shards = job['evaluation_shards'] if staged else job['scene_shards']
+    shards = job['evaluation_shards'] if staged or continuation else job['scene_shards']
     assert len(ranks) == shards
     for rank in ranks:
         export, receipt = read(rank/'export_complete.json'), read(rank/'score_complete.json')
@@ -148,7 +174,7 @@ def finalize(root):
           'real_gpu_cpu_contract_shards_passed':len(list(root.glob('rank*'))),
           'final_scoring_job_id':job['job_id'],'checkpoint_epoch':meta['epoch'],
           'text_metric_status':'NOT_TRAINED','metric_columns':13,
-          'checkpoint_and_adapted_weights_hashes_verified':staged,
+          'checkpoint_and_adapted_weights_hashes_verified':staged or continuation,
           'inference_code_sha':report['inference_code_sha'],'scoring_code_sha':report['evaluation_code_sha'],
           'metrics_sha256':hashlib.sha256((root/'metrics.json').read_bytes()).hexdigest()})
     completion = {'status':'EVALUATED','job_id':job['job_id'],'slurm_state':status,'exit_code':exit_code,
@@ -161,7 +187,7 @@ def finalize(root):
                   'mIoU_t_status':'NOT_TRAINED','optimizer_updates':0}
     write(root/'COMPLETE.json', completion)
     job.update(status='EVALUATED', slurm_state=status, exit_code=exit_code, completed_at=completion['completed_at'])
-    if staged:
+    if staged or continuation:
         job.update(checkpoint_epoch=meta['epoch'], completed_updates=meta['completed_updates'],
                    completed_exposures=meta['completed_exposures'],
                    checkpoint_sha256=report['checkpoint_sha256'])
