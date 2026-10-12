@@ -60,9 +60,10 @@ def write_table(report, root):
     epoch = report["training_checkpoint_metadata"]["epoch"]
     meta = report['training_checkpoint_metadata']
     staged = bool(meta.get('recipe'))
-    continuation = meta.get('recipe') == 'vggt_joint_continuation_ab2_v1'
+    continuation = meta.get('recipe') in ('vggt_joint_continuation_ab2_v1','vggt_joint_continuation_ab2_batch16_v1')
     if continuation:
-        method = f"object_locus_vggt_joint_continuation_ab_v1 / {meta['branch']} / continuation2 (total epoch8)"
+        variant='object_locus_vggt_joint_continuation_ab_batch16_v1' if meta['recipe']=='vggt_joint_continuation_ab2_batch16_v1' else 'object_locus_vggt_joint_continuation_ab_v1'
+        method = f"{variant} / {meta['branch']} / continuation2 (total epoch8)"
         title = f"Joint continuation 2 / {meta['branch']} — SIU3R Table 1"
     elif staged:
         method = 'object_locus_vggt_recon_adapt_freeze_v1 / adaptation2 + frozen joint4'

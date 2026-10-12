@@ -273,7 +273,7 @@ def save_calibration_failure(error,update,rank,stage='formal_training'):
 def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world_size=None,
                             monitor=None,window_metadata=None,stage="formal_training",total_updates=None,
                             reconstruction_adaptation=False,accumulation=ACCUMULATION,
-                            cpu_saved_tensors=False,cpu_gradient_accumulation=False,vggt_reconstruction=False):
+                            cpu_saved_tensors=False,cpu_gradient_accumulation=False,vggt_reconstruction=False,lr_update=None):
     """Two-microbatch GC step with one accumulated gradient family per parameter."""
     if accumulation not in (1,2) or len(batches)!=accumulation:
         raise ValueError(f"each rank must receive exactly {accumulation} accumulation microbatches")
@@ -358,7 +358,7 @@ def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world
     error=None
     try:
         norm=torch.nn.utils.clip_grad_norm_(params,1.0,error_if_nonfinite=True)
-        mult=lr_multiplier(update,total_updates)
+        mult=lr_multiplier(update if lr_update is None else lr_update,total_updates)
         for group in optimizer.param_groups: group['lr']=group['peak_lr']*mult
         optimizer.step()
         if any(not torch.isfinite(p).all() for p in params): raise FloatingPointError('nonfinite parameter after optimizer.step')
@@ -477,16 +477,17 @@ def _write_json_atomic(path: Path, value):
 
 class GeometryMonitor:
     """Scalar per-window evidence; two shared warning slots, no tensor retention."""
-    def __init__(self,directory,rank,stage):
+    def __init__(self,directory,rank,stage,updates_per_epoch=UPDATES_PER_EPOCH):
         self.directory=Path(directory);self.directory.mkdir(parents=True,exist_ok=True)
         self.rank=int(rank);self.stage=stage
+        self.updates_per_epoch=int(updates_per_epoch)
         self.counts={'windows':0,'OK':0,'WARNING':0,'warning_reasons':{}}
         self.latest=None
 
     def record(self,calibration,update,metadata):
         ds=calibration['diagnostics'][0]
         views=ds['views'];metadata=metadata or {}
-        row={'stage':self.stage,'epoch':int(update)//UPDATES_PER_EPOCH+1,
+        row={'stage':self.stage,'epoch':int(update)//self.updates_per_epoch+1,
             'update':int(update)+1,'rank':self.rank,**metadata,
             'geometry_quality_policy':GEOMETRY_QUALITY_POLICY,'fit_status':ds['fit_status'],
             'quality_status':ds['quality_status'],'quality_warning_reasons':[v['quality_warning_reasons'] for v in views],
@@ -962,14 +963,16 @@ def run_staged_training(*, run_dir, hf_revision, mode='train', resume=False,
 
 
 CONTINUATION_RECIPE = 'vggt_joint_continuation_ab2_v1'
+CONTINUATION_BATCH16_RECIPE = 'vggt_joint_continuation_ab2_batch16_v1'
 CONTINUATION_SOURCE = Path('/space/mawb/ssst/workspace_group_plus/object_locus_vggt_recon_adapt_freeze_v1/checkpoint_frozen_joint_epoch_04.pt')
 CONTINUATION_SOURCE_SHA = '01d49b092c8dfc2e02f15b5216e5d6ed1cfd88fae2cf693ee69334e45a9410ba'
 CONTINUATION_VGGT_SHA = 'c1f6a8fe3865da3ed737d7dcb86cadbd5967dccc6c94b1483ad6c6b3f0767ace'
 
 
-def continuation_configuration(branch, world_size=4):
+def continuation_configuration(branch, world_size=4, global_batch=8):
     if branch not in ('frozen', 'joint_aa'): raise ValueError(branch)
     if world_size not in (4,8): raise ValueError(world_size)
+    if global_batch not in (8,16) or (global_batch==16 and world_size!=8): raise ValueError('batch16 requires eight ranks')
     config = training_configuration()
     config.update(recipe=CONTINUATION_RECIPE, branch=branch, world_size=world_size, accumulation=8//world_size,
         epochs=2, total_updates=2*UPDATES_PER_EPOCH, total_exposures=2*WINDOWS_PER_EPOCH,
@@ -983,7 +986,28 @@ def continuation_configuration(branch, world_size=4):
         aa_gc='g_rec + 0.01*g_under', aa_trainable=branch=='joint_aa',
         aa_frozen=['aggregator.patch_embed','aggregator.camera_token','aggregator.register_token','camera_head','depth_head'])
     if world_size==8: config['node']='3dimage-11,3dimage-13'
+    if global_batch==16:
+        config.update(recipe=CONTINUATION_BATCH16_RECIPE,global_batch=16,accumulation=2,
+            updates_per_epoch=math.ceil(WINDOWS_PER_EPOCH/16),total_updates=2*math.ceil(WINDOWS_PER_EPOCH/16),
+            warmup_updates=100,tail_global_batch=8,
+            lr_clock='unchanged 200-step warmup/cosine on eight-sample-equivalent exposure clock; peaks unchanged',
+            physical_batch='eight ranks x microbatch1 x accumulation2; accumulation1 for the final eight windows each epoch')
     return config
+
+
+def continuation_clock(completed, global_batch=8):
+    """Return epoch, next update position and exact consumed continuation windows."""
+    if global_batch not in (8,16) or completed<0: raise ValueError('invalid continuation clock')
+    epoch,position=divmod(completed,math.ceil(WINDOWS_PER_EPOCH/global_batch))
+    return epoch,position,epoch*WINDOWS_PER_EPOCH+position*global_batch
+
+
+def continuation_rank_indices(epoch, update, rank, *, world_size=8, global_batch=8):
+    if global_batch==8: return rank_microbatch_indices(epoch,update,rank,world_size=world_size)
+    if global_batch!=16 or world_size!=8 or not 0<=rank<8 or not 0<=update<522: raise ValueError('invalid batch16 sampler')
+    order=epoch_order(epoch);size=min(16,WINDOWS_PER_EPOCH-update*16)//8
+    start=update*16+rank*size
+    return tuple(int(i) for i in order[start:start+size])
 
 
 def reshard_continuation_counts(saved, start_epoch, completed, world_size):
@@ -1046,11 +1070,11 @@ def configure_joint_continuation(model, branch, device):
 
 
 def run_joint_continuation(*, run_dir, hf_revision, branch, mode='train', resume=False,
-                          artifact_manifest=VGGT_ARTIFACT_MANIFEST, training_world_size=4):
+                          artifact_manifest=VGGT_ARTIFACT_MANIFEST, training_world_size=4, global_batch=8):
     """Two authorized continuation arms, reusing the original sampler/data/GC/step."""
     import torch.distributed as dist
     from scripts import object_locus_v3_set_runtime as provider_runtime
-    config=continuation_configuration(branch,training_world_size)
+    config=continuation_configuration(branch,training_world_size,global_batch);recipe=config['recipe']
     if mode not in ('train','four_smoke','eight_smoke'): raise ValueError(mode)
     smoke=mode!='train';world=int(os.environ.get('WORLD_SIZE','1'))
     allowed_nodes=('3dimage-13',) if training_world_size==4 else ('3dimage-11','3dimage-13')
@@ -1094,7 +1118,7 @@ def run_joint_continuation(*, run_dir, hf_revision, branch, mode='train', resume
         payload=torch.load(run_dir/'checkpoint_latest.pt',map_location='cpu',weights_only=False,mmap=True)
         previous_world=payload['world_size']
         if previous_world!=world and (previous_world,world)!=(4,8): raise RuntimeError('unsupported rank migration')
-        for key,value in {'recipe':CONTINUATION_RECIPE,'config':continuation_configuration(branch,previous_world),'branch':branch,
+        for key,value in {'recipe':recipe,'config':continuation_configuration(branch,previous_world,global_batch),'branch':branch,
                           'manifest_sha256':manifest_digest,'continuation_source_sha256':CONTINUATION_SOURCE_SHA,
                           'vggt_revision':hf_revision,'vggt_artifact_identity':identity}.items():
             if payload.get(key)!=value: raise RuntimeError(f'continuation resume mismatch: {key}')
@@ -1107,34 +1131,39 @@ def run_joint_continuation(*, run_dir, hf_revision, branch, mode='train', resume
     hardware=dict(node=socket.gethostname().split('.')[0],gpu_models=[torch.cuda.get_device_name(i) for i in range(world)])
     if rank==0:
         _write_json_atomic(run_dir/(f'resume_manifest_{os.environ.get("SLURM_JOB_ID")}.json' if resume else 'run_manifest.json'),
-            dict(status='SMOKE_STARTED' if smoke else 'TRAINING_STARTED',recipe=CONTINUATION_RECIPE,branch=branch,
+            dict(status='SMOKE_STARTED' if smoke else 'TRAINING_STARTED',recipe=recipe,branch=branch,
                  execution_git_sha=execution_sha,training_configuration=config,continuation_source_sha256=CONTINUATION_SOURCE_SHA,
                  manifest_sha256=manifest_digest,hardware=hardware,slurm_job_id=os.environ.get('SLURM_JOB_ID'),
                  restored_common_source_rank_rng=world==4,smoke_clock_in_formal_training=False,
                  resumed_continuation_update=completed,optimizer_state_restored=resume,
                  rng_policy='native restore' if world==4 else '4-to-8 parent-even stream plus deterministic independent odd child; no bitwise equivalence claim'))
         if resume and not smoke:
+            resumed_exposures=continuation_clock(completed,global_batch)[2]
             _write_json_atomic(run_dir/'progress.json',dict(phase='joint_continuation',branch=branch,
-                completed_updates=6258+completed,completed_exposures=50064+completed*8,
-                continuation_completed_updates=completed,continuation_completed_exposures=completed*8,
-                phase_update=completed,phase_total_updates=2086,total_updates=8344,
+                completed_updates=6258+completed,completed_exposures=50064+resumed_exposures,
+                continuation_completed_updates=completed,continuation_completed_exposures=resumed_exposures,
+                phase_update=completed,phase_total_updates=config['total_updates'],total_updates=6258+config['total_updates'],
                 resumed_from_checkpoint=True,slurm_job_id=os.environ.get('SLURM_JOB_ID'),
                 updated_at_utc=time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())))
     probe=next(p for n,p in model.frozen_vggt.named_parameters() if 'frame_blocks.0.attn.qkv.weight' in n)
     before=probe.detach().clone();fixed={n:p._version for n,p in model.frozen_vggt.named_parameters() if not p.requires_grad}
     attempt_stage=mode+'_'+branch+'_job'+os.environ.get('SLURM_JOB_ID','local')
-    monitor=GeometryMonitor(run_dir,rank,attempt_stage)
-    total=2*UPDATES_PER_EPOCH;limit=2 if smoke else total;start=completed;started=time.monotonic();smoke_rows=[]
+    monitor=GeometryMonitor(run_dir,rank,attempt_stage,updates_per_epoch=config['updates_per_epoch'])
+    total=config['total_updates'];limit=2 if smoke else total;start=completed;started=time.monotonic();smoke_rows=[]
+    start_exposures=continuation_clock(start,global_batch)[2]
+    exposures_after=start_exposures
     for update in range(start,limit):
-        epoch,position=divmod(update,UPDATES_PER_EPOCH)
-        indices=rank_microbatch_indices(0 if smoke else 6+epoch,position,rank,world_size=world)
+        epoch,position,exposures_before=continuation_clock(update,global_batch)
+        indices=continuation_rank_indices(0 if smoke else 6+epoch,position,rank,world_size=world,global_batch=global_batch)
+        exposures_after=continuation_clock(update+1,global_batch)[2]
         error=None;batches=[]
         try: batches=[provider_runtime.build_batch(opt,windows[index],device) for index in indices]
         except Exception as exc: error=exc
         synchronized_error(error,device,'continuation_batch',update)
-        row=train_microbatch_window(model,optimizer,batches,update,base_exposure=50064+update*8,
-            world_size=world,accumulation=8//world,monitor=monitor,window_metadata=[window_identity(i,windows[i]) for i in indices],
-            stage=attempt_stage,total_updates=total,cpu_saved_tensors=True,cpu_gradient_accumulation=True,vggt_reconstruction=True)
+        row=train_microbatch_window(model,optimizer,batches,update,base_exposure=50064+exposures_before,
+            world_size=world,accumulation=len(indices),monitor=monitor,window_metadata=[window_identity(i,windows[i]) for i in indices],
+            stage=attempt_stage,total_updates=2*UPDATES_PER_EPOCH,lr_update=exposures_after//8-1,
+            cpu_saved_tensors=True,cpu_gradient_accumulation=True,vggt_reconstruction=True)
         completed=update+1
         aa=[p for p in model.frozen_vggt.parameters() if p.requires_grad]
         if branch=='joint_aa' and (not aa or not any(p.grad is not None and p.grad.norm()>0 for p in aa)):
@@ -1144,14 +1173,15 @@ def run_joint_continuation(*, run_dir, hf_revision, branch, mode='train', resume
         for index in indices: counts[index]+=1
         row.update(branch=branch,phase='joint_continuation',phase_update=completed,window_indices=list(indices),
             slurm_job_id=os.environ.get('SLURM_JOB_ID'),execution_git_sha=execution_sha,
-            continuation_completed_updates=completed,continuation_completed_exposures=completed*8,
-            absolute_update=6258+completed,absolute_new_exposures=50064+completed*8)
+            completed_exposures=exposures_after,continuation_completed_updates=completed,continuation_completed_exposures=exposures_after,
+            absolute_update=6258+completed,absolute_new_exposures=50064+exposures_after,
+            effective_global_batch=exposures_after-exposures_before)
         if rank==0 and (completed%20==0 or smoke or completed==limit):
             with (run_dir/'training_rank0.jsonl').open('a') as stream: stream.write(json.dumps(row,allow_nan=False)+'\n')
             _write_json_atomic(run_dir/'progress.json',dict(phase='joint_continuation',branch=branch,
-                completed_updates=6258+completed,completed_exposures=50064+completed*8,
-                continuation_completed_updates=completed,continuation_completed_exposures=completed*8,
-                total_updates=8344,phase_update=completed,phase_total_updates=total,
+                completed_updates=6258+completed,completed_exposures=50064+exposures_after,
+                continuation_completed_updates=completed,continuation_completed_exposures=exposures_after,
+                total_updates=6258+total,phase_update=completed,phase_total_updates=total,
                 estimated_phase_remaining_seconds=(time.monotonic()-started)/(completed-start)*(total-completed),
                 updated_at_utc=time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())))
         if completed%20==0: monitor.write_summary(completed)
@@ -1168,54 +1198,54 @@ def run_joint_continuation(*, run_dir, hf_revision, branch, mode='train', resume
                 assert all((r['vggt_probe_change_norm']>0 if branch=='joint_aa' else r['vggt_probe_change_norm']==0) for r in gathered)
                 if smoke:
                     smoke_rows.append(gathered)
-                    if completed==2: assert any(6923 in r['window_indices'] for r in gathered)
+                    if completed==2: assert any(6923 in r['window_indices'] for rows in smoke_rows for r in rows)
                 else:
-                    _write_json_atomic(run_dir/'startup_confirmation.json',dict(status='TRAINING_CONFIRMED',recipe=CONTINUATION_RECIPE,
-                        branch=branch,confirmed_phase_updates=completed,confirmed_phase_exposures=completed*8,
-                        confirmed_attempt_updates=completed-start,confirmed_attempt_exposures=(completed-start)*8,
+                    _write_json_atomic(run_dir/'startup_confirmation.json',dict(status='TRAINING_CONFIRMED',recipe=recipe,
+                        branch=branch,confirmed_phase_updates=completed,confirmed_phase_exposures=exposures_after,
+                        confirmed_attempt_updates=completed-start,confirmed_attempt_exposures=exposures_after-start_exposures,
                         rank_rows=gathered,training_configuration=config,execution_git_sha=execution_sha,
                         slurm_job_id=os.environ.get('SLURM_JOB_ID'),geometry_quality_policy='monitor_v1',hardware=hardware))
-        save_due=not smoke and (startup_due or completed%100==0 or completed%UPDATES_PER_EPOCH==0)
+        save_due=not smoke and (startup_due or completed%(800//global_batch)==0 or completed%config['updates_per_epoch']==0)
         if save_due:
             rngs=[None]*world;rank_counts=[None]*world
             dist.all_gather_object(rngs,capture_rank_rng());dist.all_gather_object(rank_counts,counts.tolist())
             summed=np.sum(np.asarray(rank_counts),axis=0);expected=np.zeros(EXPECTED_WINDOWS,dtype=np.int64)
-            full,partial=divmod(completed,UPDATES_PER_EPOCH)
+            full,partial,_=continuation_clock(completed,global_batch)
             for e in range(full): np.add.at(expected,epoch_order(6+e),1)
-            np.add.at(expected,epoch_order(6+full)[:partial*8],1)
+            np.add.at(expected,epoch_order(6+full)[:partial*global_batch],1)
             assert np.array_equal(summed,expected)
             if rank==0:
                 if branch=='joint_aa' and completed==total:
                     path=run_dir/'adapted_vggt_joint_final.pt'
-                    _atomic_save(dict(recipe=CONTINUATION_RECIPE,branch=branch,continuation_completed_updates=completed,
+                    _atomic_save(dict(recipe=recipe,branch=branch,continuation_completed_updates=completed,
                         source_adapted_vggt_sha256=CONTINUATION_VGGT_SHA,base_hf_revision=hf_revision,
                         model={k:v.detach().cpu() for k,v in model.frozen_vggt.model.state_dict().items()}),path)
-                    adapted_identity=dict(path=str(path.resolve()),sha256=sha256(path),recipe=CONTINUATION_RECIPE)
-                saved=dict(recipe=CONTINUATION_RECIPE,branch=branch,config=config,model=checkpoint_model_state(model),
+                    adapted_identity=dict(path=str(path.resolve()),sha256=sha256(path),recipe=recipe)
+                saved=dict(recipe=recipe,branch=branch,config=config,model=checkpoint_model_state(model),
                     optimizer=optimizer.state_dict(),phase='joint_continuation',phase_completed_updates=completed,
-                    continuation_completed_updates=completed,continuation_completed_exposures=completed*8,
-                    completed_updates=6258+completed,completed_exposures=50064+completed*8,
-                    epoch=6+completed//UPDATES_PER_EPOCH,next_position=completed%UPDATES_PER_EPOCH,
+                    continuation_completed_updates=completed,continuation_completed_exposures=exposures_after,
+                    completed_updates=6258+completed,completed_exposures=50064+exposures_after,
+                    epoch=6+full,next_position=partial,
                     rank_rng=rngs,continuation_rank_window_exposure_counts=rank_counts,
                     rank_window_exposure_counts=(source_counts+np.asarray(rank_counts)).tolist(),
                     window_exposure_counts=(base_counts+summed).tolist(),manifest_sha256=manifest_digest,
                     source_checkpoint_sha256=EXPECTED_CHECKPOINT_SHA,continuation_source_sha256=CONTINUATION_SOURCE_SHA,
                     world_size=world,vggt_revision=hf_revision,vggt_artifact_identity=identity,git_sha=execution_sha,
-                    geometry_quality_policy='monitor_v1',adapted_vggt_identity=adapted_identity,total_updates=8344)
+                    geometry_quality_policy='monitor_v1',adapted_vggt_identity=adapted_identity,total_updates=6258+total)
                 if branch=='joint_aa': saved['vggt_model']={k:v.detach().cpu() for k,v in model.frozen_vggt.model.state_dict().items()}
                 _atomic_save(saved,run_dir/'checkpoint_latest.pt')
-                if completed%UPDATES_PER_EPOCH==0: _atomic_save(saved,run_dir/f'checkpoint_continuation_epoch_{completed//UPDATES_PER_EPOCH:02d}.pt')
+                if completed%config['updates_per_epoch']==0: _atomic_save(saved,run_dir/f'checkpoint_continuation_epoch_{full:02d}.pt')
                 del saved
             dist.barrier()
     if rank==0:
         if smoke:
-            _write_json_atomic(run_dir/'smoke_report.json',dict(status='GPU_SMOKE_COMPLETED',recipe=CONTINUATION_RECIPE,
-                branch=branch,world_size=world,updates=2,exposures=16,formal_updates=0,rank_rows=smoke_rows,
+            _write_json_atomic(run_dir/'smoke_report.json',dict(status='GPU_SMOKE_COMPLETED',recipe=recipe,
+                branch=branch,world_size=world,updates=2,exposures=2*global_batch,formal_updates=0,rank_rows=smoke_rows,
                 execution_git_sha=execution_sha,training_configuration=config,geometry_quality_policy='monitor_v1'))
         else:
-            _write_json_atomic(run_dir/'COMPLETE.json',dict(status='TRAINING_COMPLETED',recipe=CONTINUATION_RECIPE,
-                branch=branch,continuation_completed_updates=completed,continuation_completed_exposures=completed*8,
-                completed_updates=6258+completed,completed_exposures=50064+completed*8,execution_git_sha=execution_sha,
+            _write_json_atomic(run_dir/'COMPLETE.json',dict(status='TRAINING_COMPLETED',recipe=recipe,
+                branch=branch,continuation_completed_updates=completed,continuation_completed_exposures=exposures_after,
+                completed_updates=6258+completed,completed_exposures=50064+exposures_after,execution_git_sha=execution_sha,
                 continuation_source_sha256=CONTINUATION_SOURCE_SHA,adapted_vggt_identity=adapted_identity))
     dist.barrier();dist.destroy_process_group()
     return dict(status='GPU_SMOKE_COMPLETED' if smoke else 'TRAINING_COMPLETED',formal_updates=0 if smoke else completed)

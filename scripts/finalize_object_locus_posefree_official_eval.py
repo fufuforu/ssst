@@ -30,7 +30,7 @@ def finalize(root):
     assert report['status'] == 'EVALUATED'
     meta = report['training_checkpoint_metadata']
     staged = meta.get('recipe') == 'vggt_reconstruction_adapt2_frozen_joint4_v1'
-    continuation = meta.get('recipe') == 'vggt_joint_continuation_ab2_v1'
+    continuation = meta.get('recipe') in ('vggt_joint_continuation_ab2_v1','vggt_joint_continuation_ab2_batch16_v1')
     if continuation:
         checkpoint = Path(job['checkpoint'])
         training = read(checkpoint.parent/'COMPLETE.json')
@@ -39,9 +39,10 @@ def finalize(root):
         assert meta['branch'] == job['branch'] == training['branch']
         assert meta['epoch'] == job['checkpoint_total_epoch'] == 8
         assert meta['phase'] == 'joint_continuation' and meta['phase_epoch'] == 2
-        assert meta['completed_updates'] == training['completed_updates'] == 8344
+        expected_updates=1044 if meta['recipe']=='vggt_joint_continuation_ab2_batch16_v1' else 2086
+        assert meta['completed_updates'] == training['completed_updates'] == 6258+expected_updates
         assert meta['completed_exposures'] == training['completed_exposures'] == 66752
-        assert meta['continuation_completed_updates'] == training['continuation_completed_updates'] == 2086
+        assert meta['continuation_completed_updates'] == training['continuation_completed_updates'] == expected_updates
         assert meta['continuation_completed_exposures'] == training['continuation_completed_exposures'] == 16688
         assert meta['continuation_source_sha256'] == training['continuation_source_sha256'] == job['continuation_source_sha256']
         assert training['execution_git_sha'] == job.get('training_execution_git_sha',job['execution_git_sha']) == meta['git_sha']

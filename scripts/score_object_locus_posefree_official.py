@@ -134,11 +134,15 @@ def reduce(args):
     for scope,seg,view in (('context',allseg,'context'),('target-all',allseg,'target'),('true-novel',novelseg,'target')):
         scopes[scope]=recon[scope]|{'mIoU_s':seg[f'{view}_miou'],'mAP':seg[f'{view}_map']['map'],
             'PQ':seg[f'{view}_pq'],'mIoU_t':None,'mIoU_t_status':'NOT_TRAINED'}
-    continuation=metadata[0].get('recipe')=='vggt_joint_continuation_ab2_v1'
+    recipe=metadata[0].get('recipe')
+    continuation=recipe in ('vggt_joint_continuation_ab2_v1','vggt_joint_continuation_ab2_batch16_v1')
     if continuation:
-        assert all(m['recipe']=='vggt_joint_continuation_ab2_v1' and m['phase']=='joint_continuation' and m['phase_epoch']==2 for m in metadata)
+        assert all(m['recipe']==recipe and m['phase']=='joint_continuation' and m['phase_epoch']==2 for m in metadata)
         assert metadata[0]['branch'] in ('frozen','joint_aa')
-        assert metadata[0]['continuation_completed_updates']==2086 and metadata[0]['continuation_completed_exposures']==16688
+        expected_updates=1044 if recipe=='vggt_joint_continuation_ab2_batch16_v1' else 2086
+        assert metadata[0]['continuation_completed_updates']==expected_updates and metadata[0]['continuation_completed_exposures']==16688
+        if recipe=='vggt_joint_continuation_ab2_batch16_v1':
+            assert metadata[0]['continuation_global_batch']==16 and metadata[0]['continuation_updates_per_epoch']==522
         assert metadata[0]['continuation_source_sha256']=='01d49b092c8dfc2e02f15b5216e5d6ed1cfd88fae2cf693ee69334e45a9410ba'
     elif metadata[0].get('recipe'):
         assert all(m['recipe']=='vggt_reconstruction_adapt2_frozen_joint4_v1' and m['phase']=='frozen_joint' and m['phase_epoch']==4 for m in metadata)
@@ -147,7 +151,8 @@ def reduce(args):
         assert all(m['git_sha']=='e80c99380a4eb04456dc7fb69c7382ff11af1051' for m in metadata)
     assert all(m==metadata[0] for m in metadata), 'shards used different checkpoints/code/clocks'
     epoch=metadata[0]['epoch']
-    assert epoch in ((8,) if continuation else (6,) if metadata[0].get('recipe') else (4,8)) and metadata[0]['completed_updates']==epoch*1043 and metadata[0]['completed_exposures']==epoch*8344
+    assert epoch in ((8,) if continuation else (6,) if metadata[0].get('recipe') else (4,8))
+    assert metadata[0]['completed_updates']==(6258+expected_updates if continuation else epoch*1043) and metadata[0]['completed_exposures']==epoch*8344
     checkpoint=Path(identities[0]['checkpoint'])
     assert all(i['checkpoint']==str(checkpoint) for i in identities)
     assert all(i['checkpoint_size']==checkpoint.stat().st_size and i['checkpoint_mtime_ns']==checkpoint.stat().st_mtime_ns for i in identities)

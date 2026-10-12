@@ -4,8 +4,11 @@ REPO=${TASK_REPO:?}
 BRANCH=${TASK_ARM:?}
 WORLD=${TASK_WORLD_SIZE:-4}
 NODE=${TASK_NODE:-3dimage-13}
-REPORT=/space/mawb/ssst/group_plus/object_locus_vggt_joint_continuation_ab_v1
-RUN=/space/mawb/ssst/workspace_group_plus/object_locus_vggt_joint_continuation_ab_v1/$BRANCH
+GLOBAL_BATCH=${TASK_GLOBAL_BATCH:-8}
+EXPERIMENT=object_locus_vggt_joint_continuation_ab_v1
+if [[ "$GLOBAL_BATCH" == 16 ]]; then EXPERIMENT=object_locus_vggt_joint_continuation_ab_batch16_v1; fi
+REPORT=/space/mawb/ssst/group_plus/$EXPERIMENT
+RUN=/space/mawb/ssst/workspace_group_plus/$EXPERIMENT/$BRANCH
 ASSET=/space/mawb/ssst_object_locus_frozen_vggt_posefree_v1_assets
 PYTHON=/space/mawb/anaconda3/envs/tokengs/bin/python
 ATTEMPT="$REPORT/$BRANCH/attempts/$SLURM_JOB_ID"
@@ -18,9 +21,10 @@ cd "$REPO"
 [[ "$(git rev-parse HEAD)" == "$TASK_CODE_SHA" ]]
 [[ "$(hostname -s)" == "$NODE" ]]
 [[ "$WORLD" == 4 || "$WORLD" == 8 ]]
+[[ "$GLOBAL_BATCH" == 8 || ( "$GLOBAL_BATCH" == 16 && "$WORLD" == 8 ) ]]
 [[ "$BRANCH" == frozen || "$BRANCH" == joint_aa ]]
 mkdir -p "$ATTEMPT"
-COMMON=(--run-training --joint-continuation-branch "$BRANCH" --joint-continuation-world-size "$WORLD" --vggt-revision 860abec7937da0a4c03c41d3c269c366e82abdf9 --artifact-manifest "$REPO/vggt_artifact_manifest.json")
+COMMON=(--run-training --joint-continuation-branch "$BRANCH" --joint-continuation-world-size "$WORLD" --joint-continuation-global-batch "$GLOBAL_BATCH" --vggt-revision 860abec7937da0a4c03c41d3c269c366e82abdf9 --artifact-manifest "$REPO/vggt_artifact_manifest.json")
 SMOKE=four_smoke
 if [[ "$WORLD" == 8 ]]; then SMOKE=eight_smoke; fi
 printf 'stage=%s arm=%s job=%s sha=%s time=%s\n' "$SMOKE" "$BRANCH" "$SLURM_JOB_ID" "$TASK_CODE_SHA" "$(date -Is)"

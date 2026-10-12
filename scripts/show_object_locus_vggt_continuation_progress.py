@@ -1,5 +1,6 @@
 """Read-only progress for both continuation arms, including ETA."""
 import json
+import argparse
 import subprocess
 from pathlib import Path
 
@@ -8,6 +9,13 @@ RUN=Path('/space/mawb/ssst/workspace_group_plus/object_locus_vggt_joint_continua
 
 
 def main():
+    parser=argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--global-batch',type=int,choices=(8,16),default=16)
+    args=parser.parse_args()
+    experiment='object_locus_vggt_joint_continuation_ab_batch16_v1' if args.global_batch==16 else 'object_locus_vggt_joint_continuation_ab_v1'
+    REPORT=Path('/space/mawb/ssst/group_plus')/experiment
+    RUN=Path('/space/mawb/ssst/workspace_group_plus')/experiment
+    jobs={}
     plan=REPORT/'launch_plan.json'
     if plan.exists():
         jobs=json.loads(plan.read_text()).get('jobs',{})
@@ -33,7 +41,8 @@ def main():
         if expected and not (RUN/arm/f'resume_manifest_{expected}.json').exists() and jobs[arm].get('migration_resume_update') is not None:
             print(f"Migrating: restore update {jobs[arm]['migration_resume_update']}; waiting for new job's formal resume manifest.")
             continue
-        print(f"Continuation: {d['continuation_completed_updates']}/2086 updates; {d['continuation_completed_exposures']}/16688 new exposures")
+        total=d.get('phase_total_updates',1044 if args.global_batch==16 else 2086)
+        print(f"Continuation: {d['continuation_completed_updates']}/{total} updates; {d['continuation_completed_exposures']}/16688 new exposures; global batch={args.global_batch}")
         if 'estimated_phase_remaining_seconds' in d:
             print(f"Estimated remaining: {d['estimated_phase_remaining_seconds']/3600:.2f} hours")
         print('Progress:',p)
