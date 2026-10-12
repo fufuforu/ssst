@@ -32,6 +32,6 @@ CPU测试检验默认系数逐值一致、仅adapter理解梯度改变、原组�
 
 共同评测复用上一轮exporter和固定SIU3R官方Evaluator，八checkpoint条件/32窗口/128张图像。新的checkpoint严格检查source、recipe、gradient_routing_variant、understanding_weight1、GS系数0.01和指定adapter系数。初始PNG与旧联合基线逐字节相等，各阶段GT PNG与旧基线逐字节相等，再与已完成旧joint/rec-only曲线配对比较。输出PSNR/SSIM/LPIPS、重建目标和理解探针，不拆分视图范围。只用于训练窗口拟合，不是完整13列表格；mAP/PQ保留情况仍需要后续“理解模块可训练＋留出窗口”的验证，不能以理解探针冒充。
 
-提交命令：`scripts/submit_vggt_adapter_gradient_diagnostic_v1.py --stage {probe,preflight,formal}`；Slurm wrapper为`run_vggt_adapter_gradient_diagnostic_v1.sh`。提交回执记录job ID、固定SHA、目录、依赖和资源。真实两更新验证成功后才提交正式短对照。每组正式20次更新/320曝光自动写startup_confirmation；沿用用户此前确认启动后停止轮询的运行方式，两组及其后续评测继续执行。
+提交命令：`scripts/submit_vggt_adapter_gradient_diagnostic_v1.py --stage {probe,preflight,formal}`；Slurm wrapper为`run_vggt_adapter_gradient_diagnostic_v1.sh`。提交回执记录job ID、固定SHA、目录、依赖和资源。真实两更新验证成功后才提交正式短对照。每组runtime在正式20次更新/320曝光自动验证并写startup_confirmation；读取首组正式20次启动确认后停止轮询。第二组仍按依赖等待，不能把它写成已经完成20次正式更新；它使用同一份已通过真实八卡验证的代码，启动后自动生成独立确认。两组及其后续评测继续执行。
 
 下一阶段仅在短对照支持明确方向后，才以可训练理解分支和独立留出窗口同时验证重建、mAP/PQ/mIoU。当前不提交全数据长训练，不修改encoder或decoder初始化，不引入新loss/GT fallback/标定算法。
