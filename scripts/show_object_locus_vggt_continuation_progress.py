@@ -23,7 +23,11 @@ def main():
             print('Training completed; waiting for official evaluation.');continue
         p=RUN/arm/'progress.json'
         if not p.exists():
-            print('No formal updates recorded yet; queued or executing four-card smoke.');continue
+            if (RUN/arm/'run_manifest.json').exists():
+                print('Formal training started; waiting for the first 20-update progress receipt.')
+            else:
+                print('No formal training manifest yet; queued, executing smoke, or loading the source.')
+            continue
         d=json.loads(p.read_text())
         print(f"Continuation: {d['continuation_completed_updates']}/2086 updates; {d['continuation_completed_exposures']}/16688 new exposures")
         if 'estimated_phase_remaining_seconds' in d:

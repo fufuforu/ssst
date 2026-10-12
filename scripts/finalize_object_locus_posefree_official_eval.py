@@ -44,7 +44,7 @@ def finalize(root):
         assert meta['continuation_completed_updates'] == training['continuation_completed_updates'] == 2086
         assert meta['continuation_completed_exposures'] == training['continuation_completed_exposures'] == 16688
         assert meta['continuation_source_sha256'] == training['continuation_source_sha256'] == job['continuation_source_sha256']
-        assert training['execution_git_sha'] == job['execution_git_sha'] == meta['git_sha']
+        assert training['execution_git_sha'] == job.get('training_execution_git_sha',job['execution_git_sha']) == meta['git_sha']
         assert meta['adapted_vggt_identity'] == training['adapted_vggt_identity']
         assert sha256_file(checkpoint) == report['checkpoint_sha256']
         adapted = meta['adapted_vggt_identity']; adapted_path = Path(adapted['path'])
