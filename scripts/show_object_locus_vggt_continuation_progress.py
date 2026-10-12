@@ -8,6 +8,22 @@ REPORT=Path('/space/mawb/ssst/group_plus/object_locus_vggt_joint_continuation_ab
 RUN=Path('/space/mawb/ssst/workspace_group_plus/object_locus_vggt_joint_continuation_ab_v1')
 
 
+def observed_update(directory):
+    updates=[]
+    for path in sorted(directory.glob('geometry_monitor_rank*.jsonl')):
+        with path.open('rb') as stream:
+            stream.seek(max(0,path.stat().st_size-8192))
+            lines=stream.read().decode('utf-8',errors='ignore').splitlines()
+        for line in reversed(lines):
+            try:
+                updates.append(json.loads(line)['update']);break
+            except (json.JSONDecodeError,KeyError):
+                continue
+    if updates:
+        return f"Processing update {min(updates)}–{max(updates)} across {len(updates)} ranks (observed forward passes; optimizer completion not yet confirmed)."
+    return 'Loading the source or preparing the first batch; no forward-pass record yet.'
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--global-batch',type=int,choices=(8,16),default=16)
@@ -33,8 +49,16 @@ def main():
         if not p.exists():
             if (RUN/arm/'run_manifest.json').exists():
                 print('Formal training started; waiting for the first 20-update progress receipt.')
+                print(observed_update(RUN/arm))
             else:
-                print('No formal training manifest yet; queued, executing smoke, or loading the source.')
+                attempt=REPORT/arm/'attempts'/str(jobs.get(arm,{}).get('training_job',''))/'eight_smoke'
+                if (attempt/'smoke_report.json').exists():
+                    print('GPU smoke completed; reloading the common source for fresh formal training.')
+                elif (attempt/'run_manifest.json').exists():
+                    print('GPU smoke running; these samples do not count toward formal training.')
+                    print(observed_update(attempt))
+                else:
+                    print('No formal training manifest yet; queued or loading the source for GPU smoke.')
             continue
         d=json.loads(p.read_text())
         expected=str(jobs.get(arm,{}).get('training_job','')) if plan.exists() else ''
