@@ -73,7 +73,7 @@ def _probability(p):
     return p.clamp(0.0, 1.0)
 
 
-def v3_set_losses(prediction, batch, opt=None):
+def v3_set_losses(prediction, batch, opt=None, *, gradient_components=None):
     del opt
     targets, pairs = final_hungarian(prediction, batch)
     sem = batch["semantic_label_all"][:, :2].long()
@@ -121,6 +121,12 @@ def v3_set_losses(prediction, batch, opt=None):
     stuff_dice = torch.stack(stuff_dices).mean() if stuff_dices else zero
     understanding = 0.1 * (2 * classification + 5 * pixel_bce + 5 * pixel_dice
                            + 5 * stuff_bce + 5 * stuff_dice)
+    # Optional task-owned instrumentation. Expose the original weighted terms
+    # without recomputing matching, changing their mathematics or detaching them.
+    if gradient_components is not None:
+        gradient_components.update(classification=0.2 * classification,
+            thing_bce=0.5 * pixel_bce, thing_dice=0.5 * pixel_dice,
+            stuff_bce=0.5 * stuff_bce, stuff_dice=0.5 * stuff_dice)
     with torch.no_grad():
         correct = 0
         confusion = torch.zeros((18, 19), dtype=torch.long, device=device)

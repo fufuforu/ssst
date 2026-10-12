@@ -217,7 +217,7 @@ def export(root):
                 input_rgb_sha256=prep['input_rgb_sha256'], checkpoint_sha256=record['sha256'],
                 geometry='GT first-camera/baseline norm gauge' if gt else 'frozen native monitor_v1 predicted geometry')
             rows.append(row)
-            write(shard / 'export_progress.json', dict(completed=len(rows), total=12, latest=dict(arm=arm, step=step)))
+            write(shard / 'export_progress.json', dict(completed=len(rows), total=len(receipt['records']), latest=dict(arm=arm, step=step)))
             print(json.dumps({'rank': rank, 'arm': arm, 'step': step, 'float_psnr': float(psnr.mean())}), flush=True)
             del output, metrics, generated, final_render, pred, truth, mse, psnr, alpha
     write(shard / 'export_complete.json', dict(status='EXPORT_COMPLETED', diagnostic_only=True,

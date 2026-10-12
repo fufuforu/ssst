@@ -199,14 +199,18 @@ def build_optimizer(model: nn.Module):
     return torch.optim.AdamW(groups,betas=(.9,.95),eps=1e-8)
 
 
-def gc_combine(parameter_names, reconstruction_gradients, understanding_gradients, *, vggt_reconstruction=False):
+def gc_combine(parameter_names, reconstruction_gradients, understanding_gradients, *, vggt_reconstruction=False,
+               adapter_understanding_scale=1.):
+    if adapter_understanding_scale not in (0., .01, 1.):
+        raise ValueError('unauthorized adapter understanding-gradient scale')
     combined=[]
     for name,gr,gu in zip(parameter_names,reconstruction_gradients,understanding_gradients):
         if gr is None and gu is None: combined.append(None); continue
         base=torch.zeros_like(gu if gr is None else gr)
         if gr is not None: base=base+gr
         reconstruction = parameter_family(name)=='reconstruction' or (vggt_reconstruction and name.startswith('frozen_vggt.'))
-        if gu is not None: base=base+(.01 if reconstruction else 1.)*gu
+        scale = adapter_understanding_scale if name.startswith('vggt_memory_adapter.') else (.01 if reconstruction else 1.)
+        if gu is not None: base=base+scale*gu
         combined.append(base)
     return combined
 
@@ -273,7 +277,8 @@ def save_calibration_failure(error,update,rank,stage='formal_training'):
 def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world_size=None,
                             monitor=None,window_metadata=None,stage="formal_training",total_updates=None,
                             reconstruction_adaptation=False,accumulation=ACCUMULATION,
-                            cpu_saved_tensors=False,cpu_gradient_accumulation=False,vggt_reconstruction=False,lr_update=None):
+                            cpu_saved_tensors=False,cpu_gradient_accumulation=False,vggt_reconstruction=False,lr_update=None,
+                            adapter_understanding_scale=1.):
     """Two-microbatch GC step with one accumulated gradient family per parameter."""
     if accumulation not in (1,2) or len(batches)!=accumulation:
         raise ValueError(f"each rank must receive exactly {accumulation} accumulation microbatches")
@@ -312,7 +317,8 @@ def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world
                 allow_unused=True) if weight>0 else (None,)*len(params))
             if cpu_gradient_accumulation:
                 under=tuple(None if g is None else g.cpu() for g in under)
-            mixed=gc_combine(names,rec,under,vggt_reconstruction=vggt_reconstruction)
+            mixed=gc_combine(names,rec,under,vggt_reconstruction=vggt_reconstruction,
+                             adapter_understanding_scale=adapter_understanding_scale)
             if any(g is not None and not torch.isfinite(g).all() for g in mixed):
                 raise FloatingPointError('nonfinite per-microbatch GC-combined gradient')
             combined_acc=[None if g is None and old is None else

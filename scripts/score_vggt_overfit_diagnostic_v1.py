@@ -17,6 +17,7 @@ from scripts.invoke_siu3r_official_evaluator import evaluate, SIU3R_REPO, SIU3R_
 def main():
     p = argparse.ArgumentParser(description=__doc__)
     p.add_argument('--root', type=Path, required=True)
+    p.add_argument('--arms', nargs='+', default=['pred_joint', 'pred_recon', 'gt_recon'])
     args = p.parse_args()
     rank = int(os.environ['RANK'])
     local = int(os.environ['LOCAL_RANK'])
@@ -28,11 +29,11 @@ def main():
     if actual != SIU3R_COMMIT:
         raise ValueError('official SIU3R source mismatch')
     exports = [json.loads((args.root / f'rank{i:02d}' / 'export_complete.json').read_text()) for i in range(4)]
-    if any(e['status'] != 'EXPORT_COMPLETED' or len(e['rows']) != 12 for e in exports):
+    if len(set(args.arms)) != len(args.arms) or any(e['status'] != 'EXPORT_COMPLETED' or len(e['rows']) != 4 * len(args.arms) for e in exports):
         raise ValueError('incomplete or mismatched reconstruction export')
     step = (0, 100, 200, 300)[rank]
     rows = []
-    for arm in ('pred_joint', 'pred_recon', 'gt_recon'):
+    for arm in args.arms:
         path = args.root / 'png' / arm / f'update{step:04d}'
         result = evaluate(path, device=f'cuda:{local}', segmentation=False, depth_quality=False)
         scores = []

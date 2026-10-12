@@ -84,7 +84,8 @@ def gt_baseline_gauge(provider_c2w, predicted_context):
     return result, scale
 
 
-def diagnostic_forward(model, batch, cached, arm, *, compute_understanding=True):
+def diagnostic_forward(model, batch, cached, arm, *, compute_understanding=True, understanding_components=None,
+                       probe_tensors=None):
     """Identical native decoder/feedback/loss with explicit diagnostic interventions."""
     from tokengs.models.object_locus_posefree_geometry import pixel_rays, camera_vectors, rays_to_patch_plucker
     from tokengs.models.input_types import EncoderLatent, ModelInputDecoder
@@ -111,12 +112,15 @@ def diagnostic_forward(model, batch, cached, arm, *, compute_understanding=True)
     rays_o, rays_d = pixel_rays(all_cams, all_k, 256, 256)
     loss_batch = dict(batch, cam_view_all=decoder.cam_view, intrinsics_all=intrinsics,
         rays_os=rays_o, rays_ds=rays_d, cam_to_world_input=context_cams, intrinsics_input=context_k)
-    recon, metrics, _, _, _ = model._layer_objective(states, decoder, _full_supervision(loss_batch))
+    recon, metrics, recon_gaussians, _, _ = model._layer_objective(states, decoder, _full_supervision(loss_batch))
+    if probe_tensors is not None:
+        probe_tensors.update(reconstruction_final_gaussians=recon_gaussians, understanding_gaussians=gaussians)
     if arm == 'pred_joint' and compute_understanding:
         from tokengs.models.object_locus_v3_set_loss import object_locus_v3_set_losses
         # Native readout uses context cameras both for lifting and membership render.
         prediction.update(model._readout(final, gaussians, cached['fm'], context_decoder, context_decoder))
-        under, under_metrics = object_locus_v3_set_losses(prediction, loss_batch, model.opt)
+        under, under_metrics = object_locus_v3_set_losses(prediction, loss_batch, model.opt,
+            gradient_components=understanding_components)
         metrics.update(under_metrics)
     else:
         # An independent zero leaf makes the absent objective have no gradients,
@@ -203,6 +207,12 @@ def run(args):
     from scripts import object_locus_frozen_vggt_posefree_runtime as native
     from scripts.eval_object_locus_frozen_vggt_posefree_v1 import _restore_checkpoint
     from scripts.posefree_cpu_adamw import CPUOffloadAdamW
+    adapter_scale = getattr(args, 'adapter_understanding_scale', 1.)
+    routing = getattr(args, 'gradient_routing_diagnostic', False)
+    if adapter_scale not in (0., .01, 1.) or (adapter_scale != 1. and not routing) or (routing and args.arm != 'pred_joint'):
+        raise ValueError('adapter gradient intervention requires explicit joint diagnostic mode')
+    recipe = 'vggt_adapter_understanding_gradient_diagnostic_v1' if routing else RECIPE
+    variant = ('adapter_u001' if adapter_scale == .01 else 'adapter_u0' if adapter_scale == 0. else 'adapter_u1') if routing else args.arm
     if int(os.environ.get('WORLD_SIZE', '0')) != 8 or socket.gethostname().split('.')[0] != '3dimage-17':
         raise RuntimeError('diagnostic authorized only on node17/eight ranks')
     local = int(os.environ['LOCAL_RANK'])
@@ -289,7 +299,7 @@ def run(args):
     dist.all_gather_object(gathered, dict(rank=rank, slots=slots, proofs=proofs, initial_trainable_sha256=initial_digest))
     if len({x['initial_trainable_sha256'] for x in gathered}) != 1:
         raise RuntimeError('ranks have different source initialization')
-    config = dict(recipe=RECIPE, diagnostic_only=True, arm=args.arm, world_size=8, microbatch=1,
+    config = dict(recipe=recipe, diagnostic_only=True, arm=args.arm, world_size=8, microbatch=1,
         accumulation=2, global_batch=16, total_updates=300, total_exposures=4800,
         unique_training_windows=4, windows=windows, cohort_sha256=digest(cohort_path),
         source_checkpoint=str(SOURCE), source_checkpoint_sha256=SOURCE_SHA, source_updates=6258,
@@ -309,6 +319,12 @@ def run(args):
         mode=args.mode, execution_git_sha=execution_sha, slurm_job_id=os.environ.get('SLURM_JOB_ID'),
         hardware=dict(node=socket.gethostname().split('.')[0], gpu=torch.cuda.get_device_name(local)),
         rank_preparation=gathered)
+    if routing:
+        config.update(gradient_routing_variant=variant, adapter_understanding_scale=adapter_scale,
+            reconstruction_understanding_scale=.01,
+            gc=f'GS g_rec + .01*g_under; VGGT adapter g_rec + {adapter_scale}*g_under; understanding objective unchanged',
+            parent_diagnostic_recipe=RECIPE, evaluation_pending_user_notification=False,
+            auto_evaluation_submitted=args.mode == 'train')
     if rank == 0:
         native._write_json_atomic(args.output / 'run_manifest.json', config)
     monitor = native.GeometryMonitor(args.output, rank, 'diagnostic_' + args.arm, updates_per_epoch=300)
@@ -324,7 +340,7 @@ def run(args):
         if totals != [completed * 4] * 4:
             raise RuntimeError('diagnostic exposure accounting mismatch')
         if rank == 0:
-            payload = dict(recipe=RECIPE, diagnostic_only=True, config=config, arm=args.arm,
+            payload = dict(recipe=recipe, diagnostic_only=True, config=config, arm=args.arm,
                 model=native.checkpoint_model_state(model), optimizer=optimizer.state_dict(),
                 completed_updates=completed, completed_exposures=completed * GLOBAL_BATCH,
                 rank_rng=rngs, rank_window_exposure_counts=rank_counts, window_exposure_counts=totals,
@@ -363,7 +379,8 @@ def run(args):
             base_exposure=50064 + update * GLOBAL_BATCH, world_size=8, accumulation=2,
             monitor=monitor, window_metadata=[native.window_identity(windows[slot]['source_index'], windows[slot]) for slot in slots],
             stage='diagnostic_' + args.arm, total_updates=TOTAL_UPDATES, lr_update=pilot_lr_update(update),
-            cpu_saved_tensors=True, cpu_gradient_accumulation=True)
+            cpu_saved_tensors=True, cpu_gradient_accumulation=True,
+            adapter_understanding_scale=adapter_scale)
         del batches
         completed = update + 1
         for slot in slots:
@@ -383,6 +400,9 @@ def run(args):
         row.update(arm=args.arm, diagnostic_only=True, slurm_job_id=os.environ.get('SLURM_JOB_ID'),
             window_slots=slots, objective_understanding_enabled=args.arm == 'pred_joint',
             feedback_enabled=True, frozen_parameters_unchanged=True)
+        if routing:
+            row.update(gradient_routing_variant=variant, adapter_understanding_scale=adapter_scale,
+                       reconstruction_understanding_scale=.01)
         with (args.output / f'training_rank{rank}.jsonl').open('a') as stream:
             stream.write(json.dumps(row, allow_nan=False) + '\n')
         if rank == 0:
@@ -423,11 +443,12 @@ def run(args):
     if rank == 0:
         native._write_json_atomic(args.output / ('smoke_report.json' if args.mode == 'smoke' else 'COMPLETE.json'),
             dict(status='GPU_SMOKE_COMPLETED' if args.mode == 'smoke' else 'DIAGNOSTIC_TRAINING_COMPLETED',
-                recipe=RECIPE, arm=args.arm, diagnostic_only=True, completed_updates=limit,
+                recipe=recipe, arm=args.arm, diagnostic_only=True, completed_updates=limit,
                 completed_exposures=limit * GLOBAL_BATCH, formal_updates=0 if args.mode == 'smoke' else limit,
                 source_checkpoint_sha256=SOURCE_SHA, frozen_parameters_unchanged=True,
                 execution_git_sha=execution_sha, slurm_job_id=os.environ.get('SLURM_JOB_ID'),
-                evaluation_pending_user_notification=True))
+                evaluation_pending_user_notification=not routing,
+                gradient_routing_variant=variant, adapter_understanding_scale=adapter_scale))
     dist.barrier()
     dist.destroy_process_group()
 
@@ -437,6 +458,8 @@ def main():
     parser.add_argument('--arm', choices=ARMS, required=True)
     parser.add_argument('--mode', choices=('smoke', 'train'), required=True)
     parser.add_argument('--output', type=Path, required=True)
+    parser.add_argument('--gradient-routing-diagnostic', action='store_true')
+    parser.add_argument('--adapter-understanding-scale', type=float, choices=(0., .01, 1.), default=1.)
     run(parser.parse_args())
 
 
