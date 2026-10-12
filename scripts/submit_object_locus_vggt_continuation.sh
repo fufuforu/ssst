@@ -39,7 +39,7 @@ MEM=240G
 if [[ "$WORLD" == 8 ]]; then MEM=480G; fi
 PARTITION=3090
 GPU_MODEL=RTX3090
-if [[ "$NODE" == 3dimage-18 ]]; then PARTITION=4090; GPU_MODEL=RTX4090; fi
+if [[ "$NODE" == 3dimage-18 ]]; then PARTITION=4090; GPU_MODEL=RTX4090; MEM=400G; fi
 sbatch --parsable --partition="$PARTITION" --nodelist="$NODE" --nodes=1 --ntasks=1 \
   --gres="gpu:$WORLD" --cpus-per-task="$((WORLD*4))" --mem="$MEM" --time=48:00:00 \
   --job-name="$NAME" --output="$REPORT/slurm/%x-%j.out" --error="$REPORT/slurm/%x-%j.err" \
