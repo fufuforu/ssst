@@ -23,3 +23,17 @@ node17八张4090顺序执行三组训练，480G host memory；后续四卡评测
 判断AA对照使用frozen_warm与aa_warm，初始化对照使用frozen_warm与frozen_scratch；同时看全部11项，明确取舍。随机组要比较绝对终点和自身0→50→100曲线；短预算落后不能证明从零长训练更差，初始优势不能证明最终上限更好。单种子／小样本不作显著性结论。新的结果不能与上轮四窗口的24.66直接比较。
 
 读取首个正式作业20更新／320曝光的真实startup与完整checkpoint核验后停止轮询；其他组仍可能等待依赖，使用同份已通过真实八卡验证的固定代码并各自自动写startup。训练和afterok评测继续，不能把排队组称为已经完成20更新。
+
+## 已执行验证与作业
+
+实际计算固定SHA为`100ad34d5e55cf5c37851c71966abd2e67574096`。57项不同CPU检查通过（5项新对照、5项已有梯度路由、19项阶段/续训、28项原冻结契约），语法及入口验证通过。初次unittest调用的模块名／import路径错误已纠正，原调用错误记录保存在local_validation；没有修改模型或测试条件绕过失败。
+
+单卡验证63309成功9:56，八卡验证63310成功13:21，三组各两个真实更新，八卡每次16训练窗口各一次。所有rank参数相同，解冻AA、理解、panoptic、adapter及GS探针真实更新，冻结参数／buffer不变。每组还验证真实留出窗口的图像、深度、语义及实例原生导出和完整官方13列评分。三组初始理解/panoptic/adapter逐字节相同；随机GS重置382个张量。Torch验证峰值约8.86GiB/rank（冻结）和10.79GiB/rank（AA）。GPU调试占用约1.95GPU小时。
+
+正式八卡任务：63326=frozen_warm，63327=aa_warm，63328=frozen_scratch，依次afterok；四卡自动留出评测63329依赖63328。首组正式0更新的1394个非VGGT状态张量与共同源逐一相同。20正式更新／320曝光的八rank参数、有限loss/梯度、完整checkpoint、原生AdamW时钟、八rank RNG、每窗口计数已验证；GS tokens／decoder blocks／理解／adapter／panoptic具有真实优化器更新状态。读取该证明后停止轮询，后两组仍按依赖等待但已通过上述真实八卡验证。
+
+预计冻结/随机组各50–60分钟，AA组约1–2小时，顺序合计约3–4小时另加评测和排队。原B及其评测未修改。此处记录启动证明，没有提前报告实验指标改善。
+
+- [执行汇总](/space/mawb/ssst/group_plus/vggt_joint_short_controls_v1/attempts/attempt01/summary.md)、[提交回执](/space/mawb/ssst/group_plus/vggt_joint_short_controls_v1/attempts/attempt01/formal_submission.json)。
+- [GPU验证](/space/mawb/ssst/group_plus/vggt_joint_short_controls_v1/attempts/attempt01/gpu_validation_summary.json)、[首组正式启动验证](/space/mawb/ssst/group_plus/vggt_joint_short_controls_v1/attempts/attempt01/formal_startup_validation.json)、[停止轮询记录](/space/mawb/ssst/group_plus/vggt_joint_short_controls_v1/attempts/attempt01/STOPPED_POLLING.json)。
+- [训练root](/space/mawb/ssst/workspace_group_plus/vggt_joint_short_controls_v1/attempt01)、[首组实时进度](/space/mawb/ssst/workspace_group_plus/vggt_joint_short_controls_v1/attempt01/frozen_warm/progress.json)。
