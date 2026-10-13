@@ -63,3 +63,18 @@ Evidence: `/space/mawb/ssst/group_plus/vggt_interaction_controls_v1/attempts/att
 Checkpoints: `/space/mawb/ssst/workspace_group_plus/vggt_interaction_controls_v1/attempt01`.
 After startup confirmation of20 formal updates/160 new exposures per arm,
 stop interactive polling and leave training/evaluation running.
+
+## Directory synchronization repair
+
+Initial commit `a7eec2f4ca91f96c6152d3ad21f339f0df36314b`: all four
+single-GPU numerical and official-score preflights succeeded in63561.
+Four-GPU63562 passed the bidirectional arm (including6923 and one geometry
+warning), then failed before forward-only initialization because rank0 created
+the new output directory before rank1 checked whether it already existed.
+No formal update was submitted. Attempt01 and all logs remain intact.
+The repair makes rank0 solely responsible for checking/creating the path and
+broadcasts success/error through the native synchronized-error helper. No model,
+data, RNG, precision, loss or optimizer computation changes. Reuse63561's
+explicit original SHA single-GPU evidence; rerun all four distributed arms
+under a new pushed immutable snapshot in attempt02. The launcher records this
+engineering-only compatibility and never relabels63561 as a new-SHA run.

@@ -63,6 +63,17 @@ def expected_counts(step):
     return result
 
 
+def prepare_output(output,rank,resume,synchronize):
+    """Only rank0 tests/creates the path, then every rank accepts its result."""
+    error=None
+    if rank==0:
+        try:
+            if output.exists() and not resume:raise ValueError('preserve existing attempt')
+            output.mkdir(parents=True,exist_ok=resume)
+        except Exception as exc:error=exc
+    synchronize(error)
+
+
 def check_clock(b,arm,step,sha):
     expected = dict(recipe=RECIPE, arm=arm, config=configuration(arm), execution_git_sha=sha,
         source_checkpoint_sha256=SOURCE_SHA, completed_updates=step, completed_exposures=step*8,
@@ -121,8 +132,8 @@ def run(a):
     _,_,original=native.load_manifest()
     if any(any(w[k]!=original[w['source_index']][k] for k in ('scene','context','novel')) for w in windows):
         raise ValueError('train source changed')
-    if a.output.exists() and not a.resume: raise ValueError('preserve existing attempt')
-    if rank==0:a.output.mkdir(parents=True,exist_ok=a.resume)
+    prepare_output(a.output,rank,a.resume,
+        lambda error:native.synchronized_error(error,device,'interaction_output_directory',0))
     dist.barrier()
     model,opt,optimizer,source_rng=build(a.arm,device)
     named=sorted((n,p) for n,p in model.named_parameters() if p.requires_grad)

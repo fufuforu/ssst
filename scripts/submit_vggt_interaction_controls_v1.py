@@ -11,6 +11,7 @@ REPORT=Path('/space/mawb/ssst/group_plus/vggt_interaction_controls_v1')
 RUN=Path('/space/mawb/ssst/workspace_group_plus/vggt_interaction_controls_v1')
 ARMS=('bidirectional','forward_only','gated_feedback','independent_feedback')
 BRANCH='vggt-overfit-diagnostics-v1'
+REUSED_SINGLE_SHA='a7eec2f4ca91f96c6152d3ad21f339f0df36314b'
 
 def cmd(*args,env=None):return subprocess.check_output(args,text=True,env=env).strip()
 
@@ -62,6 +63,7 @@ def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--stage',choices=('single','four','formal'),required=True)
     parser.add_argument('--attempt',default='attempt01');parser.add_argument('--single-job');parser.add_argument('--four-job')
+    parser.add_argument('--single-attempt',help='reuse unaffected numerical one-GPU proof after directory synchronization repair')
     a=parser.parse_args()
     if Path(a.attempt).name!=a.attempt or not a.attempt.startswith('attempt'):raise ValueError('invalid attempt')
     e=REPORT/'attempts'/a.attempt;(e/'slurm').mkdir(parents=True,exist_ok=True)
@@ -79,14 +81,17 @@ def main():
         if not a.single_job or not a.four_job:raise ValueError('GPU preflight receipts required')
         completed(a.single_job);completed(a.four_job)
         common=set()
+        single_e=REPORT/'attempts'/(a.single_attempt or a.attempt)
+        if single_e.name!=Path(a.single_attempt or a.attempt).name:raise ValueError('invalid single attempt')
         for mode,world,job in [('single_smoke',1,a.single_job),('four_smoke',4,a.four_job)]:
             for arm in ARMS:
-                directory=e/mode/arm
+                directory=(single_e if world==1 else e)/mode/arm
                 report=json.loads((directory/'smoke_report.json').read_text())
                 proof=json.loads((directory/'smoke_update_proof.json').read_text())
                 manifest=json.loads((directory/'run_manifest.json').read_text())
                 scoring=json.loads((directory/'evaluation_preflight/score_complete.json').read_text())
-                if (report['status'],report['completed_updates'],report['formal_updates'],report['completed_exposures'],report['execution_git_sha'],report['slurm_job_id'])!=('GPU_SMOKE_COMPLETED',2,0,4*world,sha,job):
+                expected_sha=REUSED_SINGLE_SHA if world==1 and a.single_attempt else sha
+                if (report['status'],report['completed_updates'],report['formal_updates'],report['completed_exposures'],report['execution_git_sha'],report['slurm_job_id'])!=('GPU_SMOKE_COMPLETED',2,0,4*world,expected_sha,job):
                     raise ValueError('real GPU preflight identity differs')
                 if len(proof['rank_rows'])!=world or proof['config']!=manifest['config'] or proof['config']['adapter_understanding_scale']!=.01:
                     raise ValueError('preflight numerical policy differs')
@@ -98,7 +103,9 @@ def main():
         run=RUN/a.attempt
         if run.exists():raise ValueError('formal run already exists')
         run.mkdir(parents=True)
-        r=dict(status='SUBMITTING',execution_git_sha=sha,run_root=str(run),single_job=a.single_job,four_job=a.four_job,runs=[],evaluations=[])
+        r=dict(status='SUBMITTING',execution_git_sha=sha,run_root=str(run),single_job=a.single_job,four_job=a.four_job,runs=[],evaluations=[],
+            single_smoke_reused=bool(a.single_attempt),single_smoke_execution_sha=REUSED_SINGLE_SHA if a.single_attempt else sha,
+            single_smoke_reuse_reason='Only rank0 output-directory creation/synchronization and receipt plumbing changed; model, kernels, RNG, data and training math unchanged' if a.single_attempt else None)
         write(receipt,r)
         for i,arm in enumerate(ARMS):
             training=submit(p,sha,'train',run/arm,e,arm=arm,node='3dimage-14' if i<2 else '3dimage-17')

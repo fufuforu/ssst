@@ -9,11 +9,28 @@ from scripts.runtime_bootstrap import prepare_runtime
 prepare_runtime(Path(__file__).resolve().parents[1])
 from tokengs.models.object_locus_panoptic_v1_controller import ObjectLocusPanopticV1Controller, capped_injection
 from tokengs.models.object_locus_interaction_controls_v1 import ARMS, install_interaction, observations
-from scripts.train_vggt_interaction_controls_v1 import slots,expected_counts,configuration
+from scripts.train_vggt_interaction_controls_v1 import slots,expected_counts,configuration,prepare_output
 from scripts.prepare_vggt_interaction_cohort_v1 import make,COHORT
 import json
 
 class InteractionContracts(unittest.TestCase):
+    def test_rank0_directory_creation_is_coordinated_and_preserves_existing_runs(self):
+        from unittest.mock import Mock
+        from tempfile import TemporaryDirectory
+        def sync(error):
+            if error is not None:raise error
+        with TemporaryDirectory() as root:
+            output=Path(root)/'fresh'
+            prepare_output(output,0,False,sync)
+            self.assertTrue(output.is_dir())
+            # Followers must never mistake rank0's freshly created path for
+            # a previous run, even when rank0 wins the scheduling race.
+            for rank in (1,2,3):prepare_output(output,rank,False,sync)
+            with self.assertRaises(ValueError):prepare_output(output,0,False,sync)
+            prepare_output(output,0,True,sync)
+        follower=Mock();prepare_output(follower,1,False,sync)
+        follower.exists.assert_not_called();follower.mkdir.assert_not_called()
+
     def setUp(self):
         torch.set_num_threads(2);torch.manual_seed(7)
         self.controller=ObjectLocusPanopticV1Controller()
