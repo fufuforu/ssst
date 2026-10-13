@@ -130,3 +130,13 @@ BF16/FP32精度、冻结、loss/GC/AdamW/clip和原采样源码均逐字节保�
 执行SHA `50078adcbea77c90f622e6da0e8e2d1a28da810e`，三组20/160状态均通过。
 证据：`startup_audit_retry_63904.json`、`startup_validation.json`、
 `POLLING_STOPPED_AFTER_MIGRATION.json`；原排队时期的记录保留。
+
+## 最终结果复核
+
+63839/63841/63902训练、63840/63842/63903正式评测、63845汇总均已COMPLETED0:0。
+完整数据adapter=0.01训练63552也完成；63553仅最后recipe校验失败，四分片评分已完成。
+修复后零GPU汇总64030复用评分成功，保留63553失败记录，没有重复训练或GPU评分。
+完整验证312场景PSNR19.3692→22.3959，11个已实现指标全部改善；短对照的小feedback
+主要改善重建/mIoU/mAP，视觉冻结主要保护理解；组合未形成统一更好结果。
+完整13列表格、验证局限和梯度尖峰线索见
+[最终复核](vggt_adapter_full_and_feedback_factorial_results_20261013.md)。
