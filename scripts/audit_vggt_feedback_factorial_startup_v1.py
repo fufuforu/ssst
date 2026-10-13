@@ -1,5 +1,6 @@
 """Read saved20/160 states and verify native clock, RNG, freeze and scaling."""
 import argparse
+import ast
 import json
 import math
 from pathlib import Path
@@ -10,7 +11,11 @@ import torch
 
 REPO=Path(__file__).resolve().parents[1];sys.path.insert(0,str(REPO))
 from scripts import train_vggt_feedback_factorial_v1 as trainer
-from tokengs.models.object_locus_feedback_factorial_v1 import VISUAL_PREFIXES
+# Read the literal policy without importing the model package or CUDA renderer.
+# This audit only deserializes CPU checkpoint state and never runs a model.
+_policy=ast.parse((REPO/'tokengs/models/object_locus_feedback_factorial_v1.py').read_text())
+VISUAL_PREFIXES=next(ast.literal_eval(node.value) for node in _policy.body
+    if isinstance(node,ast.Assign) and any(isinstance(target,ast.Name) and target.id=='VISUAL_PREFIXES' for target in node.targets))
 
 
 def main():
