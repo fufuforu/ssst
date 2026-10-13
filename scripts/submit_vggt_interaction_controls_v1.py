@@ -76,7 +76,13 @@ def main():
     if a.stage in ('single','four'):
         mode=a.stage+'_smoke';output=e/mode
         if output.exists():raise ValueError('preserve preflight attempts')
-        r=submit(p,sha,mode,output,e,dependency=a.single_job if a.stage=='four' else None,node='3dimage-17')
+        dependency=a.single_job if a.stage=='four' else None
+        if a.stage=='four' and a.single_attempt:
+            # Slurm purges completed jobs from controller memory. Accounting
+            # retains the success evidence; attaching afterok after purge fails.
+            if not a.single_job:raise ValueError('successful single-GPU job required')
+            completed(a.single_job);dependency=None
+        r=submit(p,sha,mode,output,e,dependency=dependency,node='3dimage-17')
     else:
         if not a.single_job or not a.four_job:raise ValueError('GPU preflight receipts required')
         completed(a.single_job);completed(a.four_job)
