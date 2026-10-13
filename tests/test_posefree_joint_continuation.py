@@ -108,6 +108,23 @@ class JointContinuationContracts(unittest.TestCase):
             with mock.patch('torch.load',return_value=wrong),self.assertRaisesRegex(RuntimeError,'endpoint clock'):
                 _restore_checkpoint(model,Path('/mock/checkpoint.pt'),revision,manifest)
 
+        # B loads a distinct derived VGGT asset; A's restore path cannot cover it.
+        joint=dict(payload,branch='joint_aa',config=continuation_configuration('joint_aa',8,16))
+        asset=dict(recipe=joint['recipe'],branch='joint_aa',continuation_completed_updates=1044,
+            source_adapted_vggt_sha256=CONTINUATION_VGGT_SHA,base_hf_revision=revision,
+            model=copy.deepcopy(model.frozen_vggt.model.state_dict()))
+        with mock.patch('torch.load',side_effect=[joint,asset]),mock.patch(
+                'scripts.object_locus_frozen_vggt_posefree_runtime.sha256',return_value=CONTINUATION_VGGT_SHA) as digest:
+            self.assertEqual(_restore_checkpoint(model,Path('/mock/checkpoint.pt'),revision,manifest)['branch'],'joint_aa')
+            digest.assert_called_once_with(Path('/mock/adapted.pt'))
+            self.assertEqual(model.frozen_vggt.source_identity['derived_asset'],joint['adapted_vggt_identity'])
+        with mock.patch('torch.load',return_value=joint),mock.patch(
+                'scripts.object_locus_frozen_vggt_posefree_runtime.sha256',return_value='0'*64),self.assertRaisesRegex(RuntimeError,'VGGT SHA mismatch'):
+            _restore_checkpoint(model,Path('/mock/checkpoint.pt'),revision,manifest)
+        with mock.patch('torch.load',side_effect=[joint,dict(asset,source_adapted_vggt_sha256='0'*64)]),mock.patch(
+                'scripts.object_locus_frozen_vggt_posefree_runtime.sha256',return_value=CONTINUATION_VGGT_SHA),self.assertRaisesRegex(RuntimeError,'derived VGGT provenance'):
+            _restore_checkpoint(model,Path('/mock/checkpoint.pt'),revision,manifest)
+
     def test_eight_rank_configuration_changes_only_resources(self):
         for branch in ('frozen','joint_aa'):
             old=continuation_configuration(branch);new=continuation_configuration(branch,8)

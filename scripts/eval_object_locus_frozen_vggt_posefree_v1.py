@@ -72,7 +72,7 @@ def _restore_checkpoint(model, checkpoint_path, revision, manifest_sha256):
         if blob.get(key)!=value:raise RuntimeError(f'checkpoint provenance mismatch for {key}')
     if blob.get('recipe') in ('vggt_joint_continuation_ab2_v1','vggt_joint_continuation_ab2_batch16_v1'):
         from scripts.object_locus_frozen_vggt_posefree_runtime import (
-            continuation_configuration,CONTINUATION_SOURCE_SHA,CONTINUATION_VGGT_SHA,restore_adapted_vggt)
+            continuation_configuration,CONTINUATION_SOURCE_SHA,CONTINUATION_VGGT_SHA,restore_adapted_vggt,sha256)
         config=continuation_configuration(blob['branch'],blob['world_size'],blob['config']['global_batch'],blob['config']['gpu_model'])
         if blob['world_size'] not in (4,8) or blob['config']!=config or blob['recipe']!=config['recipe'] or len(blob['rank_rng'])!=blob['world_size']:
             raise RuntimeError('continuation evaluation configuration mismatch')
