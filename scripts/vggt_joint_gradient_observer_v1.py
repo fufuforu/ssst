@@ -98,3 +98,43 @@ class GradientObserver:
             s['relative_parameter_update_norm']=math.sqrt(s['actual_update_squared']/s['parameter_squared']) if s['parameter_squared']>0 else None
         self.result['optimizer_group_lrs']={g['name']:g['lr'] for g in optimizer.param_groups}
 
+
+class TriggeredGradientObserver(GradientObserver):
+    """Hold local R/U on CPU; decompose only an actual global-norm event.
+
+    No graph recomputation or change to native gradient installation/clip/step.
+    Trigger decisions are shared before the optional extra collectives.
+    """
+    def __init__(self, world_size=4, adapter_scale=.01, threshold=20., force=False):
+        super().__init__(world_size, adapter_scale)
+        if not math.isfinite(threshold) or threshold <= 0:
+            raise ValueError('positive finite diagnostic threshold required')
+        self.threshold=threshold;self.force=force;self.captured=False;self.triggered=False
+
+    def before_clip(self,named):
+        grads=[p.grad for _,p in named if p.grad is not None]
+        # Read only; use the same p=2 vector norm definition as native clip.
+        norm=torch.linalg.vector_norm(torch.stack([torch.linalg.vector_norm(g,2) for g in grads]),2)
+        value=float(norm)
+        if not math.isfinite(value):raise FloatingPointError('nonfinite trigger gradient norm')
+        decision=torch.tensor([int(value>=self.threshold),int(self.force)],device=norm.device,dtype=torch.int32)
+        if self.world_size>1:
+            low=decision.clone();high=decision.clone()
+            torch.distributed.all_reduce(low,op=torch.distributed.ReduceOp.MIN)
+            torch.distributed.all_reduce(high,op=torch.distributed.ReduceOp.MAX)
+            if not torch.equal(low,high):raise RuntimeError('gradient trigger decision differs across ranks')
+        self.triggered=bool(decision[0]);self.captured=self.triggered or self.force
+        if self.captured:super().before_clip(named)
+        else:self.rec.clear();self.under.clear()
+        self.result.update(actual_norm_trigger=self.triggered,path_captured=self.captured,
+            trigger_threshold=self.threshold,trigger_measured_norm=value)
+
+    def after_clip(self,named,norm):
+        if self.captured:super().after_clip(named,norm)
+        else:self.result.update(native_preclip_norm=norm,global_clip_multiplier=min(1.,1./(norm+1e-6)),gradients_mutated=False)
+        if abs(norm-self.result['trigger_measured_norm'])>1e-5*max(norm,1.):
+            raise RuntimeError('actual native clip norm differs from trigger norm')
+
+    def after_optimizer(self,named,optimizer):
+        if self.captured:super().after_optimizer(named,optimizer)
+
