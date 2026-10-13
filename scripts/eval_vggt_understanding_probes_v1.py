@@ -20,6 +20,7 @@ def export(a):
     rank=int(os.environ['RANK']);world=int(os.environ['WORLD_SIZE']);local=int(os.environ['LOCAL_RANK'])
     if world!=4:raise ValueError('four evaluation workers required')
     torch.cuda.set_device(local);device=torch.device('cuda',local);torch.set_num_threads(4)
+    if '4090' not in torch.cuda.get_device_name(local):raise ValueError('all formal probe exports remain on4090 for matched inference hardware')
     sha=subprocess.check_output(['git','-C',str(REPO),'rev-parse','HEAD'],text=True).strip()
     if sha!=a.training_sha or sha!=os.environ['TASK_CODE_SHA']:raise ValueError('evaluation code identity differs')
     windows=json.loads(COHORT.read_text())['heldout']
@@ -94,11 +95,13 @@ def score(a):
 
 def reduce(a):
     from scripts.format_object_locus_posefree_siu3r_table import FIELDS,HEADERS,PRECISION,table_values
-    conditions={};reference={};initial_rgb={}
+    conditions={};reference={};initial_rgb={};execution_shas={}
     for arm in ARMS:
         for step in EVAL_STEPS:
             root=a.root/arm/f'update{step:04d}'
             e=json.loads((root/'export_complete.json').read_text());s=json.loads((root/'score_complete.json').read_text())
+            if arm in execution_shas and execution_shas[arm]!=e['execution_git_sha']:raise ValueError('arm execution SHA changed across steps')
+            execution_shas[arm]=e['execution_git_sha']
             if s['status']!='SCORED' or e['optimizer_updates']!=0 or s['optimizer_updates']!=0:raise ValueError('incomplete evaluation')
             for row in e['records']:
                 name=row['name'];pair=root/'all'/name
@@ -122,7 +125,7 @@ def reduce(a):
     out.mkdir(parents=True)
     write(out/'results.json',dict(status='UNDERSTANDING_PROBES_EVALUATED',columns=FIELDS,conditions=conditions,
         heldout_gt_identical=True,initial_rgb_identical=True,independent_understanding_rgb_unchanged=True,source_checkpoint_sha256=SOURCE_SHA,
-        training_sha=a.training_sha,diagnostic_only=True,optimizer_updates=0))
+        training_shas=execution_shas,reduction_git_sha=a.training_sha,diagnostic_only=True,optimizer_updates=0))
     lines=['# Full-pool and independent understanding probes','', 'Full1191-scene training pool;4000 unique sampled windows;64 held-out scenes. Diagnostic only.', '',
            '| Control / updates | '+' | '.join(HEADERS)+' |','|---|'+'---:|'*13]
     with (out/'siu3r_table1_comparison.csv').open('w',newline='') as f:
@@ -132,7 +135,7 @@ def reduce(a):
             lines.append('| '+name+' | '+' | '.join(cells)+' |')
     (out/'report.md').write_text('\n'.join(lines)+'\n')
     write(a.root/'COMPLETE.json',dict(status='UNDERSTANDING_PROBES_EVALUATED',conditions=17,
-        unique_heldout_scenes=64,optimizer_updates=0,training_sha=a.training_sha))
+        unique_heldout_scenes=64,optimizer_updates=0,training_shas=execution_shas,reduction_git_sha=a.training_sha))
 
 if __name__=='__main__':
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--mode',choices=('export','score','reduce','smoke_score'),required=True)

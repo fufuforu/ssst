@@ -14,12 +14,17 @@ args=parser.parse_args()
 REPORT=Path('/space/mawb/ssst/group_plus/vggt_understanding_probes_v1')
 evidence=REPORT/'attempts/attempt01'
 submission=json.loads((evidence/'formal_submission.json').read_text())
+if (evidence/'migration_3090.json').exists():
+    migration=json.loads((evidence/'migration_3090.json').read_text())
+    if migration.get('replacement_training'):
+        submission['runs']=[migration['replacement_training'] if x['arm']=='u_fusion' else x for x in submission['runs']]
 snapshot=Path(submission['runs'][0]['snapshot']);sys.path.insert(0,str(snapshot))
 from scripts.train_vggt_understanding_probes_v1 import ARMS,check_clock,configuration,digest,SOURCE_SHA
 execution=submission['execution_git_sha'];run=Path(submission['run_root'])
 reference=set();rows=[];pending=[]
 for arm in ARMS:
     root=run/arm
+    execution=next(x['execution_git_sha'] for x in submission['runs'] if x['arm']==arm)
     if not (root/'startup_confirmation.json').exists():
         job=next(j['job_id'] for j in submission['runs'] if j['arm']==arm)
         state=subprocess.check_output(['squeue','-h','-j',job,'-o','%T'],text=True).strip()
@@ -62,8 +67,8 @@ for arm in ARMS:
     del b
     print(arm,'SAVED_STATE_AND_STARTUP_VERIFIED',flush=True)
 assert len(reference)==1
-result=dict(status='FOUR_UNDERSTANDING_PROBE_TRAININGS_CONFIRMED' if not pending else 'RUNNING_ARMS_CONFIRMED_REMAINING_ARMS_QUEUED',execution_git_sha=execution,rows=rows,pending=pending,
+result=dict(status='FOUR_UNDERSTANDING_PROBE_TRAININGS_CONFIRMED' if not pending else 'RUNNING_ARMS_CONFIRMED_REMAINING_ARMS_QUEUED',execution_git_shas={x['arm']:x['execution_git_sha'] for x in submission['runs']},rows=rows,pending=pending,
     common_initial_parameters_identical=True,source_checkpoint_sha256=SOURCE_SHA,
     optimizer='native GPU AdamW',geometry_quality_policy='monitor_v1',
     new_updates_per_arm=20,new_exposures_per_arm=160,polling_stop_required=True)
-(evidence/('startup_validation.json' if not pending else 'startup_validation_running_arms.json')).write_text(json.dumps(result,indent=2)+'\n')
+(evidence/('startup_validation_after_migration.json' if not pending else 'startup_validation_after_migration_running.json')).write_text(json.dumps(result,indent=2)+'\n')

@@ -118,10 +118,14 @@ def run(a):
     rank=int(os.environ['RANK']);world=int(os.environ['WORLD_SIZE']);local=int(os.environ['LOCAL_RANK'])
     smoke=a.mode!='train'
     if world not in (1,4) or (not smoke and world!=4): raise ValueError('wrong world size')
-    if socket.gethostname().split('.')[0] not in ('3dimage-14','3dimage-17','3dimage-18'):
+    gpu_class=os.environ.get('TASK_GPU_CLASS','4090')
+    if gpu_class not in ('4090','3090') or (gpu_class=='3090' and a.arm!='u_fusion'):
+        raise ValueError('3090 migration is restricted to the authorized fusion arm')
+    allowed_nodes=('3dimage-11','3dimage-13') if gpu_class=='3090' else ('3dimage-14','3dimage-17','3dimage-18')
+    if socket.gethostname().split('.')[0] not in allowed_nodes:
         raise ValueError('wrong training node')
     torch.cuda.set_device(local);device=torch.device('cuda',local);torch.set_num_threads(4)
-    if '4090' not in torch.cuda.get_device_name(local): raise ValueError('wrong GPU type')
+    if gpu_class not in torch.cuda.get_device_name(local): raise ValueError('wrong GPU type')
     dist.init_process_group('nccl',timeout=timedelta(minutes=10))
     sha=subprocess.check_output(['git','-C',str(REPO),'rev-parse','HEAD'],text=True).strip()
     if sha!=os.environ['TASK_CODE_SHA']: raise ValueError('immutable code differs')
