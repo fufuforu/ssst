@@ -145,7 +145,9 @@ def reduce(args):
             assert metadata[0]['continuation_global_batch']==16 and metadata[0]['continuation_updates_per_epoch']==522
         assert metadata[0]['continuation_source_sha256']=='01d49b092c8dfc2e02f15b5216e5d6ed1cfd88fae2cf693ee69334e45a9410ba'
     elif metadata[0].get('recipe'):
-        assert all(m['recipe']=='vggt_reconstruction_adapt2_frozen_joint4_v1' and m['phase']=='frozen_joint' and m['phase_epoch']==4 for m in metadata)
+        assert recipe in ('vggt_reconstruction_adapt2_frozen_joint4_v1',
+                          'vggt_reconstruction_adapt2_frozen_joint4_adapter_u001_v1'), 'unsupported staged training recipe'
+        assert all(m['recipe']==recipe and m['phase']=='frozen_joint' and m['phase_epoch']==4 for m in metadata)
         assert all(len(m['git_sha'])==40 and len(m['adapted_vggt_identity']['sha256'])==64 for m in metadata)
     else:
         assert all(m['git_sha']=='e80c99380a4eb04456dc7fb69c7382ff11af1051' for m in metadata)
