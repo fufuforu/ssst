@@ -100,3 +100,14 @@ beta_selection.json保存完整多指标比较及选择理由，β0用于诊断�
 当前核验记录`startup_validation_running_arms.json`，三组齐备后自动写
 `startup_validation.json`。本轮停止交互轮询，不等待排队结束或500步完成。
 原自动评测63840/63842/63844与汇总63845继续按依赖运行。
+
+## 用户授权第三组迁移3090
+
+用户随后询问63843是否可换3090。它仍PENDING且未创建正式输出，已hold防止重复启动；
+13号八张3090空闲，计划仅将visual_fixed_feedback_small迁到该节点四卡。
+只增加该arm的GPU/hostname许可，源checkpoint、batch8、500步/4000窗口、0.05上限、
+BF16/FP32精度、冻结、loss/GC/AdamW/clip和原采样源码均逐字节保持。
+原两组不改，正式评测仍4090。不同训练GPU型号是比较局限，不宣称跨GPU逐位复现。
+先在3090真实四卡两更新与官方13列评分通过，才取消旧pending训练/评测/启动审计并替换。
+原提交与历史证据保留；63845已有汇总支持逐条件SHA，只更新其依赖。
+迁移记录：`migration_3090.json`；hold记录：`hardware3090_hold.json`。

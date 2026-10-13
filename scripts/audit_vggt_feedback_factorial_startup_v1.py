@@ -20,6 +20,11 @@ def main():
     parser.add_argument('--wait-for-receipts',action='store_true')
     args=parser.parse_args()
     submission=json.loads((args.evidence/'formal_submission.json').read_text())
+    migration_path=args.evidence/'migration_3090.json'
+    if migration_path.exists():
+        migration=json.loads(migration_path.read_text())
+        if migration.get('replacement_training'):
+            submission['runs']=[migration['replacement_training'] if row['arm']=='visual_fixed_feedback_small' else row for row in submission['runs']]
     trainer.SMALL_PEAK=submission['small_feedback_peak']
     run=Path(submission['run_root']);reference=set();rows=[];pending=[]
     old=Path(submission['reused_baseline']['run_root'])
@@ -82,6 +87,7 @@ def main():
                    ('anchor_decoder.','vggt_memory_adapter.','understanding.mask2former.transformer_module.','panoptic.'))
         assert (not any(n.startswith(VISUAL_PREFIXES) for n in trainable))==arm.startswith('visual_fixed')
         rows.append(dict(arm=arm,status='SAVED_STATE_AND_STARTUP_VERIFIED',completed_updates=20,
+            execution_git_sha=sha,gpu_models=manifest['gpu_models'],
             completed_exposures=160,feedback_peak=peak,actual_beta_at20=.152*peak,
             checkpoint_sha256=receipt['sha256'],optimizer_state_steps=sorted({int(s['step']) for s in payload['optimizer']['state'].values()}),
             peak_gib=[x['row']['peak_allocated']/2**30 for x in startup['rank_rows']]))

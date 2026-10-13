@@ -101,9 +101,9 @@ def run(a):
     smoke=a.mode!='train'
     if world not in (1,4) or (not smoke and world!=4): raise ValueError('wrong world size')
     gpu_class=os.environ.get('TASK_GPU_CLASS','4090')
-    if gpu_class!='4090':
-        raise ValueError('matched4090 training required')
-    allowed_nodes=('3dimage-14','3dimage-17','3dimage-18')
+    if gpu_class not in ('4090','3090') or (gpu_class=='3090' and a.arm!='visual_fixed_feedback_small'):
+        raise ValueError('3090 migration is restricted to visual_fixed_feedback_small')
+    allowed_nodes=('3dimage-11','3dimage-13') if gpu_class=='3090' else ('3dimage-14','3dimage-17','3dimage-18')
     if socket.gethostname().split('.')[0] not in allowed_nodes:
         raise ValueError('wrong training node')
     torch.cuda.set_device(local);device=torch.device('cuda',local);torch.set_num_threads(4)
