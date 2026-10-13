@@ -36,3 +36,30 @@ beta_selection.json保存完整多指标比较及选择理由，β0用于诊断�
 
 证据root：`/space/mawb/ssst/group_plus/vggt_feedback_factorial_v1/attempts/attempt01`。
 训练root：`/space/mawb/ssst/workspace_group_plus/vggt_feedback_factorial_v1/attempt01`。
+
+## 第一阶段完成与小β选择
+
+扫描63807在node17四张4090完成全部5个新增条件，与3个保存端点形成8条件。
+执行SHA `038e8559bdfe91ae25821e8d1d85e7e6ce3c9f7b`；零优化器调用。
+实际GPU先逐文件重现两套权重的原β0.1导出（RGB、深度及分割PNG/JSON）。
+汇总验证全部条件GT相同，评分使用原官方commit。完整13列及曲线保存于
+`attempt01/beta_scan/analysis/report.md`、`attempt01/beta_scan/review/beta_curves.png`。
+
+| 固定权重 | β0 | β0.025 | β0.05 | β0.1 |
+|---|---:|---:|---:|---:|
+| adapt2起点PSNR |21.82195|21.80224|21.73852|21.50573|
+| J500 PSNR |21.02427|21.23068|21.37413|21.49581|
+| J500新视图mIoU |0.61589|0.61821|0.61998|0.62226|
+| J500新视图mAP |0.31061|0.31675|0.31667|0.32643|
+| J500新视图PQ |0.66166|0.66301|0.66781|0.66870|
+
+新反事实修正了对起点现象的外推：J500权重已经依赖/适应原反馈，关闭反馈反而
+降低PSNR约0.472dB，理解六指标也均下降。起点开反馈伤害RGB的结论只适用于
+该未联合训练边界，不能据此断言训练后应关反馈，也不能用它解释完整验证PSNR19。
+
+第二阶段小β选0.05：相对0.025，它对J500的重建/mIoU/PQ扰动较小，mAP两者
+差异很小；但两者都没有全面超过β0.1，因此是机制探针，不是已确认的最优设置。
+所有新训练从共同adapt2起点重新开始，使较小写回从训练开始就一致，
+而不是在J500上临时改评测β。选择基于全部11个已实现指标，未宣称统计上的赢家。
+`beta_selection.json`保留各条件完整值、选择目的和理由；
+`native_numerical_identity.json`验证与复用J基线的原runtime/model/loss源码逐字节相同。
