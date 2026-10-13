@@ -21,7 +21,10 @@ case "${TASK_MODE:?}" in
  single_smoke|four_smoke)
   WORKERS=4
   if [[ "$TASK_MODE" == single_smoke ]]; then WORKERS=1; fi
-  for ARM in visual_fixed feedback_small visual_fixed_feedback_small; do
+  ARMS=(visual_fixed feedback_small visual_fixed_feedback_small)
+  if [[ -n "${TASK_ARM:-}" ]]; then ARMS=("$TASK_ARM"); fi
+  for ARM in "${ARMS[@]}"; do
+   export POSEFREE_V2_EVIDENCE_DIR="$OUTPUT/$ARM/geometry_evidence"
    "$PYTHON" -m torch.distributed.run --standalone --nproc_per_node="$WORKERS" scripts/train_vggt_feedback_factorial_v1.py \
     --arm "$ARM" --small-peak "${TASK_SMALL_PEAK:?}" --mode "$TASK_MODE" --output "$OUTPUT/$ARM"
    "$OFFICIAL" scripts/eval_vggt_feedback_factorial_v1.py --mode smoke_score --arm "$ARM" --small-peak "$TASK_SMALL_PEAK" \

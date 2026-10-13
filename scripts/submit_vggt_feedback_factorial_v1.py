@@ -88,15 +88,25 @@ def main():
             raise ValueError('beta scan selection missing/mismatched')
         if a.stage in ('single','four'):
             if a.stage=='four':
-                if not a.single_job:raise ValueError('single GPU proof required')
-                completed(a.single_job)
-            result=submit(path,sha,a.stage+'_smoke',evidence/(a.stage+'_smoke'),evidence,peak=a.small_peak,node=a.node)
+                prior=json.loads((evidence/'single_submission.json').read_text())
+                for row in prior['runs']:completed(row['job_id'])
+            result=dict(status='SUBMITTING',stage=a.stage,execution_git_sha=sha,small_feedback_peak=a.small_peak,runs=[])
+            write(receipt,result)
+            # Independent preflights can occupy separate cards/nodes; each
+            # arm still exercises its actual1/4-worker entrypoint and math.
+            for arm in NEW_ARMS:
+                row=submit(path,sha,a.stage+'_smoke',evidence/(a.stage+'_smoke'),evidence,peak=a.small_peak,arm=arm,node=a.node)
+                result['runs'].append(row);write(receipt,result)
+            result['status']='THREE_REAL_GPU_PREFLIGHTS_SUBMITTED'
         else:
-            if not a.single_job or not a.four_job:raise ValueError('real GPU proofs required')
-            completed(a.single_job);completed(a.four_job)
+            preflight={stage:json.loads((evidence/(stage+'_submission.json')).read_text()) for stage in ('single','four')}
+            for stage in preflight:
+                if preflight[stage]['execution_git_sha']!=sha:raise ValueError('preflight/formal SHA differs')
+                for row in preflight[stage]['runs']:completed(row['job_id'])
             common=set()
-            for mode,world,job in [('single_smoke',1,a.single_job),('four_smoke',4,a.four_job)]:
+            for mode,world,stage in [('single_smoke',1,'single'),('four_smoke',4,'four')]:
                 for arm in NEW_ARMS:
+                    job=next(x['job_id'] for x in preflight[stage]['runs'] if x['arm']==arm)
                     directory=evidence/mode/arm
                     report=json.loads((directory/'smoke_report.json').read_text())
                     proof=json.loads((directory/'smoke_update_proof.json').read_text())
@@ -122,7 +132,7 @@ def main():
             if run.exists():raise ValueError('formal run already exists')
             run.mkdir(parents=True)
             result=dict(status='SUBMITTING',execution_git_sha=sha,small_feedback_peak=a.small_peak,
-                run_root=str(run),single_job=a.single_job,four_job=a.four_job,runs=[],evaluations=[],
+                run_root=str(run),preflight_job_ids={stage:[x['job_id'] for x in preflight[stage]['runs']] for stage in preflight},runs=[],evaluations=[],
                 reused_baseline=dict(arm='joint_full',training_job='63694',evaluation_job='63695',
                     run_root='/space/mawb/ssst/workspace_group_plus/vggt_understanding_probes_v1/attempt01/joint_full',
                     evaluation_root=str(old/'evaluation/joint_full'),execution_git_sha=baseline['training_shas']['joint_full']))
