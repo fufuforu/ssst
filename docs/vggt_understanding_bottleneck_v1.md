@@ -64,3 +64,15 @@ CPU合同已验证触发和未触发两种情况下，原生更新、AdamW矩、
 
 证据根目录：/space/mawb/ssst/group_plus/vggt_understanding_bottleneck_v1。
 CPU产物：cpu_review_20261013/results.json、objects.csv、detections.csv、windows.csv、raw_readout_cohort.json。
+
+## 2026-10-14已完成第一阶段与补充确认
+
+CPU独立248、故障20场景及实际A/B/C尖峰采集/汇总均成功。
+三组实际峰均由理解梯度主导；原始好mask有资格筛选损失，但20样例仅31GT，且未匹配query的mask未受监督，不直接归因筛选错误。
+固定随机128场景与原生Hungarian补充通过真实四卡预检64094，正式64095及零GPU汇总64096已提交。
+详细事实和限制见[vggt_understanding_bottleneck_findings_20261014.md](vggt_understanding_bottleneck_findings_20261014.md)。
+主训练/clip/loss不改，不重复U3融合训练。
+
+128场景64095及汇总64096随后已完成：507个target条目，C原始/资格/最终类别无关recall为66.67%/55.82%/54.24%。
+原生context匹配492GT，C有321个好mask匹配query，其中44个仍预测no-object；扩大确认支持继续查query mask/对象存在性对齐。
+全部诊断已完成，无新融合训练、clip或loss改动。
