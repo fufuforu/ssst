@@ -10,17 +10,19 @@ def write(p,v):p.write_text(json.dumps(v,indent=2,allow_nan=False)+'\n')
 
 
 def raw(root,out):
-    records=[]
+    records=[];expected=None;selection=None
     for rank in range(4):
         report=read(root/f'rank{rank:02d}/COMPLETE.json')
         assert report['status']=='RAW_READOUT_PROBED' and report['new_optimizer_updates']==0
         assert report['model_parameters_unchanged'] and report['gt_only_used_after_context_generation']
+        if expected is None:expected=report.get('cohort_windows',20);selection=report['cohort_selection']
+        assert report.get('cohort_windows',20)==expected
         records+=report['records']
-    assert len(records)==60
+    assert len(records)==3*expected
     reference=None;results={}
     for arm in 'ABC':
         selected=[r for r in records if r['arm']==arm];names=sorted(r['name'] for r in selected)
-        assert len(names)==len(set(names))==20
+        assert len(names)==len(set(names))==expected
         if reference is None:reference=names
         assert names==reference
         assert all(r['endpoint_pngs_reproduced'] and r['provider_rgb_reproduced'] for r in selected)
@@ -56,11 +58,16 @@ def raw(root,out):
                 result['visual_qpre_mask_proxy']=dict(gt=gt,best50=sum(x['best50'] for x in proxy),
                     best_mask_recall50=sum(x['best50'] for x in proxy)/gt,
                     caveat='class-agnostic 2D dot-product proxy, not native pretrained segmentation or a model upper bound')
+                assigned=[z for r in selected for z in zip(r['native_context_hungarian']['matched_hard_mask_iou'],r['native_context_hungarian']['matched_query_argmax'])] if all('native_context_hungarian' in r for r in selected) else []
+                if assigned:
+                    result['native_matched_queries']=dict(gt=len(assigned),unassigned_gt=sum(i is None for i,c in assigned),
+                        matched_raw_mask50=sum(i is not None and i>=.5 for i,c in assigned),
+                        matched_query_no_object=sum(c==18 for i,c in assigned),good_matched_mask_but_no_object=sum(i is not None and i>=.5 and c==18 for i,c in assigned))
             results[arm][view]=result
-    write(out/'results.json',dict(status='RAW_READOUT_BOTTLENECKS_ANALYZED',records=60,selected_scenes=20,arms=results,
+    write(out/'results.json',dict(status='RAW_READOUT_BOTTLENECKS_ANALYZED',records=len(records),selected_scenes=expected,cohort_selection=selection,arms=results,
         native_endpoint_reproduced=True,new_optimizer_updates=0,
-        caveat='Failure-stratified selection. These effects describe selected windows only; do not interpret as representative validation performance or architecture causality.'))
-    lines=['# 原始query与实例组装诊断','', '20个失败分层场景，A/B/C相同权重各20窗口；零训练，原生PNG重现。不是随机验证成绩。','',
+        caveat='Stage diagnostics on the stated cohort; not full official validation performance or architecture causality.'))
+    lines=['# 原始query与实例组装诊断','', f'{expected}个场景，A/B/C相同权重各{expected}窗口；零训练，原生PNG重现。选择协议：{selection}。诊断指标不替换官方13列。','',
         '| 对照 | GT条目 | 原始mask类别无关recall@0.5 | 资格筛选后 | 像素竞争后 | 面积筛选后 |','|---|---:|---:|---:|---:|---:|']
     for arm in 'ABC':
         s=results[arm]['target']['stages'];vals=[s[k]['best_mask_recall50']*100 for k in ('raw_all','eligible_raw','winner_before_area_filter','final')]

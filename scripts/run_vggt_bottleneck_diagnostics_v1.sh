@@ -17,7 +17,7 @@ case "${TASK_MODE:?}" in
   if [[ "$TASK_MODE" == raw_smoke ]]; then EXTRA+=(--smoke); fi
   exec "$PYTHON" -m torch.distributed.run --standalone --nproc_per_node=4 scripts/probe_vggt_raw_query_readout_v1.py \
    --expanded-root /space/mawb/ssst/group_plus/vggt_joint_followups_v1/attempts/d2dc0ced0bacd8e400b4d8ed1503f3bf8806804b/formal/expanded \
-   --cohort /space/mawb/ssst/group_plus/vggt_understanding_bottleneck_v1/cpu_review_20261013/raw_readout_cohort.json \
+   --cohort "${TASK_COHORT:-/space/mawb/ssst/group_plus/vggt_understanding_bottleneck_v1/cpu_review_20261013/raw_readout_cohort.json}" \
    --output "$OUTPUT" "${EXTRA[@]}"
   ;;
  spike_smoke)

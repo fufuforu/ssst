@@ -72,6 +72,7 @@ def main():
     all_windows,_=windows();root=a.output/f'rank{rank:02d}';root.mkdir(parents=True,exist_ok=False)
     from scripts.object_locus_v3_set_runtime import build_batch
     from scripts.eval_object_locus_frozen_vggt_posefree_v1 import generate_and_render
+    from tokengs.models.object_locus_v3_set_loss import final_hungarian
     results=[]
     for arm in letters:
         model,opt,optimizer,_,identity=restored(arm,500,device,collective_hash=False,restore_optimizer=False);del optimizer
@@ -83,6 +84,23 @@ def main():
             if rgb_hash!=record['input_rgb_sha256']:raise ValueError('provider RGB differs from official export')
             with torch.no_grad():output=generate_and_render(model,batch['images_input'],batch['images_all'])
             render=output['render'];generated=output['generated'];stages,labels=raw_stages(render)
+            # Post-generation GT diagnostic only. Reuse the exact native soft
+            # mask/class matcher; unmatched-query masks are not supervised.
+            targets,pairs=final_hungarian(generated,batch)
+            qi,ki=pairs[0]
+            ids,classes=targets['gt_instance_ids'][0],targets['gt_classes'][0]
+            native_gt=encode_tensor(targets['gt_pixel_masks'][0].permute(1,0,2,3)) if len(ids) else []
+            native_iou=mask_matrix(encode_tensor(stages['raw_all'][:2]),native_gt)[0]
+            matched_query=np.full(len(ids),-1,dtype=int)
+            matched_query[ki.cpu().numpy()]=qi.cpu().numpy()
+            pc=render['p_class'][0].cpu().numpy()
+            matching=dict(gt_instance_ids=ids.cpu().tolist(),gt_internal_semantic_classes=classes.cpu().tolist(),
+                matched_query_indices=matched_query.tolist(),unassigned_GT_count=int((matched_query<0).sum()),
+                matched_hard_mask_iou=[float(native_iou[q,g]) if q>=0 else None for g,q in enumerate(matched_query)],
+                matched_query_argmax=[int(pc[q].argmax()) if q>=0 else None for q in matched_query],
+                matched_GT_class_probability=[float(pc[q,int(classes[g])-2]) if q>=0 else None for g,q in enumerate(matched_query)],
+                matched_no_object_probability=[float(pc[q,18]) if q>=0 else None for q in matched_query],
+                note='Exact native context matcher on generated soft masks; GT used only after context-only generation. Hard IoU is diagnostic, not matching cost.')
             sem,ins,_=assemble_panoptic(render);frame_ids=batch['frame_ids'][0].cpu().tolist()
             pair=a.expanded_root/arm/f"rank{record['original_rank']:02d}"/'all'/record['name']
             views={}
@@ -110,7 +128,7 @@ def main():
             for view in views:
                 if views[view]['raw_all']['best50']<views[view]['eligible_raw']['best50']:raise ValueError('mask eligibility ceiling violated')
             results.append(dict(arm=arm,name=record['name'],source_index=record['source_index'],selection_stratum=record['selection_stratum'],
-                views=views,query_class_probabilities=render['p_class'][0].cpu().tolist(),
+                views=views,native_context_hungarian=matching,query_class_probabilities=render['p_class'][0].cpu().tolist(),
                 query_class_probability_order='18 things IDs3..20, then no-object',
                 endpoint_pngs_reproduced=True,provider_rgb_reproduced=True,source=identity))
             write(root/'progress.json',dict(arm=arm,completed=len(results),expected=len(choices)*len(letters),optimizer_updates=0))
@@ -121,7 +139,7 @@ def main():
         torch.cuda.empty_cache()
     write(root/'smoke_report.json' if a.smoke else root/'COMPLETE.json',dict(status='RAW_READOUT_SMOKE_PASSED' if a.smoke else 'RAW_READOUT_PROBED',
         records=results,new_optimizer_updates=0,model_parameters_unchanged=True,
-        cohort_selection='failure-stratified diagnostic; not validation scores or generalization estimates',
+        cohort_selection=json.loads(a.cohort.read_text())['status'],cohort_path=str(a.cohort),cohort_windows=len(rows),
         native_stage_math_unchanged=True,gt_only_used_after_context_generation=True))
 
 
