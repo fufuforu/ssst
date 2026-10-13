@@ -173,3 +173,13 @@ Slurm当时预测19:13开始。先hold63700避免重复启动，准备将融合�
 融合组实际活跃Adam时钟19。停止轮询，不等融合500步完成。
 证据：migration_3090.json、startup_validation_after_migration.json、
 POLLING_STOPPED_AFTER_MIGRATION.json；原提交与旧启动记录保留。
+
+## 2026-10-13 最终结果
+
+四组500步及全部官方评测、汇总、CPU审计已成功完成。用户要求的复核已读取
+保存评分、四rank日志和SHA收据，未新增训练或修改原快照。
+完整池联合仍回落；固定特征/重建并保留anchor读取的理解对照有语义收益，
+当前几何融合无增益。额外只读干预显示开启feedback本身可降低PSNR，不能把
+相对beta0起点的净差全部解释为过拟合或梯度冲突。
+完整13列、局限和建议见
+[结果复核](vggt_understanding_probes_v1_results_20261013.md)。
