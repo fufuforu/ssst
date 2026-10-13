@@ -61,8 +61,12 @@ produces the combined table. No metric improvement is presumed before scores.
 
 Evidence: `/space/mawb/ssst/group_plus/vggt_interaction_controls_v1/attempts/attempt01`.
 Checkpoints: `/space/mawb/ssst/workspace_group_plus/vggt_interaction_controls_v1/attempt01`.
-After startup confirmation of20 formal updates/160 new exposures per arm,
-stop interactive polling and leave training/evaluation running.
+Confirm20 formal updates/160 new exposures for available running arms, then
+stop interactive polling. Resource-pending arms have already passed the same
+single/four-GPU preflights and automatically write their own20/160 confirmation
+and verified resumable checkpoint when allocated. Do not wait for queue endings
+or completed training solely to obtain all four startup receipts. A dependent
+CPU audit additionally verifies all four saved20-update states after training.
 
 ## Directory synchronization repair
 
@@ -89,3 +93,31 @@ Pin the exact existing `gsplat_cuda_partial_1406/gsplat_cuda.so` binary loaded
 by the accepted node17 preflights across all hosts; record its hash to avoid
 host glibc selecting a different cached binary. This changes scheduling and
 asset selection determinism, not renderer operations or training mathematics.
+
+## Formal submissions
+
+Execution SHA: `df7203a07f7ebed68a726bf6dd22f20e450cd143`.
+Formal run/evidence directories are `attempt02` (attempt01 failures retained).
+
+| Arm | Training | Automatic official evaluation | GPUs |
+|---|---:|---:|---:|
+| bidirectional |63630|63631|4 RTX4090|
+| forward_only |63632|63633|4 RTX4090|
+| gated_feedback |63634|63635|4 RTX4090|
+| independent_feedback |63636|63637|4 RTX4090|
+
+Global13-column table reduction63638 depends on all four evaluations. Initial
+allocation: bidirectional on17, forward-only on18; the other two wait for four
+GPUs in14/17/18. All GPUs on node18 are currently allocated (10 cards total),
+so lowering host-memory requests cannot resolve the current queue. Keep240GiB
+requests; the distributed preflight used approximately60GiB peak RSS.
+
+Read-only progress and ETA:
+
+```bash
+/usr/bin/python3 /space/mawb/ssst_vggt_overfit_diagnostics_v1/scripts/show_vggt_interaction_progress_v1.py
+```
+
+Automatic evaluation uses checkpoints0/100/300/500, the identical64-scene cohort,
+11 measured official metrics in13 columns and two blank text columns. Reports
+and failures are diagnostic records; no gain is asserted before actual scores.
