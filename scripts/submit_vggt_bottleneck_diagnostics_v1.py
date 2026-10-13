@@ -14,6 +14,7 @@ def command(args):return subprocess.check_output(args,text=True).strip()
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('stage',choices=('preflight','formal'));p.add_argument('--preflight',type=Path)
+    p.add_argument('--reuse-spike-preflight',type=Path)
     a=p.parse_args();assert not command(['git','-C',str(REPO),'status','--porcelain'])
     sha=command(['git','-C',str(REPO),'rev-parse','HEAD']);branch=command(['git','-C',str(REPO),'branch','--show-current'])
     assert sha==command(['git','-C',str(REPO),'ls-remote','origin','refs/heads/'+branch]).split()[0]
@@ -58,7 +59,17 @@ def main():
             '--output='+str(logs/'%x-%j.out'),'--error='+str(logs/'%x-%j.err'),'--export='+exports,
             str(snapshot/'scripts/run_vggt_bottleneck_diagnostics_v1.sh')]
         jid=command(args).split(';')[0];return dict(job_id=jid,mode=mode,arm=arm,output=str(where),args=args)
-    jobs=[submit('raw_smoke',output/'raw'),submit('spike_smoke',output/'spike')] if a.stage=='preflight' else [submit('raw',output/'raw')]+[submit('spike',output/'spike'/arm,arm) for arm in 'ABC']
+    if a.stage=='preflight':
+        reused=None
+        if a.reuse_spike_preflight:
+            prior=json.loads(a.reuse_spike_preflight.read_text())
+            changes=set(command(['git','-C',str(REPO),'diff','--name-only',prior['execution_sha'],sha]).splitlines())
+            assert changes <= {'scripts/probe_vggt_raw_query_readout_v1.py','scripts/submit_vggt_bottleneck_diagnostics_v1.py','docs/vggt_understanding_bottleneck_v1.md'},'spike code changed; need fresh smoke'
+            reused=dict(next(row for row in prior['jobs'] if row['mode']=='spike_smoke'),
+                reused_execution_sha=prior['execution_sha'],reuse_reason='All spike observer, replay, model and numerical kernel files unchanged; only raw-mask diagnostic metadata/submit bookkeeping changed.')
+        jobs=[submit('raw_smoke',output/'raw')]
+        jobs.append(reused if reused else submit('spike_smoke',output/'spike'))
+    else:jobs=[submit('raw',output/'raw')]+[submit('spike',output/'spike'/arm,arm) for arm in 'ABC']
     receipt.parent.mkdir(parents=True,exist_ok=True)
     receipt.write_text(json.dumps(dict(status='SUBMITTED',stage=a.stage,execution_sha=sha,jobs=jobs,
         running_main_and_evaluation_untouched=[64041,64042],new_research_training_jobs=0),indent=2)+'\n')

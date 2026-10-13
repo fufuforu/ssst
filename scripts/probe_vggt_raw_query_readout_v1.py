@@ -35,9 +35,11 @@ def describe(masks,labels,gt,gtlabels):
     encoded=encode_tensor(masks);iou,pa,ga,_=mask_matrix(encoded,gt)
     keep=pa>0;iou=iou[keep];labels=np.asarray(labels)[keep]
     best,same=best_masks(iou,labels,gtlabels)
+    query_ids=np.flatnonzero(keep)
+    best_query=query_ids[iou.argmax(0)].tolist() if len(iou) else [-1]*len(gt)
     return dict(gt=len(gt),nonempty_queries=int(keep.sum()),best50=int((best>=.5).sum()),best75=int((best>=.75).sum()),
         same50=int((same>=.5).sum()),same75=int((same>=.75).sum()),best_iou_sum=float(best.sum()),
-        gt_best_iou=best.tolist(),gt_same_class_best_iou=same.tolist())
+        gt_best_iou=best.tolist(),gt_same_class_best_iou=same.tolist(),gt_best_query_index=best_query)
 
 
 def raw_stages(render):
@@ -108,7 +110,9 @@ def main():
             for view in views:
                 if views[view]['raw_all']['best50']<views[view]['eligible_raw']['best50']:raise ValueError('mask eligibility ceiling violated')
             results.append(dict(arm=arm,name=record['name'],source_index=record['source_index'],selection_stratum=record['selection_stratum'],
-                views=views,endpoint_pngs_reproduced=True,provider_rgb_reproduced=True,source=identity))
+                views=views,query_class_probabilities=render['p_class'][0].cpu().tolist(),
+                query_class_probability_order='18 things IDs3..20, then no-object',
+                endpoint_pngs_reproduced=True,provider_rgb_reproduced=True,source=identity))
             write(root/'progress.json',dict(arm=arm,completed=len(results),expected=len(choices)*len(letters),optimizer_updates=0))
             print('RAW_READOUT_PROBED',rank,arm,index+1,record['name'],flush=True)
             del output,render,generated,stages,batch
