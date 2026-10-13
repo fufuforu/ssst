@@ -11,11 +11,16 @@ RUN=Path('/space/mawb/ssst/workspace_group_plus/object_locus_vggt_recon_adapt_fr
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--adapter-understanding-scale',type=float,choices=(1.,.01),default=1.)
+    parser.add_argument('--feedback-peak',type=float,choices=(.1,.05),default=.1)
     args=parser.parse_args()
     report,run=REPORT,RUN
     if args.adapter_understanding_scale==.01:
         report=Path(str(REPORT).replace('_freeze_v1','_freeze_adapter_u001_v1'))
         run=Path(str(RUN).replace('_freeze_v1','_freeze_adapter_u001_v1'))
+    if args.feedback_peak==.05:
+        if args.adapter_understanding_scale!=.01:parser.error('feedback0.05 requires adapter0.01')
+        report=Path(str(report).replace('_adapter_u001_v1','_adapter_u001_feedback_b005_v1'))
+        run=Path(str(run).replace('_adapter_u001_v1','_adapter_u001_feedback_b005_v1'))
     print(subprocess.run(['squeue','-u','mawb','-o','%i %j %T %M %R'],capture_output=True,text=True).stdout.strip())
     evaluation=report/'evaluation/final_adapt2_joint4_official'
     if (evaluation/'siu3r_table1.md').exists():

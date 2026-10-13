@@ -99,10 +99,11 @@ def _restore_checkpoint(model, checkpoint_path, revision, manifest_sha256):
         return blob
     if blob.get('recipe'):
         from scripts.object_locus_frozen_vggt_posefree_runtime import (
-            STAGED_RECIPE,STAGED_ADAPTER_U001_RECIPE,STAGED_U001_BOUNDARY_SHA,
+            STAGED_RECIPE,STAGED_ADAPTER_U001_RECIPE,STAGED_ADAPTER_U001_B005_RECIPE,STAGED_U001_BOUNDARY_SHA,
             staged_training_configuration,restore_adapted_vggt,UPDATES_PER_EPOCH)
-        scale=.01 if blob['recipe']==STAGED_ADAPTER_U001_RECIPE else 1.
-        if blob['recipe'] not in (STAGED_RECIPE,STAGED_ADAPTER_U001_RECIPE) or blob['config']!=staged_training_configuration(blob['world_size'],scale):
+        scale=.01 if blob['recipe'] in (STAGED_ADAPTER_U001_RECIPE,STAGED_ADAPTER_U001_B005_RECIPE) else 1.
+        peak=.05 if blob['recipe']==STAGED_ADAPTER_U001_B005_RECIPE else .1
+        if blob['recipe'] not in (STAGED_RECIPE,STAGED_ADAPTER_U001_RECIPE,STAGED_ADAPTER_U001_B005_RECIPE) or blob['config']!=staged_training_configuration(blob['world_size'],scale,peak):
             raise RuntimeError('staged evaluation recipe/config mismatch')
         if scale==.01 and blob.get('reused_reconstruction_boundary') is not None:
             boundary=blob['reused_reconstruction_boundary']
@@ -117,6 +118,9 @@ def _restore_checkpoint(model, checkpoint_path, revision, manifest_sha256):
         identity=blob['adapted_vggt_identity']
         restore_adapted_vggt(model,Path(identity['path']),identity['sha256'])
         model.frozen_vggt.set_reconstruction_adaptation(False)
+        if peak!=.1:
+            from tokengs.models.object_locus_feedback_factorial_v1 import set_feedback_peak
+            set_feedback_peak(model,peak)
         model.reconstruction_adaptation=False;model.understanding_step=phase_updates*8
         blob['evaluation_code_sha']=current_sha
         return blob
@@ -348,6 +352,8 @@ def export_official_pngs(args, windows, cohort_source):
                 raise RuntimeError('staged official evaluation requires completed adaptation2 + joint4')
             meta.update(recipe=blob['recipe'],phase=blob['phase'],phase_epoch=4,
                         adapted_vggt_identity=blob['adapted_vggt_identity'])
+            if blob['config'].get('feedback_peak')==.05:
+                meta.update(feedback_peak=.05,adapter_understanding_scale=.01)
         elif epoch not in (4,8) or meta['completed_updates']!=epoch*UPDATES_PER_EPOCH or meta['completed_exposures']!=epoch*UPDATES_PER_EPOCH*GLOBAL_BATCH:
             raise RuntimeError('official endpoint evaluation requires a complete retained epoch 4 or 8 checkpoint')
         if meta['geometry_quality_policy']!='monitor_v1': raise RuntimeError('checkpoint policy mismatch')

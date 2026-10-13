@@ -733,15 +733,18 @@ def _atomic_save(payload,path: Path):
 
 STAGED_RECIPE = 'vggt_reconstruction_adapt2_frozen_joint4_v1'
 STAGED_ADAPTER_U001_RECIPE = 'vggt_reconstruction_adapt2_frozen_joint4_adapter_u001_v1'
+STAGED_ADAPTER_U001_B005_RECIPE = 'vggt_reconstruction_adapt2_frozen_joint4_adapter_u001_feedback_b005_v1'
 STAGED_U001_BOUNDARY = Path('/space/mawb/ssst/workspace_group_plus/object_locus_vggt_recon_adapt_freeze_v1/checkpoint_reconstruction_adaptation_epoch_02.pt')
 STAGED_U001_BOUNDARY_SHA = 'a50af40e1cf639514c2eb1d7b3127a79ecbc096d6d3a071a70d9a9fd2587750c'
 STAGED_NODE_GPU = {'3dimage-11':'3090','3dimage-13':'3090',
                    '3dimage-14':'4090','3dimage-17':'4090','3dimage-18':'4090'}
 
 
-def staged_training_configuration(world_size=8, adapter_understanding_scale=1.):
+def staged_training_configuration(world_size=8, adapter_understanding_scale=1., feedback_peak=.1):
     if world_size not in (4,8): raise ValueError('staged training requires four or eight ranks')
     if adapter_understanding_scale not in (1., .01): raise ValueError('unauthorized staged adapter gradient scale')
+    if feedback_peak not in (.1,.05) or (feedback_peak==.05 and adapter_understanding_scale!=.01):
+        raise ValueError('unauthorized staged feedback peak')
     config = training_configuration()
     config.update(recipe=STAGED_RECIPE,world_size=world_size,accumulation=GLOBAL_BATCH//world_size,
         node='3dimage-13' if world_size==4 else 'one of 3dimage-[11,13,14,17,18]',
@@ -761,12 +764,17 @@ def staged_training_configuration(world_size=8, adapter_understanding_scale=1.):
         config.update(recipe=STAGED_ADAPTER_U001_RECIPE,adapter_understanding_scale=.01,
             adapter_gc_rule='g_rec + 0.01*g_under; original understanding weight included',
             understanding_panoptic_gc_rule='unchanged g_rec + g_under')
+    if feedback_peak==.05:
+        config.update(recipe=STAGED_ADAPTER_U001_B005_RECIPE,feedback_peak=.05,
+            beta='0.05*min(new_exposure/1000,1)',
+            nominal_logged_beta='native beta0.1 warmup; actual_feedback_beta records applied beta',
+            feedback_implementation='original capped injection multiplied by0.5; no new parameters')
     return config
 
 
 def validate_staged_boundary(payload, config, revision, manifest_digest):
     """Only the exact completed, unchanged reconstruction stage may be reused."""
-    if config != staged_training_configuration(4, .01):
+    if config not in (staged_training_configuration(4,.01),staged_training_configuration(4,.01,.05)):
         raise RuntimeError('boundary reuse requires the authorized four-rank adapter-u001 recipe')
     expected = dict(recipe=STAGED_RECIPE,config=staged_training_configuration(4),world_size=4,
         phase='reconstruction_adaptation',phase_completed_updates=2*UPDATES_PER_EPOCH,
@@ -842,16 +850,16 @@ def restore_staged_phase_state(model, optimizer, payload, phase, rank):
 
 def run_staged_training(*, run_dir, hf_revision, mode='train', resume=False,
                         artifact_manifest=VGGT_ARTIFACT_MANIFEST,training_world_size=8,
-                        adapter_understanding_scale=1., boundary_checkpoint=None):
+                        adapter_understanding_scale=1., boundary_checkpoint=None,feedback_peak=.1):
     """Execute the authorized two-stage recipe using the existing data/step runtime."""
     import torch.distributed as dist
     from scripts import object_locus_v3_set_runtime as provider_runtime
     world=int(os.environ.get('WORLD_SIZE','1'));local=int(os.environ.get('LOCAL_RANK','0'))
     if mode not in ('train','single_smoke','eight_smoke','four_smoke'): raise ValueError(mode)
     smoke=mode!='train'
-    config=staged_training_configuration(training_world_size,adapter_understanding_scale)
+    config=staged_training_configuration(training_world_size,adapter_understanding_scale,feedback_peak)
     recipe=config["recipe"]
-    if boundary_checkpoint is not None and (resume or smoke or config!=staged_training_configuration(4,.01)):
+    if boundary_checkpoint is not None and (resume or smoke or config!=staged_training_configuration(4,.01,feedback_peak)):
         raise RuntimeError("boundary reuse is fresh formal four-rank joint training only")
     expected_world={'single_smoke':1,'eight_smoke':8,'four_smoke':4,'train':training_world_size}[mode]
     if world!=expected_world or (mode in ('four_smoke','eight_smoke') and world!=training_world_size):
@@ -874,6 +882,9 @@ def run_staged_training(*, run_dir, hf_revision, mode='train', resume=False,
     if world>1: dist.barrier()
     seed_everything(42);os.environ['VGGT_HF_REVISION']=hf_revision
     model,opt,transfer,provenance=build_model(artifact_manifest=artifact_manifest,preserve_fp32_aggregator=True)
+    if feedback_peak!=.1:
+        from tokengs.models.object_locus_feedback_factorial_v1 import set_feedback_peak
+        set_feedback_peak(model,feedback_peak)
     model.to(device);seed_everything(42+rank)
     reused_updates=0;boundary_identity=None
     boundary_payload=None
@@ -976,6 +987,8 @@ def run_staged_training(*, run_dir, hf_revision, mode='train', resume=False,
                        new_completed_exposures=(absolute_update+1-reused_updates)*GLOBAL_BATCH if not smoke else 0,
                        absolute_update=absolute_update+1 if not smoke else None,
                        absolute_new_exposures=(absolute_update+1)*GLOBAL_BATCH if not smoke else None)
+            if feedback_peak!=.1:
+                row.update(feedback_peak=feedback_peak,actual_feedback_beta=row['beta']*feedback_peak/.1)
             if phase=='reconstruction_adaptation':
                 aa=[p for p in model.frozen_vggt.parameters() if p.requires_grad]
                 if not aa or not any(p.grad is not None and p.grad.norm()>0 for p in aa): raise RuntimeError('VGGT adaptation gradient missing')

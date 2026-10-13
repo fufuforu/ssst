@@ -71,6 +71,41 @@ def decode(encoding,image_size_hw):
 
 
 class Contracts(unittest.TestCase):
+    def test_weak_feedback_configuration_preserves_training_except_amplitude(self):
+        from scripts.object_locus_frozen_vggt_posefree_runtime import staged_training_configuration
+        old=staged_training_configuration(4,.01);new=staged_training_configuration(4,.01,.05)
+        self.assertEqual({k for k in old if old[k]!=new[k]}, {'recipe','beta'})
+        self.assertEqual(new['adapter_understanding_scale'],.01)
+        self.assertEqual(new['feedback_peak'],.05)
+        with self.assertRaisesRegex(ValueError,'unauthorized'):staged_training_configuration(4,1.,.05)
+        with self.assertRaisesRegex(ValueError,'unauthorized'):staged_training_configuration(4,.01,0.)
+
+    def test_weak_feedback_official_restore_applies_saved_amplitude(self):
+        from unittest import mock
+        from scripts.eval_object_locus_frozen_vggt_posefree_v1 import _restore_checkpoint
+        from scripts.object_locus_frozen_vggt_posefree_runtime import (
+            staged_training_configuration,STAGED_ADAPTER_U001_B005_RECIPE,STAGED_U001_BOUNDARY_SHA,
+            EXPECTED_CHECKPOINT_SHA,checkpoint_model_state)
+        v=nn.Module();v.aggregator=TinyAggregator();v.camera_head=Camera();v.depth_head=Depth()
+        host=TinyStep();host.frozen_vggt=FrozenVGGT(model=v,pose_decoder=decode,test_only=True)
+        host.panoptic=nn.Module();host.panoptic.layers=nn.ModuleDict({'L6':nn.Linear(2,2)})
+        keys=('repository','model_id','revision','files','loaded_subtrees','loaded_source_key_count','explicitly_excluded_source_key_count','loaded_key_sha256')
+        b=dict(recipe=STAGED_ADAPTER_U001_B005_RECIPE,config=staged_training_configuration(4,.01,.05),world_size=4,
+            rank_rng=[None]*4,phase='frozen_joint',phase_completed_updates=4172,completed_updates=6258,
+            completed_exposures=50064,model=checkpoint_model_state(host),vggt_revision='revision',
+            manifest_sha256='manifest',source_checkpoint_sha256=EXPECTED_CHECKPOINT_SHA,
+            vggt_artifact_identity={k:host.frozen_vggt.source_identity.get(k) for k in keys},
+            adapted_vggt_identity={'path':'/mock/asset.pt','sha256':'asset'},
+            reused_reconstruction_boundary={'sha256':STAGED_U001_BOUNDARY_SHA,'reused_updates':2086,'reused_exposures':16688})
+        with mock.patch('torch.load',return_value=b),mock.patch('scripts.object_locus_frozen_vggt_posefree_runtime.restore_adapted_vggt'):
+            _restore_checkpoint(host,Path('/mock/checkpoint.pt'),'revision','manifest')
+        self.assertEqual(host.feedback_peak,.05)
+        self.assertEqual(host.panoptic.layers['L6'].interaction_feedback.peak,.05)
+        self.assertEqual(host.understanding_step,33376)
+        wrong=dict(b,config=staged_training_configuration(4,.01))
+        with mock.patch('torch.load',return_value=wrong),self.assertRaisesRegex(RuntimeError,'recipe/config'):
+            _restore_checkpoint(host,Path('/mock/checkpoint.pt'),'revision','manifest')
+
     def test_adapter_u001_configuration_changes_only_gradient_route(self):
         from scripts.object_locus_frozen_vggt_posefree_runtime import staged_training_configuration
         old=staged_training_configuration(4);new=staged_training_configuration(4,.01)
