@@ -1,0 +1,118 @@
+# 完整训练池与独立理解：四组短对照
+
+用户于 2026-10-13 授权启动。最终联合结构保留原双向：object query 在
+6/8/10/12 层读取 anchor token，并通过原点积 feedback 写回 anchor 特征。
+本轮先区分训练数据重复、固定特征上的理解学习能力和 query 的几何读取。
+没有沿用旧四组训练后的参数，没有重新训练重建适配阶段。
+
+## 共同保留
+
+- 从原完整数据重建适配 epoch2 的确切边界初始化；SHA 为
+  `a50af40e1cf639514c2eb1d7b3127a79ecbc096d6d3a071a70d9a9fd2587750c`。
+  VGGT adapted asset 为 `c1f6a8fe3865da3ed737d7dcb86cadbd5967dccc6c94b1483ad6c6b3f0767ace`。
+- 保留 VGGT 与 MASt3R 架构、旧 GS decoder 权重、预训练视觉/理解权重、原查询数量、
+  任务头、理解损失项和权重、GS 分割渲染/feature lifting、预测相机与
+  `shared_context_depth_sim3_v2 / monitor_v1`，不输入 GT 几何生成预测。
+- VGGT 整体冻结（DINO/AA/camera/depth）；聚合器 BF16，原 camera/depth/下游 FP32。
+- 全局 batch8、四张 RTX4090，每卡两次 microbatch；500 次更新 /4000 窗口曝光。
+  原 GPU AdamW、beta(.9,.95)、eps1e−8、原组学习率/decay、clip1，原200步 LR warmup
+  和4172步 cosine 截取前500步；理解权重按新增曝光 min(exposure/200,1)。
+- 完整训练池为1191场景/8337唯一窗口（原完整轮为8344次曝光，含7个padding）。
+  本轮固定 seed42 permutation 的前4000唯一窗口，覆盖1177场景，无重复，
+  四组使用相同窗口与顺序。没有宣称500步完整遍历全部训练数据。
+- 验证仍为旧四组同一64场景/64六帧窗口，在0/100/300/500步评测全部13列，
+  两处文本 mIoUt 空白。AP/PQ每个条件全局计算，不平均逐场景状态。
+
+## 四组逐项差异
+
+| 项目 | J：joint_full | U1：u_read | U2：u_no_anchor_read | U3：u_fusion |
+|---|---|---|---|---|
+| VGGT | 冻结 | 冻结 | 冻结 | 冻结 |
+| VGGT memory adapter /GS decoder/activation | 原联合训练 | 冻结、eval | 同U1 | 同U1 |
+| MASt3R encoder/ViT adapter/pixel decoder | 原联合训练范围 | 冻结、eval，固定视觉特征 | 同U1 | 同U1 |
+| 预训练 query decoder/mask embedder | 原联合训练 | 训练 | 训练 | 训练 |
+| panoptic读取/语义实例任务头 | 原联合训练 | 训练 | 训练，失活的anchor attention冻结 | 训练 |
+| 6/8/10/12 anchor特征跨注意力残差 | 保留 | 保留 | 置零 | 保留 |
+| query→anchor写回 | 原点积/原warmup保留 | 零，W_inject冻结 | 同U1 | 同U1 |
+| query前新增VGGT融合 | 无 | 无 | 无 | 有，初始零残差 |
+| 重建损失优化 | 保留 | 只计算监测，不反向 | 同U1 | 同U1 |
+| 理解损失优化 | 原联合 | 原理解损失/权重 | 同U1 | 同U1 |
+
+J 相对旧 `bidirectional` 只改变训练窗口流，从固定128场景循环换成完整训练池广泛抽样；
+数学、初始化、原模块训练范围和500步预算一致。adapter和GS依旧接收
+gR+0.01gU，理解与panoptic接收原gR+gU。
+
+U1–U3固定两侧主干特征与重建，只让已有query decoder/mask embedder与panoptic
+读取/分类/分割头学习原理解目标。冻结pixel decoder是为了固定送入query的视觉特征。
+没有从零重置预训练头。重建损失仍按原代码计算监测，requires_grad必须为False；
+优化仅使用原warmup后的理解梯度，不制造假的零重建损失或伪梯度。
+原参数家族的AdamW组学习率保留：理解1e−5、panoptic1e−4。
+
+冻结GS权重不能阻止变化的query通过写回改变GS前向。因此仅在U诊断中关闭写回，
+并检查同一真实窗口在训练前后Gaussian张量SHA完全相同；官方评测汇总再验证
+U各步RGB与原共同起点逐图SHA相同。GS正向几何、相机、分割支撑均为预测值，未换GT。
+有效的读取/融合方案随后才接回原联合双向图。
+
+U2只移除四个注册层的anchor attention **特征残差 ev**。保留原attention
+权重及query几何状态更新、anchor初始化、图像读取、feature lifting、Gaussian
+child features与分割支撑；它不是“完全没有几何”的视觉模型。
+这组回答四层anchor特征读取对理解的局部贡献，不能外推为所有几何信息的贡献。
+
+U3从冻结的VGGT memory adapter取四层混合后的1024维memory（同GS所用、2738个patch），
+按两视图分别恢复37×37网格。共享LN/1024→256投影，逐视图双线性对齐到
+query decoder的三层视觉特征；视觉LN后与几何拼接，经512→256→256 GELU残差融合。
+最后投影初始化为零，初始三层特征和U1逐元素完全一致。没有混合视图、加入target
+特征或改变相机。融合只作用于query的三尺度输入，原mask_features/Fm及lifting路径保持不变。
+原anchor读取仍保留。新增模块在isolated seed314159中初始化，不推进原训练RNG。
+
+## 能与不能回答的问题
+
+- J与旧原双向同500步对比，检查减少小子集重复是否缓解验证退步；该干预同时
+  改变场景/窗口多样性与重复频率，不进一步区分它们。
+- U1证明固定特征/重建下理解能否提升。与J差异还包括主干冻结、无重建优化、
+  无动态写回，故不能只凭U1胜出就认定某一种梯度冲突。
+- U2对U1是anchor特征读取残差的消融。
+- U3对U1是几何融合连同新增容量的筛选；若有收益，下一阶段补同参数量视觉
+  融合对照及特征/空间对应破坏，确认是几何作用。单纯同时排列K/V不是有效对应破坏。
+- 增加原边界、beta0.1的只读评测干预 `joint_full/initial_feedback_full`，
+  与原生beta0起点及训练后饱和beta对比。它是未训练权重的显式前向干预，
+  不是另外一个训练checkpoint，不改变训练调度；共17个正式评测条件。
+- 保存前20步及100/300/500步的分模块、分任务梯度范数/余弦，来自已有autograd
+  结果，只记录不影响gc、分布式平均、clip或optimizer。统计为rank/microbatch局部值，
+  不能直接当全局合成梯度范数。
+
+## 工程检查与提交方式
+
+CPU单元检查：零初始融合、逐视图对应、学习后几何梯度、不重复4000流、
+只理解训练的原AdamW更新；这些明确不是实际模型/GPU证明。
+实际单卡与四卡各对四组训练两次更新、原预检窗口（四卡含6923），验证有限loss/grad、
+原参数身份、冻结参数/缓冲、跨rank权重一致、真实参数更新、U固定Gaussian输出，
+并各完成一次官方真实窗口13列评分。所有预检成功后才提交正式作业。
+预检与正式使用相同推送后的不可变SHA，失败创建新attempt，保留原错误。
+默认四卡作业可等14/17/18的4090，训练J240G，U160G，自动评测四卡160G。
+pin实际已验证的`gsplat_cuda_partial_1406/gsplat_cuda.so`（SHA
+`82403af8b36fb4b64774afc7462ea6611896fcfe7a02785098bce9ff50d8d751`）。
+
+证据：`/space/mawb/ssst/group_plus/vggt_understanding_probes_v1/attempts/attempt01`。
+训练：`/space/mawb/ssst/workspace_group_plus/vggt_understanding_probes_v1/attempt01`。
+启动确认20正式更新/160新增曝光后停止交互轮询；已预检的资源待分配组自行写
+20/160确认。依赖评测与最终CPU状态审计无需用户再提交。
+现有完整数据adapter0.01训练63552及评测63553不修改、不重提。
+
+## 已执行的旧四组清理
+
+按用户授权删除旧attempt02的19个冗余checkpoint，共105155906729字节（97.93GiB）。
+保留旧原双向update500 checkpoint、原适配边界/ adapted VGGT、所有收据/config、
+完整官方指标/PNG导出、曲线、日志、历史失败与不可变代码。清理前后保护文件
+fingerprint一致，旧63630–63638/63647均COMPLETED0:0，活动63552/63553排除在外。
+被删除的中间/非基线最终权重不再能直接恢复，历史评分依然有效。
+
+清理脚本：[cleanup_completed_interaction_controls_v1.py](../scripts/cleanup_completed_interaction_controls_v1.py)。
+清单与删除日志：
+`/space/mawb/ssst/group_plus/vggt_interaction_controls_v1/attempts/attempt02/checkpoint_cleanup_20261013`。
+
+进度查询：
+
+```bash
+/usr/bin/python3 scripts/show_vggt_understanding_probe_progress_v1.py
+```

@@ -278,7 +278,7 @@ def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world
                             monitor=None,window_metadata=None,stage="formal_training",total_updates=None,
                             reconstruction_adaptation=False,accumulation=ACCUMULATION,
                             cpu_saved_tensors=False,cpu_gradient_accumulation=False,vggt_reconstruction=False,lr_update=None,
-                            adapter_understanding_scale=1.):
+                            adapter_understanding_scale=1.,understanding_only=False,gradient_diagnostic=False):
     """Two-microbatch GC step with one accumulated gradient family per parameter."""
     if accumulation not in (1,2) or len(batches)!=accumulation:
         raise ValueError(f"each rank must receive exactly {accumulation} accumulation microbatches")
@@ -309,8 +309,13 @@ def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world
         synchronized_error(error,device,'forward',int(update))
         error=None
         try:
-            rec=torch.autograd.grad(metrics['loss_recon']/accumulation,params,
-                retain_graph=weight>0,allow_unused=True)
+            if understanding_only:
+                if metrics['loss_recon'].requires_grad:
+                    raise RuntimeError('understanding-only probe reconstruction depends on trainable parameters')
+                rec=(None,)*len(params)
+            else:
+                rec=torch.autograd.grad(metrics['loss_recon']/accumulation,params,
+                    retain_graph=weight>0,allow_unused=True)
             if cpu_gradient_accumulation:
                 rec=tuple(None if g is None else g.cpu() for g in rec)
             under=(torch.autograd.grad(metrics['loss_understanding']*weight/accumulation,params,
@@ -319,6 +324,21 @@ def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world
                 under=tuple(None if g is None else g.cpu() for g in under)
             mixed=gc_combine(names,rec,under,vggt_reconstruction=vggt_reconstruction,
                              adapter_understanding_scale=adapter_understanding_scale)
+            grad_stats=None
+            if gradient_diagnostic:
+                grad_stats={}
+                for prefix in ('anchor_decoder.','vggt_memory_adapter.','understanding.','panoptic.'):
+                    triples=[]
+                    for name,gr,gu in zip(names,rec,under):
+                        if not name.startswith(prefix) or (gr is None and gu is None):continue
+                        rr=gr.square().sum() if gr is not None else gu.new_zeros(())
+                        uu=gu.square().sum() if gu is not None else gr.new_zeros(())
+                        dot=(gr*gu).sum() if gr is not None and gu is not None else rr.new_zeros(())
+                        triples.append(torch.stack((rr,uu,dot)))
+                    if triples:
+                        rr,uu,dot=torch.stack(triples).sum(0).detach().cpu().tolist()
+                        grad_stats[prefix]=dict(reconstruction_norm=math.sqrt(rr),weighted_understanding_norm=math.sqrt(uu),
+                            cosine=dot/math.sqrt(rr*uu) if rr>0 and uu>0 else None)
             if any(g is not None and not torch.isfinite(g).all() for g in mixed):
                 raise FloatingPointError('nonfinite per-microbatch GC-combined gradient')
             combined_acc=[None if g is None and old is None else
@@ -343,7 +363,7 @@ def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world
                 monitor.record(calibration,update,(window_metadata or [None])[micro_index])
             local_rows.append({'loss_recon':float(metrics['loss_recon'].detach()),
                 'loss_understanding':float(metrics['loss_understanding'].detach()),
-                'calibration':calibration_row})
+                'calibration':calibration_row,'gradient_diagnostic':grad_stats})
             del rec,under,mixed
         except Exception as exc:
             error=exc
@@ -378,6 +398,7 @@ def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world
          'loss_understanding':sum(x['loss_understanding'] for x in local_rows)/len(local_rows),
          'calibration':local_rows[0]['calibration'],
          'group_lr':{g['name']:g['lr'] for g in optimizer.param_groups}}
+    if gradient_diagnostic:row['microbatch_gradient_diagnostics']=[x['gradient_diagnostic'] for x in local_rows]
     if accumulation>1:
         row['microbatch_calibrations']=[x['calibration'] for x in local_rows]
     if device.type=='cuda':
