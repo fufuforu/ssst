@@ -1,4 +1,4 @@
-"""Read-only progress/ETA for the four interaction diagnostics."""
+"""Read-only progress/ETA for full-pool and independent understanding probes."""
 import json
 from pathlib import Path
 import subprocess
@@ -7,8 +7,8 @@ from datetime import timedelta
 REPORT=Path('/space/mawb/ssst/group_plus/vggt_understanding_probes_v1')
 attempt=REPORT/'attempts/attempt01'
 receipt=attempt/'formal_submission.json'
-names={'joint_full':'当前双向','u_read':'仅 GS→query',
-       'u_no_anchor_read':'门控反馈','u_fusion':'独立反馈注意力'}
+names={'joint_full':'完整池原双向联合','u_read':'独立理解/保留anchor读取',
+       'u_no_anchor_read':'独立理解/关闭anchor特征残差','u_fusion':'独立理解/增加VGGT融合'}
 if not receipt.exists():
     print('正式训练尚未提交，四卡预检进度：')
     for arm,name in names.items():

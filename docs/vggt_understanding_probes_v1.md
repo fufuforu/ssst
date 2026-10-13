@@ -80,6 +80,10 @@ query decoder的三层视觉特征；视觉LN后与几何拼接，经512→256�
 - 保存前20步及100/300/500步的分模块、分任务梯度范数/余弦，来自已有autograd
   结果，只记录不影响gc、分布式平均、clip或optimizer。统计为rank/microbatch局部值，
   不能直接当全局合成梯度范数。
+  当前按实际named_parameters前缀归组；anchor_decoder前缀不含先注册在
+  enc_dec_backbone下的共享decoder block，不能把它解释为全部GS参数的范数。
+  独立理解保留原warmup，首步理解权重0且重建不反向，因此首个optimizer调用无参数更新；
+  20步保存状态中实际活跃参数Adam时钟为19，明确不把它记为20次非零参数变化。
 
 ## 工程检查与提交方式
 
@@ -116,3 +120,31 @@ fingerprint一致，旧63630–63638/63647均COMPLETED0:0，活动63552/63553排
 ```bash
 /usr/bin/python3 scripts/show_vggt_understanding_probe_progress_v1.py
 ```
+
+## 真实预检与正式提交
+
+执行SHA：`d8361c6cf656094c197cc07cf56a04ba7f61caa4`。
+单卡63651、四卡63667：四组均真实训练两次调用并完成原官方六帧窗口13列评分。
+四卡证明四rank参数同步、原边界参数共同hash一致、冻结参数/缓冲未改、
+U三组训练前后Gaussian SHA相同，融合输出层发生非零参数更新。
+四卡GPU峰值原联合约19.42GiB，独立理解约6.87–6.95GiB。
+CPU单元检查通过；native历史单卡对比初始化/数据相同，loss最大差7.45e−8、
+preclip norm最大差3.18e−5，理解官方分数完全相同；没有声称跨GPU运行逐位重现。
+历史比较原始差异与复核说明均保留在attempt01。
+
+| 组 | 训练 | 自动官方评测 | GPU |
+|---|---:|---:|---|
+| joint_full |63694|63695|4 RTX4090|
+| u_read |63696|63697|4 RTX4090|
+| u_no_anchor_read |63698|63699|4 RTX4090|
+| u_fusion |63700|63701|4 RTX4090|
+
+汇总63702依赖四组评测；所有训练/评测使用同一不可变执行快照。
+本段与进度显示名称的后续更新不修改该快照或训练数学。
+
+独立CPU审计63707依赖四组训练完成，自动核验全部保存的20/160状态。
+当前J在node17、U1在node18运行；两组20步/160曝光收据与可恢复checkpoint
+已通过独立CPU核验（实际Adam时钟J为19/20、U1为19），采样、四rank RNG、
+组学习率、冻结边界和共同参数身份通过。U2/U3仍等待四卡资源，已有同SHA真实预检，
+分配后自动确认20/160。交互轮询已停止，不等待排队结束或500步完成。
+证据：`attempt01/startup_validation_running_arms.json`、`POLLING_STOPPED.json`。
