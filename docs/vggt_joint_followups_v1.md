@@ -48,3 +48,32 @@ AdamW state、原日志和Torch RNG逐位一致。真实四卡每组重放301一
 预检/正式/重试分开目录，旧失败日志保留。三组扩大评测与一个三组顺序重放均四卡，
 在14/17/18的4090资源等待，自动对照汇总零GPU。正式输出结果后由用户通知再分析，
 无需一直交互轮询或等待主训练4epoch结束。
+
+## 已验证预检与正式提交
+
+后续执行SHA d2dc0ced0bacd8e400b4d8ed1503f3bf8806804b，已推送并使用不可变快照。
+13项CPU合同通过，观测开/关保持原模型更新、AdamW矩、RNG与原日志逐位一致。
+四卡扩大评测预检64045 COMPLETED0:0，3分17秒；三个模型的原导出逐文件重现，
+full与confirmation两套实际官方CPU/GPU合并合同通过。
+四卡梯度预检64046 COMPLETED0:0，10分12秒；三组各重放真实301一步。
+A/B/C原/重放总范数分别完全一致：2.04890108、1.29637349、4.60892439。
+全局R/U重组误差norm分别1.33e-7、8.98e-8、2.61e-7，冻结检查通过。
+
+| 正式任务 | 作业 | 资源 | 提交后已核实状态 |
+|---|---:|---|---|
+| A已有500步全量复评 |64047|4×4090|17号RUNNING，四rank均实际导出|
+| B已有500步全量复评 |64048|4×4090|17号RUNNING，四rank均实际导出|
+| C已有500步全量复评 |64049|4×4090|18号RUNNING，四rank均实际导出|
+| ABC自动对照汇总 |64050|0GPU|等待afterok:64047:64048:64049|
+| 三组顺序梯度重放与自动分析 |64051|4×4090|Resources等待；已有相同代码四卡预检|
+
+三组复评十二rank都已正常处理100个以上真实窗口，不是仅提交未启动。
+主训练64041早已确认20/160并停止轮询，64042仍为训练完成后的自动官方评测。
+所有GPU任务只要求四卡；停止轮询，不等待本轮任务结束。
+
+证据：root下preflight_validation.json、dataset_partition_validation.json（1191训练/312验证无重叠）、
+formal_eval_startup_validation.json、launch_summary.json、POLLING_STOPPED.json、submissions/。
+正式root：`attempts/d2dc0ced0bacd8e400b4d8ed1503f3bf8806804b/formal`。
+扩大复评最终表格在expanded/analysis/full312_siu3r_table1.csv和confirmation248_siu3r_table1.csv；
+梯度重放最终摘要在gradient/analysis.json和report.md。
+结果尚未完成，当前只报告启动/预检事实，不宣称训练或指标改善。
