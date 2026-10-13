@@ -75,6 +75,13 @@ class RegisteredObjectLayer(nn.Module):
         route = torch.cat((logits, logits.new_zeros((*logits.shape[:2], 1))), -1).softmax(-1)
         message = route[..., :102] @ F.layer_norm(qnew, (256,), eps=1e-5)
         delta = capped_injection(h, message, self.W_inject, exposure)
+        # Optional, explicitly installed short-control variants. The production
+        # constructor and baseline computation above remain unchanged.
+        if hasattr(self, 'interaction_feedback'):
+            delta = self.interaction_feedback(h, a, qnew, mu, cnew, snew,
+                                               message, self.W_inject, exposure)
+        if hasattr(self, '_interaction_observe'):
+            self._interaction_observe(h=h, delta=delta, route=route)
         return dict(q=qnew, c=cnew, s=snew, route=route, joint_delta=delta,
                     joint_h_norm=h.norm(dim=-1), evidence_attention=R,
                     anchor_embedding=a, f_anchor=f_anchor, m_query=mq,
