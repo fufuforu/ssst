@@ -111,3 +111,22 @@ BF16/FP32精度、冻结、loss/GC/AdamW/clip和原采样源码均逐字节保�
 先在3090真实四卡两更新与官方13列评分通过，才取消旧pending训练/评测/启动审计并替换。
 原提交与历史证据保留；63845已有汇总支持逐条件SHA，只更新其依赖。
 迁移记录：`migration_3090.json`；hold记录：`hardware3090_hold.json`。
+
+3090四卡预检63890在node13已COMPLETED0:0，完成两调用/16真实窗口、原6923窗口、
+四rank同步、初始参数hash、冻结、真实梯度/更新与官方13列评分；峰值约10.75GiB。
+训练数学源码比对通过。旧63843/63844/63857在PENDING状态取消，正式更新0；
+替代训练63902已在node13四张3090运行，正式4090评测63903依赖63902，
+原汇总63845依赖已更新为63840/63842/63903。
+训练和该组评测执行SHA `d8aaf9285c62bbe2d6f036efd07f321a83288fba`。
+
+迁移后的20更新/160新增曝光checkpoint与全部三组保存状态已通过独立CPU核验。
+该组第20步β0.0076，上限0.05，原Adam参数时钟19/20，四卡峰值最高10.75GiB；
+冻结、原边界RNG、采样归属、组学习率及共同初始参数身份通过。
+`startup_validation.json`明确保留各组GPU类型和执行SHA；停止继续轮询训练。
+
+首次CPU审计63904在node12因导入模型包而依赖fused_ssim_cuda失败，日志保留。
+只修复审计：用AST读取原模型文件中的冻结前缀常量，不导入模型/渲染器。
+训练没有重启。修复后的计算节点审计63927在node12 COMPLETED0:0，
+执行SHA `50078adcbea77c90f622e6da0e8e2d1a28da810e`，三组20/160状态均通过。
+证据：`startup_audit_retry_63904.json`、`startup_validation.json`、
+`POLLING_STOPPED_AFTER_MIGRATION.json`；原排队时期的记录保留。
