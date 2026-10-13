@@ -160,3 +160,16 @@ Slurm当时预测19:13开始。先hold63700避免重复启动，准备将融合�
 原formal_submission.json和所有旧作业记录保留，替换记录另存migration_3090.json。
 正式融合评测仍申请四张4090，以保持四组推理/渲染硬件一致；汇总/审计明确保存
 各组执行SHA。融合训练显卡不同，不能把微小差异全部归因于融合结构。
+
+3090真实四卡预检63735已COMPLETED0:0，峰值每卡约6.95GiB；原共同参数hash、
+训练cfg、16次真实曝光、四rank同步、冻结参数/缓冲、前后固定Gaussian与新融合
+输出层真实更新和官方13列评分通过。执行SHA为
+`5f342defdbc79c98c1337ab6f7d58718086f62fa`。对原数值源码的实际比较通过；
+跨GPU有BF16运行差异，没有声称两种显卡逐位重现。
+旧63700/63701/63702/63707均在PENDING状态取消；替代训练63740在node11四张3090运行，
+正式4090评测63741、汇总63742、CPU审计63743已提交。已完成依赖通过sacct验证后
+不附加可能被controller清除的afterok引用，仍在运行的依赖继续挂接。
+新的独立CPU审计确认全部四组已保存20/160、原Adam/RNG/采样/冻结契约通过，
+融合组实际活跃Adam时钟19。停止轮询，不等融合500步完成。
+证据：migration_3090.json、startup_validation_after_migration.json、
+POLLING_STOPPED_AFTER_MIGRATION.json；原提交与旧启动记录保留。
