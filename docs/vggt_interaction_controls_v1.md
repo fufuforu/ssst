@@ -121,3 +121,15 @@ Read-only progress and ETA:
 Automatic evaluation uses checkpoints0/100/300/500, the identical64-scene cohort,
 11 measured official metrics in13 columns and two blank text columns. Reports
 and failures are diagnostic records; no gain is asserted before actual scores.
+
+Both running arms' saved20-update/160-exposure states passed the independent
+CPU audit: four synchronized ranks, common initial parameter hash, exact
+boundary RNG, frozen VGGT, native AdamW groups,19/20 state steps,LR multiplier0.1,
+understanding weight0.76 and beta0.0152 (forward-only actual feedback0).
+Peak GPU allocations: bidirectional19.43GiB, forward-only18.11GiB.
+The other arms remain resource-pending with successful full GPU preflights.
+Polling stopped; their own runtime will confirm20/160 automatically.
+CPU audit63647 depends on all four training completions and verifies all saved
+startup states using a separate immutable helper snapshot. Evidence:
+`attempt02/startup_validation_running_arms.json`, `summary.md`,
+`POLLING_STOPPED.json`, `startup_audit_submission.json`. Earlier errors remain.
