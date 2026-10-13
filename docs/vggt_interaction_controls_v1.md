@@ -78,3 +78,14 @@ data, RNG, precision, loss or optimizer computation changes. Reuse63561's
 explicit original SHA single-GPU evidence; rerun all four distributed arms
 under a new pushed immutable snapshot in attempt02. The launcher records this
 engineering-only compatibility and never relabels63561 as a new-SHA run.
+
+Node14 became fully occupied during preflight. Formal jobs therefore wait for
+any four RTX4090 on the already authorized14/17/18 pool rather than binding
+two arms to busy14. All numerical model/runtime/shell/cohort files stay
+byte-identical to four-GPU preflight commit
+`d4a1638dbb43d28581a0bd4c006db4cda08c8b8e`; the launcher checks the git diff
+and accepts only launcher/docs changes. Actual proof SHAs remain explicit.
+Pin the exact existing `gsplat_cuda_partial_1406/gsplat_cuda.so` binary loaded
+by the accepted node17 preflights across all hosts; record its hash to avoid
+host glibc selecting a different cached binary. This changes scheduling and
+asset selection determinism, not renderer operations or training mathematics.

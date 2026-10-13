@@ -1,5 +1,6 @@
 """Pin, validate and submit four paired controls with dependent official eval."""
 import argparse
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -12,6 +13,8 @@ RUN=Path('/space/mawb/ssst/workspace_group_plus/vggt_interaction_controls_v1')
 ARMS=('bidirectional','forward_only','gated_feedback','independent_feedback')
 BRANCH='vggt-overfit-diagnostics-v1'
 REUSED_SINGLE_SHA='a7eec2f4ca91f96c6152d3ad21f339f0df36314b'
+FOUR_NUMERICAL_SHA='d4a1638dbb43d28581a0bd4c006db4cda08c8b8e'
+RENDERER=Path('/space/mawb/.cache/torch_extensions_backup/gsplat_cuda_partial_1406/gsplat_cuda.so')
 
 def cmd(*args,env=None):return subprocess.check_output(args,text=True,env=env).strip()
 
@@ -40,6 +43,9 @@ def submit(p,sha,mode,output,evidence,dependency=None,arm=None,run_root=None,nod
     gpus=1 if mode=='single_smoke' else 0 if mode=='reduce' else 4
     memory='80G' if gpus==1 else '8G' if gpus==0 else '240G' if mode in ('train','four_smoke') else '160G'
     env=dict(os.environ,TASK_REPO=str(p),TASK_CODE_SHA=sha,TASK_OUTPUT=str(output),TASK_MODE=mode)
+    # The same binary actually loaded by the accepted node17 preflights; pin
+    # it across hosts instead of letting their different glibc choose variants.
+    env['GSPLAT_PRECOMPILED_SO']=str(RENDERER)
     if arm:env['TASK_ARM']=arm
     if run_root:env['TASK_RUN_ROOT']=str(run_root)
     args=['sbatch','--parsable','--partition=4090','--nodes=1','--ntasks=1',
@@ -57,7 +63,8 @@ def submit(p,sha,mode,output,evidence,dependency=None,arm=None,run_root=None,nod
     job=cmd(*args,env=env).split(';')[0]
     if not job.isdigit():raise ValueError('invalid Slurm response')
     return dict(job_id=job,mode=mode,arm=arm,gpu_count=gpus,memory=memory,dependency=dependency,
-        output=str(output),snapshot=str(p),execution_git_sha=sha,node=node or '14/17/18 eligible')
+        output=str(output),snapshot=str(p),execution_git_sha=sha,node=node or '14/17/18 eligible',
+        renderer_path=str(RENDERER),renderer_sha256=hashlib.sha256(RENDERER.read_bytes()).hexdigest())
 
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
@@ -89,6 +96,11 @@ def main():
         common=set()
         single_e=REPORT/'attempts'/(a.single_attempt or a.attempt)
         if single_e.name!=Path(a.single_attempt or a.attempt).name:raise ValueError('invalid single attempt')
+        numerical_sha=json.loads((e/'four_smoke'/ARMS[0]/'smoke_report.json').read_text())['execution_git_sha']
+        if numerical_sha!=sha:
+            changed=set(cmd('git','-C',str(REPO),'diff','--name-only',numerical_sha,sha).splitlines())
+            if numerical_sha!=FOUR_NUMERICAL_SHA or changed-{'scripts/submit_vggt_interaction_controls_v1.py','docs/vggt_interaction_controls_v1.md'}:
+                raise ValueError('numerical code differs from real four-GPU proof')
         for mode,world,job in [('single_smoke',1,a.single_job),('four_smoke',4,a.four_job)]:
             for arm in ARMS:
                 directory=(single_e if world==1 else e)/mode/arm
@@ -96,7 +108,7 @@ def main():
                 proof=json.loads((directory/'smoke_update_proof.json').read_text())
                 manifest=json.loads((directory/'run_manifest.json').read_text())
                 scoring=json.loads((directory/'evaluation_preflight/score_complete.json').read_text())
-                expected_sha=REUSED_SINGLE_SHA if world==1 and a.single_attempt else sha
+                expected_sha=REUSED_SINGLE_SHA if world==1 and a.single_attempt else numerical_sha if world==4 else sha
                 if (report['status'],report['completed_updates'],report['formal_updates'],report['completed_exposures'],report['execution_git_sha'],report['slurm_job_id'])!=('GPU_SMOKE_COMPLETED',2,0,4*world,expected_sha,job):
                     raise ValueError('real GPU preflight identity differs')
                 if len(proof['rank_rows'])!=world or proof['config']!=manifest['config'] or proof['config']['adapter_understanding_scale']!=.01:
@@ -111,10 +123,11 @@ def main():
         run.mkdir(parents=True)
         r=dict(status='SUBMITTING',execution_git_sha=sha,run_root=str(run),single_job=a.single_job,four_job=a.four_job,runs=[],evaluations=[],
             single_smoke_reused=bool(a.single_attempt),single_smoke_execution_sha=REUSED_SINGLE_SHA if a.single_attempt else sha,
+            four_smoke_execution_sha=numerical_sha,four_smoke_reuse_reason='Only launcher/docs changed; git diff guard requires all numerical runtime, shell, data and model files byte-identical' if numerical_sha!=sha else None,
             single_smoke_reuse_reason='Only rank0 output-directory creation/synchronization and receipt plumbing changed; model, kernels, RNG, data and training math unchanged' if a.single_attempt else None)
         write(receipt,r)
         for i,arm in enumerate(ARMS):
-            training=submit(p,sha,'train',run/arm,e,arm=arm,node='3dimage-14' if i<2 else '3dimage-17')
+            training=submit(p,sha,'train',run/arm,e,arm=arm)
             r['runs'].append(training);write(receipt,r)
             evaluation=submit(p,sha,'eval',e/'evaluation'/arm,e,dependency=training['job_id'],arm=arm,run_root=run/arm)
             r['evaluations'].append(evaluation);write(receipt,r)
