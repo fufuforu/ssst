@@ -24,7 +24,10 @@ def main():
     assert not receipt.exists() and not output.exists(),'preserve existing attempt; avoid duplicates'
     if a.stage=='formal':
         assert a.preflight is not None
-        pre=json.loads(a.preflight.read_text());assert pre['execution_sha']==sha
+        pre=json.loads(a.preflight.read_text())
+        if pre['execution_sha']!=sha:
+            changes=set(command(['git','-C',str(REPO),'diff','--name-only',pre['execution_sha'],sha]).splitlines())
+            assert changes <= {'scripts/submit_vggt_bottleneck_diagnostics_v1.py'},'execution code changed; need fresh smoke'
         for row in pre['jobs']:
             assert row['job_id']+'|COMPLETED|0:0' in command(['sacct','-X','-j',row['job_id'],'-n','-P','--format=JobID,State,ExitCode'])
             root=Path(row['output'])
@@ -38,7 +41,10 @@ def main():
                     proof=json.loads((root/arm/'smoke_report.json').read_text());assert proof['status']=='ACTUAL_SPIKE_SMOKE_PASSED'
                     rows=[json.loads(x) for x in (root/arm/'replay_rank0.jsonl').read_text().splitlines()]
                     assert len(rows)==1 and rows[0]['gradient_path_diagnostics']['path_captured']
-                    assert rows[0]['preclip_norm']==rows[0]['original_logged_values']['preclip_norm']
+                    # CUDA replay is not guaranteed bitwise deterministic. The
+                    # source IDs/LR/RNG are checked by the runner; expose drift.
+                    norm=rows[0]['original_logged_values']['preclip_norm']
+                    assert abs(rows[0]['preclip_norm']-norm)<=1e-6*max(norm,1.)
         assert os.statvfs(str(ROOT)).f_bavail*os.statvfs(str(ROOT)).f_frsize>20*1024**3,'reserve running-main checkpoint space'
     snapshot=ROOT/'snapshots'/sha
     if not snapshot.exists():
@@ -72,6 +78,7 @@ def main():
     else:jobs=[submit('raw',output/'raw')]+[submit('spike',output/'spike'/arm,arm) for arm in 'ABC']
     receipt.parent.mkdir(parents=True,exist_ok=True)
     receipt.write_text(json.dumps(dict(status='SUBMITTED',stage=a.stage,execution_sha=sha,jobs=jobs,
+        preflight_execution_sha=pre['execution_sha'] if a.stage=='formal' else None,
         running_main_and_evaluation_untouched=[64041,64042],new_research_training_jobs=0),indent=2)+'\n')
     print(receipt);print(json.dumps(jobs,indent=2))
 
