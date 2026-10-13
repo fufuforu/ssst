@@ -40,11 +40,22 @@ def main():
             print(subprocess.run(['squeue','-j',','.join(ids),'-o','%i %j %T %M %R'],capture_output=True,text=True).stdout.strip())
     for arm in ('frozen','joint_aa'):
         print('\n'+arm)
-        evaluation=REPORT/arm/'evaluation/final_continuation2_official'
+        evaluation=Path(jobs.get(arm,{}).get('evaluation_root',
+            str(REPORT/arm/'evaluation/final_continuation2_official')))
         if (evaluation/'siu3r_table1.md').exists():
             print((evaluation/'siu3r_table1.md').read_text());continue
         if (RUN/arm/'COMPLETE.json').exists():
-            print('Training completed; waiting for official evaluation.');continue
+            print('Training completed; official evaluation:',evaluation)
+            for rank in range(4):
+                directory=evaluation/f'rank{rank:02d}'
+                progress=directory/'score_progress.json'
+                if not progress.exists():progress=directory/'progress.json'
+                if progress.exists():
+                    d=json.loads(progress.read_text())
+                    eta=d.get('estimated_remaining_seconds')
+                    suffix=f'; export remaining ~{eta/60:.1f} min' if eta is not None else ''
+                    print(f"  rank{rank}: {d['stage']} {d['completed']}/{d['total']}{suffix}")
+            continue
         p=RUN/arm/'progress.json'
         if not p.exists():
             if (RUN/arm/'run_manifest.json').exists():
