@@ -3,7 +3,9 @@ import argparse
 import json
 import math
 from pathlib import Path
+import subprocess
 import sys
+import time
 import torch
 
 REPO=Path(__file__).resolve().parents[1];sys.path.insert(0,str(REPO))
@@ -14,15 +16,34 @@ from tokengs.models.object_locus_feedback_factorial_v1 import VISUAL_PREFIXES
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--evidence',type=Path,required=True)
+    parser.add_argument('--allow-pending',action='store_true')
+    parser.add_argument('--wait-for-receipts',action='store_true')
     args=parser.parse_args()
     submission=json.loads((args.evidence/'formal_submission.json').read_text())
     trainer.SMALL_PEAK=submission['small_feedback_peak']
-    run=Path(submission['run_root']);reference=set();rows=[]
+    run=Path(submission['run_root']);reference=set();rows=[];pending=[]
     old=Path(submission['reused_baseline']['run_root'])
     baseline=json.loads((old/'run_manifest.json').read_text())
     reference.update(x['common_parameters_sha256'] for x in baseline['rank_initialization'])
     for arm in ('visual_fixed','feedback_small','visual_fixed_feedback_small'):
         root=run/arm
+        job=next(x['job_id'] for x in submission['runs'] if x['arm']==arm)
+        ready=lambda:(root/'startup_confirmation.json').exists() and (root/'checkpoint_update_0020.json').exists()
+        deadline=time.monotonic()+3600
+        while not ready():
+            state=subprocess.check_output(['squeue','-h','-j',job,'-o','%T'],text=True).strip()
+            if args.allow_pending and state=='PENDING':
+                pending.append(dict(arm=arm,job_id=job,status='PENDING_FOUR_4090_RESOURCES',
+                                    startup_confirmation='produced automatically at20/160; deferred CPU audit submitted'))
+                break
+            if not args.wait_for_receipts:
+                raise ValueError('startup receipts not ready: '+arm+' '+state)
+            if not state:
+                accounting=subprocess.check_output(['sacct','-n','-X','-j',job,'-o','JobIDRaw,State,ExitCode','-P'],text=True)
+                if accounting.strip():raise ValueError('training ended without20/160 receipts: '+accounting)
+            if time.monotonic()>deadline:raise TimeoutError('20/160 receipt wait exceeded1h: '+arm)
+            time.sleep(15)
+        if not ready():continue
         startup=json.loads((root/'startup_confirmation.json').read_text())
         manifest=json.loads((root/'run_manifest.json').read_text())
         sha=next(x['execution_git_sha'] for x in submission['runs'] if x['arm']==arm)
@@ -67,10 +88,10 @@ def main():
         del payload
         print(arm,'SAVED_STATE_AND_STARTUP_VERIFIED',flush=True)
     assert len(reference)==1
-    result=dict(status='FACTORIAL_NEW_TRAININGS_CONFIRMED_BASELINE_REUSED',rows=rows,
+    result=dict(status='FACTORIAL_NEW_TRAININGS_CONFIRMED_BASELINE_REUSED' if not pending else 'RUNNING_ARMS_CONFIRMED_REMAINING_ARM_QUEUED',rows=rows,pending=pending,
         original_baseline_reused=submission['reused_baseline'],common_initial_parameters_identical=True,
         native_optimizer_and_sampling_verified=True,geometry_quality_policy='monitor_v1',polling_stop_required=True)
-    (args.evidence/'startup_validation.json').write_text(json.dumps(result,indent=2)+'\n')
+    (args.evidence/('startup_validation.json' if not pending else 'startup_validation_running_arms.json')).write_text(json.dumps(result,indent=2)+'\n')
     print(json.dumps(result,indent=2))
 
 
