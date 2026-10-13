@@ -30,6 +30,9 @@ def main(argv=None):
     parser.add_argument('--staged-vggt-adapt',action='store_true',help='authorized VGGT reconstruction adaptation 2 epochs, then frozen joint 4 epochs')
     parser.add_argument('--staged-mode',choices=('train','single_smoke','eight_smoke','four_smoke'),default='train')
     parser.add_argument('--staged-world-size',type=int,choices=(4,8),default=8)
+    parser.add_argument('--staged-adapter-understanding-scale',type=float,choices=(1.,.01),default=1.)
+    parser.add_argument('--staged-boundary-checkpoint',type=Path,default=None,
+        help='reuse the pinned completed reconstruction adaptation stage; fresh joint optimizer/RNG boundary')
     parser.add_argument('--joint-continuation-branch',choices=('frozen','joint_aa'))
     parser.add_argument('--joint-continuation-mode',choices=('train','four_smoke','eight_smoke'),default='train')
     parser.add_argument('--joint-continuation-world-size',type=int,choices=(4,8),default=4)
@@ -56,7 +59,9 @@ def main(argv=None):
             from scripts.object_locus_frozen_vggt_posefree_runtime import run_staged_training
             result=run_staged_training(run_dir=args.run_dir,hf_revision=args.vggt_revision,
                 mode=args.staged_mode,resume=args.resume,artifact_manifest=args.artifact_manifest,
-                training_world_size=args.staged_world_size)
+                training_world_size=args.staged_world_size,
+                adapter_understanding_scale=args.staged_adapter_understanding_scale,
+                boundary_checkpoint=args.staged_boundary_checkpoint)
             print(json.dumps(result,indent=2));return result
         from scripts.object_locus_frozen_vggt_posefree_runtime import run_training
         result=run_training(manifest_path=args.manifest or Path('/space/mawb/ssst/group_plus/object_locus_panoptic_full1201_8gpu/manifest.json'),
@@ -68,7 +73,7 @@ def main(argv=None):
     record=plan_record()
     if args.staged_vggt_adapt:
         from scripts.object_locus_frozen_vggt_posefree_runtime import staged_training_configuration
-        record.update(staged_training_configuration())
+        record.update(staged_training_configuration(args.staged_world_size,args.staged_adapter_understanding_scale))
     manifest_path=args.manifest or Path(record['manifest'])
     manifest,scenes,windows=load_manifest(manifest_path)
     record['manifest']=str(manifest_path)

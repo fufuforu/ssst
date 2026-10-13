@@ -99,9 +99,15 @@ def _restore_checkpoint(model, checkpoint_path, revision, manifest_sha256):
         return blob
     if blob.get('recipe'):
         from scripts.object_locus_frozen_vggt_posefree_runtime import (
-            STAGED_RECIPE,staged_training_configuration,restore_adapted_vggt,UPDATES_PER_EPOCH)
-        if blob['recipe']!=STAGED_RECIPE or blob['config']!=staged_training_configuration(blob['world_size']):
+            STAGED_RECIPE,STAGED_ADAPTER_U001_RECIPE,STAGED_U001_BOUNDARY_SHA,
+            staged_training_configuration,restore_adapted_vggt,UPDATES_PER_EPOCH)
+        scale=.01 if blob['recipe']==STAGED_ADAPTER_U001_RECIPE else 1.
+        if blob['recipe'] not in (STAGED_RECIPE,STAGED_ADAPTER_U001_RECIPE) or blob['config']!=staged_training_configuration(blob['world_size'],scale):
             raise RuntimeError('staged evaluation recipe/config mismatch')
+        if scale==.01 and blob.get('reused_reconstruction_boundary') is not None:
+            boundary=blob['reused_reconstruction_boundary']
+            if boundary['sha256']!=STAGED_U001_BOUNDARY_SHA or (boundary['reused_updates'],boundary['reused_exposures'])!=(2086,16688):
+                raise RuntimeError('adapter-u001 reused reconstruction provenance mismatch')
         if blob['world_size'] not in (4,8) or len(blob['rank_rng'])!=blob['world_size'] or blob['phase']!='frozen_joint':
             raise RuntimeError('staged evaluation requires a four/eight-rank frozen-joint checkpoint')
         phase_updates=blob['phase_completed_updates']

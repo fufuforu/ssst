@@ -711,12 +711,16 @@ def _atomic_save(payload,path: Path):
 
 
 STAGED_RECIPE = 'vggt_reconstruction_adapt2_frozen_joint4_v1'
+STAGED_ADAPTER_U001_RECIPE = 'vggt_reconstruction_adapt2_frozen_joint4_adapter_u001_v1'
+STAGED_U001_BOUNDARY = Path('/space/mawb/ssst/workspace_group_plus/object_locus_vggt_recon_adapt_freeze_v1/checkpoint_reconstruction_adaptation_epoch_02.pt')
+STAGED_U001_BOUNDARY_SHA = 'a50af40e1cf639514c2eb1d7b3127a79ecbc096d6d3a071a70d9a9fd2587750c'
 STAGED_NODE_GPU = {'3dimage-11':'3090','3dimage-13':'3090',
                    '3dimage-14':'4090','3dimage-17':'4090','3dimage-18':'4090'}
 
 
-def staged_training_configuration(world_size=8):
+def staged_training_configuration(world_size=8, adapter_understanding_scale=1.):
     if world_size not in (4,8): raise ValueError('staged training requires four or eight ranks')
+    if adapter_understanding_scale not in (1., .01): raise ValueError('unauthorized staged adapter gradient scale')
     config = training_configuration()
     config.update(recipe=STAGED_RECIPE,world_size=world_size,accumulation=GLOBAL_BATCH//world_size,
         node='3dimage-13' if world_size==4 else 'one of 3dimage-[11,13,14,17,18]',
@@ -732,7 +736,34 @@ def staged_training_configuration(world_size=8):
         stage_transition='retain adapted VGGT/decoder/adapter and original understanding; fresh joint optimizer and exposure warmup',
         frozen_joint_precision='adapted VGGT aggregator BF16, camera/depth FP32; unchanged downstream precision',
         camera_inputs='predicted/detached in both phases; original shared_context_depth_sim3_v2; no GT camera input')
+    if adapter_understanding_scale == .01:
+        config.update(recipe=STAGED_ADAPTER_U001_RECIPE,adapter_understanding_scale=.01,
+            adapter_gc_rule='g_rec + 0.01*g_under; original understanding weight included',
+            understanding_panoptic_gc_rule='unchanged g_rec + g_under')
     return config
+
+
+def validate_staged_boundary(payload, config, revision, manifest_digest):
+    """Only the exact completed, unchanged reconstruction stage may be reused."""
+    if config != staged_training_configuration(4, .01):
+        raise RuntimeError('boundary reuse requires the authorized four-rank adapter-u001 recipe')
+    expected = dict(recipe=STAGED_RECIPE,config=staged_training_configuration(4),world_size=4,
+        phase='reconstruction_adaptation',phase_completed_updates=2*UPDATES_PER_EPOCH,
+        completed_updates=2*UPDATES_PER_EPOCH,completed_exposures=2*WINDOWS_PER_EPOCH,
+        epoch=2,next_position=0,manifest_sha256=manifest_digest,
+        source_checkpoint_sha256=EXPECTED_CHECKPOINT_SHA,vggt_revision=revision)
+    if any(payload.get(k)!=v for k,v in expected.items()):
+        raise RuntimeError('reconstruction boundary identity/clock mismatch')
+    if len(payload['rank_rng']) != 4 or not payload.get('vggt_model'):
+        raise RuntimeError('reconstruction boundary weights/RNG absent')
+    counts=np.asarray(payload['rank_window_exposure_counts'])
+    expected_counts=np.zeros((4,EXPECTED_WINDOWS),dtype=np.int64)
+    for epoch in range(2):
+        for update in range(UPDATES_PER_EPOCH):
+            for rank in range(4):
+                np.add.at(expected_counts[rank],list(rank_microbatch_indices(epoch,update,rank,world_size=4)),1)
+    if not np.array_equal(counts,expected_counts) or not np.array_equal(counts.sum(0),payload['window_exposure_counts']):
+        raise RuntimeError('reconstruction boundary exposure ownership mismatch')
 
 
 def configure_staged_phase(model, phase, device):
@@ -789,14 +820,18 @@ def restore_staged_phase_state(model, optimizer, payload, phase, rank):
 
 
 def run_staged_training(*, run_dir, hf_revision, mode='train', resume=False,
-                        artifact_manifest=VGGT_ARTIFACT_MANIFEST,training_world_size=8):
+                        artifact_manifest=VGGT_ARTIFACT_MANIFEST,training_world_size=8,
+                        adapter_understanding_scale=1., boundary_checkpoint=None):
     """Execute the authorized two-stage recipe using the existing data/step runtime."""
     import torch.distributed as dist
     from scripts import object_locus_v3_set_runtime as provider_runtime
     world=int(os.environ.get('WORLD_SIZE','1'));local=int(os.environ.get('LOCAL_RANK','0'))
     if mode not in ('train','single_smoke','eight_smoke','four_smoke'): raise ValueError(mode)
     smoke=mode!='train'
-    config=staged_training_configuration(training_world_size)
+    config=staged_training_configuration(training_world_size,adapter_understanding_scale)
+    recipe=config["recipe"]
+    if boundary_checkpoint is not None and (resume or smoke or config!=staged_training_configuration(4,.01)):
+        raise RuntimeError("boundary reuse is fresh formal four-rank joint training only")
     expected_world={'single_smoke':1,'eight_smoke':8,'four_smoke':4,'train':training_world_size}[mode]
     if world!=expected_world or (mode in ('four_smoke','eight_smoke') and world!=training_world_size):
         raise RuntimeError('staged recipe world-size mismatch')
@@ -819,19 +854,41 @@ def run_staged_training(*, run_dir, hf_revision, mode='train', resume=False,
     seed_everything(42);os.environ['VGGT_HF_REVISION']=hf_revision
     model,opt,transfer,provenance=build_model(artifact_manifest=artifact_manifest,preserve_fp32_aggregator=True)
     model.to(device);seed_everything(42+rank)
+    reused_updates=0;boundary_identity=None
+    boundary_payload=None
+    if boundary_checkpoint is not None:
+        boundary_checkpoint=Path(boundary_checkpoint)
+        if sha256(boundary_checkpoint)!=STAGED_U001_BOUNDARY_SHA:
+            raise RuntimeError('reconstruction boundary checkpoint SHA mismatch')
+        boundary_payload=torch.load(boundary_checkpoint,map_location='cpu',weights_only=False,mmap=True)
+        validate_staged_boundary(boundary_payload,config,hf_revision,manifest_digest)
+        restore_model_state_strict(model,boundary_payload['model'])
+        reused_updates=2*UPDATES_PER_EPOCH
+        boundary_identity=dict(path=str(boundary_checkpoint.resolve()),sha256=STAGED_U001_BOUNDARY_SHA,
+            execution_git_sha=boundary_payload['git_sha'],reused_updates=reused_updates,
+            reused_exposures=reused_updates*GLOBAL_BATCH,phase_optimizer_restored=False,
+            joint_phase_clock_origin=0,rank_rng_restore_required=True)
+
     if rank==0:
         manifest_name=f'resume_manifest_{os.environ.get("SLURM_JOB_ID","manual")}.json' if resume else 'run_manifest.json'
         _write_json_atomic(run_dir/manifest_name,dict(status='SMOKE_STARTED' if smoke else 'TRAINING_STARTED',
-            execution_git_sha=execution_sha,recipe=STAGED_RECIPE,training_configuration=config,source_checkpoint=provenance,
+            execution_git_sha=execution_sha,recipe=recipe,training_configuration=config,source_checkpoint=provenance,
             vggt_source=model.frozen_vggt.source_identity,manifest_sha256=manifest_digest,mode=mode,
             slurm_job_id=os.environ.get('SLURM_JOB_ID'),hardware=hardware,
-            optimizer_clock_origin=0,smoke_clock_in_formal_training=False))
-    completed=0;total_counts=np.zeros(EXPECTED_WINDOWS,dtype=np.int64);adapted_identity=None;payload=None
+            optimizer_clock_origin=0,smoke_clock_in_formal_training=False,
+            reused_reconstruction_boundary=boundary_identity,adapter_understanding_scale=adapter_understanding_scale))
+    completed=reused_updates;total_counts=np.zeros(EXPECTED_WINDOWS,dtype=np.int64);adapted_identity=None;payload=boundary_payload
+    boundary_payload=None
+    if payload is not None:
+        total_counts=np.asarray(payload['rank_window_exposure_counts'][rank],dtype=np.int64).copy()
+        adapted_identity=dict(path=str(STAGED_U001_BOUNDARY.parent/'adapted_vggt.pt'),
+            sha256=CONTINUATION_VGGT_SHA,recipe=STAGED_RECIPE)
     if resume:
         payload=torch.load(latest,map_location='cpu',weights_only=False,mmap=True)
-        for key,value in {'recipe':STAGED_RECIPE,'config':config,'manifest_sha256':manifest_digest,
+        for key,value in {'recipe':recipe,'config':config,'manifest_sha256':manifest_digest,
                           'source_checkpoint_sha256':EXPECTED_CHECKPOINT_SHA,'vggt_revision':hf_revision,'world_size':world}.items():
             if payload.get(key)!=value: raise RuntimeError(f'staged resume identity mismatch: {key}')
+        boundary_identity=payload.get('reused_reconstruction_boundary');reused_updates=(boundary_identity or {}).get('reused_updates',0)
         completed=payload['completed_updates'];total_counts=np.asarray(payload['rank_window_exposure_counts'][rank])
         restore_model_state_strict(model,payload['model']);adapted_identity=payload.get('adapted_vggt_identity')
         if completed>=2*UPDATES_PER_EPOCH and adapted_identity is None:
@@ -852,12 +909,27 @@ def run_staged_training(*, run_dir, hf_revision, mode='train', resume=False,
         limit=2 if smoke else phase_total
         if completed>=offset+limit: continue
         optimizer=configure_staged_phase(model,phase,device)
+        initial_rng=None
+        if boundary_identity is not None and phase_idx==1 and completed==offset:
+            initial_rng=payload['rank_rng'][rank] if payload is not None else None
+            if initial_rng is None or optimizer.state:
+                raise RuntimeError('reused boundary requires original RNG and a fresh joint optimizer')
         if payload is not None:
             restore_staged_phase_state(model,optimizer,payload,phase,rank)
             payload=None
         if phase_idx==1:
             restore_adapted_vggt(model,Path(adapted_identity['path']),adapted_identity['sha256'],
                                  expected_updates=2 if smoke else 2*UPDATES_PER_EPOCH)
+        if initial_rng is not None:
+            actual_rng=capture_rank_rng()
+            if not torch.equal(actual_rng['torch_cpu'],initial_rng['torch_cpu']) or len(actual_rng['torch_cuda'])!=len(initial_rng['torch_cuda']) or any(
+                    not torch.equal(a,b) for a,b in zip(actual_rng['torch_cuda'],initial_rng['torch_cuda'])):
+                raise RuntimeError('reused boundary RNG restoration mismatch')
+            _write_json_atomic(run_dir/f'joint_initialization_rank{rank}.json',dict(status='EXACT_BOUNDARY_RESTORED',
+                rank=rank,source_sha256=STAGED_U001_BOUNDARY_SHA,rank_torch_rng_restored=True,
+                optimizer_state_empty=True,joint_phase_completed_updates=0,new_exposures=0,
+                adapter_understanding_scale=adapter_understanding_scale))
+            del initial_rng,actual_rng
         monitor=GeometryMonitor(run_dir,rank,mode+'_'+phase)
         probe=next(p for n,p in model.frozen_vggt.named_parameters() if 'frame_blocks.0.attn.qkv.weight' in n)
         probe_before=probe.detach().clone();frozen_versions={id(p):p._version for p in model.frozen_vggt.parameters()}
@@ -874,8 +946,13 @@ def run_staged_training(*, run_dir, hf_revision, mode='train', resume=False,
             row=train_microbatch_window(model,optimizer,batches,phase_update,
                 base_exposure=phase_update*world*accumulation,world_size=world,accumulation=accumulation,
                 monitor=monitor,window_metadata=[window_identity(i,windows[i]) for i in indices],
-                stage=mode+'_'+phase,total_updates=phase_total,reconstruction_adaptation=phase_idx==0)
+                stage=mode+'_'+phase,total_updates=phase_total,reconstruction_adaptation=phase_idx==0,
+                adapter_understanding_scale=adapter_understanding_scale)
             row.update(phase=phase,phase_update=phase_update+1,window_indices=list(indices),
+                       adapter_understanding_scale=adapter_understanding_scale,
+                       reused_reconstruction_updates=reused_updates,
+                       new_completed_updates=absolute_update+1-reused_updates if not smoke else 0,
+                       new_completed_exposures=(absolute_update+1-reused_updates)*GLOBAL_BATCH if not smoke else 0,
                        absolute_update=absolute_update+1 if not smoke else None,
                        absolute_new_exposures=(absolute_update+1)*GLOBAL_BATCH if not smoke else None)
             if phase=='reconstruction_adaptation':
@@ -897,6 +974,8 @@ def run_staged_training(*, run_dir, hf_revision, mode='train', resume=False,
                     eta=elapsed/(phase_update-phase_start+1)*(phase_total-phase_update-1)
                     _write_json_atomic(run_dir/'progress.json',dict(phase=phase,phase_update=phase_update+1,
                         phase_total_updates=phase_total,completed_updates=completed,completed_exposures=completed*GLOBAL_BATCH,
+                        reused_updates=reused_updates,reused_exposures=reused_updates*GLOBAL_BATCH,
+                        new_completed_updates=completed-reused_updates,new_completed_exposures=(completed-reused_updates)*GLOBAL_BATCH,
                         total_updates=6*UPDATES_PER_EPOCH,estimated_phase_remaining_seconds=eta,
                         updated_at_utc=time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())))
             if (phase_update+1)%20==0: monitor.write_summary(phase_update+1)
@@ -915,7 +994,7 @@ def run_staged_training(*, run_dir, hf_revision, mode='train', resume=False,
                         if any(r['phase_update']!=phase_update+1 for r in gathered): raise RuntimeError('staged startup clocks disagree')
                         if phase_idx==0 and any(r['vggt_probe_change_norm']<=0 for r in gathered): raise RuntimeError('VGGT weights did not update')
                         _write_json_atomic(run_dir/f'startup_confirmation_{phase}.json',dict(status='TRAINING_CONFIRMED',
-                            recipe=STAGED_RECIPE,phase=phase,confirmed_phase_updates=phase_update+1,confirmed_phase_exposures=(phase_update+1)*8,
+                            recipe=recipe,phase=phase,confirmed_phase_updates=phase_update+1,confirmed_phase_exposures=(phase_update+1)*8,
                             execution_git_sha=execution_sha,slurm_job_id=os.environ.get('SLURM_JOB_ID'),
                             geometry_quality_policy='monitor_v1',rank_rows=gathered,training_configuration=config,hardware=hardware))
                     else: phase_rows.append(gathered)
@@ -929,7 +1008,7 @@ def run_staged_training(*, run_dir, hf_revision, mode='train', resume=False,
                 np.add.at(expected,epoch_order(full_epochs)[:position*GLOBAL_BATCH],1)
                 if not np.array_equal(counts,expected): raise RuntimeError('staged full exposure accounting mismatch')
                 if rank==0:
-                    saved=dict(recipe=STAGED_RECIPE,config=config,model=checkpoint_model_state(model),optimizer=optimizer.state_dict(),
+                    saved=dict(recipe=recipe,reused_reconstruction_boundary=boundary_identity,config=config,model=checkpoint_model_state(model),optimizer=optimizer.state_dict(),
                         phase=phase,phase_completed_updates=phase_update+1,completed_updates=completed,completed_exposures=completed*GLOBAL_BATCH,
                         epoch=completed//UPDATES_PER_EPOCH,next_position=completed%UPDATES_PER_EPOCH,
                         rank_rng=rank_rng,rank_window_exposure_counts=rank_counts,window_exposure_counts=counts.tolist(),
@@ -941,7 +1020,11 @@ def run_staged_training(*, run_dir, hf_revision, mode='train', resume=False,
                     _atomic_save(saved,latest)
                     if completed%UPDATES_PER_EPOCH==0: _atomic_save(saved,run_dir/f'checkpoint_{phase}_epoch_{(phase_update+1)//UPDATES_PER_EPOCH:02d}.pt')
                     _write_json_atomic(run_dir/'progress.json',dict(phase=phase,completed_updates=completed,completed_exposures=completed*GLOBAL_BATCH,
-                        phase_update=phase_update+1,total_updates=6*UPDATES_PER_EPOCH))
+                        phase_update=phase_update+1,phase_total_updates=phase_total,total_updates=6*UPDATES_PER_EPOCH,
+                        reused_updates=reused_updates,reused_exposures=reused_updates*GLOBAL_BATCH,
+                        new_completed_updates=completed-reused_updates,new_completed_exposures=(completed-reused_updates)*GLOBAL_BATCH,
+                        estimated_phase_remaining_seconds=(time.monotonic()-phase_started)/(phase_update-phase_start+1)*(phase_total-phase_update-1),
+                        updated_at_utc=time.strftime('%Y-%m-%dT%H:%M:%SZ',time.gmtime())))
                 dist.barrier()
         change=float((probe.detach()-probe_before).norm())
         if phase_idx==0 and change<=0: raise RuntimeError('adaptation produced no VGGT change')
@@ -961,19 +1044,21 @@ def run_staged_training(*, run_dir, hf_revision, mode='train', resume=False,
         torch.cuda.empty_cache()
     if rank==0:
         if smoke:
-            _write_json_atomic(run_dir/'smoke_report.json',dict(status='GPU_SMOKE_COMPLETED',mode=mode,recipe=STAGED_RECIPE,
+            _write_json_atomic(run_dir/'smoke_report.json',dict(status='GPU_SMOKE_COMPLETED',mode=mode,recipe=recipe,
                 world_size=world,accumulation=accumulation,updates_per_phase=2,
                 exposures_per_phase=2*world*accumulation,rank_rows=phase_rows,
                 execution_git_sha=execution_sha,manifest_sha256=manifest_digest,source_checkpoint=provenance,
                 geometry_quality_policy='monitor_v1',formal_updates=0,training_configuration=config,
                 understanding_and_vggt_gradient_paths_checked=True,hardware=hardware))
         else:
-            _write_json_atomic(run_dir/'COMPLETE.json',dict(status='TRAINING_COMPLETED',recipe=STAGED_RECIPE,
+            _write_json_atomic(run_dir/'COMPLETE.json',dict(status='TRAINING_COMPLETED',recipe=recipe,
+                reused_reconstruction_boundary=boundary_identity,
+                new_completed_updates=completed-reused_updates,new_completed_exposures=(completed-reused_updates)*GLOBAL_BATCH,
                 completed_updates=completed,completed_exposures=completed*GLOBAL_BATCH,stage_epochs=config['stage_epochs'],
                 execution_git_sha=execution_sha,adapted_vggt_identity=adapted_identity))
     if world>1: dist.barrier();dist.destroy_process_group()
     return {'status':'GPU_SMOKE_COMPLETED' if smoke else 'TRAINING_COMPLETED',
-            'completed_updates':4 if smoke else completed,'formal_updates':0 if smoke else completed}
+            'completed_updates':4 if smoke else completed,'formal_updates':0 if smoke else completed-reused_updates}
 
 
 CONTINUATION_RECIPE = 'vggt_joint_continuation_ab2_v1'

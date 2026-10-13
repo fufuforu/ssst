@@ -68,6 +68,9 @@ def write_table(report, root):
     elif staged:
         method = 'object_locus_vggt_recon_adapt_freeze_v1 / adaptation2 + frozen joint4'
         title = 'Adaptation 2 + frozen joint 4 — SIU3R Table 1'
+        if meta['recipe']=='vggt_reconstruction_adapt2_frozen_joint4_adapter_u001_v1':
+            method='object_locus_vggt_recon_adapt_freeze_adapter_u001_v1 / adaptation2 + frozen joint4 / adapter understanding gradient 0.01'
+            title='Adaptation 2 + frozen joint 4 / adapter U=0.01 — SIU3R Table 1'
     else:
         method = f"object_locus_frozen_vggt_posefree_v1 / epoch {epoch:02d}"
         title = f"Epoch {epoch:02d} — SIU3R Table 1"

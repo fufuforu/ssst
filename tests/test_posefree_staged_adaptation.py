@@ -71,6 +71,65 @@ def decode(encoding,image_size_hw):
 
 
 class Contracts(unittest.TestCase):
+    def test_adapter_u001_configuration_changes_only_gradient_route(self):
+        from scripts.object_locus_frozen_vggt_posefree_runtime import staged_training_configuration
+        old=staged_training_configuration(4);new=staged_training_configuration(4,.01)
+        self.assertEqual({k for k in old if old[k]!=new[k]}, {'recipe'})
+        self.assertEqual(set(new)-set(old), {'adapter_understanding_scale','adapter_gc_rule','understanding_panoptic_gc_rule'})
+        self.assertEqual(new['adapter_understanding_scale'],.01)
+        with self.assertRaisesRegex(ValueError,'unauthorized'):staged_training_configuration(4,0.)
+
+    def test_reused_boundary_rejects_wrong_clock_and_exposure_ownership(self):
+        import copy
+        import numpy as np
+        from scripts.object_locus_frozen_vggt_posefree_runtime import (
+            staged_training_configuration,validate_staged_boundary,rank_microbatch_indices,
+            STAGED_RECIPE,UPDATES_PER_EPOCH,EXPECTED_WINDOWS,EXPECTED_CHECKPOINT_SHA)
+        counts=np.zeros((4,EXPECTED_WINDOWS),dtype=np.int64)
+        for epoch in range(2):
+            for update in range(UPDATES_PER_EPOCH):
+                for rank in range(4):np.add.at(counts[rank],list(rank_microbatch_indices(epoch,update,rank,world_size=4)),1)
+        b=dict(recipe=STAGED_RECIPE,config=staged_training_configuration(4),world_size=4,
+            phase='reconstruction_adaptation',phase_completed_updates=2086,completed_updates=2086,
+            completed_exposures=16688,epoch=2,next_position=0,manifest_sha256='manifest',
+            source_checkpoint_sha256=EXPECTED_CHECKPOINT_SHA,vggt_revision='revision',
+            rank_rng=[None]*4,vggt_model={'test':torch.ones(1)},rank_window_exposure_counts=counts.tolist(),
+            window_exposure_counts=counts.sum(0).tolist())
+        validate_staged_boundary(b,staged_training_configuration(4,.01),'revision','manifest')
+        with self.assertRaisesRegex(RuntimeError,'identity/clock'):
+            validate_staged_boundary(dict(b,completed_updates=6258),staged_training_configuration(4,.01),'revision','manifest')
+        wrong=copy.deepcopy(b);wrong['rank_window_exposure_counts'][0][0]+=1;wrong['rank_window_exposure_counts'][1][0]-=1
+        with self.assertRaisesRegex(RuntimeError,'ownership'):
+            validate_staged_boundary(wrong,staged_training_configuration(4,.01),'revision','manifest')
+        with self.assertRaisesRegex(RuntimeError,'authorized four-rank'):
+            validate_staged_boundary(b,staged_training_configuration(8,.01),'revision','manifest')
+
+    def test_adapter_u001_official_restore_validates_recipe_and_boundary(self):
+        from unittest import mock
+        from scripts.eval_object_locus_frozen_vggt_posefree_v1 import _restore_checkpoint
+        from scripts.object_locus_frozen_vggt_posefree_runtime import (
+            staged_training_configuration,STAGED_ADAPTER_U001_RECIPE,STAGED_U001_BOUNDARY_SHA,
+            EXPECTED_CHECKPOINT_SHA,checkpoint_model_state)
+        v=nn.Module();v.aggregator=TinyAggregator();v.camera_head=Camera();v.depth_head=Depth()
+        host=TinyStep();host.frozen_vggt=FrozenVGGT(model=v,pose_decoder=decode,test_only=True)
+        keys=('repository','model_id','revision','files','loaded_subtrees','loaded_source_key_count','explicitly_excluded_source_key_count','loaded_key_sha256')
+        b=dict(recipe=STAGED_ADAPTER_U001_RECIPE,config=staged_training_configuration(4,.01),world_size=4,
+            rank_rng=[None]*4,phase='frozen_joint',phase_completed_updates=4172,completed_updates=6258,
+            completed_exposures=50064,model=checkpoint_model_state(host),vggt_revision='revision',
+            manifest_sha256='manifest',source_checkpoint_sha256=EXPECTED_CHECKPOINT_SHA,
+            vggt_artifact_identity={k:host.frozen_vggt.source_identity.get(k) for k in keys},
+            adapted_vggt_identity={'path':'/mock/asset.pt','sha256':'asset'},
+            reused_reconstruction_boundary={'sha256':STAGED_U001_BOUNDARY_SHA,'reused_updates':2086,'reused_exposures':16688})
+        with mock.patch('torch.load',return_value=b),mock.patch('scripts.object_locus_frozen_vggt_posefree_runtime.restore_adapted_vggt') as restore:
+            self.assertEqual(_restore_checkpoint(host,Path('/mock/checkpoint.pt'),'revision','manifest')['completed_updates'],6258)
+            restore.assert_called_once();self.assertEqual(host.understanding_step,33376)
+            wrong=dict(b,config=staged_training_configuration(4))
+            with mock.patch('torch.load',return_value=wrong),self.assertRaisesRegex(RuntimeError,'recipe/config'):
+                _restore_checkpoint(host,Path('/mock/checkpoint.pt'),'revision','manifest')
+            wrong=dict(b,reused_reconstruction_boundary={'sha256':'wrong','reused_updates':2086,'reused_exposures':16688})
+            with mock.patch('torch.load',return_value=wrong),self.assertRaisesRegex(RuntimeError,'provenance'):
+                _restore_checkpoint(host,Path('/mock/checkpoint.pt'),'revision','manifest')
+
     def test_four_rank_accumulation_matches_global_eight_sample_update(self):
         from scripts.object_locus_frozen_vggt_posefree_runtime import build_optimizer,train_microbatch_window
         x=torch.arange(16,dtype=torch.float32).reshape(8,2)/4
