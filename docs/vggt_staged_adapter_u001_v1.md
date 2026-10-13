@@ -62,3 +62,40 @@ both attempts are preserved in `local_validation`. Historical experiment and
 failure records remain intact. Retaining four joint checkpoints, latest,
 smoke assets and full evaluation fits the measured 67 GiB free quota; the
 formal launcher requires at least 45 GiB free before starting.
+
+## Verified launch on 2026-10-13
+
+- Execution commit: `077bd9a4064dfc6b2e54ea6b2a2256ba5437b1f0`, pushed and
+  executed from a separate immutable snapshot.
+- Single-card preflight `63551`: COMPLETED `0:0`, elapsed 00:02:21;
+  two isolated updates per phase, zero formal updates.
+- Four-card preflight inside `63552`: passed both phases, all finite,
+  AA updated during adaptation and stayed unchanged during frozen joint;
+  mandatory window 6923 and understanding/adapter gradient paths verified.
+- Formal training `63552`: RUNNING on node 13 with four RTX 3090 cards.
+- Official full evaluation `63553`: PENDING on `afterok:63552`, four cards
+  and the five authorized eligible nodes. No eight-card requirement.
+- All four `joint_initialization_rank*.json` receipts confirm original rank
+  Torch RNG restored, empty joint optimizer, zero new exposure and scale 0.01.
+- `startup_confirmation_frozen_joint.json` and the saved checkpoint confirm
+  20 joint updates / 160 new exposures; cumulative 2106 updates / 16848
+  exposures includes reused reconstruction history. Exact rank sampler
+  ownership matches epochs 0, 1 and the first 20 updates of epoch 2.
+- The checkpoint is 6435824225 bytes. Native AdamW state steps are 19 or 20
+  (understanding has no loss gradient at the first zero-weight update),
+  original groups/betas/eps/decay are intact, and no VGGT parameter enters
+  the joint optimizer. At update 20: LR multiplier 0.1, understanding weight
+  0.76, feedback beta 0.0152. All four frozen VGGT probes have zero change.
+- Startup global gradient norm is finite (1.7367257 on each rank). Native
+  runtime also checks per-microbatch gradients and all updated parameters.
+  Geometry warnings retain `monitor_v1` handling and are preserved.
+- Initial remaining-phase estimate: 8.58 hours; sample mix and filesystem
+  performance can change it. The original same-resource four joint epochs
+  took approximately 10.16 hours. Full four-card evaluation recently took
+  about 24 minutes, plus any queue time.
+
+CPU startup audit: evidence `startup_validation.json`; immutable source and
+submission records: `submissions/`; polling stop: `POLLING_STOPPED.json`.
+Polling has stopped after the required 20/160 confirmation. Training and its
+dependent evaluation are left running. No additional experiment was mixed
+into this rerun, and no quality improvement is claimed before official scores.
