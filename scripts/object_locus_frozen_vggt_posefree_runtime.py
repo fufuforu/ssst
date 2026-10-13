@@ -278,7 +278,7 @@ def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world
                             monitor=None,window_metadata=None,stage="formal_training",total_updates=None,
                             reconstruction_adaptation=False,accumulation=ACCUMULATION,
                             cpu_saved_tensors=False,cpu_gradient_accumulation=False,vggt_reconstruction=False,lr_update=None,
-                            adapter_understanding_scale=1.,understanding_only=False,gradient_diagnostic=False):
+                            adapter_understanding_scale=1.,understanding_only=False,gradient_diagnostic=False,gradient_observer=None):
     """Two-microbatch GC step with one accumulated gradient family per parameter."""
     if accumulation not in (1,2) or len(batches)!=accumulation:
         raise ValueError(f"each rank must receive exactly {accumulation} accumulation microbatches")
@@ -324,6 +324,8 @@ def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world
                 under=tuple(None if g is None else g.cpu() for g in under)
             mixed=gc_combine(names,rec,under,vggt_reconstruction=vggt_reconstruction,
                              adapter_understanding_scale=adapter_understanding_scale)
+            if gradient_observer is not None:
+                gradient_observer.microbatch(names,rec,under)
             grad_stats=None
             if gradient_diagnostic:
                 grad_stats={}
@@ -383,10 +385,16 @@ def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world
     del grads,combined_acc
     error=None
     try:
+        if gradient_observer is not None:
+            gradient_observer.before_clip(named)
         norm=torch.nn.utils.clip_grad_norm_(params,1.0,error_if_nonfinite=True)
+        if gradient_observer is not None:
+            gradient_observer.after_clip(named,float(norm))
         mult=lr_multiplier(update if lr_update is None else lr_update,total_updates)
         for group in optimizer.param_groups: group['lr']=group['peak_lr']*mult
         optimizer.step()
+        if gradient_observer is not None:
+            gradient_observer.after_optimizer(named,optimizer)
         if any(not torch.isfinite(p).all() for p in params): raise FloatingPointError('nonfinite parameter after optimizer.step')
     except Exception as exc:error=exc;norm=torch.tensor(float('nan'))
     synchronized_error(error,device,'optimizer',int(update))
@@ -399,6 +407,7 @@ def train_microbatch_window(model,optimizer,batches,update,*,base_exposure,world
          'calibration':local_rows[0]['calibration'],
          'group_lr':{g['name']:g['lr'] for g in optimizer.param_groups}}
     if gradient_diagnostic:row['microbatch_gradient_diagnostics']=[x['gradient_diagnostic'] for x in local_rows]
+    if gradient_observer is not None:row['gradient_path_diagnostics']=gradient_observer.result
     if accumulation>1:
         row['microbatch_calibrations']=[x['calibration'] for x in local_rows]
     if device.type=='cuda':
