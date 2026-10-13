@@ -28,6 +28,14 @@ CLASSES = ("wall", "floor", "cabinet", "bed", "chair", "sofa", "table",
            "bathtub", "otherfurniture")
 
 
+def metric_class_names(metric):
+    # Pinned TorchMetrics PQ stores sorted things first, then sorted stuffs.
+    # Semantic IoU stores semantic IDs1..20. Their vector orders differ.
+    if metric.startswith('ious'):return CLASSES
+    if metric.startswith('pqs'):return CLASSES[2:]+CLASSES[:2]
+    raise ValueError('unknown per-class metric')
+
+
 def read(path):
     return json.loads(path.read_text())
 
@@ -177,7 +185,7 @@ def main():
             for view in ("context", "target"):
                 for suffix in ("ious_per_class", "pqs_per_class"):
                     b, v = np.asarray(base[f"{view}_{suffix}"]).ravel(), np.asarray(variant[f"{view}_{suffix}"]).ravel()
-                    for name, x, y in zip(CLASSES, b, v):
+                    for name, x, y in zip(metric_class_names(suffix), b, v):
                         writer.writerow([arm, view, suffix, name, x, y, y-x])
                 b, v = base[f"{view}_map"], variant[f"{view}_map"]
                 assert b["classes"] == v["classes"]

@@ -77,3 +77,11 @@ formal_eval_startup_validation.json、launch_summary.json、POLLING_STOPPED.json
 扩大复评最终表格在expanded/analysis/full312_siu3r_table1.csv和confirmation248_siu3r_table1.csv；
 梯度重放最终摘要在gradient/analysis.json和report.md。
 结果尚未完成，当前只报告启动/预检事实，不宣称训练或指标改善。
+
+## 2026-10-13完成后复核
+
+上述启动状态是历史记录。64047～64051已全部COMPLETED0:0。
+完整312与独立248场景官方13列复核完成；C重建改善保持，理解收益未全面保持。
+梯度重放与原轨迹发生偏离，固定步探针未捕获实际大尖峰，原799尖峰尚未定位。
+完整结果、逐类PQ标签纠正与限制见[vggt_joint_followups_results_20261013.md](vggt_joint_followups_results_20261013.md)。
+主训练64041及64042保持原配置；本次无新增训练/推理任务。

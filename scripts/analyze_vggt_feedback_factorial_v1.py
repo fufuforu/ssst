@@ -13,7 +13,7 @@ import matplotlib.pyplot as plt
 import numpy as np
 
 from analyze_vggt_understanding_probes_v1 import gradient_summary
-from analyze_vggt_interaction_controls_v1 import CLASSES, read, write
+from analyze_vggt_interaction_controls_v1 import CLASSES, metric_class_names, read, write
 from format_object_locus_posefree_siu3r_table import FIELDS, HEADERS, PRECISION, table_values
 
 ARMS = ('joint_full', 'visual_fixed', 'feedback_small', 'visual_fixed_feedback_small')
@@ -155,7 +155,7 @@ def main():
                 change = (np.asarray(native[condition][f'{view}_{metric}_per_class']).reshape(-1)-
                           np.asarray(native[reference][f'{view}_{metric}_per_class']).reshape(-1))
                 assert len(change) == len(CLASSES) == 20
-                classes[key][f'{view}_{metric}'] = dict(zip(CLASSES,change.tolist()))
+                classes[key][f'{view}_{metric}'] = dict(zip(metric_class_names(metric),change.tolist()))
     interaction = {k:None if av is None else dv-cv-bv+av for k,av,bv,cv,dv in
         zip(FIELDS,*(tables[f'{arm}/500'] for arm in ARMS))}
     write(a.output/'audit.json', dict(status='SAVED_FACTORIAL_ARTIFACTS_VERIFIED',training=audit,

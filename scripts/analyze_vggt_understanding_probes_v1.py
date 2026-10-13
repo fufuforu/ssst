@@ -16,7 +16,7 @@ matplotlib.use("Agg")
 import matplotlib.pyplot as plt
 import numpy as np
 
-from analyze_vggt_interaction_controls_v1 import CLASSES, read, write
+from analyze_vggt_interaction_controls_v1 import CLASSES, metric_class_names, read, write
 from format_object_locus_posefree_siu3r_table import FIELDS, HEADERS, PRECISION, table_values
 
 ARMS = ("joint_full", "u_read", "u_no_anchor_read", "u_fusion")
@@ -226,7 +226,7 @@ def main():
                     b, v = np.asarray(base[f"{view}_{suffix}"]).ravel(), np.asarray(variant[f"{view}_{suffix}"]).ravel()
                     assert len(b) == len(v) == 20
                     writer.writerows([[f"{condition} minus {reference}", view, suffix, name, x, y, y-x]
-                                      for name, x, y in zip(CLASSES, b, v)])
+                                      for name, x, y in zip(metric_class_names(suffix), b, v)])
                 b, v = base[f"{view}_map"], variant[f"{view}_map"]
                 assert b["classes"] == v["classes"]
                 writer.writerows([[f"{condition} minus {reference}", view, "AP", CLASSES[c], x, y, y-x]
