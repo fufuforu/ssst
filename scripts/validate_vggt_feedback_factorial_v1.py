@@ -9,6 +9,7 @@ REPO=Path(__file__).resolve().parents[1];sys.path.insert(0,str(REPO))
 from tokengs.models.object_locus_feedback_factorial_v1 import ScaledFeedback,install,VISUAL_PREFIXES
 from tokengs.models.object_locus_panoptic_v1_controller import capped_injection
 from scripts.train_vggt_understanding_probes_v1 import expected_counts
+from scripts import object_locus_frozen_vggt_posefree_runtime as native
 
 torch.set_num_threads(4);torch.manual_seed(314159)
 h=torch.randn(1,5,1024,requires_grad=True);message=torch.randn(1,5,256,requires_grad=True)
@@ -42,6 +43,10 @@ for arm in ('joint_full','visual_fixed','feedback_small','visual_fixed_feedback_
     assert all(torch.equal(before[n],p) for n,p in model.named_parameters())
     assert all(p.requires_grad==(not(arm.startswith('visual_fixed') and n.startswith(VISUAL_PREFIXES)))
                for n,p in model.named_parameters())
+    optimizer=native.build_optimizer(model)
+    grouped=[p for group in optimizer.param_groups for p in group['params']]
+    assert len({id(p) for p in grouped})==len(grouped)
+    assert {id(p) for p in grouped}=={id(p) for p in model.parameters() if p.requires_grad}
 counts=expected_counts(500);assert counts.sum()==4000 and counts.sum(0).max()==1
 print(json.dumps(dict(status='CPU_FEEDBACK_FACTORIAL_CONTRACTS_PASSED',native_beta_point1_exact=True,
     scaled_forward_and_gradient=True,no_added_parameters_or_rng_changes=True,visual_only_freeze=True,

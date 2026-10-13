@@ -44,7 +44,7 @@ def snapshot():
 def submit(path,sha,mode,output,evidence,peak=None,arm=None,run_root=None,dependency=None,node=None):
     gpus=0 if mode=='reduce' else 1 if mode=='single_smoke' else 4
     memory='8G' if not gpus else '80G' if gpus==1 else '240G' if mode in ('train','four_smoke') else '160G'
-    env=dict(os.environ,TASK_REPO=str(path),TASK_CODE_SHA=sha,TASK_OUTPUT=str(output),TASK_MODE=mode,
+    env=dict(os.environ,TASK_REPO=str(path),TASK_CODE_SHA=sha,TASK_OUTPUT=str(output),TASK_MODE=mode,TASK_GPU_CLASS='4090',
              GSPLAT_PRECOMPILED_SO=str(RENDERER))
     if peak is not None:env['TASK_SMALL_PEAK']=str(peak)
     if arm:env['TASK_ARM']=arm
@@ -114,6 +114,9 @@ def main():
             baseline=json.loads((old/'evaluation/COMPLETE.json').read_text())
             completed('63694');completed('63695')
             if baseline['status']!='UNDERSTANDING_PROBES_EVALUATED':raise ValueError('baseline not complete')
+            baseline_manifest=json.loads(Path('/space/mawb/ssst/workspace_group_plus/vggt_understanding_probes_v1/attempt01/joint_full/run_manifest.json').read_text())
+            common.update(row['common_parameters_sha256'] for row in baseline_manifest['rank_initialization'])
+            if len(common)!=1:raise ValueError('new initial weights differ from reused baseline')
             if shutil.disk_usage(RUN.parent).free<95*2**30:raise ValueError('insufficient headroom for checkpoints/evaluation')
             run=RUN/a.attempt
             if run.exists():raise ValueError('formal run already exists')
