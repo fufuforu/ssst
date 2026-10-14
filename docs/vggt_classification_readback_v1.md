@@ -26,3 +26,45 @@
 先CPU合同/语法，再同不可变push SHA单卡与四卡各三组两更新真实smoke，包含4253/6923，核对初始分类与更新后RGB/depth原生重现、冻结版本、实际更新、四rank同步和原生13列评分。正式三组用四卡3090，B/D在11号、C在13号；preflight不计正式时钟。只保存分类参数补丁、AdamW/RNG与采样计数，不复制每组数GB核心权重，保留原源资产和历史失败。
 
 证据root：`/space/mawb/ssst/group_plus/vggt_classification_readback_v1`；固定执行快照在snapshots，attempt01含preflight、reference、三组训练/自动评测/自动汇总。工程错误保留失败记录、修复验证后用新attempt续跑，不改正在运行的快照。启动正式20步/160曝光通过后停止主动轮询，让已提交训练和评测继续。
+
+## 已验证正式启动
+
+三组单卡及四卡各两次真实更新通过，预检源SHA5aeed9d6666aab31fa17557085deda2b6f0e4c19。
+初始分类/分割重现完整源权重，更新后RGB/depth重现，冻结参数/缓冲区未变、四rank实际更新同步。
+CPU四项合同通过：零初始化身份、核心梯度停止、C/D容量与对象/场景支撑区别、query mask排列等变/空可见性以及不隐藏非有限输入。
+单卡和四卡六组官方13列评分的收尾64291已COMPLETED0:0；基线恢复64292已COMPLETED0:0。
+
+真实GPU预检64221完成全部数值检查，最后表格检查因缺少显式未训练text scopes失败；
+CPU基线64222完整评分128窗口后，生产epoch格式化器要求training_checkpoint_metadata而失败。
+原失败收据/metrics/日志保留。旧正式64223/24/25被依赖取消，全部零正式更新，没有重训。
+早期CPU恢复64277–81及取消的64226保留，最终由独立diagnostic表格/明确两处mIoUt=None修复。
+基线复用已完成miou/PQ/重建，再从原完整官方saved states筛选相同128窗口，
+AP旧顺序结果复现至1e−12后以与三组相同的canonical顺序重算；没有重新渲染或再次128窗口评分。
+新表格函数在实际已完成基线metrics上验证13列及两处空白。
+
+恢复后的GPU训练/推理/官方评分固定8595edab9f5f627f7301ac33bc838d9a8f111287。
+全部训练kernel、模型readback、原head/loss/runtime、采样cohort文件与预检源逐字一致；
+export/score/diagnose函数源码也逐字一致，差异仅CPU表格/收尾/核验/依赖。
+numerical_preflight_reuse.json记录完整哈希，旧GPU预检未重复，运行快照未改。
+
+正式B=head_only 64293在11号四卡3090；C=object_support 64294在13号四卡3090；
+D=scene_support 64295原等待11号，因另一作业占一张卡，在零更新时用scontrol更新ReqNodeList至13号，
+现与C同在13号，各四卡；没有重提交D。B曾在checkpoint mmap读取页面上等待，
+节点只读进程/显卡检查确认磁盘I/O和内存加载推进，随后正常开始训练，未重启B。
+每组300步/2400新增窗口曝光，自动同128场景正式评分及mask/no-object、GT分数排序诊断。
+自动CPU汇总64296依赖成功基线及三组训练/评测。
+
+三组20次正式更新/160新增曝光的原生采样、LR/U/beta、四rank参数hash、实际非零更新、
+冻结版本、补丁SHA、AdamW step20、四rank RNG与每窗口计数通过独立启动审计。
+B/C/D可训练参数5395/137491/137491；前20步峰值GiB6.1693/6.1722/6.1722。
+此前最后读取训练进度B46/C185/D151；当时剩余训练约24/10/12分钟，不含评测，估计非保证。
+startup_validation.json与POLLING_STOPPED.json已保存；从此停止主动轮询，训练/评测继续。
+
+查看现有日志进度/剩余估计，无需Slurm轮询：
+
+```bash
+python3 /space/mawb/ssst_vggt_overfit_diagnostics_v1/scripts/show_vggt_classification_readback_progress_v1.py
+```
+
+产物：attempt01/analysis/siu3r_comparison.csv与results.json将在64296完成后生成；
+各组evaluation/metrics.json为真实13列输入，ranking_diagnostics.json仅为GT依赖诊断。
