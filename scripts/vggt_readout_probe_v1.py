@@ -40,6 +40,21 @@ def read(path):
     return json.loads(path.read_text())
 
 
+def verify_probe_segmentation(pair, reference):
+    # Accumulated FP32 score differences are irrelevant after canonical score
+    # reuse, but still bounded at1e-6 with unchanged labels/order/PNG evidence.
+    for sub in ('context_seg_pred', 'target_seg_pred'):
+        files = list((reference / sub).glob('*.png'))
+        assert files and all(digest(file) == digest(pair / sub / file.name) for file in files)
+        actual, expected = read(pair / sub / 'pred.json'), read(reference / sub / 'pred.json')
+        assert len(actual) == len(expected)
+        for x, y in zip(actual, expected):
+            assert {k: v for k, v in x.items() if k != 'score'} == {k: v for k, v in y.items() if k != 'score'}
+            assert np.isfinite(x['score']) and abs(x['score'] - y['score']) <= 1e-6
+        order = lambda rows: [row['id'] for row in sorted(rows, key=lambda row: (row['label_id'], -row['score'], row['id']))]
+        assert order(actual) == order(expected)
+
+
 def identity():
     proof = read((TRAIN / 'classification_patch_update0300.pt').with_suffix('.json'))
     assert digest(TRAIN / 'classification_patch_update0300.pt') == proof['sha256']
@@ -423,7 +438,7 @@ def write_eval(model, item, metadata, payload, window, root, rank, heads, device
                 files = [p for p in (golden / sub).glob('*.png')]
                 assert all(digest(p) == digest(pair / sub / p.name) for p in files), (arm, name, sub)
             if arm == 'reference' or arm == 'objectness_initial':
-                verify_segmentation(pair, golden)
+                verify_probe_segmentation(pair, golden)
             # Canonical original C confidence avoids1ULP differences/tie order.
             for view_name in ('context', 'target'):
                 original = read(golden / f'{view_name}_seg_pred/pred.json')

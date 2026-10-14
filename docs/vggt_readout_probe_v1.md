@@ -32,3 +32,8 @@ python3 /space/mawb/ssst_vggt_overfit_diagnostics_v1/scripts/show_vggt_readout_p
 补齐训练窗口的原list位置，实际8337窗口和2400固定stream CPU检查通过，窗口数据未改变。
 attempt01失败日志与ENGINEERING_FAILURE.json保留，正式更新/曝光均0。
 修复后用新不可变快照/attempt02继续预检，不修改旧运行快照，不重复正式训练。
+
+attempt02预检64388产生8个C参考窗口后，3个FP32末位分数差（最大1.7881393432617188e−7）
+触发借用的1e−7检查。实际8窗口PNG、ID、类别、类别内分数排序全部一致，原始失败收据保留，正式仍0更新。
+本诊断使用独立FP32分数复现检查≤1e−6，继续严格核验PNG/ID/类别/排序；R/Q仍使用原C缓存分数，
+因此这些末位差不进入实际基准或质量组分数，旧312评测函数不改。新attempt03再预检。
