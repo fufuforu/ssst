@@ -68,3 +68,21 @@ python3 /space/mawb/ssst_vggt_overfit_diagnostics_v1/scripts/show_vggt_classific
 
 产物：attempt01/analysis/siu3r_comparison.csv与results.json将在64296完成后生成；
 各组evaluation/metrics.json为真实13列输入，ranking_diagnostics.json仅为GT依赖诊断。
+
+## 已完成并复核
+
+2026-10-14用户要求完成检查。64293/64294/64295/64296均COMPLETED0:0，
+三组各300更新/2400不同训练窗口，原生同128验证/自动汇总完整，mawb队列为空。
+独立CPU复核12份训练日志、补丁SHA、12份导出/评分合同、同GT/input/raw mask IoU、
+初始化分类头及冻结重建身份通过；没有新的模型执行、训练或任务提交。
+
+C对象专属支撑输入/新视图mIoU＋1.542/＋1.567pp，PQ＋1.836/＋1.587pp，
+mAP仅＋0.134/＋0.170pp（相对A）。C优于同容量D，但mIoU增益几乎都在窗帘/浴帘，
+输入GT仅2/4实例；排除两类后其余18类平均IoU变化＋0.003/＋0.082pp。
+好mask/no-object仅A50→C49，实例评分GT排序诊断差距仍大，未解决主要失配。
+建议先扩A/C到完整312验证并短预算复现，再考虑质量评分与对象存在性读出对照；
+不直接长训或宣称定位整个decoder责任。本轮未提交后续研究作业。
+
+完整13列、完成审计、逐类解释和下一步建议见
+[完成分析](vggt_classification_readback_results_20261014.md)。
+独立复核证据为attempt01/review_final_20261014/results.json。
