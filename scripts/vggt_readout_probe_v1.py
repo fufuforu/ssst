@@ -21,7 +21,16 @@ from scripts.train_vggt_classification_readback_v1 import SOURCE, SOURCE_SHA, TR
 from scripts.eval_vggt_classification_full312_v1 import TRAIN, OLD_C, verify_pair, verify_segmentation
 from scripts.eval_vggt_joint_short_controls_v1 import write
 from scripts.eval_vggt_classification_readback_v1 import check_official
-from tokengs.models.object_locus_readout_heads_v1 import ScalarReadout, diagnostic_loss, candidate_eligibility, candidate_probabilities
+# Official scoring environment intentionally excludes the reconstruction package
+# dependencies. Load this pure-Torch head file without tokengs.models.__init__.
+import importlib.util
+_spec = importlib.util.spec_from_file_location('readout_probe_scalar_v1', REPO / 'tokengs/models/object_locus_readout_heads_v1.py')
+_readouts = importlib.util.module_from_spec(_spec)
+_spec.loader.exec_module(_readouts)
+ScalarReadout = _readouts.ScalarReadout
+diagnostic_loss = _readouts.diagnostic_loss
+candidate_eligibility = _readouts.candidate_eligibility
+candidate_probabilities = _readouts.candidate_probabilities
 
 ARMS = ('quality', 'objectness')
 FIELDS = ('features', 'class_logits', 'quality_target', 'quality_valid', 'object_target')
