@@ -27,3 +27,8 @@ CPU合同：新头零初始化/条件类别保持、整批与逐窗口平均一�
 ```bash
 python3 /space/mawb/ssst_vggt_overfit_diagnostics_v1/scripts/show_vggt_readout_probe_progress_v1.py
 ```
+
+首个真实预检64381在开始缓存前失败：原训练manifest窗口没有source_index字段，验证窗口有。
+补齐训练窗口的原list位置，实际8337窗口和2400固定stream CPU检查通过，窗口数据未改变。
+attempt01失败日志与ENGINEERING_FAILURE.json保留，正式更新/曝光均0。
+修复后用新不可变快照/attempt02继续预检，不修改旧运行快照，不重复正式训练。

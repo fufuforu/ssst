@@ -178,6 +178,7 @@ def preflight(args):
     from scripts.object_locus_frozen_vggt_posefree_runtime import load_manifest
     from scripts.eval_vggt_feedback_expanded_v1 import windows
     _, _, train = load_manifest()
+    train = [dict(window, source_index=index) for index, window in enumerate(train)]
     validation, _ = windows()
     stream = read(TRAIN_COHORT)['train_source_indices'][:16]
     assert len(stream) == len(set(stream)) == 16
@@ -303,6 +304,7 @@ def train_export(args):
     from scripts.object_locus_frozen_vggt_posefree_runtime import load_manifest
     from scripts.eval_vggt_feedback_expanded_v1 import windows
     _, _, train = load_manifest()
+    train = [dict(window, source_index=index) for index, window in enumerate(train)]
     validation, _ = windows()
     stream = read(TRAIN_COHORT)['train_source_indices'][:2400]
     assert len(stream) == len(set(stream)) == 2400
