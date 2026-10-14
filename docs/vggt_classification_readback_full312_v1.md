@@ -30,3 +30,22 @@ python3 /space/mawb/ssst_vggt_overfit_diagnostics_v1/scripts/show_vggt_classific
 64350完成A/旧C原生状态核验（2:11）；64351预检在6:19失败，原因仅为旧窗口pred.json中少数置信度有一个FP32 ULP（最大5.960464477539063e−8），触发过严的JSON字节比较。四个已知旧窗口全部分割PNG、对象ID、类别、同类别实例分数排序一致，原生匹配诊断也重现；RGB/depth/GT检查通过。依据实际输出，将pred.json score检查改为有限且绝对误差不超过1e−7，仍严格核验所有PNG字节、其他JSON字段和类别内排序；模型、loss、参数及推理kernel保持。保留失败快照/日志及ENGINEERING_FAILURE_REVIEW.json。
 
 依赖正式64352及汇总64353自动取消，零正式推理、零训练更新。修复代码经实际已生成四旧窗口CPU合同验证，独立attempt02重做八窗口真实预检并续接正式评测；复制复用成功64350参考，避免重复A评分。进度脚本自动选择最新提交attempt。最终表格在成功attempt的analysis，原attempt01不覆盖。
+
+## 已验证正式评测启动并停止轮询
+
+attempt02使用不可变已推送SHA4e39c88a4b65af0629e3330893ddd2db5c98d452。
+64354四卡真实预检COMPLETED0:0（4:18，13号），八窗口推理及四GPU/CPU原生评分合同全部通过，
+本次四旧窗口分割PNG/类别/排序及置信度均精确重现，FP32检查修复未改变数值kernel。
+64355已在13号四张3090执行正式C评测，64356依赖其成功后自动CPU汇总。
+复用成功64350的A全312参考，不重复执行A模型或评分。
+
+已独立核验四rank各至少20新增窗口成功导出、每rank32旧窗口复用、465窗口分片计数正确，
+每个已完成新窗口RGB/depth/GT逐帧身份检查通过，正式日志无异常，零新增训练更新。
+startup_validation.json保存实际采样进度、源及补丁身份、任务编号与预检证据。
+当时剩余推理约29分钟，不包含后续官方评分及CPU汇总，估计非保证。
+POLLING_STOPPED.json保存停止主动轮询收据，等待用户通知结束后检查完整结果。
+
+本次最终表格路径：`attempts/attempt02/analysis/siu3r_comparison.csv`和`.md`；
+原始C成绩：`attempts/attempt02/object_support/metrics.json`；
+A复用成绩：`attempts/attempt02/reference/metrics.json`；
+完整比较/逐类/GT排序诊断：`attempts/attempt02/analysis/results.json`。
