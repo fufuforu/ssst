@@ -6,9 +6,12 @@ from pathlib import Path
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument('--root', type=Path, default=Path('/space/mawb/ssst/group_plus/vggt_classification_readback_full312_v1/attempts/attempt01'))
+    parser.add_argument('--root', type=Path)
     args = parser.parse_args()
-    root = args.root
+    base = Path('/space/mawb/ssst/group_plus/vggt_classification_readback_full312_v1/attempts')
+    submitted = sorted(path.parent for path in base.glob('attempt*/submission.json'))
+    root = args.root or (submitted[-1] if submitted else base / 'attempt01')
+    print('Attempt:', root)
     if (root / 'COMPLETE.json').exists():
         print((root / 'COMPLETE.json').read_text())
         print('Table:', root / 'analysis/siu3r_comparison.md')

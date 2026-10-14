@@ -3,6 +3,7 @@ import argparse
 from collections import Counter, defaultdict
 import csv
 import json
+import math
 import os
 from pathlib import Path
 import shutil
@@ -88,6 +89,31 @@ def verify_pair(pair, reference, subs):
         assert all(digest(reference / sub / name) == digest(pair / sub / name) for name in files), (pair.name, sub)
 
 
+def verify_segmentation(pair, reference):
+    """Require identical PNG/labels/order; accept at most 1e-7 FP32 score jitter."""
+    maximum = 0.0
+    for sub in ('context_seg_pred', 'target_seg_pred'):
+        files = sorted(p.name for p in (reference / sub).iterdir() if p.is_file())
+        assert files == sorted(p.name for p in (pair / sub).iterdir() if p.is_file())
+        for name in files:
+            new, old = pair / sub / name, reference / sub / name
+            if name != 'pred.json':
+                assert digest(new) == digest(old), (pair.name, sub, name)
+                continue
+            new_rows, old_rows = read(new), read(old)
+            assert len(new_rows) == len(old_rows)
+            for actual, expected in zip(new_rows, old_rows):
+                assert {k: v for k, v in actual.items() if k != 'score'} == {k: v for k, v in expected.items() if k != 'score'}
+                assert math.isfinite(actual['score']) and math.isfinite(expected['score'])
+                delta = abs(actual['score'] - expected['score'])
+                maximum = max(maximum, delta)
+                assert delta <= 1e-7, (pair.name, sub, actual['id'], delta)
+            def order(rows):
+                return [row['id'] for row in sorted(rows, key=lambda row: (row['label_id'], -row['score'], row['id']))]
+            assert order(new_rows) == order(old_rows), (pair.name, sub, 'within_class_score_order')
+    return dict(PNGs_IDs_labels_and_score_order_identical=True, score_max_abs_delta=maximum, score_tolerance=1e-7)
+
+
 def export(args):
     rank, device = worker()
     proof = identity()
@@ -126,7 +152,7 @@ def export(args):
             previous, previous_path, _ = old[row['name']]
             assert row['input_rgb_sha256'] == previous['input_rgb_sha256']
             assert row['diagnostics'] == previous['diagnostics']
-            verify_pair(pair, previous_path, ('context_seg_pred', 'target_seg_pred'))
+            row['existing_C_segmentation_reproduction'] = verify_segmentation(pair, previous_path)
         for filename in ('render_scores.json', 'depth_scores.json'):
             shutil.copy2(reference / filename, pair / filename)
         records.append(dict(row, reused_existing128=False))

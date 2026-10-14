@@ -17,6 +17,7 @@ def command(args, env=None):
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--attempt', default='attempt01')
+    parser.add_argument('--reference-from', help='Reuse an already successful reference in a preserved prior attempt.')
     args = parser.parse_args()
     assert Path(args.attempt).name == args.attempt and args.attempt.startswith('attempt')
     assert not command(['git', '-C', str(REPO), 'status', '--porcelain'])
@@ -53,12 +54,24 @@ def main():
         receipt.write_text(json.dumps(dict(status='SUBMITTING', execution_sha=sha, jobs=jobs), indent=2) + '\n')
         return job
 
-    reference = submit('reference', attempt / 'reference')
+    if args.reference_from:
+        assert Path(args.reference_from).name == args.reference_from
+        previous = ROOT / 'attempts' / args.reference_from / 'reference'
+        done = json.loads((previous / 'COMPLETE.json').read_text())
+        assert done['status'] == 'FULL312_REFERENCE_REUSED' and done['native_reference_metrics_reproduced']
+        assert done['native_prior128_C_merge_reproduced']
+        shutil.copytree(previous, attempt / 'reference')
+        (attempt / 'reference/REFERENCE_REUSE.json').write_text(json.dumps(dict(
+            status='SUCCESSFUL_PRIOR_REFERENCE_REUSED', source=str(previous),
+            new_evaluation_execution_sha=sha, model_forward_calls=0, optimizer_updates=0), indent=2) + '\n')
+        reference = None
+    else:
+        reference = submit('reference', attempt / 'reference')
     preflight = submit('preflight', attempt / 'preflight', True)
-    formal = submit('evaluate', attempt / 'object_support', True, ':'.join([reference, preflight]))
+    formal = submit('evaluate', attempt / 'object_support', True, ':'.join([job for job in (reference, preflight) if job]))
     submit('comparison', attempt, dependency=formal)
     receipt.write_text(json.dumps(dict(status='FULL312_A_C_EVALUATION_SUBMITTED', execution_sha=sha,
-        attempt=str(attempt), jobs=jobs, scenes=312, windows=1860, images=11160,
+        attempt=str(attempt), jobs=jobs, reused_reference_from=args.reference_from, scenes=312, windows=1860, images=11160,
         A_all1860_outputs_and_native_states_reused=True, C_existing128_outputs_and_native_states_reused=True,
         C_new_windows=1732, additional_training_updates=0, official_columns=13, text_columns_blank=True), indent=2) + '\n')
     print(json.dumps(dict(receipt=str(receipt), execution_sha=sha, jobs=[{k: j[k] for k in ('job_id', 'mode', 'gpus', 'dependency')} for j in jobs]), indent=2))

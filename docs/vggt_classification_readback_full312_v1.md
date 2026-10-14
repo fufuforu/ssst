@@ -6,7 +6,7 @@ A是adapter0.01/feedback0.05完整适配2＋冻结联合4的终点：checkpoint 
 
 C是上述A加300步对象专属分类读回的最终补丁，SHA ad3100ceabbd4d9ab41f653cdb40ec1cb86dc882d71d9ad5ac14192947f4f0f9，训练执行SHA8595edab9f5f627f7301ac33bc838d9a8f111287。核心/mask冻结，原双向结构与feedback保持，只改变分类输入。同128已完成PNG和官方状态均复用，仅新增1732窗口推理/官方评分。每rank32已有窗口＋433新增窗口，共465；1860窗口与manifest逐条对齐，不丢失、重复或新增采样。
 
-训练、模型、原export/diagnose的文件哈希与已完成数值执行快照比对一致，旧C四分片合并重现原128成绩。新的调度/范围/合并逻辑先通过CPU身份/覆盖检查，再四卡3090真实预检：每rank重新推理一个旧C窗口及一个新窗口，共8窗口。旧C类别/实例PNG、诊断和RGB/depth/GT重现；新窗口RGB/depth/GT逐帧重现A。实际GPU官方评分/分片合并对未修改CPU官方评测器误差小于1e−7。预检不计新训练曝光。
+训练、模型、原export/diagnose的文件哈希与已完成数值执行快照比对一致，旧C四分片合并重现原128成绩。新的调度/范围/合并逻辑先通过CPU身份/覆盖检查，再四卡3090真实预检：每rank重新推理一个旧C窗口及一个新窗口，共8窗口。旧C类别/实例PNG、诊断和RGB/depth/GT重现；置信度有限、FP32误差不超过1e−7且同类别实例排序一致。新窗口RGB/depth/GT逐帧重现A。实际GPU官方评分/分片合并对未修改CPU官方评测器误差小于1e−7。预检不计新训练曝光。
 
 预检与CPU参考完成后自动启动四卡正式C评测。每个新窗口继续检查冻结重建与GT身份，复用A已完成的逐帧重建评分。旧C128窗口原始产物先复制，保护历史证据；官方IoU/PQ/AP状态与1732新窗口状态统一全局合并，AP按canonical图像顺序合并，不平均分片或窗口成绩。最终重建五项对A误差必须小于1e−12。
 
@@ -24,3 +24,9 @@ python3 /space/mawb/ssst_vggt_overfit_diagnostics_v1/scripts/show_vggt_classific
 ```
 
 最终产物为`attempts/attempt01/analysis/siu3r_comparison.csv`、`.md`及`results.json`；C原生`metrics.json`在`object_support`，A复用核验报告在`reference`。
+
+## 首次真实预检的工程恢复
+
+64350完成A/旧C原生状态核验（2:11）；64351预检在6:19失败，原因仅为旧窗口pred.json中少数置信度有一个FP32 ULP（最大5.960464477539063e−8），触发过严的JSON字节比较。四个已知旧窗口全部分割PNG、对象ID、类别、同类别实例分数排序一致，原生匹配诊断也重现；RGB/depth/GT检查通过。依据实际输出，将pred.json score检查改为有限且绝对误差不超过1e−7，仍严格核验所有PNG字节、其他JSON字段和类别内排序；模型、loss、参数及推理kernel保持。保留失败快照/日志及ENGINEERING_FAILURE_REVIEW.json。
+
+依赖正式64352及汇总64353自动取消，零正式推理、零训练更新。修复代码经实际已生成四旧窗口CPU合同验证，独立attempt02重做八窗口真实预检并续接正式评测；复制复用成功64350参考，避免重复A评分。进度脚本自动选择最新提交attempt。最终表格在成功attempt的analysis，原attempt01不覆盖。
