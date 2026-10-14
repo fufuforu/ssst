@@ -14,3 +14,11 @@ checkpoint SHA ecd5cefabf9fb1b637d2c27e4bc65e137e88ed70dd9f9f650e944674f1e24ac0�
 旧CLI默认A/B/C行为保留；扩展原诊断脚本增加严格完整checkpoint来源和单组汇总，不新增训练runtime。几何政策monitor_v1不变，告警保留。输出root：`/space/mawb/ssst/group_plus/vggt_full_b005_bottleneck_recheck_v1`；各次执行使用已push的固定SHA快照，旧证据不覆盖，提交前检查重复作业。
 
 此次复核只判断长期训练后上述现象是否保留，不直接归因某模块，更不确定整个decoder上限。下一阶段对照待结果分析后决定；不在本次叠加梯度loss分项重放。
+
+## 完成记录
+
+64161已COMPLETED0:0，5分55秒，四卡3090。固定执行SHA2fe23430e6dc76562c075ad5b7f5e493d16acc2a，
+4次真实预检和128次正式冻结前向通过，模型参数未变、零优化器调用。
+两种失配仍在：完整权重的好mask匹配query有50/334判no-object；完整新视图GT排序诊断0.246245→0.333883。
+同cohort旧C500对比、完整性与解释见[vggt_full_b005_bottleneck_recheck_results_20261014.md](vggt_full_b005_bottleneck_recheck_results_20261014.md)。
+本次没有提交后续结构训练或loss分项重放，用户队列为空。
