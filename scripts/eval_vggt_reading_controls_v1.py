@@ -35,7 +35,8 @@ def export(a):
     receipt = json.loads(path.with_suffix('.json').read_text())
     if rank == 0 and digest(path) != receipt['sha256']:
         raise ValueError('checkpoint hash differs')
-    b = torch.load(path, map_location='cpu', mmap=True, weights_only=False)
+    from scripts.vggt_lossless_checkpoint_v1 import load as load_checkpoint
+    b = load_checkpoint(path)
     if b['config'] != config(a.arm) or b['completed_updates'] != 300 or b['completed_exposures'] != 2400:
         raise ValueError('checkpoint identity differs')
     model, opt, _ = build(a.arm, device)

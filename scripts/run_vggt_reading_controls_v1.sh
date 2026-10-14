@@ -48,8 +48,16 @@ PY
   ;;
  startup|train_eval)
   /usr/bin/python3 - "${TASK_PREFLIGHT:?}/PREFLIGHT_VERIFIED.json" "$TASK_CODE_SHA" <<'PY'
-import json,sys
-p=json.load(open(sys.argv[1]));assert p['status']=='READING_PREFLIGHT_VERIFIED' and p['execution_sha']==sys.argv[2]
+import json,sys,os
+p=json.load(open(sys.argv[1]));assert p['status']=='READING_PREFLIGHT_VERIFIED'
+if p['execution_sha']!=sys.argv[2]:
+ from scripts.vggt_reading_numerical_contract_v1 import contract
+ reuse=json.load(open(os.environ['TASK_PREFLIGHT_REUSE_PROOF']))
+ assert reuse['status']=='SERIALIZER_ONLY_RECOVERY_WITH_IDENTICAL_TRAINING_MATH'
+ assert reuse['preflight_execution_sha']==p['execution_sha'] and reuse['execution_sha']==sys.argv[2]
+ assert contract(os.environ['TASK_REPO'])==reuse['numerical_contract']
+ assert reuse['lossless_parameter_optimizer_RNG_counts_roundtrip_verified']
+else:assert p['execution_sha']==sys.argv[2]
 PY
   if [[ "$TASK_MODE" == startup ]]; then
    exec "$PYTHON" -m torch.distributed.run --standalone --nproc_per_node=8 scripts/train_vggt_reading_controls_v1.py \

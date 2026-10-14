@@ -165,7 +165,8 @@ def run(a):
     counts = np.zeros(8337, dtype=np.int64)
     start = 0
     if a.resume:
-        b = torch.load(a.output / 'checkpoint_latest.pt', map_location='cpu', mmap=True, weights_only=False)
+        from scripts.vggt_lossless_checkpoint_v1 import load as load_checkpoint
+        b = load_checkpoint(a.output / 'checkpoint_latest.pt')
         if b['config'] != config(a.arm) or b['world_size'] != 8:
             raise ValueError('resume science identity differs')
         apply_state(model, b)
@@ -223,7 +224,8 @@ def run(a):
                 import fcntl
                 with (a.output.parent.parent / '.checkpoint-write.lock').open('a') as lock:
                     fcntl.flock(lock, fcntl.LOCK_EX)
-                    native._atomic_save(payload, path)
+                    from scripts.vggt_lossless_checkpoint_v1 import save as save_checkpoint
+                    save_checkpoint(payload, path)
                     fcntl.flock(lock, fcntl.LOCK_UN)
                 write(path.with_suffix('.json'), dict(status='SAVED', sha256=digest(path), completed_updates=step, execution_sha=sha))
             except Exception as exc:
