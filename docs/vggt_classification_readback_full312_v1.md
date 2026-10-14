@@ -49,3 +49,19 @@ POLLING_STOPPED.json保存停止主动轮询收据，等待用户通知结束后
 原始C成绩：`attempts/attempt02/object_support/metrics.json`；
 A复用成绩：`attempts/attempt02/reference/metrics.json`；
 完整比较/逐类/GT排序诊断：`attempts/attempt02/analysis/results.json`。
+
+## 完成检查与判断
+
+64355 COMPLETED0:0（28:16），64356 COMPLETED0:0（1:14），完整312场景/1860窗口/11160图像。
+独立核验四rank465记录、128旧状态精确复用、1732新增评分、manifest覆盖/帧ID、原生合并合同及13列有限性通过。
+C六项理解指标对A均小幅提高：输入/新视图mIoU＋0.4525/＋0.4468pp、
+mAP＋0.1149/＋0.0946pp、PQ＋0.3539/＋0.3047pp；冻结重建五项一致。
+mIoU净收益约78%来自窗帘/冰箱/浴帘，mAP净收益主要来自浴帘。
+另以保存官方状态核对未参与128筛选的184场景/1097窗口，mAP仅−0.0227/＋0.0114pp，基本持平。
+C完整好mask/no-object冲突904/5001（18.08%），不能与A128比例直接比较；
+原128公平对比仍几乎不变，GT排序诊断差距也未缩小。
+建议保留C候选、暂不长训，优先小预算分开验证实例质量评分与对象存在性。
+本轮仅只读检查和CPU分析，未提交新的研究任务。
+
+[完整13列与分析判断](vggt_classification_readback_full312_results_20261014.md)。
+独立证据：attempt02/review_final_20261014/results.json。
