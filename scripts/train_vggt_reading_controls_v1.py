@@ -93,21 +93,37 @@ def zero_reproduction(model, opt, window, device):
     del pan.reading_control
     batch = build_batch(opt, window, device)
     model.eval()
-    keys = ('gaussians', 'class_logits19', 'gaussian_membership', 'F_m', 'q_pre')
+    exact_keys = ('gaussians', 'F_m', 'q_pre', 'q_final', 'anchor_final')
+    keys = exact_keys + ('class_logits19', 'gaussian_membership')
+    def capture(output):
+        output['q_final'] = output['states'][-1]['q']
+        output['anchor_final'] = output['states'][-1]['anchor_embedding']
+        return {k: output[k].detach().clone() for k in keys}
     with torch.no_grad():
         original = model.generate(batch['images_input'])
-        expected = {k: original[k].detach().clone() for k in keys}
+        expected = capture(original)
         del original
+        repeated = model.generate(batch['images_input'])
+        repeated = capture(repeated)
+        native_diffs = {k: float((repeated[k] - expected[k]).abs().max()) for k in keys}
+        del repeated
         pan.reading_control = control
         output = model.generate(batch['images_input'])
+        output['q_final'] = output['states'][-1]['q']
+        output['anchor_final'] = output['states'][-1]['anchor_embedding']
         diffs = {k: float((output[k] - expected[k]).abs().max()) for k in keys}
-        if any(v != 0 for v in diffs.values()):
+        # The native GS visibility/feature lift uses CUDA atomic accumulation.
+        # Require upstream/query exact identity, independently witness original
+        # readout jitter, and bound both original and control readouts1e-5.
+        tolerance = {k: (0. if k in exact_keys else 1e-5) for k in keys}
+        if any(not torch.isfinite(output[k]).all() or diffs[k] > tolerance[k] or native_diffs[k] > tolerance[k] for k in keys):
             raise ValueError('zero-start control changes native C: ' + str(diffs))
     del output, batch, expected
     model.train()
     model.understanding.encoder.eval()
     model.frozen_vggt.eval()
-    return diffs
+    return dict(max_abs_differences=diffs, native_repeat_max_abs_differences=native_diffs,
+        tolerances=tolerance, exact_upstream_keys=list(exact_keys))
 
 
 def run(a):
@@ -164,9 +180,9 @@ def run(a):
         if a.mode != 'train':
             proof = zero_reproduction(model, opt, train[4253], device)
             rows = [None] * world
-            dist.all_gather_object(rows, dict(rank=rank, max_abs_differences=proof))
+            dist.all_gather_object(rows, dict(rank=rank, **proof))
             if rank == 0:
-                write(a.output / 'zero_reproduction.json', dict(status='EXACT_NATIVE_C_REPRODUCED', rows=rows, formal_updates=0))
+                write(a.output / 'zero_reproduction.json', dict(status='NATIVE_C_ZERO_START_VERIFIED', rows=rows, formal_updates=0))
     # Every branch shares exactly the same existing trainable tensors.
     initialization = [None] * world
     dist.all_gather_object(initialization, dict(rank=rank, parameter_sha256=parameter_hash(named),

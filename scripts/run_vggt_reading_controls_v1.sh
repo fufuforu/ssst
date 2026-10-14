@@ -36,14 +36,14 @@ for stage,world in [('single',1),('eight',8)]:
   complete=json.load(open(p/'COMPLETE.json'));proof=json.load(open(p/'smoke_update_proof.json'))
   assert complete['status']=='READING_CONTROL_SMOKE_PASSED' and complete['formal_updates']==0
   assert proof['status']=='GPU_STEP_VERIFIED' and len(proof['rank_rows'])==world
-  zero=json.load(open(p/'zero_reproduction.json'));assert zero['status']=='EXACT_NATIVE_C_REPRODUCED'
-  assert all(all(v==0 for v in r['max_abs_differences'].values()) for r in zero['rows'])
+  zero=json.load(open(p/'zero_reproduction.json'));assert zero['status']=='NATIVE_C_ZERO_START_VERIFIED'
+  assert all(all(r['max_abs_differences'][k]<=r['tolerances'][k] and r['native_repeat_max_abs_differences'][k]<=r['tolerances'][k] for k in r['tolerances']) for r in zero['rows'])
   initial=json.load(open(p/'run_manifest.json'))['rank_initialization'][0]
   if capacity is not None: assert initial==capacity
   capacity=initial
   witness=json.load(open(p/'official_witness.json'));assert witness['official_evaluator_used']
 (root/'PREFLIGHT_VERIFIED.json').write_text(json.dumps(dict(status='READING_PREFLIGHT_VERIFIED',execution_sha=sys.argv[2],formal_updates=0,
- actual1_and8_rank_updates_verified=True,zero_start_exactly_native_C=True,equal_capacity=True),indent=2)+'\n')
+ actual1_and8_rank_updates_verified=True,zero_start_native_C_verified=True,exact_upstream_query_and_Gaussians=True,equal_capacity=True),indent=2)+'\n')
 PY
   ;;
  startup|train_eval)
