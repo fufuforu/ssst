@@ -13,13 +13,15 @@ from scripts.probe_vggt_saved_mask_ranking_v1 import ranking_result
 
 
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--root',type=Path,required=True);a=p.parse_args()
+    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--root',type=Path,required=True)
+    p.add_argument('--recovery-name',default='recovery');a=p.parse_args()
+    assert Path(a.recovery_name).name==a.recovery_name
     check_official();torch.set_num_threads(4)
     original=json.loads((a.root/'metrics.json').read_text())
     assert original['status']=='EVALUATED' and original['windows']==original['unique_scenes']==128
     assert original['source_checkpoint_sha256']==SOURCE_SHA
     assert json.loads((a.root/'progress.json').read_text())['completed']==128
-    out=a.root/'recovery';out.mkdir(parents=True,exist_ok=False)
+    out=a.root/a.recovery_name;out.mkdir(parents=True,exist_ok=False)
     wanted={r['name'] for r in json.loads(HELDOUT.read_text())['records']}
     states=[torch.load(OFFICIAL/f'rank{i:02d}/official_states.pt',map_location='cpu',mmap=True,weights_only=False)['all'] for i in range(4)]
     lookup={n:(i,j) for i,s in enumerate(states) for j,n in enumerate(s['names'])}
@@ -55,6 +57,7 @@ def main():
         original_failed_metrics_preserved=True,model_forward_calls=0,optimizer_updates=0))
     write(a.root/'COMPLETE.json',dict(status='REFERENCE128_EVALUATED',windows=128,model_forward_calls=0,
         optimizer_updates=0,recovery=str(out),historical_job64222='FAILED1:0'))
+    write(a.root/'RECOVERY_LATEST.json',dict(relative_root=a.recovery_name,status='REFERENCE_RECOVERED_WITH_CANONICAL_AP'))
     print('REFERENCE_RECOVERED_WITH_CANONICAL_AP',flush=True)
 
 

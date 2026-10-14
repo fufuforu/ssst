@@ -21,7 +21,10 @@ def main():
     import torch
     from scripts.posefree_official_state_helpers import merge
     torch.set_num_threads(4)
-    recovered=a.root/'reference/recovery/CANONICAL_REFERENCE_COMPLETE.json'
+    latest=a.root/'reference/RECOVERY_LATEST.json'
+    recovery_name=json.loads(latest.read_text())['relative_root'] if latest.exists() else 'recovery'
+    assert Path(recovery_name).name==recovery_name
+    recovered=a.root/'reference'/recovery_name/'CANONICAL_REFERENCE_COMPLETE.json'
     if recovered.exists():
         assert json.loads(recovered.read_text())['status']=='REFERENCE_RECOVERED_WITH_CANONICAL_AP'
         reference=json.loads((recovered.parent/'metrics.json').read_text())
