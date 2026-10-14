@@ -9,13 +9,17 @@ import torch
 from PIL import Image
 
 
-def assemble_panoptic(out):
+def assemble_panoptic(out, *, eligible_override=None):
     membership = out["region_mass"][0]  # [V,102,H,W], alpha-normalized sigmoid masks
     alpha = out["alpha"][0, :, 0]
     pclass = out["p_class"][0]
     thing_prob, thing_cls = pclass[:, :18].max(-1)
     class_is_thing = pclass[:, :18].argmax(-1)
     eligible = (pclass.argmax(-1) != 18) & (thing_prob >= 0.05)
+    if eligible_override is not None:
+        if eligible_override.shape != eligible.shape or eligible_override.dtype != torch.bool:
+            raise ValueError('candidate override shape/type differs')
+        eligible = eligible_override.to(eligible.device)
     raw_sem = out["semantic_scores"][0].argmax(1)
     semantic = torch.full_like(raw_sem, 20)
     instance = torch.zeros_like(raw_sem)
@@ -62,7 +66,8 @@ def _save_packed(path, sem, ins):
     Image.fromarray(rgb.cpu().numpy().astype(np.uint8)).save(path)
 
 
-def write_official_pair(out, batch, window, root, *, target_frames="all", diagnostics_root=None):
+def write_official_pair(out, batch, window, root, *, target_frames="all", diagnostics_root=None,
+                        eligible_override=None, score_multiplier=None):
     root = Path(root)
     scene = str(window["scene"])
     context = [int(x) for x in window["context"]]
@@ -71,10 +76,17 @@ def write_official_pair(out, batch, window, root, *, target_frames="all", diagno
         raise RuntimeError("V2 official export context frame mismatch")
     target_indices = (list(range(len(frame_ids))) if target_frames == "all" else
                       [i for i, f in enumerate(frame_ids) if f in set(map(int, window["novel"]))])
-    sem, ins, raw_sem = assemble_panoptic(out)
+    sem, ins, raw_sem = assemble_panoptic(out, eligible_override=eligible_override)
     pclass = out["p_class"][0]
     class_prob, cls0 = pclass[:, :18].max(-1)
     eligible = (pclass.argmax(-1) != 18) & (class_prob >= 0.05)
+    if eligible_override is not None:
+        eligible = eligible_override.to(eligible.device)
+    if score_multiplier is not None:
+        if score_multiplier.shape != class_prob.shape or not torch.isfinite(score_multiplier).all():
+            raise ValueError('invalid ranking multiplier')
+        if bool(((score_multiplier < 0) | (score_multiplier > 1)).any()):
+            raise ValueError('quality multiplier outside0..1')
     membership = out["region_mass"][0]
     def rows(indices):
         result = []
@@ -86,6 +98,8 @@ def write_official_pair(out, batch, window, root, *, target_frames="all", diagno
                 continue
             probs = torch.cat([membership[i, q].reshape(-1) for i in indices])
             score = float(class_prob[q] * probs[assigned].mean())
+            if score_multiplier is not None:
+                score *= float(score_multiplier[q])
             result.append({"id": q + 1, "label_id": int(cls0[q]) + 3, "score": score})
         return result
     pair_dir = root / (f"{scene}_context" + "_".join(map(str, context)))
