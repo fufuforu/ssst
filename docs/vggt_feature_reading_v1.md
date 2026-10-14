@@ -16,7 +16,7 @@
 - q_pre：MASt3R/Mask2Former产生、进入双向层前的query。
 - q6/q8/q10/q12：四个交互层后的query，q12还没有C的分类专属读回。
 - q_class：C分类LN后的实际输入。
-- anchor_read12：最后一层真实平均anchor attention读取的256维anchor embedding。
+- anchor_read12：用最后一层真实八头平均attention权重池化原256维anchor embedding的代理；不是各头V投影及O合成后的完整CA输出。
 - anchor_local：同一预测对象软Gaussian mask及可见mass加权的anchor embedding，64个child按原父anchor顺序聚合。
 - object_local：C原mask_support_readback的对象可见Gaussian特征池化，使用其原软mask和可见性权重。
 - visual_local：同一预测context mask乘alpha池化Fm，不使用GT区域。
@@ -70,3 +70,7 @@ GPU缓存64394（11号八卡）成功完成1024训练及128验证窗口，原C�
 执行快照361b2a0980efb36344aed24a72d10a6b5f02c264。原CPU分析64395因JSON将feature_views tuple编码为list而触发身份比较断言，未产生分析结果。
 失败日志及ENGINEERING_FAILURE_CPU64395.json保留。修复仅统一身份表示，分别记录GPU缓存执行SHA与CPU分析执行SHA；纯探针数学文件SHA与原快照严格相同。
 复用全部缓存及三个预算的系数，只重提CPU分析，不重复GPU前向，不训练模型。
+
+GPU64394成功用时13分32秒；修复后的CPU64396成功用时1分32秒。
+补充缓存互补复核64397成功用时1分46秒，仅1张3090处理矩阵、主encoder前向0；512维融合probe比较同维duplicate/noise容量控制。
+完成results.json、fusion_paired_review.json、quality_paired_review.json和报告，未提交新的模型训练。
