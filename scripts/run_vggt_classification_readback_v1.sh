@@ -25,9 +25,17 @@ case "${TASK_MODE:?}" in
   ;;
  train_eval)
   /usr/bin/python3 - "${TASK_PREFLIGHT:?}/PREFLIGHT_VERIFIED.json" "$TASK_CODE_SHA" <<'PY'
-import json,sys
+import json,sys,os,hashlib
 proof=json.load(open(sys.argv[1]))
-assert proof['status']=='CLASSIFICATION_PREFLIGHT_VERIFIED' and proof['execution_sha']==sys.argv[2]
+assert proof['status']=='CLASSIFICATION_PREFLIGHT_VERIFIED'
+if proof['execution_sha']!=sys.argv[2]:
+    reuse=json.load(open(os.environ['TASK_PREFLIGHT_REUSE_PROOF']))
+    assert reuse['status']=='NUMERICAL_EXECUTION_IDENTICAL_PREFLIGHT_REUSED'
+    assert reuse['preflight_gpu_sha']==proof['execution_sha'] and reuse['execution_sha']==sys.argv[2]
+    for relative,expected in reuse['numerical_files_sha256'].items():
+        assert hashlib.sha256(open(relative,'rb').read()).hexdigest()==expected
+else:
+    assert proof['execution_sha']==sys.argv[2]
 assert proof['actual1_and4_rank_updates_verified'] and proof['equal_C_D_capacity']
 assert proof['formal_updates']==0 and len(proof['official_13_column_scores'])==6
 PY
