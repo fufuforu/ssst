@@ -130,6 +130,8 @@ class LocusGSObjectLocusFrozenVGGT(LocusGSObjectLocusPanopticV1Recon):
         latent=self._latent_from_vggt(vggt_result)
         patch_rays=rays_to_patch_plucker(c2w_scene,vggt_result.intrinsics518,patch_size=14)
         fm,qpre=self.understanding(context_rgb)
+        if hasattr(self.panoptic, 'reading_control'):
+            self.panoptic.reading_control.prepare(fm, c2w_scene, k256, points, vggt_result.confidence518)
         states,ray_stats=self.anchor_decoder.forward_stateful(
             self.get_gs_tokens(batch_size=context_rgb.shape[0]),latent,patch_rays,
             self.panoptic,fm,qpre,self.understanding.mask_embedder,self.understanding_step)

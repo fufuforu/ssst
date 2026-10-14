@@ -61,8 +61,11 @@ class RegisteredObjectLayer(nn.Module):
 
     update_geometry = ObjectLocusV3SetController.update_geometry
 
-    def forward(self, h, a, mu, q, c, s, ell, image, mask_embedder, f_anchor, exposure):
-        ev, R = self.anchor_attention(q, a, geometry_bias(mu, c, s))
+    def forward(self, h, a, mu, q, c, s, ell, image, mask_embedder, f_anchor, exposure, *, reading_control=None, previous_support=None):
+        bias = geometry_bias(mu, c, s)
+        if reading_control is not None:
+            bias = reading_control.object_bias(bias, previous_support)
+        ev, R = self.anchor_attention(q, a, bias)
         q1 = self.norms[0](q + ev)
         im, _ = self.image_attention(q1, self.image_ln(image))
         q2 = self.norms[1](q1 + im)
