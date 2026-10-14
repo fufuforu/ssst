@@ -1,5 +1,6 @@
 """Pinned official heldout128 evaluation of the classification-only controls."""
 import argparse
+import csv
 import json
 import os
 from pathlib import Path
@@ -14,6 +15,17 @@ REPO=Path(__file__).resolve().parents[1];sys.path.insert(0,str(REPO))
 from scripts.train_vggt_classification_readback_v1 import (
     ARMS,OFFICIAL,SOURCE_SHA,HELDOUT,config,build_base,configure,apply_patch_state,digest)
 from scripts.eval_vggt_joint_short_controls_v1 import write,export_window
+
+
+def write_diagnostic_table(report,root):
+    from scripts.format_object_locus_posefree_siu3r_table import FIELDS,table_values,markdown_table
+    values=table_values(report)
+    with (root/'siu3r_table1.csv').open('w',newline='') as f:
+        writer=csv.writer(f);writer.writerow(FIELDS);writer.writerow(values)
+    write(root/'siu3r_table1.json',dict(method='Classification readout diagnostic / '+report['arm'],
+        diagnostic_only=True,columns=FIELDS,values=values,source_checkpoint_sha256=SOURCE_SHA,
+        official_commit=report['official_commit'],windows=128,text_columns_untrained=True))
+    (root/'siu3r_table1.md').write_text('# Classification readout diagnostic\n\n'+markdown_table(report)+'\n')
 
 
 def diagnose(output,batch):
@@ -142,7 +154,7 @@ def reduce(a):
         scopes={'target-all':dict(zip(('absrel','rmse','psnr','ssim','lpips'),map(float,values)))},
         official_segmentation={'all':merge(blobs,a.root)},optimizer_updates=0,
         source_checkpoint_sha256=SOURCE_SHA,frozen_RGB_depth_and_GT_exactly_reproduced=True,config=config(a.arm))
-    write(a.root/'metrics.json',report);write_table(report,a.root)
+    write(a.root/'metrics.json',report);write_diagnostic_table(report,a.root)
     totals={k:sum(r[k] for r in diagnostics) for k in ('gt','good_matched_mask','good_matched_but_no_object','matched_no_object','matched_class_correct')}
     assert totals['gt']==492
     write(a.root/'matched_query_diagnostics.json',dict(status='MATCHED_QUERY_DIAGNOSIS_COMPLETE',totals=totals,
@@ -182,7 +194,7 @@ def baseline(a):
     report=dict(status='EVALUATED',diagnostic_only=True,arm='reference',windows=128,unique_scenes=128,official_commit=SIU3R_COMMIT,
         scopes={'target-all':dict(zip(('absrel','rmse','psnr','ssim','lpips'),map(float,np.asarray(rows).mean(0))))},
         official_segmentation={'all':result(e)},optimizer_updates=0,source_checkpoint_sha256=SOURCE_SHA)
-    write(a.root/'metrics.json',report);write_table(report,a.root)
+    write(a.root/'metrics.json',report);write_diagnostic_table(report,a.root)
     blob=dict(names=names,states=states(e));torch.save(dict(all=blob),a.root/'official_states.pt')
     from scripts.probe_vggt_saved_mask_ranking_v1 import ranking_result
     ranked={view:ranking_result(blob['states'][view+'_mAP'],a.root) for view in ('context','target')}
