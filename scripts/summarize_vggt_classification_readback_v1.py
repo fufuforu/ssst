@@ -16,6 +16,15 @@ def main():
     output=a.root/'analysis';output.mkdir(parents=True,exist_ok=False)
     table=[];understanding={};reference=json.loads((a.root/'reference/metrics.json').read_text())
     assert json.loads((a.root/'reference/COMPLETE.json').read_text())['status']=='REFERENCE128_EVALUATED'
+    # Use the same canonical image order as the four-shard native merge. This
+    # avoids score-tie ordering differences for the CPU-only reference.
+    import torch
+    from scripts.posefree_official_state_helpers import merge
+    torch.set_num_threads(4)
+    blob=torch.load(a.root/'reference/official_states.pt',map_location='cpu',mmap=True,weights_only=False)['all']
+    assert len(blob['names'])==len(set(blob['names']))==128
+    reference['official_segmentation']['all']=merge([blob],a.root/'reference')
+    write(output/'reference_canonical_metrics.json',reference)
     table.append(('A frozen reference',table_values(reference)))
     baseline=json.loads(Path('/space/mawb/ssst/group_plus/vggt_full_b005_bottleneck_recheck_v1/review_final_20261014/results.json').read_text())['matched_context']['full4172']
     init=set();source_set=set();peaks={}
