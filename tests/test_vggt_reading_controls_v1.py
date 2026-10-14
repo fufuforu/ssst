@@ -1,10 +1,33 @@
 import unittest
 import torch
-from tokengs.models.object_locus_reading_controls_v1 import ReadingControl, support_bias, local_visual, depth_bias, ARMS
+from pathlib import Path
+from scripts.runtime_bootstrap import prepare_runtime
+prepare_runtime(Path(__file__).resolve().parents[1])
+from tokengs.models.object_locus_reading_controls_v1 import ReadingControl, support_bias, local_visual, depth_bias, ARMS, install
 from tokengs.models.object_locus_panoptic_v1_controller import EvidenceAttention
 
 
 class ReadingContracts(unittest.TestCase):
+    def test_native_witness_hook_and_patch_view_order(self):
+        model = torch.nn.Module()
+        model.panoptic = torch.nn.Module()
+        layer = torch.nn.Module()
+        layer.anchor_attention = EvidenceAttention()
+        model.panoptic.layers = torch.nn.ModuleDict({'L6': layer})
+        install(model, 'baseline')
+        control = model.panoptic.reading_control
+        del model.panoptic.reading_control
+        # Native generation temporarily has no opt-in control; hooks are inert.
+        layer.anchor_attention(torch.randn(1, 102, 256), torch.randn(1, 4, 256))
+        model.panoptic.reading_control = control
+        points = torch.ones(1, 2, 518, 518, 3)
+        points[:, 1] *= 5
+        control.prepare(torch.zeros(1, 2, 256, 4, 4), torch.eye(4)[None, None].repeat(1, 2, 1, 1),
+            torch.eye(3)[None, None].repeat(1, 2, 1, 1), points, torch.ones(1, 2, 1, 518, 518))
+        self.assertTrue(torch.equal(control.points[0, :1369], torch.ones(1369, 3)))
+        self.assertTrue(torch.equal(control.points[0, 1369:], torch.full((1369, 3), 5.)))
+        self.assertEqual(float(control.reliability.sum()), 0.)
+
     def test_previous_support_locality_and_global_fallback(self):
         masks = torch.zeros(1, 4, 102, requires_grad=True)
         with torch.no_grad():

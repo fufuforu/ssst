@@ -12,9 +12,10 @@ import torch
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
-from tokengs.models.object_locus_reading_controls_v1 import ARMS, install
 from scripts.train_vggt_classification_readback_v1 import build_base, configure, apply_patch_state, TRAIN_COHORT, HELDOUT, SOURCE, SOURCE_SHA
 from scripts.train_vggt_joint_short_controls_v1 import digest, parameter_hash
+from scripts import object_locus_frozen_vggt_posefree_runtime as _native_runtime
+from tokengs.models.object_locus_reading_controls_v1 import ARMS, install
 from scripts.eval_vggt_joint_short_controls_v1 import write, export_window
 PATCH = Path('/space/mawb/ssst/group_plus/vggt_classification_readback_v1/attempts/attempt01/object_support/training/classification_patch_update0300.pt')
 PATCH_SHA = 'ad3100ceabbd4d9ab41f653cdb40ec1cb86dc882d71d9ad5ac14192947f4f0f9'
