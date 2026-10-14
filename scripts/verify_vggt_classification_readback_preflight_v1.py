@@ -11,6 +11,7 @@ def main():
     from scripts.invoke_siu3r_official_evaluator import evaluate,SIU3R_COMMIT
     from scripts.format_object_locus_posefree_siu3r_table import table_values
     from scripts.eval_vggt_joint_short_controls_v1 import write
+    from scripts.eval_vggt_classification_readback_v1 import diagnostic_text_scopes
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--root',type=Path,required=True);a=p.parse_args()
     sha=None;initial_classifier=set();capacity={};answers=[]
     for stage,world in [('single',1),('four',4)]:
@@ -32,7 +33,7 @@ def main():
                 assert len(list((root/f'final_rank{rank:02d}/all').glob('scene*')))==1
             raw=evaluate(root/'final_rank00/all',device='cuda:0')
             report=dict(scopes={'target-all':{k:raw[k] for k in ('absrel','rmse','psnr','ssim','lpips')}},official_segmentation={'all':raw})
-            values=table_values(report)
+            values=table_values(diagnostic_text_scopes(report))
             answers.append(dict(stage=stage,arm=arm,values=values,official_commit=SIU3R_COMMIT,optimizer_updates=0))
     assert len(initial_classifier)==1 and capacity['object_support']==capacity['scene_support']
     write(a.root/'PREFLIGHT_VERIFIED.json',dict(status='CLASSIFICATION_PREFLIGHT_VERIFIED',execution_sha=sha,

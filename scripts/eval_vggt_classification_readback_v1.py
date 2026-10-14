@@ -17,8 +17,19 @@ from scripts.train_vggt_classification_readback_v1 import (
 from scripts.eval_vggt_joint_short_controls_v1 import write,export_window
 
 
+def diagnostic_text_scopes(report):
+    # These controls have no text head. Declare both absent text metrics
+    # explicitly, as required by the shared official13-column formatter.
+    for scope in ('context','target-all'):
+        fields=report['scopes'].setdefault(scope,{})
+        if fields.get('mIoU_t') is not None:raise ValueError('unexpected trained text metric')
+        fields['mIoU_t']=None
+    return report
+
+
 def write_diagnostic_table(report,root):
     from scripts.format_object_locus_posefree_siu3r_table import FIELDS,table_values,markdown_table
+    diagnostic_text_scopes(report)
     values=table_values(report)
     with (root/'siu3r_table1.csv').open('w',newline='') as f:
         writer=csv.writer(f);writer.writerow(FIELDS);writer.writerow(values)
@@ -154,7 +165,7 @@ def reduce(a):
         scopes={'target-all':dict(zip(('absrel','rmse','psnr','ssim','lpips'),map(float,values)))},
         official_segmentation={'all':merge(blobs,a.root)},optimizer_updates=0,
         source_checkpoint_sha256=SOURCE_SHA,frozen_RGB_depth_and_GT_exactly_reproduced=True,config=config(a.arm))
-    write(a.root/'metrics.json',report);write_diagnostic_table(report,a.root)
+    diagnostic_text_scopes(report);write(a.root/'metrics.json',report);write_diagnostic_table(report,a.root)
     totals={k:sum(r[k] for r in diagnostics) for k in ('gt','good_matched_mask','good_matched_but_no_object','matched_no_object','matched_class_correct')}
     assert totals['gt']==492
     write(a.root/'matched_query_diagnostics.json',dict(status='MATCHED_QUERY_DIAGNOSIS_COMPLETE',totals=totals,
@@ -194,7 +205,7 @@ def baseline(a):
     report=dict(status='EVALUATED',diagnostic_only=True,arm='reference',windows=128,unique_scenes=128,official_commit=SIU3R_COMMIT,
         scopes={'target-all':dict(zip(('absrel','rmse','psnr','ssim','lpips'),map(float,np.asarray(rows).mean(0))))},
         official_segmentation={'all':result(e)},optimizer_updates=0,source_checkpoint_sha256=SOURCE_SHA)
-    write(a.root/'metrics.json',report);write_diagnostic_table(report,a.root)
+    diagnostic_text_scopes(report);write(a.root/'metrics.json',report);write_diagnostic_table(report,a.root)
     blob=dict(names=names,states=states(e));torch.save(dict(all=blob),a.root/'official_states.pt')
     from scripts.probe_vggt_saved_mask_ranking_v1 import ranking_result
     ranked={view:ranking_result(blob['states'][view+'_mAP'],a.root) for view in ('context','target')}

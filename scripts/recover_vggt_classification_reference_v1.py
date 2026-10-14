@@ -6,7 +6,7 @@ import sys
 import torch
 REPO=Path(__file__).resolve().parents[1];sys.path.insert(0,str(REPO))
 from scripts.train_vggt_classification_readback_v1 import OFFICIAL,HELDOUT,SOURCE_SHA
-from scripts.eval_vggt_classification_readback_v1 import write_diagnostic_table,check_official
+from scripts.eval_vggt_classification_readback_v1 import write_diagnostic_table,check_official,diagnostic_text_scopes
 from scripts.eval_vggt_joint_short_controls_v1 import write
 from scripts.posefree_official_state_helpers import create,itemize
 from scripts.probe_vggt_saved_mask_ranking_v1 import ranking_result
@@ -25,7 +25,7 @@ def main():
     lookup={n:(i,j) for i,s in enumerate(states) for j,n in enumerate(s['names'])}
     oldorder=[r['name'] for i in range(4) for r in json.loads((OFFICIAL/f'rank{i:02d}/export_complete.json').read_text())['records'] if r['name'] in wanted]
     assert len(oldorder)==len(set(oldorder))==128 and set(oldorder)==wanted
-    report=json.loads(json.dumps(original));canonical_states={};ranked={}
+    report=diagnostic_text_scopes(json.loads(json.dumps(original)));canonical_states={};ranked={}
     for view in ('context','target'):
         key=view+'_mAP';keys=states[0]['states'][key]
         def subset(order):

@@ -45,6 +45,9 @@ PY
  recover_reference)
   "$OFFICIAL" scripts/recover_vggt_classification_reference_v1.py --root "$OUTPUT"
   ;;
+ verify_existing_preflight)
+  "$OFFICIAL" scripts/verify_vggt_classification_readback_preflight_v1.py --root "$OUTPUT"
+  ;;
  recover_reduce)
   "$OFFICIAL" scripts/eval_vggt_classification_readback_v1.py --mode reduce --arm "${TASK_ARM:?}" \
    --root "$OUTPUT/evaluation" --run-root "$OUTPUT/training"
