@@ -53,8 +53,10 @@ CPU统一核验四组共同起点、参数容量、八rank更新同步和finite�
 这样可在四组都真实启动后停止人工轮询，不必等第一波完整300步结束才能验证第二波。
 11号baseline与anchor_visual，13号object_local_read与reliable_depth；各节点顺序续跑，最多两个八卡训练同时占卡。
 checkpoint只保存实际可训练下游参数、非encoder buffers、原AdamW/RNG/计数，冻结源权重按严格身份复用。
-每组仅保留一个atomic滚动latest（20/100/300），约2.6GiB；日志／收据／失败历史保留，避免四组各复制6GB源checkpoint。
-四份＋一个atomic临时文件约13.03GiB，启动前磁盘至少12GiB且正式导出前核验余量；磁盘问题不通过改模型或精度处理。
+每组仅保留一个atomic滚动latest（20/100/300），普通格式约2.6GiB；日志／收据／失败历史保留，避免四组各复制6GB源checkpoint。
+续跑快照以node-local /tmp暂存普通torch archive，再无损ZIP_DEFLATED level1写共享临时文件并atomic替换；完整参数／optimizer／RNG／计数不删、不改精度。
+压缩文件不使用mmap；参数、AdamW状态、RNG及采样计数roundtrip逐项相等，官方评测环境的torch reader也验证通过。
+锁保护两个节点的共享checkpoint写入，仅一个共享临时文件；工程存储修复不改变训练循环、初始化、loss或优化器。
 
 ## 评测与Q
 
@@ -66,3 +68,26 @@ RGB/depth由原未修改官方Evaluator重新评分，mAP/PQ/mIoU通过官方状
 
 证据root：`/space/mawb/ssst/group_plus/vggt_reading_controls_v1`。
 严格固定快照，提交推送后计算节点只运行snapshot；monitor_v1保持质量告警，历史失败不覆盖。
+
+## 2026-10-14执行记录
+
+实际训练流2400不同窗口覆盖1075训练场景，固定128留出场景交集0。
+attempt01取消于正式更新0：静态复核发现观测hooks会访问原模型复现期间暂时移除的reading_control，修复后独立重提。
+attempt02 GPU预检64574遇到模型module早于native runtime兼容bootstrap导入，缺fused_ssim_cuda；正式更新0，日志及ENGINEERING_FAILURE.json保留。
+attempt03 GPU预检64616发现逐位读出断言过严：Gaussian、Fm、q_pre完全相同；logits差9.54e-7、membership差2.95e-6；正式更新0，原报告保留。
+修复加原模型连续两次生成的独立波动见证；query最终状态、anchor最终embedding、Gaussian、Fm及q_pre仍要求差0，class logits/membership各自要求原生重复与干预差都≤1e-5且finite。
+attempt04基线见证：原模型membership重复差4.77e-6、零干预差3.46e-6；两者logits差9.54e-7，上游全部严格相同。
+单卡基线／局部读取／局部视觉证据的真实两步联合更新及原官方真实窗口评分已通过；其余预检仍进行中，不是正式训练完成。
+
+预检／20步启动执行SHA410bd30b74a613919776ce4531a60fd2338844c6；预检64667，启动64668/64669/64670/64671，统一启动gate64672。
+只替换尚未开始的续跑及评测为7468268f239b562feaf793b9d52a3b126f4cd860，任务64716/64717/64718/64719、汇总64720。
+原续跑64673–64677在PENDING时取消，没有重复训练。18项数学文件/受保护函数/正式update loop AST身份均与实际预检快照一致。
+serializer_only_preflight_reuse.json明确记录两个执行SHA、无损roundtrip及数学合同。新快照只排除Git内历史group_plus图像/分析副本，全部实际科学代码及绝对路径资产/数据保持。
+当前证据：`/space/mawb/ssst/group_plus/vggt_reading_controls_v1/attempts/attempt04`。
+
+用户再次明确授权清理旧实验文件。已删除26个文件：旧feedback factorial三组15个checkpoint、当前完整源已被epoch4替代的epoch1–3三个checkpoint、完成诊断的8份features.pt。
+释放78.21GiB，实测可用91.34GiB；源epoch4、legacy epoch6、C/Q补丁、VGGT资产、当前任务与小型指标/分析记录fingerprint不变。
+清单/逐文件删除日志/回执：`/space/mawb/ssst/group_plus/storage_cleanup_20261014_reading_controls`。
+旧feedback短对照不再保留可重新运行的模型权重；小型官方指标及结论仍可比较，未假称保留所有历史大文件。
+
+进度：`python3 scripts/show_vggt_reading_controls_progress_v1.py`，显示正式更新、窗口曝光、作业状态和不含排队/评测的训练ETA。

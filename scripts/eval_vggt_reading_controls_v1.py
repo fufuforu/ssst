@@ -12,16 +12,22 @@ import torch
 
 REPO = Path(__file__).resolve().parents[1]
 sys.path.insert(0, str(REPO))
-from scripts.train_vggt_reading_controls_v1 import ARMS, HELDOUT, config, build, apply_state, digest, worker
+from scripts.train_vggt_joint_short_controls_v1 import digest
 from scripts.eval_vggt_joint_short_controls_v1 import export_window, write
+ARMS = ('baseline', 'object_local_read', 'anchor_visual', 'reliable_depth')
+HELDOUT = Path('/space/mawb/ssst/group_plus/vggt_understanding_bottleneck_v1/representative128_cohort_20261014.json')
 
 
 def check_official():
-    from scripts.eval_vggt_classification_readback_v1 import check_official as check
-    check()
+    from scripts.invoke_siu3r_official_evaluator import SIU3R_COMMIT
+    assert subprocess.check_output(['git', '-C', '/space/mawb/SIU3R', 'rev-parse', 'HEAD'], text=True).strip() == SIU3R_COMMIT
+    assert not subprocess.check_output(['git', '-C', '/space/mawb/SIU3R', 'diff', '--name-only', 'HEAD', '--', 'src'], text=True).strip()
 
 
 def export(a):
+    # The model environment is needed only for generating predictions. Official
+    # score/reduce/summary consume exported files and must not import TokenGS.
+    from scripts.train_vggt_reading_controls_v1 import config, build, apply_state, worker
     from scripts.eval_vggt_feedback_expanded_v1 import windows
     from scripts.eval_vggt_classification_readback_v1 import diagnose
     import torch.distributed as dist
@@ -119,11 +125,16 @@ def reduce(a):
     from scripts.invoke_siu3r_official_evaluator import SIU3R_COMMIT
     from scripts.format_object_locus_posefree_siu3r_table import FIELDS, table_values, markdown_table
     check_official()
+    training = json.loads((a.run_root / 'COMPLETE.json').read_text())
+    assert training['status'] == 'READING_CONTROL_TRAINED' and training['completed_updates'] == 300
+    configuration = training['config']
+    assert configuration['arm'] == a.arm and configuration['recipe'] == 'vggt_reading_controls_v1'
     blobs, values, records = [], [], []
     for rank in range(8):
         root = a.root / f'rank{rank:02d}'
         assert json.loads((root / 'score_complete.json').read_text())['status'] == 'SCORED'
         assert json.loads((root / 'official_merge_contract.json').read_text())['status'] == 'PASS'
+        assert json.loads((root / 'export_complete.json').read_text())['config'] == configuration
         blob = torch.load(root / 'official_states.pt', map_location='cpu', weights_only=False)
         blobs.append(blob)
         records += json.loads((root / 'export_complete.json').read_text())['records']
@@ -140,7 +151,7 @@ def reduce(a):
     if not np.isfinite(averaged).all():
         raise ValueError('nonfinite metric')
     report = dict(status='EVALUATED', arm=a.arm, windows=128, unique_scenes=128, diagnostic_only=True,
-        config=config(a.arm), official_commit=SIU3R_COMMIT, optimizer_updates=0,
+        config=configuration, official_commit=SIU3R_COMMIT, optimizer_updates=0,
         scopes={'context': {'mIoU_t': None}, 'target-all': dict(zip(('absrel', 'rmse', 'psnr', 'ssim', 'lpips'), map(float, averaged))) | {'mIoU_t': None}},
         official_segmentation={'all': merge(blobs, a.root)}, Q_applied=False)
     write(a.root / 'metrics.json', report)
@@ -157,11 +168,15 @@ def reduce(a):
 def summary(a):
     from scripts.format_object_locus_posefree_siu3r_table import FIELDS, HEADERS, PRECISION, table_values
     conditions, reference, initial = {}, {}, {}
+    stream_path = REPO / 'docs/vggt_understanding_probe_cohort_v1.json'
+    stream = json.loads(stream_path.read_text())['train_source_indices'][:2400]
+    assert len(stream) == len(set(stream)) == 2400
     for arm in ARMS:
         root = a.root / arm
         done = json.loads((root / 'evaluation/COMPLETE.json').read_text())
         assert done['status'] == 'READING_CONTROL_EVALUATED'
         manifest = json.loads((root / 'training/run_manifest.json').read_text())
+        assert manifest['config']['stream_sha256'] == digest(stream_path)
         ids = manifest['rank_initialization'][0]
         if initial and ids != initial:
             raise ValueError('branch initial capacity/parameters differ')
@@ -177,8 +192,7 @@ def summary(a):
                     raise ValueError('branch GT identity differs')
                 reference[row['name']] = hashes
             train_rows = [json.loads(line) for line in (root / f'training/training_rank{rank:02d}.jsonl').read_text().splitlines()]
-            from scripts.train_vggt_reading_controls_v1 import slots
-            assert len(train_rows) == 300 and all(r['source_indices'] == slots(i, rank) for i, r in enumerate(train_rows))
+            assert len(train_rows) == 300 and all(r['source_indices'] == [stream[i * 8 + rank]] for i, r in enumerate(train_rows))
     out = a.root / 'analysis'
     out.mkdir(exist_ok=False)
     lines = ['# Matched C decoder reading controls', '', '128 heldout scenes; 300 joint updates / 2400 full-pool exposures per branch. Q absent. Both text columns blank.', '', '| Arm | ' + ' | '.join(HEADERS) + ' |', '|---|' + '---:|' * 13]

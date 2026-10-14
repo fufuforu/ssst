@@ -53,7 +53,7 @@ p=json.load(open(sys.argv[1]));assert p['status']=='READING_PREFLIGHT_VERIFIED'
 if p['execution_sha']!=sys.argv[2]:
  from scripts.vggt_reading_numerical_contract_v1 import contract
  reuse=json.load(open(os.environ['TASK_PREFLIGHT_REUSE_PROOF']))
- assert reuse['status']=='SERIALIZER_ONLY_RECOVERY_WITH_IDENTICAL_TRAINING_MATH'
+ assert reuse['status'] in ('SERIALIZER_ONLY_RECOVERY_WITH_IDENTICAL_TRAINING_MATH','ENGINEERING_ONLY_RECOVERY_WITH_IDENTICAL_TRAINING_MATH')
  assert reuse['preflight_execution_sha']==p['execution_sha'] and reuse['execution_sha']==sys.argv[2]
  assert contract(os.environ['TASK_REPO'])==reuse['numerical_contract']
  assert reuse['lossless_parameter_optimizer_RNG_counts_roundtrip_verified']
@@ -89,6 +89,12 @@ for arm in ('baseline','object_local_read','anchor_visual','reliable_depth'):
 (root/'ALL_STARTUPS_VERIFIED.json').write_text(json.dumps(dict(status='ALL_FOUR_TRAINING_STARTUPS_VERIFIED',execution_sha=sys.argv[2],
  formal_updates_per_arm=20,formal_exposures_per_arm=160,rows=rows),indent=2)+'\n')
 PY
+  ;;
+ score_existing)
+  "$OFFICIAL" -m torch.distributed.run --standalone --nproc_per_node=8 scripts/eval_vggt_reading_controls_v1.py \
+   --mode score --arm "${TASK_ARM:?}" --root "$OUTPUT/evaluation" --run-root "$OUTPUT/training"
+  exec "$OFFICIAL" scripts/eval_vggt_reading_controls_v1.py --mode reduce --arm "$TASK_ARM" \
+   --root "$OUTPUT/evaluation" --run-root "$OUTPUT/training"
   ;;
  summary)
   exec "$OFFICIAL" scripts/eval_vggt_reading_controls_v1.py --mode summary --root "$OUTPUT"
