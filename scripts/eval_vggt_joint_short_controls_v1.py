@@ -20,7 +20,7 @@ def write(path,value):
     tmp=path.with_suffix(path.suffix+'.tmp');tmp.write_text(json.dumps(value,indent=2,allow_nan=False)+'\n');tmp.replace(path)
 
 
-def export_window(model,opt,w,root,device):
+def export_window(model,opt,w,root,device,*,observer=None):
     from scripts.object_locus_v3_set_runtime import build_batch
     from scripts.eval_object_locus_frozen_vggt_posefree_v1 import generate_and_render,_official_export_view
     from scripts.export_object_locus_v3_set_official import write_official_pair
@@ -38,8 +38,10 @@ def export_window(model,opt,w,root,device):
         filename=f"{w['scene']}_{f}.png"
         save_rgb(pair/'rgb'/filename,rendered['images_pred'][0,i]);save_rgb(pair/'rgb_gt'/filename,batch['images_all'][0,i])
         save_depth(pair/'depth'/filename,rendered['depths_pred'][0,i]/.15);save_depth(pair/'depth_gt'/filename,batch['depth_gt_m_all'][0,i])
-    return dict(name=name,source_index=w['source_index'],frame_ids=frames,
+    record=dict(name=name,source_index=w['source_index'],frame_ids=frames,
         input_rgb_sha256=__import__('hashlib').sha256(batch['images_all'].detach().float().cpu().contiguous().numpy().tobytes()).hexdigest(),official_pair=row)
+    if observer is not None:record['diagnostics']=observer(output,batch)
+    return record
 
 
 def export(a):

@@ -94,7 +94,10 @@ class LocusGSObjectLocusPanopticV1Recon(LocusGSRecon):
         rendered = self.gs.render_feature_channels(gaussians,membership,render_decoder_input.cam_view,render_decoder_input.intrinsics)
         alpha = rendered['alphas_pred']
         region = alpha_normalize_membership(rendered['images_pred'],alpha)
-        cls = self.panoptic.classify(final['q'])
+        class_query = final['q']
+        if hasattr(self.panoptic, 'mask_support_readback'):
+            class_query = self.panoptic.mask_support_readback(class_query, features, membership, mass)
+        cls = self.panoptic.classify(class_query)
         semantic = region.new_zeros((b,region.shape[1],20,*region.shape[-2:]))
         semantic[:,:,0:2] = region[:,:,100:102]
         semantic[:,:,2:20] = torch.einsum('bvqhw,bqc->bvchw',region[:,:,:100],cls['p_class'][...,:18])
