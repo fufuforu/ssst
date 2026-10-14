@@ -9,7 +9,7 @@ def read(p):return json.loads(p.read_text())
 def write(p,v):p.write_text(json.dumps(v,indent=2,allow_nan=False)+'\n')
 
 
-def raw(root,out):
+def raw(root,out,arms='ABC'):
     records=[];expected=None;selection=None
     for rank in range(4):
         report=read(root/f'rank{rank:02d}/COMPLETE.json')
@@ -18,9 +18,9 @@ def raw(root,out):
         if expected is None:expected=report.get('cohort_windows',20);selection=report['cohort_selection']
         assert report.get('cohort_windows',20)==expected
         records+=report['records']
-    assert len(records)==3*expected
+    assert len(records)==len(arms)*expected
     reference=None;results={}
-    for arm in 'ABC':
+    for arm in arms:
         selected=[r for r in records if r['arm']==arm];names=sorted(r['name'] for r in selected)
         assert len(names)==len(set(names))==expected
         if reference is None:reference=names
@@ -67,9 +67,9 @@ def raw(root,out):
     write(out/'results.json',dict(status='RAW_READOUT_BOTTLENECKS_ANALYZED',records=len(records),selected_scenes=expected,cohort_selection=selection,arms=results,
         native_endpoint_reproduced=True,new_optimizer_updates=0,
         caveat='Stage diagnostics on the stated cohort; not full official validation performance or architecture causality.'))
-    lines=['# 原始query与实例组装诊断','', f'{expected}个场景，A/B/C相同权重各{expected}窗口；零训练，原生PNG重现。选择协议：{selection}。诊断指标不替换官方13列。','',
+    lines=['# 原始query与实例组装诊断','', f'{expected}个场景，{list(arms)}每组{expected}窗口；零训练，原生PNG重现。选择协议：{selection}。诊断指标不替换官方13列。','',
         '| 对照 | GT条目 | 原始mask类别无关recall@0.5 | 资格筛选后 | 像素竞争后 | 面积筛选后 |','|---|---:|---:|---:|---:|---:|']
-    for arm in 'ABC':
+    for arm in arms:
         s=results[arm]['target']['stages'];vals=[s[k]['best_mask_recall50']*100 for k in ('raw_all','eligible_raw','winner_before_area_filter','final')]
         lines.append('|'+arm+'|'+str(s['final']['gt'])+'|'+'|'.join(f'{v:.2f}%' for v in vals)+'|')
     lines+=['','逐GT损失/恢复、原始最佳query的no-object/概率原因，以及输入2D代理见results.json。',
@@ -120,9 +120,11 @@ def spike(root,out):
 
 def main():
     p=argparse.ArgumentParser(description=__doc__);p.add_argument('--mode',choices=('raw','spike'),required=True)
+    p.add_argument('--arms',nargs='+',default=list('ABC'),help='Raw readout model labels; default A B C.')
     p.add_argument('--root',type=Path,required=True);p.add_argument('--output',type=Path,required=True)
     a=p.parse_args();a.output.mkdir(parents=True,exist_ok=False)
-    globals()[a.mode](a.root,a.output)
+    if a.mode=='raw':raw(a.root,a.output,a.arms)
+    else:spike(a.root,a.output)
     write(a.output/'COMPLETE.json',dict(status='DIAGNOSTIC_SUMMARY_COMPLETE',mode=a.mode,new_gpu_calls=0))
 
 

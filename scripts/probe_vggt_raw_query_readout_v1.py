@@ -57,26 +57,74 @@ def raw_stages(render):
     return dict(raw_all=raw,eligible_raw=raw&eligible[None,:,None,None],winner_before_area_filter=won,final=final),cls.cpu().numpy()+2
 
 
+def restored_full(checkpoint, official_root, device):
+    """Use the exact official endpoint loader, without an optimizer or training."""
+    from scripts.object_locus_frozen_vggt_posefree_runtime import build_model, MANIFEST, sha256
+    from scripts.object_locus_v3_set_runtime import seed_everything
+    from scripts.eval_object_locus_frozen_vggt_posefree_v1 import _restore_checkpoint
+    report=json.loads((official_root/'metrics.json').read_text())
+    identity=report['export_identity']
+    registered=Path(identity['checkpoint'].replace('/datapool/mawb/','/space/mawb/'))
+    assert checkpoint.resolve()==registered.resolve()
+    assert checkpoint.stat().st_size==identity['checkpoint_size']
+    assert checkpoint.stat().st_mtime_ns==identity['checkpoint_mtime_ns']
+    assert report['checkpoint_sha256']=='ecd5cefabf9fb1b637d2c27e4bc65e137e88ed70dd9f9f650e944674f1e24ac0'
+    seed_everything(42);os.environ['VGGT_HF_REVISION']=identity['vggt_revision']
+    model,opt,_,_=build_model()
+    model=model.to(device=device,dtype=torch.float32)
+    blob=_restore_checkpoint(model,checkpoint,identity['vggt_revision'],sha256(MANIFEST))
+    assert blob['recipe']=='vggt_reconstruction_adapt2_frozen_joint4_adapter_u001_feedback_b005_v1'
+    assert (blob['completed_updates'],blob['completed_exposures'],blob['phase_completed_updates'])==(6258,50064,4172)
+    assert blob['config']['adapter_understanding_scale']==.01 and blob['config']['feedback_peak']==.05
+    assert model.understanding_step==33376
+    source=dict(checkpoint=str(checkpoint),checkpoint_sha256=report['checkpoint_sha256'],
+        recipe=blob['recipe'],training_code_sha=blob['git_sha'],new_joint_updates=4172,
+        new_joint_exposures=33376,adapter_understanding_scale=.01,feedback_peak=.05,
+        adapted_vggt_sha256=blob['adapted_vggt_identity']['sha256'],
+        loader='Exact original official endpoint _restore_checkpoint; no optimizer restored.')
+    del blob
+    return model,opt,source
+
+
 def main():
-    p=argparse.ArgumentParser(description=__doc__);p.add_argument('--expanded-root',type=Path,required=True)
+    p=argparse.ArgumentParser(description=__doc__)
+    source=p.add_mutually_exclusive_group(required=True)
+    source.add_argument('--expanded-root',type=Path)
+    source.add_argument('--full-checkpoint',type=Path)
+    p.add_argument('--official-root',type=Path)
     p.add_argument('--cohort',type=Path,required=True);p.add_argument('--output',type=Path,required=True)
     p.add_argument('--smoke',action='store_true');a=p.parse_args()
+    if a.full_checkpoint and a.official_root is None:p.error('--full-checkpoint requires --official-root')
     rank=int(os.environ['RANK']);local=int(os.environ['LOCAL_RANK']);world=int(os.environ['WORLD_SIZE'])
     if world!=4:raise ValueError('four independent inference workers required')
     torch.cuda.set_device(local);device=torch.device('cuda',local);torch.set_num_threads(4)
-    if '4090' not in torch.cuda.get_device_name(local):raise ValueError('matched official4090 inference required')
+    expected_gpu='3090' if a.full_checkpoint else '4090'
+    if expected_gpu not in torch.cuda.get_device_name(local):raise ValueError(f'matched official{expected_gpu} inference required')
     rows=json.loads(a.cohort.read_text())['records']
-    if a.smoke:rows=rows[:1]
-    choices=rows if a.smoke and rank<3 else [] if a.smoke else rows[rank::world]
-    letters=['ABC'[rank]] if a.smoke and rank<3 else [] if a.smoke else list('ABC')
+    if a.smoke:rows=rows[:4] if a.full_checkpoint else rows[:1]
+    choices=rows[rank::world] if a.full_checkpoint else rows if a.smoke and rank<3 else [] if a.smoke else rows[rank::world]
+    letters=['full'] if a.full_checkpoint else ['ABC'[rank]] if a.smoke and rank<3 else [] if a.smoke else list('ABC')
+    full_pairs={}
+    if a.full_checkpoint:
+        for i in range(4):
+            exported=json.loads((a.official_root/f'rank{i:02d}/export_complete.json').read_text())
+            assert exported['status']=='EXPORTED'
+            for record in exported['records']:
+                assert record['name'] not in full_pairs
+                full_pairs[record['name']]=(record['manifest_index'],a.official_root/f'rank{i:02d}/all'/record['name'])
+        assert len(full_pairs)==1860
     all_windows,_=windows();root=a.output/f'rank{rank:02d}';root.mkdir(parents=True,exist_ok=False)
     from scripts.object_locus_v3_set_runtime import build_batch
     from scripts.eval_object_locus_frozen_vggt_posefree_v1 import generate_and_render
     from tokengs.models.object_locus_v3_set_loss import final_hungarian
     results=[]
     for arm in letters:
-        model,opt,optimizer,_,identity=restored(arm,500,device,collective_hash=False,restore_optimizer=False);del optimizer
-        model.eval().requires_grad_(False);model.understanding_step=4000
+        if a.full_checkpoint:
+            model,opt,identity=restored_full(a.full_checkpoint,a.official_root,device)
+        else:
+            model,opt,optimizer,_,identity=restored(arm,500,device,collective_hash=False,restore_optimizer=False);del optimizer
+            model.understanding_step=4000
+        model.eval().requires_grad_(False)
         versions={n:p._version for n,p in model.named_parameters()}
         for index,record in enumerate(choices):
             w=all_windows[record['source_index']];batch=build_batch(opt,w,device)
@@ -102,7 +150,10 @@ def main():
                 matched_no_object_probability=[float(pc[q,18]) if q>=0 else None for q in matched_query],
                 note='Exact native context matcher on generated soft masks; GT used only after context-only generation. Hard IoU is diagnostic, not matching cost.')
             sem,ins,_=assemble_panoptic(render);frame_ids=batch['frame_ids'][0].cpu().tolist()
-            pair=a.expanded_root/arm/f"rank{record['original_rank']:02d}"/'all'/record['name']
+            if a.full_checkpoint:
+                source_index,pair=full_pairs[record['name']]
+                assert source_index==record['source_index']
+            else:pair=a.expanded_root/arm/f"rank{record['original_rank']:02d}"/'all'/record['name']
             views={}
             for view,ids in [('context',[0,1]),('target',list(range(6)))]:
                 ids=sorted(ids,key=lambda i:f"{w['scene']}_pred{frame_ids[i]}.png")
