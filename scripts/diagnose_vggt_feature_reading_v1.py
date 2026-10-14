@@ -36,6 +36,11 @@ def read(path):
     return json.loads(path.read_text())
 
 
+def canonical_identity(value):
+    # JSON receipts encode tuple feature names as lists; pickle retains tuples.
+    return json.loads(json.dumps(value))
+
+
 def identity():
     audit = read(PRIOR / 'analysis/completion_independent_audit.json')
     assert audit['identity']['source_checkpoint_sha256'] == SOURCE_SHA
@@ -295,13 +300,17 @@ def metrics(items, class_scores, quality_scores):
 
 def analyze(args):
     done = read(args.root / 'CACHE_COMPLETE.json')
-    assert done['status'] == 'FEATURE_READING_CACHE_COMPLETE' and done['identity'] == identity()
+    expected = identity()
+    expected['execution_sha'] = done['identity']['execution_sha']
+    assert done['status'] == 'FEATURE_READING_CACHE_COMPLETE' and canonical_identity(done['identity']) == canonical_identity(expected)
+    cache_snapshot = args.root.parents[1] / 'snapshots' / done['identity']['execution_sha']
+    assert digest(REPO / 'scripts/vggt_feature_probe_math_v1.py') == digest(cache_snapshot / 'scripts/vggt_feature_probe_math_v1.py')
     train, val, train_meta, val_meta = [], [], [], []
     for rank in range(8):
         root = args.root / f'rank{rank:02d}'
         assert read(root / 'COMPLETE.json')['core_parameters_buffers_frozen']
         blob = torch.load(root / 'features.pt', map_location='cpu', mmap=True, weights_only=False)
-        assert blob['identity'] == done['identity']
+        assert canonical_identity(blob['identity']) == canonical_identity(done['identity'])
         train += blob['train']; val += blob['validation']
         train_meta += blob['train_metadata']; val_meta += blob['validation_metadata']
     assert len(train) == TRAIN_WINDOWS and len(val) == 128
@@ -315,7 +324,7 @@ def analyze(args):
     results = {}
     for filename in done['coefficients']:
         checkpoint = torch.load(args.root / filename, map_location='cpu', weights_only=False)
-        assert checkpoint['identity'] == done['identity']
+        assert canonical_identity(checkpoint['identity']) == canonical_identity(done['identity'])
         budget = checkpoint['train_windows']
         subset = [row for row, meta in zip(train, train_meta) if meta['stream_position'] < budget]
         assert len(subset) == budget
@@ -353,6 +362,7 @@ def analyze(args):
     coverage = dict(train={str(k): int((score_vector(train, 'class_target') == k).sum()) for k in range(19)},
         validation={str(k): int((labels == k).sum()) for k in range(19)})
     report = dict(status='FEATURE_READING_DIAGNOSIS_COMPLETE', identity=done['identity'],
+        analysis_execution_sha=os.environ['TASK_CODE_SHA'], cached_features_and_coefficients_reused=True,
         train_windows=TRAIN_WINDOWS, train_scenes=len({r['scene'] for r in train_meta}), val_windows=128,
         feature_probe_results=results, native_C=native, attention=attention, confidence=confidence, class_coverage=coverage,
         same_GT_targets_and_prediction_support=True, optimizer_updates=0,
