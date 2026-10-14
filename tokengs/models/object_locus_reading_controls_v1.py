@@ -84,12 +84,16 @@ class ReadingControl(nn.Module):
     def object_bias(self, bias, previous):
         if self.arm != 'object_local_read' or previous is None:
             return bias
-        return bias + self.strength(0) * support_bias(previous)
+        extra = support_bias(previous)
+        self.observations['local_support_bias_abs_mean'] = float(extra.detach().abs().mean())
+        return bias + self.strength(0) * extra
 
     def geometry(self, bias, mu, radii, directions, floor):
         if self.arm != 'reliable_depth':
             return bias
         extra = depth_bias(mu, radii, self.points, directions, self.reliability, floor)
+        self.observations['depth_bias_abs_mean'] = float(extra.detach().abs().mean())
+        self.observations['reliability_mean'] = float(self.reliability.mean())
         return (torch.zeros_like(extra) if bias is None else bias) + self.strength(2) * extra
 
     def describe(self):
@@ -103,12 +107,16 @@ def install(model, arm):
     # Observe actual head values and projected output, not mean(R) @ raw a.
     for name, layer in model.panoptic.layers.items():
         def observe(module, inputs, output, key=name):
+            if not hasattr(model.panoptic, 'reading_control'):
+                return
             ev, weights = output
             ctrl = model.panoptic.reading_control
             ctrl.observations[key] = dict(output_norm_mean=float(ev.detach().norm(dim=-1).mean()),
                 per_head_entropy_mean=float((-(weights.detach().clamp_min(1e-12).log() * weights.detach()).sum(-1) / __import__('math').log(weights.shape[-1])).mean()))
         layer.anchor_attention.register_forward_hook(observe)
         def observe_values(module, inputs, output, key=name):
+            if not hasattr(model.panoptic, 'reading_control'):
+                return
             value = output.detach().reshape(output.shape[0], output.shape[1], 8, 32)
             model.panoptic.reading_control.observations[key + '_V_head_norm'] = value.norm(dim=-1).mean((0, 1)).cpu().tolist()
         layer.anchor_attention.V.register_forward_hook(observe_values)
