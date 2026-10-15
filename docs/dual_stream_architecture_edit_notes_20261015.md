@@ -30,3 +30,5 @@ PDF：[几何语义双流_可编辑架构图_v1.pdf](/space/mawb/ssst/docs/几�
 总图表示交替阶段：当前阶段的Gaussian/归属读出用于下一个阶段的可选写回；图外侧head可在阶段间调用，不借用最终预测回填过去层。具体交互层数与实现仍需锁定。
 
 生成入口：`scripts/build_dual_stream_architecture_pptx_v1.py`；使用标准库OOXML，不依赖python-pptx。源文件SHA和原生形状数量记录在输出同名JSON中。PDF采用LibreOffice真实渲染核对，不能只凭XML文本声称排版正确。
+
+后续更新：用户现已授权具体实现并提供 Omega 权重路径。v1代码与验证状态见 [dual_stream_implementation_20261015.md](dual_stream_implementation_20261015.md)；本文“尚未实现”描述绘图时历史状态。

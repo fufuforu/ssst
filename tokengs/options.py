@@ -1012,4 +1012,11 @@ config_defaults["train_siu3r_object_locus_frozen_vggt_posefree_v1"] = config_def
     workspace="/space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1",
     experiment_name="object_locus_frozen_vggt_posefree_v1", batch_size=1, mixed_precision="no")
 
+config_doc["train_siu3r_object_locus_dual_stream_v1"] = "New Omega point/SAM seeded dual stream; no old understanding weights; write off by default."
+config_defaults["train_siu3r_object_locus_dual_stream_v1"] = config_defaults["train_siu3r_object_locus_panoptic_v1"].evolve(
+    model_type="siu3r_object_locus_dual_stream_v1",
+    workspace="/space/mawb/ssst/workspace_group_plus/object_locus_dual_stream_v1",
+    experiment_name="object_locus_dual_stream_v1", batch_size=1, mixed_precision="no",
+    locusgs_freeze_decode_radius=False)
+
 AllConfigs = tyro.extras.subcommand_type_from_defaults(config_defaults, config_doc)

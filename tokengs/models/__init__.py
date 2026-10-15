@@ -38,10 +38,13 @@ from .object_locus_panoptic_v1 import LocusGSObjectLocusPanopticV1Recon
 from .object_locus_frozen_vggt_posefree import LocusGSObjectLocusFrozenVGGT
 from .official_locusgs_recon import OfficialLocusGSRecon
 
+from .object_locus_dual_stream_v1 import LocusGSDualStreamV1
+
 # Model registry
 from .object_locus_joint_v1 import LocusGSObjectLocusJointV1Recon
 
 model_registry = {
+    'siu3r_object_locus_dual_stream_v1': LocusGSDualStreamV1,
     'siu3r_object_locus_frozen_vggt_posefree_v1': LocusGSObjectLocusFrozenVGGT,
     'siu3r_object_locus_panoptic_v1': LocusGSObjectLocusPanopticV1Recon,
     'siu3r_object_locus_joint_v1': LocusGSObjectLocusJointV1Recon,
