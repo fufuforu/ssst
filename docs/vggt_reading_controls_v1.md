@@ -109,3 +109,6 @@ object_local_read的64717已完成300更新/2400曝光和128窗口八rank导出�
 三组之间不再存在无关训练依赖；申请同型3090八卡，允许11/13，排除12，避免固定等待单一节点。
 64855等待四组成功后汇总原定13列结果。64851已实际在3dimage-13启动。
 恢复收据：attempt04/schedule_scoring_recovery_20261015.json；评分导入修复/数学合同证明：attempt04/scoring_import_recovery_preflight_reuse.json。
+
+恢复现场核验：64851完成128窗口/8rank官方评分，各rank官方CPU/GPU状态合并合同通过，evaluation/COMPLETE.json为READING_CONTROL_EVALUATED。
+64852已实际在3dimage-13八卡启动；64853等待资源、64854等待优先级，均无跨组训练依赖。四组此前均已完成20正式更新/160曝光及统一真实启动核验，按约停止持续轮询，让续跑与自动评测继续。
