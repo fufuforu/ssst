@@ -2,7 +2,8 @@
 # Pass run root; submit with an afterok dependency on the corresponding training.
 set -euo pipefail
 run_root="$1"
-cd "$(dirname "$0")/.."
+# Slurm executes a spooled copy; $0 does not point to the repository script.
+cd "${SLURM_SUBMIT_DIR:-/space/mawb/ssst_gfm_cache_publication_fix_code_20261015}"
 export PYTHONUNBUFFERED=1
 export OMP_NUM_THREADS=4
 export HF_HUB_OFFLINE=1
