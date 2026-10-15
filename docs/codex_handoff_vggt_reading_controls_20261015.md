@@ -1,5 +1,7 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **已完成本轮提交，停止轮询**：新训练65236（17节点四4090，冒烟→adapt2→joint4），原组评测校验65237 afterok:65199，新组官方评测65238 afterok:65236，统一表65239 afterok:65237:65238。执行快照3608570；单次核对65236 RUNNING，其余Dependency，尚未宣称GPU冒烟/适配更新通过。收据在attempt06_adapt2_joint4_node17/submission.json。用户通知后再检查这条链，不重复训练/提交。
+
 > **最新授权：保留65199直接联合4epoch，再独立提交2epoch重建适配＋4epoch联合，并设置训练成功后自动官方评测/统一13列11值比较。** 详见[gfm_semantic_pool_v3_staged_comparison_20261015.md](gfm_semantic_pool_v3_staged_comparison_20261015.md)。新组attempt06_adapt2_joint4_node17、17节点四张4090，共享短306起点，不使用direct组后续权重，不重复短训练。Omega/SAM仍冻结；适配时理解loss不反向且AdamW跳过理解参数，随后联合4epoch。先一场景GPU导出/官方评分冒烟，通过才训练。评测用afterok依赖；旧65199已有内置评分，依赖任务只校验并复用。提交后单次核对并停止轮询。
 
 > **已提交全量续训65199**：attempt05_full_node11，执行SHA b403e7c，11节点四张3090；提交后单次调度核对PENDING/Priority，随后停止轮询，尚未宣称首个全量更新。用户通知后检查该作业，不要重复提交。下段“核对真实首个全量更新后停止”以此处单次核对后停止为准。

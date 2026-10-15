@@ -34,3 +34,17 @@ CPU检查覆盖：直接/分阶段源metadata白名单、拒绝错误数据/worl
 两组评测成功后，再由CPU依赖任务检查场景名/source_index/6帧/RGB哈希一致，并生成旧C、direct joint4、adapt2 joint4和staged−direct差值的一张表。结果目录：`/space/mawb/ssst/group_plus/dual_stream_training_v1/comparison_joint4_vs_adapt2_joint4_20261015`。
 
 新运行目录attempt06_adapt2_joint4_node17；不可变代码快照`/space/mawb/ssst_gfm_semantic_pool_v3_staged_code_20261015`。作业号以运行目录submission.json为准。训练或冒烟失败时afterok评测不会启动，失败记录保留；按用户偏好，提交并单次核对调度后停止轮询。
+
+## 已提交作业
+
+执行SHA：36085703f1fe6b2426668aead700980a79680af1，已推送。CPU共12项测试通过（policy/cache/sampler 6＋staged/Task/AdamW/评测表格 6），编译、shell语法及diff检查通过。旧C真实参考CSV也通过13列/11值/空白text检查。
+
+| 作业 | 功能 | 依赖 |
+|---|---|---|
+| 65199 | 原直接联合4epoch，11节点四卡 | 原作业保留 |
+| 65236 | 17节点四4090，一场景冒烟→adapt2→joint4 | 冒烟在脚本内前置，失败则不训练 |
+| 65237 | 原组完成后的评测结果校验，已有结果直接复用 | afterok:65199 |
+| 65238 | 新组最终checkpoint固定128导出＋官方评分 | afterok:65236 |
+| 65239 | 旧C/direct4/staged2+4统一13列11值与差值表 | afterok:65237:65238 |
+
+提交后只核对一次：65236 RUNNING、17节点确实分配四4090；其余三个任务PENDING/Dependency，65238明确afterok:65236。此时尚无新作业GPU冒烟或首个适配更新证明，不得将RUNNING解释为测试通过。随后停止轮询。提交收据写attempt06/submission.json及comparison目录submission.json，原组dependent_evaluation_submission.json也已记录。不要重复提交。
