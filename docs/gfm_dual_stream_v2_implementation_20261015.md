@@ -1,5 +1,7 @@
 # GFM 双 Adapter 目标结构 v2
 
+> 后续：用户要求改为SAM池化语义Adapter后的F_sem，见 [gfm_semantic_pool_v3_implementation_20261015.md](gfm_semantic_pool_v3_implementation_20261015.md)。本v2作为历史原始GFM池化方案；作业65174在训练前收据构建报错，新增训练更新0，不把提交/运行当作验证成功。
+
 本版执行用户最终确认：同一冻结VGGT-Omega输出GFM多层特征，分别适配重建Memory与语义Memory。点云初始化重建token；SAM Mask先池化GFM再投影初始化理解query，query继续读取语义Memory及当前重建token。下游交互/Child Gaussian/分类/组装不变，Write=0。v1旧连线保留为独立模型，不回写历史代码快照。
 
 ## 代码路径与计算

@@ -24,8 +24,9 @@ def main():
     if exported['status']!='EXPORTED' or len(exported['records'])!=128:raise ValueError('Export incomplete')
     if subprocess.check_output(['git','-C',SIU3R_REPO,'rev-parse','HEAD'],text=True).strip()!=SIU3R_COMMIT:raise ValueError('Official evaluator commit changed')
     if subprocess.check_output(['git','-C',SIU3R_REPO,'status','--porcelain','--','src'],text=True).strip():raise ValueError('Official evaluator src is modified')
+    configuration=json.loads((args.run_root/'configuration.json').read_text())
     raw=itemize(evaluate(root/'all',device='cuda:0'))
-    report=dict(status='HELDOUT128_OFFICIALLY_SCORED',windows=128,official_commit=SIU3R_COMMIT,
+    report=dict(status='HELDOUT128_OFFICIALLY_SCORED',windows=128,official_commit=SIU3R_COMMIT,model_recipe=configuration['recipe'],
         scopes={'target-all':{k:raw[k] for k in ('absrel','rmse','psnr','ssim','lpips')}|{'mIoU_t':None},'context':{'mIoU_t':None}},
         official_segmentation={'all':raw},official_native_result=raw,parameter_updates=0,
         depth_units=exported['depth_units'],prediction_protocol=exported['prediction_protocol'])
@@ -41,7 +42,7 @@ def main():
     differences=[None if b is None or a=='' else b-float(a) for a,b in zip(old,current)]
     with (root/'comparison_to_old_C.csv').open('w',newline='') as stream:
         writer=csv.writer(stream);writer.writerow(['model']+list(FIELDS));writer.writerow(['old_VGGT_MASt3R_C']+old)
-        writer.writerow(['Omega_SAM_dual_stream_epoch4']+current);writer.writerow(['new_minus_old']+differences)
+        writer.writerow([configuration['recipe']+'_epoch4']+current);writer.writerow(['new_minus_old']+differences)
     (args.run_root/'COMPLETE.json').write_text(json.dumps(dict(status='TRAINING_AND_HELDOUT128_OFFICIAL_EVAL_COMPLETE',training=json.loads((args.run_root/'TRAINING_COMPLETE.json').read_text()),metrics=str(root/'metrics.json')),indent=2)+'\n')
 
 if __name__=='__main__':main()

@@ -227,16 +227,21 @@ def run(args):
     root=args.output_dir;root.mkdir(parents=True,exist_ok=True)
     if rank==0:
         if (root/'STARTED.json').exists() and not args.resume:raise ValueError('Existing attempt; use explicit --resume')
-        write(root/'STARTED.json',dict(job_id=os.environ.get('SLURM_JOB_ID'),world_size=world,pid=os.getpid(),config=dict(CONFIG,recipe='omega_gfm_two_adapter_sam_pool_v2_frozen_joint4') if args.architecture=='gfm_v2' else CONFIG,architecture=args.architecture))
+        write(root/'STARTED.json',dict(job_id=os.environ.get('SLURM_JOB_ID'),world_size=world,pid=os.getpid(),config=dict(CONFIG,recipe='omega_gfm_semantic_pool_v3_frozen_joint4' if args.architecture=='gfm_v3' else 'omega_gfm_two_adapter_sam_pool_v2_frozen_joint4') if args.architecture in ('gfm_v2','gfm_v3') else CONFIG,architecture=args.architecture))
     from tokengs.options import config_defaults
     from tokengs.models.object_locus_dual_stream_v1 import LocusGSDualStreamV1
     source_config=dict(CONFIG)
-    if args.architecture=='gfm_v2':
+    if args.architecture in ('gfm_v2','gfm_v3'):
         from tokengs.models.object_locus_gfm_dual_stream_v2 import LocusGSGFMDualStreamV2
         CONFIG['recipe']='omega_gfm_two_adapter_sam_pool_v2_frozen_joint4'
-        CONFIG['required_gradient_families']=['reconstruction','understanding','queries','panoptic','gfm_reconstruction_adapter','gfm_query_projection','anchor_gfm_content']
+        query_projection_family='semantic_query_projection' if args.architecture=='gfm_v3' else 'gfm_query_projection'
+        CONFIG['required_gradient_families']=['reconstruction','understanding','queries','panoptic','gfm_reconstruction_adapter',query_projection_family,'anchor_gfm_content']
         opt=config_defaults['train_siu3r_object_locus_gfm_dual_stream_v2']
         constructor=LocusGSGFMDualStreamV2
+        if args.architecture=='gfm_v3':
+            from tokengs.models.object_locus_gfm_dual_stream_v3 import LocusGSGFMDualStreamV3
+            CONFIG['recipe']='omega_gfm_semantic_pool_v3_frozen_joint4'
+            opt=config_defaults['train_siu3r_object_locus_gfm_dual_stream_v3'];constructor=LocusGSGFMDualStreamV3
     else:
         opt=config_defaults['train_siu3r_object_locus_dual_stream_v1'];constructor=LocusGSDualStreamV1
     windows,short_indices,validation=cohorts();short=[windows[i] for i in short_indices]
@@ -257,8 +262,8 @@ def run(args):
         if blob['meta']!=meta:raise ValueError('Resume metadata/code/data/config mismatch')
         restore_trainable_state(model,blob['model']);optimizer.load_state_dict(blob['optimizer']);progress=blob['progress'];restore_rng(blob['rank_rng'][rank]);del blob
     if args.transition_from:
-        if args.resume or args.architecture!='gfm_v2':raise ValueError('Architecture transfer requires a fresh GFM V2 attempt')
-        from scripts.gfm_dual_stream_transition import transfer,verify_source,SOURCE50_SHA256
+        if args.resume or args.architecture not in ('gfm_v2','gfm_v3'):raise ValueError('Architecture transfer requires a fresh GFM V2 attempt')
+        from scripts.gfm_dual_stream_transition import transfer,verify_source,SOURCE50_SHA256,transition_receipt
         valid=[verify_source(args.transition_from) if rank==0 else None]
         dist.broadcast_object_list(valid,src=0)
         if not valid[0]:raise ValueError('Preserved source50 checkpoint checksum differs')
@@ -278,7 +283,7 @@ def run(args):
             random.seed(seed);np.random.seed(seed);torch.manual_seed(seed);torch.cuda.manual_seed(seed)
         meta['architecture_transition']=dict(source_checkpoint=str(args.transition_from.resolve()),source_git_sha=oldmeta['execution_git_sha'],source_checkpoint_sha256=SOURCE50_SHA256,source_world_size=2,target_world_size=world,
             source_completed_short_updates=50,retained_optimizer_states=plan['retained_optimizer_states'],new_short_checks=[178,306],new_baseline_at_source_update=50)
-        if rank==0:write(root/'ARCHITECTURE_TRANSITION.json',dict(**meta['architecture_transition'],**plan,optimizer_moments_retained_by_parameter_name=True,new_parameters_have_fresh_moments=True))
+        if rank==0:write(root/'ARCHITECTURE_TRANSITION.json',transition_receipt(meta['architecture_transition'],plan))
         del blob
     short_origin=meta.get('architecture_transition',{}).get('source_completed_short_updates',0)
     short_checks=[short_origin+step for step in CONFIG['short_checks']]
@@ -287,9 +292,9 @@ def run(args):
     for name,p in model.named_parameters():
         f=family(name)
         if p.requires_grad and f not in probes:probes[f]=(name,p.detach().clone())
-    if args.architecture=='gfm_v2':
+    if args.architecture in ('gfm_v2','gfm_v3'):
         named=dict(model.named_parameters())
-        for label,name in [('gfm_reconstruction_adapter','reconstruction_adapter.projection.0.weight'),('gfm_query_projection','query_initializer.content_projection.1.weight'),('anchor_gfm_content','anchor_visual_projection.1.weight')]:
+        for label,name in [('gfm_reconstruction_adapter','reconstruction_adapter.projection.0.weight'),(query_projection_family,'query_initializer.content_projection.1.weight'),('anchor_gfm_content','anchor_visual_projection.1.weight')]:
             probes[label]=(name,named[name].detach().clone())
     if rank==0:
         write(root/'configuration.json',dict(**meta,optimizer_groups=[{k:v for k,v in group.items() if k!='params'} for group in optimizer.param_groups],
@@ -389,7 +394,7 @@ def run(args):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir',type=Path,required=True);parser.add_argument('--resume',action='store_true')
-    parser.add_argument('--architecture',choices=('v1','gfm_v2'),default='v1')
+    parser.add_argument('--architecture',choices=('v1','gfm_v2','gfm_v3'),default='v1')
     parser.add_argument('--transition-from',type=Path)
     parser.add_argument('--cache-root',type=Path)
     args=parser.parse_args()

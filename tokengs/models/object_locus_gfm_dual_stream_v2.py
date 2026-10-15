@@ -22,6 +22,9 @@ class LocusGSGFMDualStreamV2(LocusGSDualStreamV1):
         self.query_initializer=GFMSAMQueryInitializer()
         self.anchor_visual_projection=nn.Sequential(nn.LayerNorm(2048),nn.Linear(2048,1024))
 
+    def query_seed_memory(self,raw_gfm,fm):
+        return raw_gfm
+
     def generate(self,context_rgb,runtime_config=None):
         if runtime_config: raise ValueError('configure architecture at construction; no implicit runtime overrides')
         if context_rgb.ndim!=5 or context_rgb.shape[1:]!=(2,3,256,256):
@@ -41,7 +44,7 @@ class LocusGSGFMDualStreamV2(LocusGSDualStreamV1):
         tokens=self.get_gs_tokens(batch_size=len(context_rgb))+self.anchor_content(content)+self.anchor_visual_projection(anchor_visual)
         fm=self.understanding(omega['patch_layers'],context_rgb)
         proposals=self.sam_proposals(context_rgb)
-        q,c,s,proposal_log=self.query_initializer(raw_gfm,proposals,omega['points'],mu)
+        q,c,s,proposal_log=self.query_initializer(self.query_seed_memory(raw_gfm,fm),proposals,omega['points'],mu)
         states,stats=self.anchor_decoder.forward_stateful(tokens,latent,rays,self.panoptic,fm,q,self.understanding.mask_embedder,self.understanding_step,
             seed_mu=mu,seed_radius=radius,seed_c=c,seed_s=s,write_strength=self.write_strength)
         final=states[-1]; gaussians=self.activation_head(final['tokens'],final['mu'],final['radii'])

@@ -63,3 +63,11 @@ def transfer(model,optimizer,blob,optimizer_groups):
         copied+=1
     plan['retained_optimizer_states']=copied
     return plan
+
+
+def transition_receipt(metadata,plan):
+    """Merge the intentionally repeated state count, rejecting contradictory fields."""
+    overlap=set(metadata)&set(plan)
+    if overlap-{'retained_optimizer_states'}:raise ValueError('Unexpected duplicated transition receipt field')
+    if any(metadata[key]!=plan[key] for key in overlap):raise ValueError('Transition receipt state counts disagree')
+    return {**metadata,**plan,'optimizer_moments_retained_by_parameter_name':True,'new_parameters_have_fresh_moments':True}

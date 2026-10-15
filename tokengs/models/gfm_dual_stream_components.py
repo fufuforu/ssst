@@ -52,13 +52,14 @@ class GFMSAMQueryInitializer(SAMQueryInitializer):
     Geometry/dedup use full-resolution mask support so sub-patch objects do not
     disappear under nearest-neighbor mask resizing. No semantic-adapter input.
     """
-    def __init__(self):
+    def __init__(self,input_dim=2048):
         super().__init__()
-        self.content_projection=nn.Sequential(nn.LayerNorm(2048),nn.Linear(2048,256),nn.GELU(),nn.Linear(256,256))
+        self.input_dim=input_dim
+        self.content_projection=nn.Sequential(nn.LayerNorm(input_dim),nn.Linear(input_dim,256),nn.GELU(),nn.Linear(256,256))
 
     def forward(self,gfm,proposals,points,mu):
         b,v,d,h,w=gfm.shape
-        if d!=2048:raise ValueError('Query initialization requires raw 2048-D GFM, not adapted semantic memory')
+        if d!=self.input_dim:raise ValueError(f'Query initializer expects {self.input_dim} feature channels, got {d}')
         ph,pw=points.shape[2:4]
         allq=[];allc=[];alls=[];logs=[]
         for bi in range(b):
@@ -98,5 +99,10 @@ class GFMSAMQueryInitializer(SAMQueryInitializer):
                 c[i]=group['center'];s[i]=group['spread']
                 q[i]=self.content_projection(group['feat'])+self.geometry(torch.cat(((c[i]-origin)/ell,s[i]/ell)))
             allq.append(self.norm(q));allc.append(c);alls.append(s)
-            logs.append(dict(proposal_queries=len(groups),learned_queries=self.slots-len(groups),cross_view_groups=sum(len(g['views'])>1 for g in groups),pooling='SAM area-weighted raw GFM then projection'))
+            logs.append(dict(proposal_queries=len(groups),learned_queries=self.slots-len(groups),cross_view_groups=sum(len(g['views'])>1 for g in groups),pooling='SAM area-weighted semantic adapter output then query projection' if self.input_dim==256 else 'SAM area-weighted raw GFM then projection'))
         return torch.stack(allq),torch.stack(allc),torch.stack(alls),logs
+
+
+class SemanticSAMQueryInitializer(GFMSAMQueryInitializer):
+    """Pool trainable semantic memory, with intact adapter -> query gradients."""
+    def __init__(self):super().__init__(input_dim=256)

@@ -1024,4 +1024,9 @@ config_defaults["train_siu3r_object_locus_gfm_dual_stream_v2"] = config_defaults
     model_type="siu3r_object_locus_gfm_dual_stream_v2", experiment_name="object_locus_gfm_dual_stream_v2",
     workspace="/space/mawb/ssst/workspace_group_plus/object_locus_gfm_dual_stream_v2")
 
+config_doc["train_siu3r_object_locus_gfm_dual_stream_v3"] = "Dual GFM adapters; pool semantic adapter output under SAM masks to initialize queries."
+config_defaults["train_siu3r_object_locus_gfm_dual_stream_v3"] = config_defaults["train_siu3r_object_locus_gfm_dual_stream_v2"].evolve(
+    model_type="siu3r_object_locus_gfm_dual_stream_v3", experiment_name="object_locus_gfm_dual_stream_v3",
+    workspace="/space/mawb/ssst/workspace_group_plus/object_locus_gfm_dual_stream_v3")
+
 AllConfigs = tyro.extras.subcommand_type_from_defaults(config_defaults, config_doc)

@@ -42,10 +42,13 @@ from .object_locus_dual_stream_v1 import LocusGSDualStreamV1
 
 from .object_locus_gfm_dual_stream_v2 import LocusGSGFMDualStreamV2
 
+from .object_locus_gfm_dual_stream_v3 import LocusGSGFMDualStreamV3
+
 # Model registry
 from .object_locus_joint_v1 import LocusGSObjectLocusJointV1Recon
 
 model_registry = {
+    'siu3r_object_locus_gfm_dual_stream_v3': LocusGSGFMDualStreamV3,
     'siu3r_object_locus_gfm_dual_stream_v2': LocusGSGFMDualStreamV2,
     'siu3r_object_locus_dual_stream_v1': LocusGSDualStreamV1,
     'siu3r_object_locus_frozen_vggt_posefree_v1': LocusGSObjectLocusFrozenVGGT,

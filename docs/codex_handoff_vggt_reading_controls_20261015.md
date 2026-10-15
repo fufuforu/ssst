@@ -1,5 +1,7 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **最新覆盖：语义Adapter后池化 v3**。用户要求理解query由SAM池化F_sem而非原始GFM；代码/梯度与65174启动失败修复见 [gfm_semantic_pool_v3_implementation_20261015.md](gfm_semantic_pool_v3_implementation_20261015.md)。65174在迁移收据重复字段处失败，训练更新0，日志保留。新运行`/space/mawb/ssst/group_plus/dual_stream_training_v1/attempt04_semantic_pool`仍从原50步共享权重/AdamW迁移，18节点4卡，短验证通过后全量4epoch。以该运行submission/STARTED/FIRST_UPDATE为准，不恢复已取消65167或失败65174。
+
 > **最新目标已明确实现为GFM双Adapter v2**：用户确认Omega GFM分别供重建/语义Adapter，SAM先池化原始GFM初始化query，旧TokenGS encoder移除。见 [gfm_dual_stream_v2_implementation_20261015.md](gfm_dual_stream_v2_implementation_20261015.md)。65167的50步已安全保存，旧作业因目标结构变化停止；新运行 `/space/mawb/ssst/group_plus/dual_stream_training_v1/attempt03_gfm_v2` 固定18节点4卡4090，迁移共享权重/AdamW，新增投影新初始化。新结构另做128/最多256更新的短验证，通过才全量4epoch。不要恢复旧2卡作业或重播50步。提交后停止轮询。
 
 > **当前覆盖授权：用户同意双流短验证通过后直接进入完整数据训练。** 方案及转阶段条件见 [dual_stream_training_plan_20261015.md](dual_stream_training_plan_20261015.md)。冻结Omega/SAM、Write=0；短验证128/最多256更新，满足预设正常学习条件后接原1191场景/8337窗口全量4epoch。使用新独立训练运行，旧模型不重跑。作业与代码快照见 `/space/mawb/ssst/group_plus/dual_stream_training_v1/attempt01/submission.json`；启动后停止轮询。下文“未授权正式训练”是此授权之前历史状态。
