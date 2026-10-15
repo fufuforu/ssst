@@ -277,17 +277,18 @@ def run(args):
                 (loss/len(indices)).backward()
             rows.append(metrics);del loss,batch
         grad_norm=torch.nn.utils.clip_grad_norm_([p for p in model.parameters() if p.requires_grad],CONFIG['clip_norm'],error_if_nonfinite=True)
-        optimizer.step()
         parameters=dict(model.named_parameters())
+        probe_gradients={f:float(parameters[name].grad.detach().norm()) if parameters[name].grad is not None else 0. for f,(name,_) in probes.items()}
+        optimizer.step()
         # Meaningful value changes in representative tensors, rather than optimizer counters alone.
         for f,(name,before) in probes.items():
             p=parameters[name]
             if not torch.isfinite(p).all():raise FloatingPointError('Nonfinite representative parameter '+name)
-            changed=not torch.equal(p.detach(),before)
+            changed=(not torch.equal(p.detach(),before)) and probe_gradients[f]>0
             progress['proof']['updated_families'][f]=progress['proof']['updated_families'].get(f,False) or changed
         row={k:sum(r[k] for r in rows)/len(rows) for k in rows[0]}
         row.update(phase=phase,phase_update=update_index+1,grad_norm=float(grad_norm),seconds=time.monotonic()-started,
-            cuda_peak_gib=torch.cuda.max_memory_allocated()/2**30,learning_rate_factor=factor,local_indices=indices)
+            cuda_peak_gib=torch.cuda.max_memory_allocated()/2**30,learning_rate_factor=factor,local_indices=indices,representative_grad_norms=probe_gradients)
         append(root/f'train_rank{rank:02d}.jsonl',row)
         if rank==0 and (update_index<3 or (update_index+1)%10==0):print('TRAIN',json.dumps(row),flush=True)
         return row
@@ -302,7 +303,9 @@ def run(args):
                 if rank==0 and step==0:write(root/'FIRST_UPDATE.json',dict(parameter_updates=1,proof=progress['proof'],metrics=row))
             if step+1 in CONFIG['short_checks']:
                 report=monitor(model,opt,short[:8],validation[:8],root,f'short_{step+1:04d}',rank,world,device,(step+1)*8)
-                gate=acceptance(baseline['train'],report['train'],baseline['validation'],report['validation'],progress['proof'])
+                proof_rows=[None]*world;dist.all_gather_object(proof_rows,progress['proof'])
+                global_proof=dict(finite=all(p['finite'] for p in proof_rows),updated_families={f:all(p['updated_families'].get(f,False) for p in proof_rows) for f in ('reconstruction','understanding','queries','panoptic')})
+                gate=acceptance(baseline['train'],report['train'],baseline['validation'],report['validation'],global_proof)
                 if rank==0:write(root/f'gate_update{step+1:04d}.json',gate)
                 if gate['passed']:
                     progress.update(phase='full',gate_passed=True)
