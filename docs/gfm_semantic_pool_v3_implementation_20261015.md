@@ -1,5 +1,7 @@
 # GFM 双 Adapter v3：SAM 池化语义特征
 
+> 最新GPU实测已完成，见 [gfm_semantic_pool_v3_short_results_20261015.md](gfm_semantic_pool_v3_short_results_20261015.md)：65175新增256步、累计306步，质量门槛9/11通过后停止，全量更新0。下文“尚无新模型质量结论”为运行前记录。后续资源按用户最新要求优先11节点四卡。
+
 用户明确要求改为语义Adapter之后池化，再重新运行。新模型 `LocusGSGFMDualStreamV3` / `siu3r_object_locus_gfm_dual_stream_v3`，配置 `train_siu3r_object_locus_gfm_dual_stream_v3`。
 
 当前计算：
