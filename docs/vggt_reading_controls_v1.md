@@ -91,3 +91,21 @@ serializer_only_preflight_reuse.json明确记录两个执行SHA、无损roundtri
 旧feedback短对照不再保留可重新运行的模型权重；小型官方指标及结论仍可比较，未假称保留所有历史大文件。
 
 进度：`python3 scripts/show_vggt_reading_controls_progress_v1.py`，显示正式更新、窗口曝光、作业状态和不含排队/评测的训练ETA。
+
+
+## 2026-10-15 排队与评分恢复
+
+复核实际状态：64667单卡/八卡预检全部完成；四组64668–64671均完成正式20更新/160窗口曝光，64672统一启动核验通过。
+object_local_read的64717已完成300更新/2400曝光和128窗口八rank导出，但官方评分环境因入口顶层导入模型而缺少lpips失败；训练和导出并未失败。
+该失败记录保留；reliable_depth的64719因上述评分失败被依赖取消，未进行20更新以后的训练。
+
+官方评分、reduce和summary入口现不导入TokenGS模型；仅export延迟导入模型环境。
+在固定官方Python环境验证纯评分入口及官方worker导入通过，18项训练数学合同仍与实际GPU预检快照410bd30一致。
+修复执行快照649ef09aef473128849539baf7453654033ce281；共享存储无损checkpoint参数、optimizer、RNG和计数不变。
+
+将尚未启动的64716/64718（PENDING、RunTime=0）取消替换，原记录保留。
+新作业64851只复用object_local_read既有128窗口进行官方评分，绝不重新训练或导出。
+64852 baseline、64853 anchor_visual、64854 reliable_depth均等待64851通过后，分别从自身20更新checkpoint精确续跑至300并评测。
+三组之间不再存在无关训练依赖；申请同型3090八卡，允许11/13，排除12，避免固定等待单一节点。
+64855等待四组成功后汇总原定13列结果。64851已实际在3dimage-13启动。
+恢复收据：attempt04/schedule_scoring_recovery_20261015.json；评分导入修复/数学合同证明：attempt04/scoring_import_recovery_preflight_reuse.json。
