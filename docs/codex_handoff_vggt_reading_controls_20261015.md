@@ -1,5 +1,7 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **恢复链已提交，停止轮询**：65251直接组从全量250 checkpoint续训（11四3090，单次核对RUNNING）；65252 afterany:65236条件复用成功或仅恢复已知缓存错误，不中断健康65236；正式评测65253 afterok:65251、65254 afterok:65252，比较65255 afterok:65253:65254。旧65238待执行评测已取消替换。修复SHA75f6ce1。源状态完整、无已完成更新丢失，但尚未宣称新GPU首步通过；用户通知后检查新链，勿重播250步或恢复65199。
+
 > **65199已FAILED：SAM共享缓存发布FileExistsError，不是NaN/OOM；全量250步已完整checkpoint。** 修复与恢复见[gfm_cache_publication_failure_recovery_20261015.md](gfm_cache_publication_failure_recovery_20261015.md)。直接组新attempt07从251步继续，源optimizer/4rank RNG保留，不回到306短验证。65236当前健康、GPU冒烟及首个适配更新已通过，不能中断；为其设置afterany条件恢复/成功复用，再重接两组评测与对比依赖。旧65237/65239已因原parent失败取消，旧65238将替换，不能据旧submission重复提交。
 
 > **已完成本轮提交，停止轮询**：新训练65236（17节点四4090，冒烟→adapt2→joint4），原组评测校验65237 afterok:65199，新组官方评测65238 afterok:65236，统一表65239 afterok:65237:65238。执行快照3608570；单次核对65236 RUNNING，其余Dependency，尚未宣称GPU冒烟/适配更新通过。收据在attempt06_adapt2_joint4_node17/submission.json。用户通知后再检查这条链，不重复训练/提交。

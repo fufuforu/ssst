@@ -25,3 +25,9 @@ checkpoint仍使用可覆盖的原子替换，不能把“首次写入生效”�
 取消旧65238待执行评测，以条件延续任务为新的afterok依赖，避免旧parent失败后评测被取消而失去后续链路。最后用新direct目录与原staged目录重建11值对比任务。源历史submission保留，新作业号写cachefix_submission.json。用户要求提交后单次核对，随后停止轮询。
 
 不可变修复快照：`/space/mawb/ssst_gfm_cache_publication_fix_code_20261015`。不要重新从306或50步启动直接组，不取消健康的65236。
+
+## 已提交恢复链
+
+执行SHA 75f6ce182b4ee79e75485db541daf0ffc85f91a9，已推送。直接组恢复65251（11节点四3090）；分阶段条件恢复65252 afterany:65236（17节点四4090）；直接组正式评测65253 afterok:65251；分阶段正式评测65254 afterok:65252；统一对比65255 afterok:65253:65254。旧65238仅在PENDING状态取消，65236不受影响。
+
+提交后单次核对：65251 RUNNING，确实分配11节点四3090；65252为afterany:65236未满足，其余新任务Dependency。此时仅确认资源分配，尚未宣称修复版本GPU首个续训更新通过，随后停止轮询。源306/全量250及optimizer/RNG恢复已通过CPU预检及实际共享文件系统验证。新收据在attempt07/submission.json、attempt06/cachefix_dependency_submission.json、comparison/cachefix_submission.json；旧收据保留为历史。用户通知后检查这些新作业，不恢复失败65199或重复提交。
