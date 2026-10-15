@@ -10,6 +10,8 @@
 
 全量1191场景、8337窗口、有效batch8、4epoch，总4172次全量更新。每epoch补齐7个窗口曝光。使用11节点四张3090，每卡microbatch1/累积2、20CPU、96GiB内存。启动脚本 `scripts/launch_gfm_semantic_pool_v3_full_node11.sbatch`；不可变代码快照 `/space/mawb/ssst_gfm_semantic_pool_v3_full_code_20261015`。完成后沿原协议固定128窗口导出并官方评分。作业号和真实启动证据以新运行submission、RESUME_POLICY_TRANSITION、SHORT_PASSED及FULL_STARTED为准。
 
-后续监测继续保留BCE、分类、IoU、PSNR和梯度范数；损失上升仍是风险信号，但不单独阻止全量适配。本次不新增结构实验。提交并确认首个全量更新后停止轮询，等用户通知完成。
+后续监测继续保留BCE、分类、IoU、PSNR和梯度范数；损失上升仍是风险信号，但不单独阻止全量适配。本次不新增结构实验。按用户要求，提交后只核对一次调度状态即停止轮询，等用户通知完成；只有FULL_STARTED存在才宣称真实全量更新。
+
+已提交 **65199**，执行SHA为b403e7c；提交后单次核对状态PENDING/Reason=Priority，指定11节点四张3090，尚未证明首个全量反向更新。submission.json保存在attempt05_full_node11。当前文档提交不改变作业不可变快照。
 
 验证：6项policy/cache/sampler测试通过，包含新策略允许损失上升而阻止缺失更新/非有限值，以及续训只允许显式代码/门槛变化、拒绝数据/world size/LR变化。训练脚本编译、Slurm脚本语法及diff检查通过。

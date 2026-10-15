@@ -1,5 +1,7 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **已提交全量续训65199**：attempt05_full_node11，执行SHA b403e7c，11节点四张3090；提交后单次调度核对PENDING/Priority，随后停止轮询，尚未宣称首个全量更新。用户通知后检查该作业，不要重复提交。下段“核对真实首个全量更新后停止”以此处单次核对后停止为准。
+
 > **最新用户覆盖：短验证只需证明学习，不要求组合损失固定下降。** 按 [gfm_semantic_pool_v3_full_continuation_20261015.md](gfm_semantic_pool_v3_full_continuation_20261015.md) 使用显式learning_evidence_v2策略，从65175的306步权重/AdamW/4rank RNG原地时钟继续，直接进入全量4epoch；不重跑短验证、不修改模型/loss。新运行attempt05_full_node11，11节点四张3090。提交后核对真实首个全量更新并停止轮询。以下不放行建议已被用户该决定覆盖，原失败结果仍保留。
 
 > **最新实测：65175已完成256次v3新结构短更新，累计时钟306；9/11门槛通过，重建/理解损失下降两项失败，保存checkpoint后主动停止，全量更新0。** 见 [gfm_semantic_pool_v3_short_results_20261015.md](gfm_semantic_pool_v3_short_results_20261015.md)。模型确实学习，但存在BCE上升、梯度尖峰及小样本分类泛化问题；不能称全量完成，也不能盲目恢复失败gate或重新从50步训练。当前检查未提交新作业。用户最新资源约束为仅11节点有四张卡，后续优先3dimage-11四张3090；提交后仍停止轮询。
