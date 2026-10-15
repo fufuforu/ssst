@@ -1,5 +1,7 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **当前覆盖授权：用户同意双流短验证通过后直接进入完整数据训练。** 方案及转阶段条件见 [dual_stream_training_plan_20261015.md](dual_stream_training_plan_20261015.md)。冻结Omega/SAM、Write=0；短验证128/最多256更新，满足预设正常学习条件后接原1191场景/8337窗口全量4epoch。使用新独立训练运行，旧模型不重跑。作业与代码快照见 `/space/mawb/ssst/group_plus/dual_stream_training_v1/attempt01/submission.json`；启动后停止轮询。下文“未授权正式训练”是此授权之前历史状态。
+
 > **终点更新（2026-10-15）：四组300更新/2400曝光、128场景官方评测及64855汇总已全部成功完成。**
 > 最新结果与补充审计见 [`vggt_reading_controls_results_20261015.md`](vggt_reading_controls_results_20261015.md)。
 >
