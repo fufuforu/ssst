@@ -4,7 +4,7 @@ import unittest
 from pathlib import Path
 import torch
 import numpy as np
-from scripts.dual_stream_training_policy import epoch_order,rank_microbatches,acceptance
+from scripts.dual_stream_training_policy import epoch_order,rank_microbatches,acceptance,validate_resume_metadata
 from scripts.dual_stream_frozen_cache import install_frozen_caches
 
 class TrainingPolicyTests(unittest.TestCase):
@@ -30,6 +30,23 @@ class TrainingPolicyTests(unittest.TestCase):
         self.assertTrue(acceptance(before,after,before,before,proof)['passed'])
         bad=dict(before,psnr=8.)
         self.assertFalse(acceptance(before,after,before,bad,proof)['passed'])
+    def test_evidence_policy_allows_loss_increase_but_keeps_learning_and_finite_checks(self):
+        before,after,proof=self.fixture();after.update(loss_recon=2.,loss_understanding=8.)
+        self.assertFalse(acceptance(before,after,before,before,proof)['passed'])
+        result=acceptance(before,after,before,before,proof,policy='learning_evidence_v2')
+        self.assertTrue(result['passed']);self.assertFalse(result['observations']['train_understanding_loss_down_5pct'])
+        proof['updated_families']['queries']=False
+        self.assertFalse(acceptance(before,after,before,before,proof,policy='learning_evidence_v2')['passed'])
+        proof['updated_families']['queries']=True;after['loss_recon']=float('nan')
+        self.assertFalse(acceptance(before,after,before,before,proof,policy='learning_evidence_v2')['passed'])
+    def test_explicit_resume_allows_only_code_and_gate_policy_change(self):
+        saved=dict(execution_git_sha='a'*40,world_size=4,config={'lr':1e-4},manifest_sha256='data')
+        current=dict(saved,execution_git_sha='b'*40,learning_gate_policy='learning_evidence_v2')
+        validate_resume_metadata(saved,current,source_sha='a'*40)
+        for changed in (dict(current,world_size=2),dict(current,manifest_sha256='wrong'),dict(current,config={'lr':2e-4})):
+            with self.assertRaises(ValueError):validate_resume_metadata(saved,changed,source_sha='a'*40)
+        with self.assertRaises(ValueError):validate_resume_metadata(saved,current)
+        with self.assertRaises(ValueError):validate_resume_metadata(saved,current,source_sha='c'*40)
     def test_frozen_cache_exactness_and_rgb_invalidation(self):
         class Omega:
             source_identity={'id':'fake_for_unit_test_only'}

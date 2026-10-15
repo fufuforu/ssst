@@ -1,5 +1,7 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **最新用户覆盖：短验证只需证明学习，不要求组合损失固定下降。** 按 [gfm_semantic_pool_v3_full_continuation_20261015.md](gfm_semantic_pool_v3_full_continuation_20261015.md) 使用显式learning_evidence_v2策略，从65175的306步权重/AdamW/4rank RNG原地时钟继续，直接进入全量4epoch；不重跑短验证、不修改模型/loss。新运行attempt05_full_node11，11节点四张3090。提交后核对真实首个全量更新并停止轮询。以下不放行建议已被用户该决定覆盖，原失败结果仍保留。
+
 > **最新实测：65175已完成256次v3新结构短更新，累计时钟306；9/11门槛通过，重建/理解损失下降两项失败，保存checkpoint后主动停止，全量更新0。** 见 [gfm_semantic_pool_v3_short_results_20261015.md](gfm_semantic_pool_v3_short_results_20261015.md)。模型确实学习，但存在BCE上升、梯度尖峰及小样本分类泛化问题；不能称全量完成，也不能盲目恢复失败gate或重新从50步训练。当前检查未提交新作业。用户最新资源约束为仅11节点有四张卡，后续优先3dimage-11四张3090；提交后仍停止轮询。
 
 > **最新覆盖：语义Adapter后池化 v3**。用户要求理解query由SAM池化F_sem而非原始GFM；代码/梯度与65174启动失败修复见 [gfm_semantic_pool_v3_implementation_20261015.md](gfm_semantic_pool_v3_implementation_20261015.md)。65174在迁移收据重复字段处失败，训练更新0，日志保留。新运行`/space/mawb/ssst/group_plus/dual_stream_training_v1/attempt04_semantic_pool`仍从原50步共享权重/AdamW迁移，18节点4卡，短验证通过后全量4epoch。以该运行submission/STARTED/FIRST_UPDATE为准，不恢复已取消65167或失败65174。

@@ -21,7 +21,7 @@ import torch
 from torch import nn
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
-from scripts.dual_stream_training_policy import CONFIG,epoch_order,rank_microbatches,lr_factor,acceptance
+from scripts.dual_stream_training_policy import CONFIG,epoch_order,rank_microbatches,lr_factor,acceptance,validate_resume_metadata
 from scripts.dual_stream_frozen_cache import install_frozen_caches,cpu_tree,atomic_torch_save
 
 MANIFEST=Path('/space/mawb/ssst/group_plus/object_locus_panoptic_full1201_8gpu/manifest.json')
@@ -254,12 +254,17 @@ def run(args):
         execution_git_sha=sha,manifest_sha256=digest(MANIFEST),heldout_sha256=digest(HELDOUT),
         train_windows=len(windows),train_scenes=len({w['scene'] for w in windows}),short_indices=short_indices,
         frozen_cache_identity=cache['identity'])
+    if args.gate_policy!='legacy_v1':meta['learning_gate_policy']=args.gate_policy
     progress=dict(phase='short',short_updates=0,full_updates=0,epoch=0,update_in_epoch=0,gate_passed=False,
         epoch_counts=[0]*len(windows),total_counts=[0]*len(windows),proof=dict(finite=True,updated_families={}))
     if args.resume:
         blob=torch.load(root/'checkpoint_latest.pt',map_location='cpu',weights_only=False,mmap=True)
         if 'architecture_transition' in blob['meta']:meta['architecture_transition']=blob['meta']['architecture_transition']
-        if blob['meta']!=meta:raise ValueError('Resume metadata/code/data/config mismatch')
+        validate_resume_metadata(blob['meta'],meta,source_sha=args.resume_source_sha)
+        if args.resume_source_sha and rank==0:
+            write(root/'RESUME_POLICY_TRANSITION.json',dict(source_meta=blob['meta'],target_meta=meta,
+                source_progress=blob['progress'],reason='User authorized learning evidence gate; loss reduction is monitoring only',
+                preserves_model_optimizer_rank_rng=True,replayed_short_updates=0))
         restore_trainable_state(model,blob['model']);optimizer.load_state_dict(blob['optimizer']);progress=blob['progress'];restore_rng(blob['rank_rng'][rank]);del blob
     if args.transition_from:
         if args.resume or args.architecture not in ('gfm_v2','gfm_v3'):raise ValueError('Architecture transfer requires a fresh GFM V2 attempt')
@@ -337,7 +342,25 @@ def run(args):
         if rank==0 and (update_index<3 or (update_index+1)%10==0):print('TRAIN',json.dumps(row),flush=True)
         return row
 
+    def check_short_gate(report,step):
+        proof_rows=[None]*world;dist.all_gather_object(proof_rows,progress['proof'])
+        global_proof=dict(finite=all(p['finite'] for p in proof_rows),updated_families={f:all(p['updated_families'].get(f,False) for p in proof_rows) for f in CONFIG.get('required_gradient_families',('reconstruction','understanding','queries','panoptic'))})
+        gate=acceptance(baseline['train'],report['train'],baseline['validation'],report['validation'],global_proof,policy=args.gate_policy)
+        if rank==0:write(root/f'gate_update{step:04d}.json',gate)
+        if gate['passed']:
+            progress.update(phase='full',gate_passed=True)
+            checkpoint(model,optimizer,progress,root,meta,rank,world,retain='checkpoint_short_passed.pt')
+            if rank==0:write(root/'SHORT_PASSED.json',dict(short_updates=step,gate=gate,automatic_full_training_authorized=True))
+        return gate
+
     if progress['phase']=='short':
+        gate=None
+        if progress['short_updates']>=max(short_checks):
+            # Reassess the completed checkpoint without replaying a training step.
+            completed=progress['short_updates']
+            record=json.loads((root/'monitor'/f'short_{completed:04d}.json').read_text())
+            if record['step']!=completed*8:raise ValueError('Completed short monitor clock differs')
+            gate=check_short_gate(record['summary'],completed)
         for step in range(progress['short_updates'],max(short_checks)):
             order=list(range(16));offset=(step*8)%16
             indices=[order[(offset+micro*world+rank)%16] for micro in range(8//world)]
@@ -347,15 +370,8 @@ def run(args):
                 if rank==0 and step==short_origin:write(root/'FIRST_UPDATE.json',dict(parameter_updates=step+1,new_structure_updates=1,source_completed_updates=short_origin,proof=progress['proof'],metrics=row))
             if step+1 in short_checks:
                 report=monitor(model,opt,short[:8],validation[:8],root,f'short_{step+1:04d}',rank,world,device,(step+1)*8)
-                proof_rows=[None]*world;dist.all_gather_object(proof_rows,progress['proof'])
-                global_proof=dict(finite=all(p['finite'] for p in proof_rows),updated_families={f:all(p['updated_families'].get(f,False) for p in proof_rows) for f in CONFIG.get('required_gradient_families',('reconstruction','understanding','queries','panoptic'))})
-                gate=acceptance(baseline['train'],report['train'],baseline['validation'],report['validation'],global_proof)
-                if rank==0:write(root/f'gate_update{step+1:04d}.json',gate)
-                if gate['passed']:
-                    progress.update(phase='full',gate_passed=True)
-                    checkpoint(model,optimizer,progress,root,meta,rank,world,retain='checkpoint_short_passed.pt')
-                    if rank==0:write(root/'SHORT_PASSED.json',dict(short_updates=step+1,gate=gate,automatic_full_training_authorized=True))
-                    break
+                gate=check_short_gate(report,step+1)
+                if gate['passed']:break
         if not progress['gate_passed']:
             checkpoint(model,optimizer,progress,root,meta,rank,world,retain='checkpoint_short_gate_failed.pt')
             if rank==0:write(root/'GATE_FAILED.json',dict(short_updates=progress['short_updates'],action='stopped_without_full_training',gate=gate))
@@ -394,10 +410,13 @@ def run(args):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir',type=Path,required=True);parser.add_argument('--resume',action='store_true')
+    parser.add_argument('--gate-policy',choices=('legacy_v1','learning_evidence_v2'),default='legacy_v1')
+    parser.add_argument('--resume-source-sha',help='Explicit prior execution SHA for audited code/policy-only continuation')
     parser.add_argument('--architecture',choices=('v1','gfm_v2','gfm_v3'),default='v1')
     parser.add_argument('--transition-from',type=Path)
     parser.add_argument('--cache-root',type=Path)
     args=parser.parse_args()
+    if args.resume_source_sha and not args.resume:parser.error('--resume-source-sha requires --resume')
     try:run(args)
     except BaseException as exc:
         if not isinstance(exc,SystemExit) or exc.code not in (0,3):
