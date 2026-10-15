@@ -1,6 +1,6 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
-> **恢复链已提交，停止轮询**：65251直接组从全量250 checkpoint续训（11四3090，单次核对RUNNING）；65252 afterany:65236条件复用成功或仅恢复已知缓存错误，不中断健康65236；正式评测65253 afterok:65251、65254 afterok:65252，比较65255 afterok:65253:65254。旧65238待执行评测已取消替换。修复SHA75f6ce1。源状态完整、无已完成更新丢失，但尚未宣称新GPU首步通过；用户通知后检查新链，勿重播250步或恢复65199。
+> **恢复链已提交，停止轮询**：65251直接组从全量250 checkpoint续训（11四3090，单次核对RUNNING）；65252 afterany:65236条件复用成功或仅恢复已知缓存错误，不中断健康65236；最终正式评测65256 afterok:65251、65257 afterok:65252，比较65258 afterok:65256:65257。旧65238及后续待执行65253/54/55均已替换；新launcher2cece59修复Slurm spool目录，训练/评测Python快照75f6ce1。源状态完整、无已完成更新丢失，但尚未宣称新GPU首步通过；用户通知后检查新链，勿重播250步或恢复65199。
 
 > **65199已FAILED：SAM共享缓存发布FileExistsError，不是NaN/OOM；全量250步已完整checkpoint。** 修复与恢复见[gfm_cache_publication_failure_recovery_20261015.md](gfm_cache_publication_failure_recovery_20261015.md)。直接组新attempt07从251步继续，源optimizer/4rank RNG保留，不回到306短验证。65236当前健康、GPU冒烟及首个适配更新已通过，不能中断；为其设置afterany条件恢复/成功复用，再重接两组评测与对比依赖。旧65237/65239已因原parent失败取消，旧65238将替换，不能据旧submission重复提交。
 

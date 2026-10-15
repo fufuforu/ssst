@@ -28,6 +28,8 @@ checkpoint仍使用可覆盖的原子替换，不能把“首次写入生效”�
 
 ## 已提交恢复链
 
-执行SHA 75f6ce182b4ee79e75485db541daf0ffc85f91a9，已推送。直接组恢复65251（11节点四3090）；分阶段条件恢复65252 afterany:65236（17节点四4090）；直接组正式评测65253 afterok:65251；分阶段正式评测65254 afterok:65252；统一对比65255 afterok:65253:65254。旧65238仅在PENDING状态取消，65236不受影响。
+训练执行SHA 75f6ce182b4ee79e75485db541daf0ffc85f91a9，已推送。直接组恢复65251（11节点四3090）；分阶段条件恢复65252 afterany:65236（17节点四4090）；最终直接组正式评测65256 afterok:65251；分阶段正式评测65257 afterok:65252；统一对比65258 afterok:65256:65257。旧65238仅在PENDING状态取消，65236不受影响。
+
+提交后静态复核额外修正Slurm脚本spool目录：`$0`指向Slurm临时脚本，评测launcher改用SLURM_SUBMIT_DIR定位冻结快照。模拟spool路径的实际bash检查通过。2cece59版本launcher另存attempt07/evaluation_launcher_2cece59.sbatch并由sbatch复制，Python模型/评测仍使用75f6ce1不可变快照。原65253/65254/65255在执行前取消替换为65256/65257/65258，superseded历史与最终依赖均写submission，不改训练作业。
 
 提交后单次核对：65251 RUNNING，确实分配11节点四3090；65252为afterany:65236未满足，其余新任务Dependency。此时仅确认资源分配，尚未宣称修复版本GPU首个续训更新通过，随后停止轮询。源306/全量250及optimizer/RNG恢复已通过CPU预检及实际共享文件系统验证。新收据在attempt07/submission.json、attempt06/cachefix_dependency_submission.json、comparison/cachefix_submission.json；旧收据保留为历史。用户通知后检查这些新作业，不恢复失败65199或重复提交。
