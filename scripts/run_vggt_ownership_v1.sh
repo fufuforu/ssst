@@ -9,5 +9,7 @@ export POSEFREE_V2_EVIDENCE_DIR="$TASK_OUTPUT/geometry_evidence"
 unset HTTP_PROXY HTTPS_PROXY ALL_PROXY http_proxy https_proxy all_proxy
 cd "$TASK_REPO"
 [[ "$(git rev-parse HEAD)" == "$TASK_CODE_SHA" ]]
+EXTRA=()
+if [[ "${TASK_RESUME:-0}" == 1 ]]; then EXTRA+=(--resume); fi
 /space/mawb/anaconda3/envs/tokengs/bin/python -m torch.distributed.run --standalone --nproc_per_node="$TASK_WORKERS" \
-  scripts/diagnose_vggt_ownership_v1.py --root "$TASK_OUTPUT"
+  scripts/diagnose_vggt_ownership_v1.py --root "$TASK_OUTPUT" "${EXTRA[@]}"

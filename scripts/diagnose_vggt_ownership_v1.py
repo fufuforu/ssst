@@ -28,6 +28,10 @@ HELDOUT = Path('/space/mawb/ssst/group_plus/vggt_understanding_bottleneck_v1/rep
 LAYERS = (6, 8, 10, 12)
 
 
+class OutputReproductionMismatch(RuntimeError):
+    pass
+
+
 def read(p):
     return json.loads(p.read_text())
 
@@ -119,7 +123,10 @@ def reproduce(output, batch, window, golden, scratch):
     for sub in ('context_seg_pred', 'target_seg_pred', 'context_seg_gt', 'target_seg_gt'):
         expected = sorted(f.name for f in (reference / sub).glob('*.png'))
         assert expected == sorted(f.name for f in (pair / sub).glob('*.png'))
-        assert all(digest(reference / sub / n) == digest(pair / sub / n) for n in expected), (window, sub)
+        same = all(digest(reference / sub / n) == digest(pair / sub / n) for n in expected)
+        if not same and sub.endswith('_pred'):
+            raise OutputReproductionMismatch((window, sub))
+        assert same, (window, sub)
     for view in ('context', 'target'):
         old = read(reference / f'{view}_seg_pred/pred.json')
         actual = row['pred_segments'][view]
@@ -140,7 +147,7 @@ def reproduce(output, batch, window, golden, scratch):
     return dict(segmentation_and_GT_PNGs_identical=True, scores_max_tolerance=1e-6, rgb_max_uint8_delta=max_rgb)
 
 
-def observe_window(model, opt, obs, window, choice, golden, destination, device, witness=False):
+def observe_window(model, opt, obs, window, choice, golden, destination, device, witness=False, reproduction_attempt=0):
     from scripts.object_locus_v3_set_runtime import build_batch
     from scripts.eval_object_locus_frozen_vggt_posefree_v1 import generate_and_render
     from scripts.probe_vggt_raw_query_readout_v1 import raw_stages
@@ -157,10 +164,15 @@ def observe_window(model, opt, obs, window, choice, golden, destination, device,
     if witness:
         obs.enabled = False
         references = []
+        native_segments = []
         for _ in range(2):
             with torch.no_grad():
                 old = generate_and_render(model, batch['images_input'], batch['images_all'])
             references.append({k: old['generated'][k].detach().clone() for k in ('gaussians', 'gaussian_membership', 'p_class')})
+            references[-1]['query12'] = old['generated']['states'][-1]['q'].detach().clone()
+            references[-1]['anchor12'] = old['generated']['states'][-1]['anchor_embedding'].detach().clone()
+            sem, ins, _ = assemble_panoptic(old['render'])
+            native_segments.append((sem * 1000 + ins).detach().clone())
             del old
         obs.enabled = True
     obs.values.clear()
@@ -169,15 +181,24 @@ def observe_window(model, opt, obs, window, choice, golden, destination, device,
         g, render = output['generated'], output['render']
         if witness:
             witness_result = {}
+            actual_fields = dict(gaussians=g['gaussians'], gaussian_membership=g['gaussian_membership'], p_class=g['p_class'],
+                                 query12=g['states'][-1]['q'], anchor12=g['states'][-1]['anchor_embedding'])
             for key in references[0]:
                 native_jitter = float((references[0][key] - references[1][key]).abs().max())
-                observed_jitter = float((references[1][key] - g[key]).abs().max())
+                observed_jitter = float((references[1][key] - actual_fields[key]).abs().max())
                 assert native_jitter <= 1e-5 and observed_jitter <= 1e-5, (key, native_jitter, observed_jitter)
-                if key == 'gaussians':
+                if key in ('gaussians','query12','anchor12'):
                     assert native_jitter == observed_jitter == 0
                 witness_result[key] = dict(native_repeat=native_jitter, observed_difference=observed_jitter)
+            sem, ins, _ = assemble_panoptic(render)
+            packed = sem * 1000 + ins
+            witness_result['native_repeat_panoptic_pixels'] = int((native_segments[0] != native_segments[1]).sum())
+            witness_result['observed_vs_native_panoptic_pixels'] = [int((packed!=v).sum()) for v in native_segments]
+            write(destination / f'observer_witness_{choice["name"]}_attempt{reproduction_attempt:02d}.json', witness_result)
             del references
-        reproduction = reproduce(output, batch, window, golden, destination / 'temporary_png_witness')
+            del native_segments, actual_fields
+        reproduction = reproduce(output, batch, window, golden, destination / 'temporary_png_witness' / f'attempt{reproduction_attempt:02d}')
+        reproduction['attempt_index'] = reproduction_attempt
         targets, pairs = final_hungarian(g, batch)
         gt = targets['gt_pixel_masks'][0]
         ids, classes = targets['gt_instance_ids'][0], targets['gt_classes'][0]
@@ -291,6 +312,7 @@ def observe_window(model, opt, obs, window, choice, golden, destination, device,
 def main():
     ap = argparse.ArgumentParser(description=__doc__)
     ap.add_argument('--root', type=Path, required=True)
+    ap.add_argument('--resume', action='store_true')
     a = ap.parse_args()
     rank, world, local = [int(os.environ[k]) for k in ('RANK', 'WORLD_SIZE', 'LOCAL_RANK')]
     torch.cuda.set_device(local); torch.set_num_threads(4)
@@ -315,13 +337,41 @@ def main():
             apply_state(model, b); del b; gc.collect()
             model.understanding_step = 38176
         destination = a.root / arm / f'rank{rank:02d}'
-        destination.mkdir(parents=True, exist_ok=False)
+        destination.mkdir(parents=True, exist_ok=a.resume)
+        if a.resume and (destination/'COMPLETE.json').exists():
+            done = read(destination/'COMPLETE.json')
+            assert done['status']=='FIXED_WEIGHT_OWNERSHIP_EXTRACTED' and done['names']==[r['name'] for r in choices]
+            print('OWNERSHIP_COMPLETED_SHARD_REUSED', rank, arm, len(choices), flush=True)
+            continue
         versions = core_versions(model)
         records = []
         started = time.monotonic()
         for i, choice in enumerate(choices):
-            result = observe_window(model, opt, obs, all_windows[choice['source_index']], choice,
-                                    golden[arm][choice['name']], destination, device, witness=i == 0 and rank == 0)
+            result_path=destination/(choice['name']+'.json')
+            if a.resume and result_path.exists():
+                result=read(result_path)
+                assert all(result[k]==choice[k] for k in ('name','source_index','frame_ids','input_rgb_sha256'))
+                assert result_path.with_suffix('.npz').exists()
+                records.append(result)
+                print('OWNERSHIP_WINDOW_REUSED', rank, arm, i+1, choice['name'], flush=True)
+                continue
+            orphan=result_path.with_suffix('.npz')
+            if a.resume and orphan.exists():
+                orphan.rename(orphan.with_suffix('.orphan_64911.npz'))
+            for retry in range(5):
+                try:
+                    result = observe_window(model, opt, obs, all_windows[choice['source_index']], choice,
+                        golden[arm][choice['name']], destination, device,
+                        witness=(i==0 and rank==0) or retry>0 or choice['name']=='scene0608_02_context114_192',
+                        reproduction_attempt=retry)
+                    break
+                except OutputReproductionMismatch as exc:
+                    write(destination/f'reproduction_failure_{choice["name"]}_attempt{retry:02d}.json',
+                        dict(status='STRICT_PNG_REPRODUCTION_RETRY',error=str(exc),attempt=retry,
+                             canonical_output_not_changed=True,criterion='Exact original PNG, not better GT metrics',new_optimizer_updates=0))
+                    if retry==4:
+                        raise
+            result['execution_sha']=os.environ['TASK_CODE_SHA']
             assert_core(model, versions)
             records.append(result)
             write(destination / (choice['name'] + '.json'), result)
