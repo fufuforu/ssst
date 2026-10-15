@@ -5,7 +5,7 @@
 >
 > **后续授权的固定权重Ownership诊断也已完成（64963 COMPLETED 0:0）：C/Baseline各128窗口、492个配对GT实例、新训练更新0。** 最新结论、失败恢复与典型图集见 [`vggt_ownership_results_20261015.md`](vggt_ownership_results_20261015.md)。不要重复提交推理或训练。本轮没有授权实施所建议的新结构；用户要求今后提交作业后停止轮询，等其通知完成再检查。
 >
-> **最新设计方向**：用户选择切换到QuerySplat官方VGGT-Omega及配套重建权重，理解分支不加载MASt3R/ViT Adapter/COCO分割权重。已核对官方代码并形成 [`querysplat_vggto_panoptic_design_20261015.md`](querysplat_vggto_panoptic_design_20261015.md)。目前只是设计，未实施或提交新作业；SAM探针也尚未执行。不能将“选择新底座”误读为已完成模型切换或已授权任意长期训练。
+> **最新设计方向（用户后续已澄清）**：不直接复用QuerySplat，改为几何驱动的重建token＋实例/语义驱动的理解token，考虑VGGT点云初始化与SAM/其他模型候选初始化。新可编辑图和差异说明见 [`dual_stream_architecture_edit_notes_20261015.md`](dual_stream_architecture_edit_notes_20261015.md)。旧 [`querysplat_vggto_panoptic_design_20261015.md`](querysplat_vggto_panoptic_design_20261015.md)保留为历史方案。目前只是设计，未实施或提交新作业；SAM探针也尚未执行。不要自动下载/切换底座或启动长期训练。
 > 下文08:11运行/排队状态保留为历史现场，不能据此重新提交或恢复任何训练。当前没有授权新的交互层对照、长期训练或干预叠加。
 
 这份文档用于新对话直接接手当前工作。**先读当前 worktree、运行记录和 Slurm；沿实际最新进度继续，不回退、不重新设计、不重复提交训练。** 当前已授权的阶段是四组 decoder 读取短对照，等待全部完成后检查、比较、分析。没有授权自动开始新的长期训练或叠加新结构。

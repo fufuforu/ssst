@@ -1,5 +1,7 @@
 # 官方QuerySplat + VGGT-Omega：无MASt3R理解预训练的实例理解设计
 
+> **历史方案，已被用户后续澄清更新**：当前方向不是直接复用QuerySplat，而是几何重建token＋实例理解token的双流结构。最新可编辑架构图与差异说明见 [`dual_stream_architecture_edit_notes_20261015.md`](dual_stream_architecture_edit_notes_20261015.md)。下文保留为先前方案，不按它自动下载/搭建官方QuerySplat底座。
+
 状态：用户已选择**切换QuerySplat官方VGGT-Omega及配套重建权重**。本文为设计，不是已经实现/验证的模型；未下载新权重、修改当前模型或提交新作业。此前SAM候选诊断尚未执行，不作为本方案的依赖。
 
 ## 官方代码核实与新设计边界
