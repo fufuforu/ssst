@@ -1019,4 +1019,9 @@ config_defaults["train_siu3r_object_locus_dual_stream_v1"] = config_defaults["tr
     experiment_name="object_locus_dual_stream_v1", batch_size=1, mixed_precision="no",
     locusgs_freeze_decode_radius=False)
 
+config_doc["train_siu3r_object_locus_gfm_dual_stream_v2"] = "Shared frozen Omega GFM, independent reconstruction/semantic adapters, SAM raw-GFM pooling queries."
+config_defaults["train_siu3r_object_locus_gfm_dual_stream_v2"] = config_defaults["train_siu3r_object_locus_dual_stream_v1"].evolve(
+    model_type="siu3r_object_locus_gfm_dual_stream_v2", experiment_name="object_locus_gfm_dual_stream_v2",
+    workspace="/space/mawb/ssst/workspace_group_plus/object_locus_gfm_dual_stream_v2")
+
 AllConfigs = tyro.extras.subcommand_type_from_defaults(config_defaults, config_doc)

@@ -34,7 +34,7 @@ def acceptance(before,after,validation_before,validation_after,proof):
     """
     checks={
         'finite_backward_and_parameters':proof['finite'],
-        'major_families_updated':all(proof['updated_families'].get(x,False) for x in ('reconstruction','understanding','queries','panoptic')),
+        'major_families_updated':all(proof['updated_families'].get(x,False) for x in CONFIG.get('required_gradient_families',('reconstruction','understanding','queries','panoptic'))),
         'train_psnr_gain_1db':after['psnr']>=before['psnr']+1.,
         'train_reconstruction_loss_down_10pct':after['loss_recon']<=before['loss_recon']*.9,
         'train_understanding_loss_down_5pct':after['loss_understanding']<=before['loss_understanding']*.95,

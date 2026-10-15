@@ -227,13 +227,21 @@ def run(args):
     root=args.output_dir;root.mkdir(parents=True,exist_ok=True)
     if rank==0:
         if (root/'STARTED.json').exists() and not args.resume:raise ValueError('Existing attempt; use explicit --resume')
-        write(root/'STARTED.json',dict(job_id=os.environ.get('SLURM_JOB_ID'),world_size=world,pid=os.getpid(),config=CONFIG))
+        write(root/'STARTED.json',dict(job_id=os.environ.get('SLURM_JOB_ID'),world_size=world,pid=os.getpid(),config=dict(CONFIG,recipe='omega_gfm_two_adapter_sam_pool_v2_frozen_joint4') if args.architecture=='gfm_v2' else CONFIG,architecture=args.architecture))
     from tokengs.options import config_defaults
     from tokengs.models.object_locus_dual_stream_v1 import LocusGSDualStreamV1
-    opt=config_defaults['train_siu3r_object_locus_dual_stream_v1']
+    source_config=dict(CONFIG)
+    if args.architecture=='gfm_v2':
+        from tokengs.models.object_locus_gfm_dual_stream_v2 import LocusGSGFMDualStreamV2
+        CONFIG['recipe']='omega_gfm_two_adapter_sam_pool_v2_frozen_joint4'
+        CONFIG['required_gradient_families']=['reconstruction','understanding','queries','panoptic','gfm_reconstruction_adapter','gfm_query_projection','anchor_gfm_content']
+        opt=config_defaults['train_siu3r_object_locus_gfm_dual_stream_v2']
+        constructor=LocusGSGFMDualStreamV2
+    else:
+        opt=config_defaults['train_siu3r_object_locus_dual_stream_v1'];constructor=LocusGSDualStreamV1
     windows,short_indices,validation=cohorts();short=[windows[i] for i in short_indices]
-    model=LocusGSDualStreamV1(opt,write_strength=0.).to(device)
-    cache=install_frozen_caches(model,root/'frozen_cache')
+    model=constructor(opt,write_strength=0.).to(device)
+    cache=install_frozen_caches(model,args.cache_root or root/'frozen_cache')
     optimizer=torch.optim.AdamW(optimizer_groups(model),betas=(.9,.95),eps=1e-8)
     task=DDP(Task(model),device_ids=[local],broadcast_buffers=False,find_unused_parameters=True)
     sha=subprocess.check_output(['git','-C',str(REPO),'rev-parse','HEAD'],text=True).strip()
@@ -245,25 +253,56 @@ def run(args):
         epoch_counts=[0]*len(windows),total_counts=[0]*len(windows),proof=dict(finite=True,updated_families={}))
     if args.resume:
         blob=torch.load(root/'checkpoint_latest.pt',map_location='cpu',weights_only=False,mmap=True)
+        if 'architecture_transition' in blob['meta']:meta['architecture_transition']=blob['meta']['architecture_transition']
         if blob['meta']!=meta:raise ValueError('Resume metadata/code/data/config mismatch')
         restore_trainable_state(model,blob['model']);optimizer.load_state_dict(blob['optimizer']);progress=blob['progress'];restore_rng(blob['rank_rng'][rank]);del blob
+    if args.transition_from:
+        if args.resume or args.architecture!='gfm_v2':raise ValueError('Architecture transfer requires a fresh GFM V2 attempt')
+        from scripts.gfm_dual_stream_transition import transfer,verify_source,SOURCE50_SHA256
+        valid=[verify_source(args.transition_from) if rank==0 else None]
+        dist.broadcast_object_list(valid,src=0)
+        if not valid[0]:raise ValueError('Preserved source50 checkpoint checksum differs')
+        blob=torch.load(args.transition_from,map_location='cpu',weights_only=False,mmap=True)
+        # Full source SHA is checked by prefix and all remaining scientific metadata exactly.
+        oldmeta=blob['meta']
+        ignored={'world_size','accumulation','execution_git_sha','recipe','config'}
+        if any(oldmeta.get(k)!=v for k,v in meta.items() if k not in ignored):raise ValueError('Transition data/asset identity differs')
+        if oldmeta['config']!=source_config or oldmeta['recipe']!=source_config['recipe'] or oldmeta['world_size']!=2 or oldmeta['accumulation']!=4 or not oldmeta['execution_git_sha'].startswith('7d38d04'):
+            raise ValueError('Wrong explicit V1 source')
+        if blob['progress']['short_updates']!=50 or blob['progress']['full_updates']!=0:raise ValueError('Expected preserved short update50 boundary')
+        plan=transfer(model,optimizer,blob,optimizer_groups)
+        progress=blob['progress'];progress['proof']=dict(finite=True,updated_families={})
+        if rank<2:restore_rng(blob['rank_rng'][rank])
+        else:
+            seed=CONFIG['seed']+50000+rank
+            random.seed(seed);np.random.seed(seed);torch.manual_seed(seed);torch.cuda.manual_seed(seed)
+        meta['architecture_transition']=dict(source_checkpoint=str(args.transition_from.resolve()),source_git_sha=oldmeta['execution_git_sha'],source_checkpoint_sha256=SOURCE50_SHA256,source_world_size=2,target_world_size=world,
+            source_completed_short_updates=50,retained_optimizer_states=plan['retained_optimizer_states'],new_short_checks=[178,306],new_baseline_at_source_update=50)
+        if rank==0:write(root/'ARCHITECTURE_TRANSITION.json',dict(**meta['architecture_transition'],**plan,optimizer_moments_retained_by_parameter_name=True,new_parameters_have_fresh_moments=True))
+        del blob
+    short_origin=meta.get('architecture_transition',{}).get('source_completed_short_updates',0)
+    short_checks=[short_origin+step for step in CONFIG['short_checks']]
     frozen_versions={n:p._version for n,p in model.named_parameters() if n.startswith(FROZEN)}
     probes={}
     for name,p in model.named_parameters():
         f=family(name)
         if p.requires_grad and f not in probes:probes[f]=(name,p.detach().clone())
+    if args.architecture=='gfm_v2':
+        named=dict(model.named_parameters())
+        for label,name in [('gfm_reconstruction_adapter','reconstruction_adapter.projection.0.weight'),('gfm_query_projection','query_initializer.content_projection.1.weight'),('anchor_gfm_content','anchor_visual_projection.1.weight')]:
+            probes[label]=(name,named[name].detach().clone())
     if rank==0:
         write(root/'configuration.json',dict(**meta,optimizer_groups=[{k:v for k,v in group.items() if k!='params'} for group in optimizer.param_groups],
             trainable_parameters=sum(p.numel() for p in model.parameters() if p.requires_grad),gpu=torch.cuda.get_device_name(),short_windows=short,monitor_validation=validation[:8]))
         print('MODEL_AND_OPTIMIZER_READY',json.dumps(dict(world_size=world,trainable_parameters=sum(p.numel() for p in model.parameters() if p.requires_grad))),flush=True)
     baseline_path=root/'monitor'/'initial.json'
     if baseline_path.exists():baseline=json.loads(baseline_path.read_text())['summary']
-    else:baseline=monitor(model,opt,short[:8],validation[:8],root,'initial',rank,world,device,0)
+    else:baseline=monitor(model,opt,short[:8],validation[:8],root,'initial',rank,world,device,(progress['short_updates']+progress['full_updates'])*8)
     if not args.resume:checkpoint(model,optimizer,progress,root,meta,rank,world,retain='checkpoint_initial.pt')
 
     def update(indices,phase,update_index,total):
         model.train();optimizer.zero_grad(set_to_none=True)
-        factor=lr_factor(phase,update_index,total)
+        factor=lr_factor(phase,update_index-short_origin if phase=='short' else update_index,total-short_origin if phase=='short' else total)
         for group in optimizer.param_groups:group['lr']=group['base_lr']*factor
         rows=[];started=time.monotonic()
         for micro,index in enumerate(indices):
@@ -294,17 +333,17 @@ def run(args):
         return row
 
     if progress['phase']=='short':
-        for step in range(progress['short_updates'],max(CONFIG['short_checks'])):
+        for step in range(progress['short_updates'],max(short_checks)):
             order=list(range(16));offset=(step*8)%16
             indices=[order[(offset+micro*world+rank)%16] for micro in range(8//world)]
-            row=update(indices,'short',step,max(CONFIG['short_checks']));progress['short_updates']=step+1
-            if step==0 or (step+1)%CONFIG['checkpoint_every_updates']==0:
+            row=update(indices,'short',step,max(short_checks));progress['short_updates']=step+1
+            if step==short_origin or (step+1)%CONFIG['checkpoint_every_updates']==0:
                 checkpoint(model,optimizer,progress,root,meta,rank,world)
-                if rank==0 and step==0:write(root/'FIRST_UPDATE.json',dict(parameter_updates=1,proof=progress['proof'],metrics=row))
-            if step+1 in CONFIG['short_checks']:
+                if rank==0 and step==short_origin:write(root/'FIRST_UPDATE.json',dict(parameter_updates=step+1,new_structure_updates=1,source_completed_updates=short_origin,proof=progress['proof'],metrics=row))
+            if step+1 in short_checks:
                 report=monitor(model,opt,short[:8],validation[:8],root,f'short_{step+1:04d}',rank,world,device,(step+1)*8)
                 proof_rows=[None]*world;dist.all_gather_object(proof_rows,progress['proof'])
-                global_proof=dict(finite=all(p['finite'] for p in proof_rows),updated_families={f:all(p['updated_families'].get(f,False) for p in proof_rows) for f in ('reconstruction','understanding','queries','panoptic')})
+                global_proof=dict(finite=all(p['finite'] for p in proof_rows),updated_families={f:all(p['updated_families'].get(f,False) for p in proof_rows) for f in CONFIG.get('required_gradient_families',('reconstruction','understanding','queries','panoptic'))})
                 gate=acceptance(baseline['train'],report['train'],baseline['validation'],report['validation'],global_proof)
                 if rank==0:write(root/f'gate_update{step+1:04d}.json',gate)
                 if gate['passed']:
@@ -350,6 +389,9 @@ def run(args):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir',type=Path,required=True);parser.add_argument('--resume',action='store_true')
+    parser.add_argument('--architecture',choices=('v1','gfm_v2'),default='v1')
+    parser.add_argument('--transition-from',type=Path)
+    parser.add_argument('--cache-root',type=Path)
     args=parser.parse_args()
     try:run(args)
     except BaseException as exc:

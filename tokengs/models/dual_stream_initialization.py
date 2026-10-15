@@ -14,7 +14,7 @@ def unproject(depth, k, c2w):
 
 
 @torch.no_grad()
-def seed_anchors(points, confidence, rgb, count=1024, candidate_side=48):
+def seed_anchors(points, confidence, rgb, count=1024, candidate_side=48, return_source_indices=False):
     """Per-view image-grid coverage, confidence filtering, deterministic 3D FPS.
 
     Keep top confidence point per grid cell before FPS (not global top-k).
@@ -52,8 +52,8 @@ def seed_anchors(points, confidence, rgb, count=1024, candidate_side=48):
         # Sixth-neighbor radius; duplicated/degenerate points use scene-relative floor.
         ell=(p-p.mean(0)).square().sum(-1).mean().sqrt().clamp_min(.05)
         radius=d.topk(min(6,count-1),largest=False).values[:,-1].clamp(min=.01*ell,max=.3*ell)
-        outputs.append((mu,radius,col[ix]))
-    return tuple(torch.stack([out[i] for out in outputs]) for i in range(3))
+        outputs.append((mu,radius,col[ix],ids[ix]))
+    return tuple(torch.stack([out[i] for out in outputs]) for i in range(4 if return_source_indices else 3))
 
 
 class SAMQueryInitializer(nn.Module):
