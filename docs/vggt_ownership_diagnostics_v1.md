@@ -1,5 +1,7 @@
 # 固定权重 Object–Anchor–Gaussian 瓶颈诊断
 
+> **已完成**：64963 COMPLETED 0:0，两模型各128窗口、相同492个GT实例、0训练更新。结果见 [`vggt_ownership_results_20261015.md`](vggt_ownership_results_20261015.md)。原64911的一像素复现失败保留，恢复复用220窗口、仅补36窗口；不要重新执行准备器或launcher。用户要求提交作业后停止轮询，等其通知完成再核验。
+
 用户授权：完整C与C继续联合300更新的baseline，在同一128场景各一窗口上固定权重推理，定位ownership/实例质量/联合训练漂移；无参数更新、无模型结构修改、无官方评测协议变化。
 
 ## 模型和数据先核实
@@ -42,6 +44,7 @@ GT只在完整原生预测结束后用于诊断、关联和病例选择。生成
 跨模型按`scene/window + GT instance ID/class`对齐，分别报告原生matcher query和类别无关best-query，不假定相同query号或相同anchor编号跨模型代表同一物体。
 官方13列、官方全局AP/PQ复用已核实相同输出的既有结果；补充每窗口官方AP/PQ只用于ownership与性能的关联，不用其平均冒充全局AP/PQ。
 RGB以同GT划分互斥object interior / 2px boundary / background stuff / other，记录SSE和像素数及逐帧masked PSNR；区域诊断不改变官方全图PSNR。
+区域PSNR固定data_range=1，官方torchmetrics按GT推断range，绝对值不等同；相同GT的C/Baseline配对差消除共同range项。补充脚本已用原官方render_scores逐窗口核验配对差≤1e-5 dB。
 另按GT实例记录RGB误差，以区分mask/类别漂移与物体重建变化。单条训练轨迹的端点对比和相关性不能独立证明某个交互造成表示退化。
 
 输出保留小型JSON/CSV、可审计压缩ownership映射和raw masks；最终报告聚焦量化证据、4–6个典型案例、主要瓶颈判断及最值得检验的一个结构方向。

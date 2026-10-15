@@ -42,7 +42,8 @@ def partial_rank(rows, x, y):
     if len(rows) < 10:
         return None
     xx, yy = rankdata([r[x] for r in rows]), rankdata([r[y] for r in rows])
-    cov = np.column_stack((np.ones(len(rows)), rankdata([np.log1p(r['GT_pixels']) for r in rows]), rankdata([np.log1p(r['contribution_norm']) for r in rows])))
+    cov = np.column_stack((np.ones(len(rows)), rankdata([np.log1p(r['GT_pixels']) for r in rows]),
+                           rankdata([np.log1p(r['contribution_norm']) for r in rows]),rankdata([r['GT_count'] for r in rows])))
     rx = xx - cov @ np.linalg.lstsq(cov, xx, rcond=None)[0]
     ry = yy - cov @ np.linalg.lstsq(cov, yy, rcond=None)[0]
     return float(np.corrcoef(rx, ry)[0, 1]) if np.std(rx) > 1e-10 and np.std(ry) > 1e-10 else None
@@ -109,7 +110,7 @@ def case_gallery(root, out, cases, records):
     gallery = out / 'cases'; gallery.mkdir()
     for i, case in enumerate(cases):
         n, iid = case['name'], case['GT_id']
-        fig, axes = plt.subplots(2, 8, figsize=(24, 6.8))
+        fig, axes = plt.subplots(2, 8, figsize=(24, 8.3))
         for row, arm in enumerate(('C', 'baseline300')):
             r, src = records[arm][n]
             g = r['gt_ids'].index(iid)
@@ -136,7 +137,7 @@ def case_gallery(root, out, cases, records):
                 if col == 0:
                     ax.contour(gt, levels=[.5], colors=['yellow'], linewidths=.8)
                     pc = np.array(r['query_class_probabilities'][q]); pred = int(pc.argmax())
-                    ax.text(0, 1.02, f'{arm}, Q{q}, pred={pred}, GT={r["gt_classes"][g]-2}', transform=ax.transAxes, fontsize=10)
+                    ax.set_title(f'{arm}: Q{q}\npred={pred}, GT={r["gt_classes"][g]-2}', fontsize=9)
                 elif col < 5:
                     keep = z['anchor_xy_valid'][view] & (z['parent_mass'] > 1e-7)
                     idx = np.flatnonzero(keep); idx = idx[np.argsort(val[idx])[-200:]]
@@ -154,7 +155,7 @@ def case_gallery(root, out, cases, records):
                     ax.text(.02, .02, f'frame IoU {inter/max(union,1):.3f}', color='white', transform=ax.transAxes, fontsize=10,
                             bbox=dict(facecolor='black', alpha=.6, pad=2))
         fig.suptitle(f'{case["stratum"]}: {n}, GT instance {iid}\nGT-selected diagnostic example; green TP / red FP / blue FN; anchor colors independently scaled', fontsize=12)
-        fig.tight_layout(rect=(0, 0, 1, .9))
+        fig.tight_layout(rect=(0, 0, 1, .9), h_pad=4)
         filename = f'{i+1:02d}_{case["stratum"]}.png'
         fig.savefig(gallery / filename, dpi=130); plt.close(fig)
         case['figure'] = str(gallery / filename)
@@ -220,7 +221,7 @@ def main():
                 for layer in LAYERS:
                     o = r['ownership'][layer]
                     row = dict(arm=arm, name=n, layer=int(layer), query=q, GT_id=r['gt_ids'][g], group=group,
-                               native_matched=q in matched, GT_pixels=r['gt_pixels'][g], small=r['gt_pixels'][g] < .01*2*256*256,
+                               native_matched=q in matched, GT_count=k, GT_pixels=r['gt_pixels'][g], small=r['gt_pixels'][g] < .01*2*256*256,
                                tiny=r['gt_pixels'][g] < .001*2*256*256, raw_IoU=quality, final_IoU=float(mats['final'][q, g]),
                                predicted_class=int(pred[q]), GT_class=gt_class,
                                write_GT_mass=o['write_GT_mass'][q], write_GT_supported=o['write_GT_mass'][q] > 1e-8,
@@ -281,7 +282,7 @@ def main():
         for x in ('write_other_GT_fraction', 'write_child_js', 'contribution_child_js', 'anchor_child_dice', 'read_child_js', 'write_own_GT_preference_over_null'):
             use = [r for r in selected if r[x] is not None and (not x.startswith('write_other_GT') and x!='write_own_GT_preference_over_null' or r['write_GT_supported'])]
             correlations[arm][x] = {y: dict(spearman=corr([r[x] for r in use], [r[y] for r in use]),
-                partial_rank_controlling_GT_area_and_contribution=partial_rank(use, x, y)) for y in ('raw_IoU', 'final_IoU')}
+                partial_rank_controlling_GT_area_count_and_contribution=partial_rank(use, x, y)) for y in ('raw_IoU', 'final_IoU')}
         ws = [r for r in windows if r['arm'] == arm and r['write_child_js'] is not None]
         correlations[arm]['window_performance'] = {x: {y: corr([r[x] for r in ws], [r[y] for r in ws]) for y in ('context_map', 'context_pq', 'target_map', 'target_pq')}
             for x in ('write_other_GT_fraction', 'write_child_js', 'anchor_child_dice', 'read_child_js')}

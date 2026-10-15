@@ -87,7 +87,8 @@ def regional_rgb(render, batch):
     """
     rgb = render['images_pred'][0].clamp(0, 1)
     truth = batch['images_all'][0]
-    # Use official PNG quantization so total per-frame PSNR matches saved scores.
+    # Use official PNG quantization for additive regional SSE. Regional PSNR
+    # uses data_range=1; official torchmetrics infers the target image range.
     rgb = (rgb * 255 + .5).to(torch.uint8).float() / 255
     truth = (truth.clamp(0, 1) * 255 + .5).to(torch.uint8).float() / 255
     sem, ins = batch['semantic_label_all'][0], batch['instance_label_all'][0]
