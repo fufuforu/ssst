@@ -2,7 +2,7 @@
 # Pass run root; submit with an afterok dependency on the corresponding training.
 set -euo pipefail
 run_root="$1"
-cd /space/mawb/ssst_gfm_semantic_pool_v3_staged_code_20261015
+cd "$(dirname "$0")/.."
 export PYTHONUNBUFFERED=1
 export OMP_NUM_THREADS=4
 export HF_HUB_OFFLINE=1

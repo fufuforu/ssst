@@ -1,0 +1,27 @@
+# 65199缓存发布异常及续训
+
+65199在运行1:16:15后FAILED/1:0，MaxRSS约64.7GiB。四rank traceback均指向SAM缓存miss后的`atomic_torch_save`，`temp.replace(path)`抛FileExistsError。不是loss门槛、NaN或显存不足。目的缓存文件实际存在且为普通文件，旧临时文件已不可见；记录可证实共享缓存发布异常，不应无证据断言某两个具体进程争抢同一个key。
+
+四rank日志都完成250次全量更新，第250步checkpoint已保存：short_updates306/full_updates250/epoch0/update_in_epoch250，total_counts合计2000，4rank RNG与637项AdamW参数状态完整。训练未完成，正式评测未执行。65237因afterok:65199失败取消，65239也因依赖失效取消。
+
+## 缓存工程修复
+
+缓存miss检查不是锁。旧缓存路径使用替换发布、临时名只有PID，不能充分处理多rank/多作业缓存并发与跨节点同PID。新增`publish_frozen_cache`：先完整保存唯一UUID临时文件，再用硬链接首次发布；目标已存在则读取胜者，所有使用同一个RGB key的调用消费同一缓存内容，最终清理临时文件。SAM和target calibration均使用该不可变发布路径。
+
+checkpoint仍使用可覆盖的原子替换，不能把“首次写入生效”误用于checkpoint_latest。其临时名同样增加UUID并做清理。缓存namespace/冻结资产/模型/loss/数据/batch/LR/训练日程不变，不作结构或优化干预。
+
+3项并发/已存在胜者/可变checkpoint及清理回归，6项既有policy/cache测试通过；实际共享缓存文件系统内的独立临时目录也验证首次发布不覆盖和checkpoint确实推进，测试目录已清理。条件恢复另有3项测试：成功不重训、未知失败拒绝、已知缓存失败保留checkpoint并从原阶段cursor恢复。
+
+## 直接组恢复
+
+新目录`attempt07_direct4_cachefix_node11`保留旧attempt05全部失败现场，硬链接源checkpoint为checkpoint_source_full000250.pt和初始checkpoint_latest.pt，复制monitor与四rank训练journal，下一次更新为全量251，不重播任何已完成更新。源checkpoint SHA256：78c34fa1a90f930ccfedc2d6e7724660a2a1b26c1d6670065ce12d59d88d38cb；源执行SHA b403e7c5e56e0952b518df423c3d405206dc84cc。显式代码版本迁移只接受这一来源及完全一致的其他科学metadata。剩余3922全量更新，训练成功后依赖独立正式128评测。
+
+## 正在运行的分阶段组
+
+65236检查时RUNNING，真实一场景官方11值评分冒烟已通过，ADAPTATION_STARTED证明首个适配反向有限、理解分支各梯度探针为0且AdamW跳过理解参数。不打断正常运行，不修改其不可变快照。
+
+为其添加afterany:65236条件延续任务：若TRAINING_COMPLETE表明adapt2086+joint4172均完成，直接成功退出、不训练；若原65236失败记录明确为同类缓存EEXIST，保留失败文件、当前checkpoint和源metadata，以修复快照从最后持久化checkpoint恢复原阶段/optimizer/RNG；未知失败或数值/OOM错误不自动重试。该条件任务不是轮询。若未来失败发生在两次checkpoint之间，最多49步未持久化更新无法凭日志重建，不承诺零丢失；本次直接组250步恰好全部持久化，确实不丢更新。
+
+取消旧65238待执行评测，以条件延续任务为新的afterok依赖，避免旧parent失败后评测被取消而失去后续链路。最后用新direct目录与原staged目录重建11值对比任务。源历史submission保留，新作业号写cachefix_submission.json。用户要求提交后单次核对，随后停止轮询。
+
+不可变修复快照：`/space/mawb/ssst_gfm_cache_publication_fix_code_20261015`。不要重新从306或50步启动直接组，不取消健康的65236。

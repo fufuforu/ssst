@@ -270,7 +270,7 @@ def run(args):
         validate_resume_metadata(blob['meta'],meta,source_sha=args.resume_source_sha)
         if args.resume_source_sha and rank==0:
             write(root/'RESUME_POLICY_TRANSITION.json',dict(source_meta=blob['meta'],target_meta=meta,
-                source_progress=blob['progress'],reason='User authorized learning evidence gate; loss reduction is monitoring only',
+                source_progress=blob['progress'],reason=args.resume_reason,
                 preserves_model_optimizer_rank_rng=True,replayed_short_updates=0))
         restore_trainable_state(model,blob['model']);optimizer.load_state_dict(blob['optimizer']);progress=blob['progress'];restore_rng(blob['rank_rng'][rank]);del blob
     if args.staged_from:
@@ -461,6 +461,7 @@ def main():
     parser.add_argument('--output-dir',type=Path,required=True);parser.add_argument('--resume',action='store_true')
     parser.add_argument('--gate-policy',choices=('legacy_v1','learning_evidence_v2'),default='legacy_v1')
     parser.add_argument('--resume-source-sha',help='Explicit prior execution SHA for audited code/policy-only continuation')
+    parser.add_argument('--resume-reason',default='User authorized learning evidence gate; loss reduction is monitoring only')
     parser.add_argument('--architecture',choices=('v1','gfm_v2','gfm_v3'),default='v1')
     parser.add_argument('--transition-from',type=Path)
     parser.add_argument('--cache-root',type=Path)

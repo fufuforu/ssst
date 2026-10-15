@@ -1,12 +1,14 @@
 """Exact, RGB-keyed frozen inference caches; no learned features/proposal matches.
 
-Disk writes use unique temporary paths and atomic replacement across ranks.
+Immutable caches use unique temporary paths and first-writer atomic publication.
+Mutable checkpoints retain replacement semantics.
 Namespace includes frozen identities plus cache algorithm version.
 """
 from collections import OrderedDict
 import hashlib
 import json
 import os
+import uuid
 from pathlib import Path
 import torch
 import numpy as np
@@ -32,8 +34,30 @@ def rgb_key(x):
 
 def atomic_torch_save(payload,path):
     path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)
-    temp=path.with_name(path.name+f'.tmp.{os.getpid()}')
-    torch.save(payload,temp);temp.replace(path)
+    temp=path.with_name(path.name+f'.tmp.{os.getpid()}.{uuid.uuid4().hex}')
+    try:
+        torch.save(payload,temp);temp.replace(path)
+    finally:
+        temp.unlink(missing_ok=True)
+
+
+def publish_frozen_cache(payload,path):
+    """Publish a complete immutable value without replacing a concurrent winner.
+
+    A cache miss is not a lock: another rank/job may publish while inference is
+    running. Hard-linking a fully closed temporary file makes readers see either
+    no entry or a complete entry. UUIDs also prevent same-PID cross-node clashes.
+    Always consume the winning value so all users of one RGB key agree exactly.
+    """
+    path=Path(path);path.parent.mkdir(parents=True,exist_ok=True)
+    temp=path.with_name(path.name+f'.tmp.{os.getpid()}.{uuid.uuid4().hex}')
+    try:
+        torch.save(payload,temp)
+        try:os.link(temp,path)
+        except FileExistsError:pass
+        return torch.load(path,map_location='cpu',weights_only=True)
+    finally:
+        temp.unlink(missing_ok=True)
 
 
 def install_frozen_caches(model,root):
@@ -67,12 +91,12 @@ def install_frozen_caches(model,root):
                 key=rgb_key(view);path=root/'sam'/key[:2]/(key+'.pt')
                 if path.exists():
                     blob=torch.load(path,map_location='cpu',weights_only=True)
-                    proposals=[dict(mask=np.unpackbits(row['bits'].numpy(),count=row['height']*row['width']).reshape(row['height'],row['width']).astype(bool),score=row['score']) for row in blob]
                     counts['sam_hits']+=1
                 else:
                     proposals=sam_forward(view[None,None])[0][0]
                     blob=[dict(bits=torch.from_numpy(np.packbits(p['mask'])),height=p['mask'].shape[0],width=p['mask'].shape[1],score=float(p['score'])) for p in proposals]
-                    atomic_torch_save(blob,path)
+                    blob=publish_frozen_cache(blob,path)
+                proposals=[dict(mask=np.unpackbits(row['bits'].numpy(),count=row['height']*row['width']).reshape(row['height'],row['width']).astype(bool),score=row['score']) for row in blob]
                 views.append(proposals)
             result.append(views)
         return result
@@ -85,8 +109,8 @@ def install_frozen_caches(model,root):
             counts['calibration_hits']+=1
             return device_tree(torch.load(path,map_location='cpu',weights_only=True),rgb.device)
         value=calibrate(rgb,generated)
-        atomic_torch_save(cpu_tree(value),path)
-        return value
+        winner=publish_frozen_cache(cpu_tree(value),path)
+        return device_tree(winner,rgb.device)
 
     model.frozen_omega.forward=omega_cached
     model.sam_proposals.forward=sam_cached
