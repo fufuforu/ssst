@@ -1,5 +1,7 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **最新授权：保留65199直接联合4epoch，再独立提交2epoch重建适配＋4epoch联合，并设置训练成功后自动官方评测/统一13列11值比较。** 详见[gfm_semantic_pool_v3_staged_comparison_20261015.md](gfm_semantic_pool_v3_staged_comparison_20261015.md)。新组attempt06_adapt2_joint4_node17、17节点四张4090，共享短306起点，不使用direct组后续权重，不重复短训练。Omega/SAM仍冻结；适配时理解loss不反向且AdamW跳过理解参数，随后联合4epoch。先一场景GPU导出/官方评分冒烟，通过才训练。评测用afterok依赖；旧65199已有内置评分，依赖任务只校验并复用。提交后单次核对并停止轮询。
+
 > **已提交全量续训65199**：attempt05_full_node11，执行SHA b403e7c，11节点四张3090；提交后单次调度核对PENDING/Priority，随后停止轮询，尚未宣称首个全量更新。用户通知后检查该作业，不要重复提交。下段“核对真实首个全量更新后停止”以此处单次核对后停止为准。
 
 > **最新用户覆盖：短验证只需证明学习，不要求组合损失固定下降。** 按 [gfm_semantic_pool_v3_full_continuation_20261015.md](gfm_semantic_pool_v3_full_continuation_20261015.md) 使用显式learning_evidence_v2策略，从65175的306步权重/AdamW/4rank RNG原地时钟继续，直接进入全量4epoch；不重跑短验证、不修改模型/loss。新运行attempt05_full_node11，11节点四张3090。提交后核对真实首个全量更新并停止轮询。以下不放行建议已被用户该决定覆盖，原失败结果仍保留。

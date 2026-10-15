@@ -5,11 +5,12 @@ import torch
 import torch.distributed as dist
 
 
-def export(model,opt,windows,root,rank,world,device):
+def export(model,opt,windows,root,rank,world,device,*,expected_windows=128):
     from scripts.train_dual_stream_v1 import build_batch,write
     from scripts.eval_object_locus_frozen_vggt_posefree_v1 import generate_and_render,_official_export_view
     from scripts.export_object_locus_v3_set_official import write_official_pair
     from scripts.evaluate_ssst_validation import save_rgb,save_depth
+    if len(windows)!=expected_windows:raise ValueError('Export cohort length differs')
     root=Path(root);model.eval()
     versions={name:p._version for name,p in model.named_parameters()}
     records=[]
@@ -48,8 +49,8 @@ def export(model,opt,windows,root,rank,world,device):
     gathered=[None]*world;dist.all_gather_object(gathered,records)
     if rank==0:
         allrecords=sorted([r for rows in gathered for r in rows],key=lambda r:r['source_index'])
-        if len(allrecords)!=128 or len({r['name'] for r in allrecords})!=128:raise ValueError('Incomplete heldout128 coverage')
-        write(root/'export_complete.json',dict(status='EXPORTED',records=allrecords,parameter_updates=0,
-            windows=128,unique_scenes=128,depth_units='normalized scene depth / .15 for legacy PNG quantization; official per-image scale+shift fit; not metric geometry',
+        if len(allrecords)!=expected_windows or len({r['name'] for r in allrecords})!=expected_windows:raise ValueError('Incomplete export coverage')
+        write(root/'export_complete.json',dict(status='EXPORTED' if expected_windows==128 else 'SMOKE_EXPORTED',records=allrecords,parameter_updates=0,
+            windows=expected_windows,unique_scenes=expected_windows,depth_units='normalized scene depth / .15 for legacy PNG quantization; official per-image scale+shift fit; not metric geometry',
             prediction_protocol='context-only generate, independent target calibration',panoptic_assembly='unchanged existing thresholds'))
     dist.barrier()

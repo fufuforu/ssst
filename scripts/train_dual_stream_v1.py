@@ -21,7 +21,7 @@ import torch
 from torch import nn
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
-from scripts.dual_stream_training_policy import CONFIG,epoch_order,rank_microbatches,lr_factor,acceptance,validate_resume_metadata
+from scripts.dual_stream_training_policy import CONFIG,epoch_order,rank_microbatches,lr_factor,acceptance,validate_resume_metadata,validate_staged_source,adaptation_only
 from scripts.dual_stream_frozen_cache import install_frozen_caches,cpu_tree,atomic_torch_save
 
 MANIFEST=Path('/space/mawb/ssst/group_plus/object_locus_panoptic_full1201_8gpu/manifest.json')
@@ -125,9 +125,11 @@ def scalar_metrics(metrics,prediction):
 class Task(nn.Module):
     """Only return the live loss to DDP's unused-parameter traversal."""
     def __init__(self,model):super().__init__();self.model=model
-    def forward(self,batch,step):
-        output,metrics=self.model.step_loss(batch,step=step,understanding_weight=1.)
-        return metrics['loss'],scalar_metrics(metrics,output['prediction'])
+    def forward(self,batch,step,reconstruction_only=False):
+        output,metrics=self.model.step_loss(batch,step=step,understanding_weight=0. if reconstruction_only else 1.)
+        # Select rec directly, so the understanding graph receives no zero-valued
+        # gradients that could still trigger AdamW weight decay/state updates.
+        return metrics['loss_recon'] if reconstruction_only else metrics['loss'],scalar_metrics(metrics,output['prediction'])
 
 
 def save_preview(model,batch,prediction,path):
@@ -244,6 +246,10 @@ def run(args):
             opt=config_defaults['train_siu3r_object_locus_gfm_dual_stream_v3'];constructor=LocusGSGFMDualStreamV3
     else:
         opt=config_defaults['train_siu3r_object_locus_dual_stream_v1'];constructor=LocusGSDualStreamV1
+    if args.adapt_epochs:
+        if args.architecture!='gfm_v3':raise ValueError('Staged schedule is defined only for GFM V3')
+        CONFIG['recipe']='omega_gfm_semantic_pool_v3_adapt2_joint4_v1'
+        CONFIG['adaptation_epochs']=args.adapt_epochs
     windows,short_indices,validation=cohorts();short=[windows[i] for i in short_indices]
     model=constructor(opt,write_strength=0.).to(device)
     cache=install_frozen_caches(model,args.cache_root or root/'frozen_cache')
@@ -260,12 +266,28 @@ def run(args):
     if args.resume:
         blob=torch.load(root/'checkpoint_latest.pt',map_location='cpu',weights_only=False,mmap=True)
         if 'architecture_transition' in blob['meta']:meta['architecture_transition']=blob['meta']['architecture_transition']
+        if 'adaptation_transition' in blob['meta']:meta['adaptation_transition']=blob['meta']['adaptation_transition']
         validate_resume_metadata(blob['meta'],meta,source_sha=args.resume_source_sha)
         if args.resume_source_sha and rank==0:
             write(root/'RESUME_POLICY_TRANSITION.json',dict(source_meta=blob['meta'],target_meta=meta,
                 source_progress=blob['progress'],reason='User authorized learning evidence gate; loss reduction is monitoring only',
                 preserves_model_optimizer_rank_rng=True,replayed_short_updates=0))
         restore_trainable_state(model,blob['model']);optimizer.load_state_dict(blob['optimizer']);progress=blob['progress'];restore_rng(blob['rank_rng'][rank]);del blob
+    if args.staged_from:
+        blob=torch.load(args.staged_from,map_location='cpu',weights_only=False,mmap=True)
+        meta['architecture_transition']=blob['meta']['architecture_transition']
+        validate_staged_source(blob['meta'],meta,blob['progress'])
+        restore_trainable_state(model,blob['model']);optimizer.load_state_dict(blob['optimizer'])
+        progress=blob['progress'];restore_rng(blob['rank_rng'][rank])
+        progress.update(phase='adapt',gate_passed=True,adapt_updates=0,adapt_epoch=0,adapt_update_in_epoch=0,
+            adapt_epoch_counts=[0]*len(windows),adapt_total_counts=[0]*len(windows))
+        meta['adaptation_transition']=dict(source_checkpoint=str(args.staged_from.resolve()),
+            source_checkpoint_sha256=args.staged_source_digest,source_short_updates=306,
+            shared_with_direct_joint4=True,adaptation_epochs=args.adapt_epochs)
+        if rank==0:write(root/'ADAPTATION_TRANSITION.json',dict(**meta['adaptation_transition'],
+            model_optimizer_rank_rng_preserved=True,understanding_weight_during_adaptation=0.,
+            understanding_adamw_updates_during_adaptation=False))
+        del blob
     if args.transition_from:
         if args.resume or args.architecture not in ('gfm_v2','gfm_v3'):raise ValueError('Architecture transfer requires a fresh GFM V2 attempt')
         from scripts.gfm_dual_stream_transition import transfer,verify_source,SOURCE50_SHA256,transition_receipt
@@ -319,16 +341,20 @@ def run(args):
             window=short[index] if phase=='short' else windows[index]
             batch=build_batch(opt,window,device)
             sync=contextlib.nullcontext() if micro==len(indices)-1 else task.no_sync()
-            exposure=(progress['short_updates']+progress['full_updates'])*8
+            exposure=(progress['short_updates']+progress['full_updates']+progress.get('adapt_updates',0))*8
             with sync:
-                loss,metrics=task(batch,exposure)
+                loss,metrics=task(batch,exposure,phase=='adapt')
                 if not torch.isfinite(loss):raise FloatingPointError('Nonfinite loss')
                 (loss/len(indices)).backward()
             rows.append(metrics);del loss,batch
+        blocked={n:p for n,p in model.named_parameters() if p.requires_grad and not adaptation_only(n)} if phase=='adapt' else {}
+        blocked_versions={n:p._version for n,p in blocked.items()}
+        for p in blocked.values():p.grad=None
         grad_norm=torch.nn.utils.clip_grad_norm_([p for p in model.parameters() if p.requires_grad],CONFIG['clip_norm'],error_if_nonfinite=True)
         parameters=dict(model.named_parameters())
         probe_gradients={f:float(parameters[name].grad.detach().norm()) if parameters[name].grad is not None else 0. for f,(name,_) in probes.items()}
         optimizer.step()
+        if any(p._version!=blocked_versions[n] for n,p in blocked.items()):raise RuntimeError('Understanding parameters changed during reconstruction adaptation')
         # Meaningful value changes in representative tensors, rather than optimizer counters alone.
         for f,(name,before) in probes.items():
             p=parameters[name]
@@ -336,7 +362,7 @@ def run(args):
             changed=(not torch.equal(p.detach(),before)) and probe_gradients[f]>0
             progress['proof']['updated_families'][f]=progress['proof']['updated_families'].get(f,False) or changed
         row={k:sum(r[k] for r in rows)/len(rows) for k in rows[0]}
-        row.update(phase=phase,phase_update=update_index+1,grad_norm=float(grad_norm),seconds=time.monotonic()-started,
+        row.update(phase=phase,phase_update=update_index+1,understanding_weight=0. if phase=='adapt' else 1.,understanding_optimizer_skipped=phase=='adapt',grad_norm=float(grad_norm),seconds=time.monotonic()-started,
             cuda_peak_gib=torch.cuda.max_memory_allocated()/2**30,learning_rate_factor=factor,local_indices=indices,representative_grad_norms=probe_gradients)
         append(root/f'train_rank{rank:02d}.jsonl',row)
         if rank==0 and (update_index<3 or (update_index+1)%10==0):print('TRAIN',json.dumps(row),flush=True)
@@ -377,6 +403,28 @@ def run(args):
             if rank==0:write(root/'GATE_FAILED.json',dict(short_updates=progress['short_updates'],action='stopped_without_full_training',gate=gate))
             dist.barrier();dist.destroy_process_group();raise SystemExit(3)
 
+    if progress['phase']=='adapt':
+        adapt_total=math.ceil(len(windows)/8)*args.adapt_epochs
+        for epoch in range(progress['adapt_epoch'],args.adapt_epochs):
+            order=epoch_order(len(windows),epoch);updates=len(order)//8
+            for step in range(progress['adapt_update_in_epoch'],updates):
+                row=update(rank_microbatches(order,step,rank,world),'adapt',progress['adapt_updates'],adapt_total)
+                for index in order[step*8:(step+1)*8]:
+                    progress['adapt_epoch_counts'][index]+=1;progress['adapt_total_counts'][index]+=1
+                progress['adapt_updates']+=1;progress['adapt_update_in_epoch']=step+1
+                count=progress['adapt_updates']
+                if count==1 or count%CONFIG['checkpoint_every_updates']==0:checkpoint(model,optimizer,progress,root,meta,rank,world)
+                if count==1 and rank==0:write(root/'ADAPTATION_STARTED.json',dict(adapt_updates=1,source_short_updates=progress['short_updates'],metrics=row))
+                if count%CONFIG['full_monitor_every_updates']==0:
+                    monitor(model,opt,short[:8],validation[:8],root,f'adapt_{count:05d}',rank,world,device,(progress['short_updates']+count)*8)
+            if min(progress['adapt_epoch_counts'])<1 or sum(progress['adapt_epoch_counts'])!=updates*8:raise ValueError('Adaptation epoch coverage differs')
+            progress.update(adapt_epoch=epoch+1,adapt_update_in_epoch=0,adapt_epoch_counts=[0]*len(windows))
+            checkpoint(model,optimizer,progress,root,meta,rank,world,retain=f'checkpoint_adaptation_epoch_{epoch+1:02d}.pt')
+            monitor(model,opt,short[:8],validation[:8],root,f'adaptation_epoch_{epoch+1:02d}',rank,world,device,(progress['short_updates']+progress['adapt_updates'])*8)
+        progress.update(phase='full')
+        checkpoint(model,optimizer,progress,root,meta,rank,world,retain='checkpoint_adaptation_complete.pt')
+        if rank==0:write(root/'ADAPTATION_COMPLETE.json',dict(epochs=progress['adapt_epoch'],updates=progress['adapt_updates'],unique_windows=sum(x>0 for x in progress['adapt_total_counts']),understanding_parameters_unchanged=True))
+
     full_total=math.ceil(len(windows)/8)*CONFIG['epochs']
     for epoch in range(progress['epoch'],CONFIG['epochs']):
         order=epoch_order(len(windows),epoch);updates=len(order)//8
@@ -390,20 +438,21 @@ def run(args):
             if count%CONFIG['checkpoint_every_updates']==0:checkpoint(model,optimizer,progress,root,meta,rank,world)
             if count==1 and rank==0:write(root/'FULL_STARTED.json',dict(full_updates=1,short_updates=progress['short_updates'],metrics=row))
             if count%CONFIG['full_monitor_every_updates']==0:
-                monitor(model,opt,short[:8],validation[:8],root,f'full_{count:05d}',rank,world,device,(progress['short_updates']+count)*8)
+                monitor(model,opt,short[:8],validation[:8],root,f'full_{count:05d}',rank,world,device,(progress['short_updates']+progress.get('adapt_updates',0)+count)*8)
         if not all(x>=1 for x in progress['epoch_counts']):raise ValueError('Full epoch skipped a window')
         if sum(progress['epoch_counts'])!=updates*8:raise ValueError('Full epoch exposure clock differs')
         epoch_counts=progress['epoch_counts']
         progress.update(epoch=epoch+1,update_in_epoch=0,epoch_counts=[0]*len(windows))
         checkpoint(model,optimizer,progress,root,meta,rank,world,retain=f'checkpoint_epoch_{epoch+1:02d}.pt')
-        report=monitor(model,opt,short[:8],validation[:8],root,f'epoch_{epoch+1:02d}',rank,world,device,(progress['short_updates']+progress['full_updates'])*8)
+        report=monitor(model,opt,short[:8],validation[:8],root,f'epoch_{epoch+1:02d}',rank,world,device,(progress['short_updates']+progress.get('adapt_updates',0)+progress['full_updates'])*8)
         if rank==0:write(root/f'epoch_{epoch+1:02d}.json',dict(epoch=epoch+1,summary=report,counts=epoch_counts,full_updates=progress['full_updates']))
     if any(p._version!=frozen_versions[n] for n,p in model.named_parameters() if n in frozen_versions):raise RuntimeError('Frozen Omega/SAM changed')
     if rank==0:write(root/'TRAINING_COMPLETE.json',dict(status='FULL_FOUR_EPOCHS_COMPLETE',short_updates=progress['short_updates'],full_updates=progress['full_updates'],
-        full_exposures=progress['full_updates']*8,full_window_unique_count=sum(x>0 for x in progress['total_counts']),frozen_unchanged=True,cache=cache))
+        adaptation_epochs=progress.get('adapt_epoch',0),adaptation_updates=progress.get('adapt_updates',0),full_exposures=progress['full_updates']*8,full_window_unique_count=sum(x>0 for x in progress['total_counts']),frozen_unchanged=True,cache=cache))
     dist.barrier()
-    from scripts.dual_stream_official_export import export
-    export(model,opt,validation,root/'evaluation',rank,world,device)
+    if not args.defer_export:
+        from scripts.dual_stream_official_export import export
+        export(model,opt,validation,root/'evaluation',rank,world,device)
     dist.destroy_process_group()
 
 
@@ -415,8 +464,16 @@ def main():
     parser.add_argument('--architecture',choices=('v1','gfm_v2','gfm_v3'),default='v1')
     parser.add_argument('--transition-from',type=Path)
     parser.add_argument('--cache-root',type=Path)
+    parser.add_argument('--adapt-epochs',type=int,choices=(0,2),default=0)
+    parser.add_argument('--staged-from',type=Path)
+    parser.add_argument('--staged-source-digest')
+    parser.add_argument('--defer-export',action='store_true')
     args=parser.parse_args()
     if args.resume_source_sha and not args.resume:parser.error('--resume-source-sha requires --resume')
+    if args.staged_from:
+        if args.resume or args.transition_from or args.adapt_epochs!=2:parser.error('Staged source requires fresh adapt2 run')
+        if not args.staged_source_digest or digest(args.staged_from)!=args.staged_source_digest:parser.error('Staged source checkpoint checksum differs')
+    if args.adapt_epochs and not (args.staged_from or args.resume):parser.error('Adaptation requires explicit staged source or resume')
     try:run(args)
     except BaseException as exc:
         if not isinstance(exc,SystemExit) or exc.code not in (0,3):

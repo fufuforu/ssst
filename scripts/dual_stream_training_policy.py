@@ -42,6 +42,24 @@ def validate_resume_metadata(saved,current,*,source_sha=None):
     if saved!=expected:raise ValueError('Resume metadata/code/data/config mismatch')
 
 
+def validate_staged_source(saved,current,progress):
+    """The sole deliberate change is adding reconstruction adaptation before joint4."""
+    expected=dict(current)
+    expected['execution_git_sha']=saved['execution_git_sha']
+    expected.pop('learning_gate_policy',None)
+    expected['recipe']='omega_gfm_semantic_pool_v3_frozen_joint4'
+    expected['config']=dict(current['config'],recipe=expected['recipe'])
+    expected['config'].pop('adaptation_epochs',None)
+    if saved!=expected:raise ValueError('Staged source model/data/training metadata differs')
+    if saved['execution_git_sha']!='f5a6134260c66a4012d7850e2e6acf5c08a478a0':raise ValueError('Unexpected shared306 source code')
+    if progress['short_updates']!=306 or progress['full_updates']!=0 or progress['epoch']!=0:
+        raise ValueError('Staged source must be the common short306, before full training')
+
+
+def adaptation_only(name):
+    return not name.startswith(('understanding.','query_initializer.','panoptic.'))
+
+
 def acceptance(before,after,validation_before,validation_after,proof,*,policy='legacy_v1'):
     """Trainability, not parity with a mature old model; fixed-cohort comparisons.
 
