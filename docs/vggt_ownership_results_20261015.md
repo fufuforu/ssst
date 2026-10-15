@@ -1,8 +1,10 @@
 # Object–Anchor–Gaussian 固定权重诊断：2026-10-15
 
+> **汇报口径更新（用户补充）：常规流程是适配2 epoch后联合训练4 epoch；本轮额外300步Baseline用于对照。下文C→Baseline的PSNR变化仅描述额外续训端点，不据此认定常规2+4流程存在主要优化问题。汇报主线聚焦Raw Mask不足与好Mask分类/筛选损失。** 可直接使用的中文三页PDF与案例图见 [`vggt_mask_bottlenecks_presentation_20261015.md`](vggt_mask_bottlenecks_presentation_20261015.md)。
+
 ## 判断与下一步
 
-**最明确定位到的下游瓶颈是类别/no-object筛选；原始Mask覆盖，尤其小物体，仍是更大的未解决来源。重建的继续下降体现联合优化的取舍。当前证据不能把Object–Anchor错误写回或Anchor–Gaussian不一致确认为共同主因。**
+**最明确定位到的下游瓶颈是类别/no-object筛选；原始Mask覆盖，尤其小物体，仍是更大的未解决来源。当前证据不能把Object–Anchor错误写回或Anchor–Gaussian不一致确认为共同主因。额外300步重建下降作为对照观察，不列作常规训练流程的主要问题。**
 
 具体区分四个问题：
 
@@ -11,7 +13,7 @@
 | Object–Anchor Read/Write | 有空间错位和跨GT写入，但因果责任未确定 | 真对应优于打乱；控制物体面积后，“不一致越大、Mask越差”的关系消失或反向；高不一致也有正确实例 |
 | Anchor–Gaussian实例归属 | Anchor/geometry分支本身很弱；不能归因为Child破坏了良好Anchor | C的Anchor继承渲染仅100/492个GT有好候选，geometry child为104，融合视觉后的Raw为358 |
 | 最终分类与Mask组装 | **已有好Mask的主要额外损失发生在no-object资格筛选**；像素竞争次之 | C：358→294→289→288；Baseline：354→293→287→287。类别错误另使最终几何好候选288→同类好候选257 |
-| 联合训练优化 | **确认重建退化，未见最终Mask整体塌缩** | PSNR −0.3164 dB，所有标注区域RGB误差上升；最终best-query IoU差−0.0006，区间跨0，mAP反而上升 |
+| 额外300步对照（补充） | 本对照重建下降；不据此评价常规2+4流程 | PSNR −0.3164 dB，所有标注区域RGB误差上升；最终best-query IoU差−0.0006，区间跨0，mAP反而上升 |
 
 134/492个C实例在Raw阶段就没有任何IoU≥0.5候选，不能靠最后分类补救。这134个中85个是面积<1%的小物体。冻结观测不能继续把这部分唯一分配给“特征不够丰富”或“读取能力不足”；两者仍需干预才能区分。
 
@@ -103,7 +105,7 @@ C L12好Mask正确类/好Mask no-object/好Mask错类/差Mask的Anchor–Child D
 
 每窗口官方性能关联同样没有清晰统一方向。C的Write JS与输入/新视图AP相关为−.109/−.129，与PQ为+.062/+.054；跨GT比例与AP约+.032/+.040、与PQ约+.379/+.372。不能依据一张粗相关图认定foreign Write导致mAP/PQ损失。分窗口指标只用于关联，未替代正式全局指标。
 
-## C→Baseline联合训练漂移
+## C→Baseline额外300步端点变化（补充观察）
 
 按相同GT实例对齐，不假设相同Query号或Anchor编号跨模型有相同语义。括号为场景成簇bootstrap的95%区间。
 
