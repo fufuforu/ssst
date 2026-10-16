@@ -1029,4 +1029,9 @@ config_defaults["train_siu3r_object_locus_gfm_dual_stream_v3"] = config_defaults
     model_type="siu3r_object_locus_gfm_dual_stream_v3", experiment_name="object_locus_gfm_dual_stream_v3",
     workspace="/space/mawb/ssst/workspace_group_plus/object_locus_gfm_dual_stream_v3")
 
+config_doc['train_siu3r_object_locus_gfm_dual_stream_v4'] = 'V3 with geometric-aware SAM semantic pooling; decoder unchanged.'
+config_defaults['train_siu3r_object_locus_gfm_dual_stream_v4'] = config_defaults['train_siu3r_object_locus_gfm_dual_stream_v3'].evolve(
+    model_type='siu3r_object_locus_gfm_dual_stream_v4', experiment_name='object_locus_gfm_dual_stream_v4',
+    workspace='/space/mawb/ssst/workspace_group_plus/object_locus_gfm_dual_stream_v4')
+
 AllConfigs = tyro.extras.subcommand_type_from_defaults(config_defaults, config_doc)

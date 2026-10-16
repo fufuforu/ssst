@@ -36,7 +36,12 @@ def main():
     from tokengs.options import config_defaults
     from tokengs.models.object_locus_gfm_dual_stream_v3 import LocusGSGFMDualStreamV3
     opt=config_defaults['train_siu3r_object_locus_gfm_dual_stream_v3']
-    model=LocusGSGFMDualStreamV3(opt,write_strength=0.).to(torch.device('cuda',local))
+    constructor=LocusGSGFMDualStreamV3
+    if meta['config'].get('query_pooling')=='geometric_sam_v4':
+        from tokengs.models.object_locus_gfm_dual_stream_v4 import LocusGSGFMDualStreamV4
+        opt=config_defaults['train_siu3r_object_locus_gfm_dual_stream_v4']
+        constructor=LocusGSGFMDualStreamV4
+    model=constructor(opt,write_strength=0.).to(torch.device('cuda',local))
     restore_trainable_state(model,blob['model'])
     if not args.smoke and meta['config'].get('freeze_reconstruction',False):
         from scripts.dual_stream_training_policy import reconstruction_state_digest

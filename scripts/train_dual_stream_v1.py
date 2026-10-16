@@ -241,14 +241,14 @@ def run(args):
     root=args.output_dir;root.mkdir(parents=True,exist_ok=True)
     if rank==0:
         if (root/'STARTED.json').exists() and not args.resume:raise ValueError('Existing attempt; use explicit --resume')
-        write(root/'STARTED.json',dict(job_id=os.environ.get('SLURM_JOB_ID'),world_size=world,pid=os.getpid(),config=dict(CONFIG,recipe='omega_gfm_semantic_pool_v3_frozen_joint4' if args.architecture=='gfm_v3' else 'omega_gfm_two_adapter_sam_pool_v2_frozen_joint4') if args.architecture in ('gfm_v2','gfm_v3') else CONFIG,architecture=args.architecture,requested_joint_warmup=args.joint_warmup,requested_adaptation_epochs=args.adapt_epochs))
+        write(root/'STARTED.json',dict(job_id=os.environ.get('SLURM_JOB_ID'),world_size=world,pid=os.getpid(),config=dict(CONFIG,recipe='omega_gfm_geometric_sam_pool_v4_frozen_joint4' if args.architecture=='gfm_v4' else 'omega_gfm_semantic_pool_v3_frozen_joint4' if args.architecture=='gfm_v3' else 'omega_gfm_two_adapter_sam_pool_v2_frozen_joint4') if args.architecture in ('gfm_v2','gfm_v3','gfm_v4') else CONFIG,architecture=args.architecture,requested_joint_warmup=args.joint_warmup,requested_adaptation_epochs=args.adapt_epochs))
     from tokengs.options import config_defaults
     from tokengs.models.object_locus_dual_stream_v1 import LocusGSDualStreamV1
     source_config=dict(CONFIG)
-    if args.architecture in ('gfm_v2','gfm_v3'):
+    if args.architecture in ('gfm_v2','gfm_v3','gfm_v4'):
         from tokengs.models.object_locus_gfm_dual_stream_v2 import LocusGSGFMDualStreamV2
         CONFIG['recipe']='omega_gfm_two_adapter_sam_pool_v2_frozen_joint4'
-        query_projection_family='semantic_query_projection' if args.architecture=='gfm_v3' else 'gfm_query_projection'
+        query_projection_family='semantic_query_projection' if args.architecture in ('gfm_v3','gfm_v4') else 'gfm_query_projection'
         CONFIG['required_gradient_families']=['reconstruction','understanding','queries','panoptic','gfm_reconstruction_adapter',query_projection_family,'anchor_gfm_content']
         opt=config_defaults['train_siu3r_object_locus_gfm_dual_stream_v2']
         constructor=LocusGSGFMDualStreamV2
@@ -256,6 +256,12 @@ def run(args):
             from tokengs.models.object_locus_gfm_dual_stream_v3 import LocusGSGFMDualStreamV3
             CONFIG['recipe']='omega_gfm_semantic_pool_v3_frozen_joint4'
             opt=config_defaults['train_siu3r_object_locus_gfm_dual_stream_v3'];constructor=LocusGSGFMDualStreamV3
+        if args.architecture=='gfm_v4':
+            from tokengs.models.object_locus_gfm_dual_stream_v4 import LocusGSGFMDualStreamV4
+            CONFIG['recipe']='omega_gfm_geometric_sam_pool_v4_frozen_joint4'
+            CONFIG['query_pooling']='geometric_sam_v4'
+            CONFIG['required_gradient_families'].append('geometric_query_pooling')
+            opt=config_defaults['train_siu3r_object_locus_gfm_dual_stream_v4'];constructor=LocusGSGFMDualStreamV4
     else:
         opt=config_defaults['train_siu3r_object_locus_dual_stream_v1'];constructor=LocusGSDualStreamV1
     if args.adapt_epochs:
@@ -367,10 +373,14 @@ def run(args):
     for name,p in model.named_parameters():
         f=family(name)
         if p.requires_grad and f not in probes:probes[f]=(name,p.detach().clone())
-    if args.architecture in ('gfm_v2','gfm_v3'):
+    if args.architecture in ('gfm_v2','gfm_v3','gfm_v4'):
         named=dict(model.named_parameters())
         for label,name in [('gfm_reconstruction_adapter','reconstruction_adapter.projection.0.weight'),(query_projection_family,'query_initializer.content_projection.1.weight'),('anchor_gfm_content','anchor_visual_projection.1.weight')]:
             if named[name].requires_grad:probes[label]=(name,named[name].detach().clone())
+    if args.architecture=='gfm_v4':
+        name='query_initializer.point_weight.2.weight'
+        p=dict(model.named_parameters())[name]
+        probes['geometric_query_pooling']=(name,p.detach().clone())
     if rank==0:
         write(root/'configuration.json',dict(**meta,optimizer_groups=[{k:v for k,v in group.items() if k!='params'} for group in optimizer.param_groups],
             trainable_parameters=sum(p.numel() for p in model.parameters() if p.requires_grad),gpu=torch.cuda.get_device_name(),short_windows=short,monitor_validation=validation[:8]))
@@ -522,7 +532,7 @@ def main():
     parser.add_argument('--gate-policy',choices=('legacy_v1','learning_evidence_v2'),default='legacy_v1')
     parser.add_argument('--resume-source-sha',help='Explicit prior execution SHA for audited code/policy-only continuation')
     parser.add_argument('--resume-reason',default='User authorized learning evidence gate; loss reduction is monitoring only')
-    parser.add_argument('--architecture',choices=('v1','gfm_v2','gfm_v3'),default='v1')
+    parser.add_argument('--architecture',choices=('v1','gfm_v2','gfm_v3','gfm_v4'),default='v1')
     parser.add_argument('--transition-from',type=Path)
     parser.add_argument('--cache-root',type=Path)
     parser.add_argument('--adapt-epochs',type=int,choices=(0,2),default=0)
@@ -535,6 +545,8 @@ def main():
     parser.add_argument('--freeze-reconstruction',action='store_true')
     args=parser.parse_args()
     if args.resume_source_sha and not args.resume:parser.error('--resume-source-sha requires --resume')
+    if args.architecture=='gfm_v4' and (args.transition_from or args.staged_from or args.warm_joint_from or args.adapt_epochs or args.joint_warmup or args.freeze_reconstruction):
+        parser.error('V4 uses a distinct initialization; old V3 checkpoint/optimizer migration requires an explicit audited transition')
     if args.staged_from:
         if args.resume or args.transition_from or args.adapt_epochs!=2:parser.error('Staged source requires fresh adapt2 run')
         if not args.staged_source_digest or digest(args.staged_from)!=args.staged_source_digest:parser.error('Staged source checkpoint checksum differs')

@@ -1,5 +1,7 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **2026-10-16 新结构代码：仅初始化改为 ESAM 风格几何感知池化，独立 V4。** 见 [gfm_geometric_sam_pool_v4_20261016.md](gfm_geometric_sam_pool_v4_20261016.md)。区域内 VGGT 相对几何预测权重来池化 F_sem，并加整体形状编码；候选规则、交互层、Write 和 Gaussian 输出保持原设定。没有提交训练，没有迁移旧 checkpoint，不改 65661/65665 的不可变快照；旧 checkpoint 不能直接当新版本 resume。验证结果以该文档记录为准。
+
 > **冻结重建八卡对照已提交，停止轮询**：训练65665（11节点8×3090，单次核对RUNNING）；官方评测65666 afterok:65665；五模型比较65667 afterany:65662:65666。代码1ee41b0，attempt09_frozen_recon_node11_8gpu。与13节点65661同适配2起点/batch8/理解LR及首epoch损失warmup；仅冻结重建参数/优化器/模式，并验证固定场景Gaussian不变。14项CPU验证通过，源预检通过；GPU首步/冻结指纹尚未宣称通过。13节点原warmup不受影响。用户通知后检查两组及评测，不重提交、不重做适配。
 
 > **新授权：11节点八卡增加冻结重建、只训练理解对照，13节点warmup65661保持运行。** 见[gfm_frozen_reconstruction_node11_8gpu_20261016.md](gfm_frozen_reconstruction_node11_8gpu_20261016.md)。同一适配2checkpoint与batch8，理解LR1e-4及首epoch loss warmup与65661一致，只冻结重建参数/模式/优化器更新，并检查Gaussian输出不变。新attempt09_frozen_recon_node11_8gpu，14项CPU检查及源预检通过，训练理解4epoch，接官方128评测与五模型比较。提交后单次核对停止轮询；不能重复适配、不取消65661、不将RUNNING当GPU冻结保证。

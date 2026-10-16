@@ -57,6 +57,11 @@ class GFMSAMQueryInitializer(SAMQueryInitializer):
         self.input_dim=input_dim
         self.content_projection=nn.Sequential(nn.LayerNorm(input_dim),nn.Linear(input_dim,256),nn.GELU(),nn.Linear(256,256))
 
+    def pool_region(self,feature_map,mask,point_map):
+        # Keep the V2/V3 computation unchanged; V4 replaces only this operation.
+        weights=F.interpolate(mask.float()[None,None],size=feature_map.shape[-2:],mode='area')[0,0]
+        return (feature_map*weights[None]).sum((1,2))/weights.sum().clamp_min(1e-8)
+
     def forward(self,gfm,proposals,points,mu):
         b,v,d,h,w=gfm.shape
         if d!=self.input_dim:raise ValueError(f'Query initializer expects {self.input_dim} feature channels, got {d}')
@@ -75,8 +80,7 @@ class GFMSAMQueryInitializer(SAMQueryInitializer):
                 xyz=points[bi,vi][mask];finite=torch.isfinite(xyz).all(-1)
                 if not finite.any():continue
                 xyz=xyz[finite].detach()
-                weights=F.interpolate(mask.float()[None,None],size=(h,w),mode='area')[0,0]
-                feat=(gfm[bi,vi]*weights[None]).sum((1,2))/weights.sum().clamp_min(1e-8)
+                feat=self.pool_region(gfm[bi,vi],mask,points[bi,vi])
                 center=xyz.median(0).values;spread=(xyz-center).square().mean(0).sqrt().clamp_min(.02*ell)
                 support=xyz[torch.linspace(0,len(xyz)-1,min(128,len(xyz)),device=xyz.device).long()]
                 match=None
@@ -99,7 +103,7 @@ class GFMSAMQueryInitializer(SAMQueryInitializer):
                 c[i]=group['center'];s[i]=group['spread']
                 q[i]=self.content_projection(group['feat'])+self.geometry(torch.cat(((c[i]-origin)/ell,s[i]/ell)))
             allq.append(self.norm(q));allc.append(c);alls.append(s)
-            logs.append(dict(proposal_queries=len(groups),learned_queries=self.slots-len(groups),cross_view_groups=sum(len(g['views'])>1 for g in groups),pooling='SAM area-weighted semantic adapter output then query projection' if self.input_dim==256 else 'SAM area-weighted raw GFM then projection'))
+            logs.append(dict(proposal_queries=len(groups),learned_queries=self.slots-len(groups),cross_view_groups=sum(len(g['views'])>1 for g in groups),pooling=getattr(self,'pooling_description','SAM area-weighted semantic adapter output then query projection' if self.input_dim==256 else 'SAM area-weighted raw GFM then projection')))
         return torch.stack(allq),torch.stack(allc),torch.stack(alls),logs
 
 
