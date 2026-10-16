@@ -19,13 +19,16 @@ def parameter_groups(model):
     return recon,under
 
 
-def accumulate(model,reconstruction_loss,weighted_understanding_loss,divisor=1):
+def accumulate(model,reconstruction_loss,weighted_understanding_loss,divisor=1,reconstruction_understanding_scale=0.):
+    # Scale only dL_under/dtheta_recon; understanding retains its full ramped loss.
+    if reconstruction_understanding_scale not in (0.,.05):raise ValueError('Unsupported reconstruction understanding gradient scale')
     if divisor<1:raise ValueError('Invalid accumulation divisor')
     recon,under=parameter_groups(model)
     def gradients(loss,params,retain_graph):
         if not loss.requires_grad:return (None,)*len(params)
         return torch.autograd.grad(loss,params,retain_graph=retain_graph,allow_unused=True)
-    rec_grad=gradients(reconstruction_loss,recon,True)
+    rec_objective=reconstruction_loss if reconstruction_understanding_scale==0. else reconstruction_loss+reconstruction_understanding_scale*weighted_understanding_loss
+    rec_grad=gradients(rec_objective,recon,True)
     under_grad=gradients(weighted_understanding_loss,under,False)
     for params,grads in ((recon,rec_grad),(under,under_grad)):
         for param,grad in zip(params,grads):

@@ -285,7 +285,7 @@ def run(args):
         configure_direct_joint(CONFIG)
     if args.isolate_gradients:
         from scripts.gfm_v4_isolated_policy import configure
-        configure(CONFIG)
+        configure(CONFIG,args.reconstruction_understanding_gradient_scale)
     if args.understanding_loss_scale!=1.:
         from scripts.gfm_v4_weighted_policy import configure as configure_weighted
         configure_weighted(CONFIG)
@@ -477,7 +477,7 @@ def run(args):
                 if args.isolate_gradients:
                     rec_loss,under_loss,total_loss=loss
                     if not all(torch.isfinite(x) for x in loss):raise FloatingPointError('Nonfinite isolated loss')
-                    isolated_accumulate(model,rec_loss,under_loss,len(indices))
+                    isolated_accumulate(model,rec_loss,under_loss,len(indices),args.reconstruction_understanding_gradient_scale)
                 else:
                     if not torch.isfinite(loss):raise FloatingPointError('Nonfinite loss')
                     (loss/len(indices)).backward()
@@ -503,7 +503,7 @@ def run(args):
         optimizer.step()
         if args.isolate_gradients and update_index==0:
             replica_sha=verify_parameters_identical(model)
-            if rank==0:write(root/'ISOLATED_GRADIENT_SYNC_FIRST_UPDATE.json',dict(world_size=world,all_trainable_replicas_identical=True,sha256=replica_sha,preclip_route_grad_norms=route_norms))
+            if rank==0:write(root/'ISOLATED_GRADIENT_SYNC_FIRST_UPDATE.json',dict(world_size=world,all_trainable_replicas_identical=True,sha256=replica_sha,preclip_route_grad_norms=route_norms,reconstruction_understanding_gradient_scale=args.reconstruction_understanding_gradient_scale))
         if args.freeze_reconstruction and any(p._version!=frozen_versions[n] for n,p in model.named_parameters() if n in frozen_versions):
             raise RuntimeError('Frozen reconstruction/backbone parameter changed during understanding training')
         if any(p._version!=blocked_versions[n] for n,p in blocked.items()):raise RuntimeError('Understanding parameters changed during reconstruction adaptation')
@@ -517,7 +517,9 @@ def run(args):
         row.update(phase=phase,phase_update=update_index+1,understanding_weight=uweight,weighted_understanding_loss=uweight*row['loss_understanding'],understanding_optimizer_skipped=phase=='adapt',grad_norm=float(grad_norm),seconds=time.monotonic()-started,
             cuda_peak_gib=torch.cuda.max_memory_allocated()/2**30,learning_rate_factor=factor,local_indices=indices,representative_grad_norms=probe_gradients)
         row['learning_rates']={group['family']:group['lr'] for group in optimizer.param_groups}
-        if args.isolate_gradients:row['preclip_route_grad_norms']=route_norms
+        if args.isolate_gradients:
+            row['preclip_route_grad_norms']=route_norms
+            if args.reconstruction_understanding_gradient_scale:row['reconstruction_understanding_gradient_scale']=args.reconstruction_understanding_gradient_scale
         if args.understanding_loss_scale!=1.:row['understanding_loss_scale']=args.understanding_loss_scale
         append(root/f'train_rank{rank:02d}.jsonl',row)
         if rank==0 and (update_index<3 or (update_index+1)%10==0):print('TRAIN',json.dumps(row),flush=True)
@@ -637,11 +639,13 @@ def main():
     parser.add_argument('--geometric-source-digest')
     parser.add_argument('--v4-direct-joint',action='store_true')
     parser.add_argument('--isolate-gradients',action='store_true')
+    parser.add_argument('--reconstruction-understanding-gradient-scale',type=float,choices=(0.,.05),default=0.)
     parser.add_argument('--untrained-initial-from',type=Path)
     parser.add_argument('--untrained-initial-digest')
     parser.add_argument('--understanding-loss-scale',type=float,choices=(1.,.05),default=1.)
     args=parser.parse_args()
     if args.resume_source_sha and not args.resume:parser.error('--resume-source-sha requires --resume')
+    if args.reconstruction_understanding_gradient_scale and not args.isolate_gradients:parser.error('Selective gradient scale requires explicit routing')
     if args.understanding_loss_scale!=1.:
         if not args.v4_direct_joint or args.isolate_gradients or not (args.untrained_initial_from or args.resume):parser.error('Weight0.05 experiment requires ordinary V4 joint training from the explicit untrained state or own resume')
     if args.isolate_gradients:
