@@ -60,6 +60,40 @@ def adaptation_only(name):
     return not name.startswith(('understanding.','query_initializer.','panoptic.'))
 
 
+def understanding_weight(update,warmup_updates):
+    if update<0 or warmup_updates<0:raise ValueError('Negative warmup clock')
+    return min(1.,(update+1)/warmup_updates) if warmup_updates else 1.
+
+
+def configure_joint_warmup(config):
+    config.update(recipe='omega_gfm_semantic_pool_v3_adapt2_joint4_lr10_uwarm1_v1',
+        reconstruction_lr=1e-5,geometry_refinement_lr=1e-6,understanding_lr=1e-4,
+        understanding_loss_warmup_updates=1043,full_monitor_every_updates=100)
+
+
+def validate_joint_warmup_source(saved,current,progress):
+    expected=dict(current)
+    expected.update(execution_git_sha=saved['execution_git_sha'],world_size=4,accumulation=2,
+        recipe='omega_gfm_semantic_pool_v3_adapt2_joint4_v1')
+    expected['config']=dict(current['config'],recipe=expected['recipe'],reconstruction_lr=1e-4,
+        geometry_refinement_lr=1e-5,full_monitor_every_updates=250)
+    expected['config'].pop('understanding_loss_warmup_updates',None)
+    if saved!=expected:raise ValueError('Warmup source model/data/schedule metadata differs')
+    if saved['execution_git_sha']!='75f6ce182b4ee79e75485db541daf0ffc85f91a9':raise ValueError('Unexpected adaptation checkpoint source code')
+    if current['world_size']!=8 or current['global_batch']!=8 or current['accumulation']!=1:raise ValueError('Warmup continuation expects eight ranks, global batch8')
+    if (progress['short_updates'],progress.get('adapt_epoch'),progress.get('adapt_updates'),progress['epoch'],progress['full_updates'],progress['phase'])!=(306,2,2086,0,0,'full'):
+        raise ValueError('Warmup must start at adaptation2 completion before joint training')
+
+
+def load_optimizer_preserving_moments_and_new_rates(optimizer,saved):
+    rates=[{k:g[k] for k in ('lr','base_lr')} for g in optimizer.param_groups]
+    if len(saved['param_groups'])!=len(rates):raise ValueError('Optimizer group count differs')
+    for old,new in zip(saved['param_groups'],optimizer.param_groups):
+        if any(old[k]!=new[k] for k in ('family','weight_decay')) or len(old['params'])!=len(new['params']):raise ValueError('Optimizer family/decay/shape differs')
+    optimizer.load_state_dict(saved)
+    for group,rate in zip(optimizer.param_groups,rates):group.update(rate)
+
+
 def acceptance(before,after,validation_before,validation_after,proof,*,policy='legacy_v1'):
     """Trainability, not parity with a mature old model; fixed-cohort comparisons.
 

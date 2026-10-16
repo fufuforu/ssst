@@ -22,6 +22,7 @@ from torch import nn
 import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 from scripts.dual_stream_training_policy import CONFIG,epoch_order,rank_microbatches,lr_factor,acceptance,validate_resume_metadata,validate_staged_source,adaptation_only
+from scripts.dual_stream_training_policy import understanding_weight,configure_joint_warmup,validate_joint_warmup_source,load_optimizer_preserving_moments_and_new_rates
 from scripts.dual_stream_frozen_cache import install_frozen_caches,cpu_tree,atomic_torch_save
 
 MANIFEST=Path('/space/mawb/ssst/group_plus/object_locus_panoptic_full1201_8gpu/manifest.json')
@@ -125,8 +126,8 @@ def scalar_metrics(metrics,prediction):
 class Task(nn.Module):
     """Only return the live loss to DDP's unused-parameter traversal."""
     def __init__(self,model):super().__init__();self.model=model
-    def forward(self,batch,step,reconstruction_only=False):
-        output,metrics=self.model.step_loss(batch,step=step,understanding_weight=0. if reconstruction_only else 1.)
+    def forward(self,batch,step,reconstruction_only=False,understanding_weight=1.):
+        output,metrics=self.model.step_loss(batch,step=step,understanding_weight=0. if reconstruction_only else understanding_weight)
         # Select rec directly, so the understanding graph receives no zero-valued
         # gradients that could still trigger AdamW weight decay/state updates.
         return metrics['loss_recon'] if reconstruction_only else metrics['loss'],scalar_metrics(metrics,output['prediction'])
@@ -229,7 +230,7 @@ def run(args):
     root=args.output_dir;root.mkdir(parents=True,exist_ok=True)
     if rank==0:
         if (root/'STARTED.json').exists() and not args.resume:raise ValueError('Existing attempt; use explicit --resume')
-        write(root/'STARTED.json',dict(job_id=os.environ.get('SLURM_JOB_ID'),world_size=world,pid=os.getpid(),config=dict(CONFIG,recipe='omega_gfm_semantic_pool_v3_frozen_joint4' if args.architecture=='gfm_v3' else 'omega_gfm_two_adapter_sam_pool_v2_frozen_joint4') if args.architecture in ('gfm_v2','gfm_v3') else CONFIG,architecture=args.architecture))
+        write(root/'STARTED.json',dict(job_id=os.environ.get('SLURM_JOB_ID'),world_size=world,pid=os.getpid(),config=dict(CONFIG,recipe='omega_gfm_semantic_pool_v3_frozen_joint4' if args.architecture=='gfm_v3' else 'omega_gfm_two_adapter_sam_pool_v2_frozen_joint4') if args.architecture in ('gfm_v2','gfm_v3') else CONFIG,architecture=args.architecture,requested_joint_warmup=args.joint_warmup,requested_adaptation_epochs=args.adapt_epochs))
     from tokengs.options import config_defaults
     from tokengs.models.object_locus_dual_stream_v1 import LocusGSDualStreamV1
     source_config=dict(CONFIG)
@@ -250,6 +251,7 @@ def run(args):
         if args.architecture!='gfm_v3':raise ValueError('Staged schedule is defined only for GFM V3')
         CONFIG['recipe']='omega_gfm_semantic_pool_v3_adapt2_joint4_v1'
         CONFIG['adaptation_epochs']=args.adapt_epochs
+    if args.joint_warmup:configure_joint_warmup(CONFIG)
     windows,short_indices,validation=cohorts();short=[windows[i] for i in short_indices]
     model=constructor(opt,write_strength=0.).to(device)
     cache=install_frozen_caches(model,args.cache_root or root/'frozen_cache')
@@ -267,12 +269,32 @@ def run(args):
         blob=torch.load(root/'checkpoint_latest.pt',map_location='cpu',weights_only=False,mmap=True)
         if 'architecture_transition' in blob['meta']:meta['architecture_transition']=blob['meta']['architecture_transition']
         if 'adaptation_transition' in blob['meta']:meta['adaptation_transition']=blob['meta']['adaptation_transition']
+        if 'joint_warmup_transition' in blob['meta']:meta['joint_warmup_transition']=blob['meta']['joint_warmup_transition']
         validate_resume_metadata(blob['meta'],meta,source_sha=args.resume_source_sha)
         if args.resume_source_sha and rank==0:
             write(root/'RESUME_POLICY_TRANSITION.json',dict(source_meta=blob['meta'],target_meta=meta,
                 source_progress=blob['progress'],reason=args.resume_reason,
                 preserves_model_optimizer_rank_rng=True,replayed_short_updates=0))
         restore_trainable_state(model,blob['model']);optimizer.load_state_dict(blob['optimizer']);progress=blob['progress'];restore_rng(blob['rank_rng'][rank]);del blob
+    if args.warm_joint_from:
+        blob=torch.load(args.warm_joint_from,map_location='cpu',weights_only=False,mmap=True)
+        for key in ('architecture_transition','adaptation_transition'):meta[key]=blob['meta'][key]
+        validate_joint_warmup_source(blob['meta'],meta,blob['progress'])
+        restore_trainable_state(model,blob['model'])
+        load_optimizer_preserving_moments_and_new_rates(optimizer,blob['optimizer'])
+        progress=blob['progress']
+        if rank<4:restore_rng(blob['rank_rng'][rank])
+        else:
+            seed=CONFIG['seed']+80000+rank
+            random.seed(seed);np.random.seed(seed);torch.manual_seed(seed);torch.cuda.manual_seed(seed)
+        meta['joint_warmup_transition']=dict(source_checkpoint=str(args.warm_joint_from.resolve()),
+            source_checkpoint_sha256=args.warm_source_digest,source_world_size=4,target_world_size=8,
+            effective_batch_unchanged=8,retained_source_rng_ranks=[0,1,2,3],new_rank_seed_rule='31415+80000+rank',
+            completed_adaptation_updates=2086,replayed_adaptation_updates=0,
+            reconstruction_lr=CONFIG['reconstruction_lr'],geometry_lr=CONFIG['geometry_refinement_lr'],understanding_lr=CONFIG['understanding_lr'],
+            understanding_loss_ramp='min(1,(joint_update+1)/1043)',optimizer_moments_preserved=True)
+        if rank==0:write(root/'JOINT_WARMUP_TRANSITION.json',meta['joint_warmup_transition'])
+        del blob
     if args.staged_from:
         blob=torch.load(args.staged_from,map_location='cpu',weights_only=False,mmap=True)
         meta['architecture_transition']=blob['meta']['architecture_transition']
@@ -329,12 +351,13 @@ def run(args):
         print('MODEL_AND_OPTIMIZER_READY',json.dumps(dict(world_size=world,trainable_parameters=sum(p.numel() for p in model.parameters() if p.requires_grad))),flush=True)
     baseline_path=root/'monitor'/'initial.json'
     if baseline_path.exists():baseline=json.loads(baseline_path.read_text())['summary']
-    else:baseline=monitor(model,opt,short[:8],validation[:8],root,'initial',rank,world,device,(progress['short_updates']+progress['full_updates'])*8)
+    else:baseline=monitor(model,opt,short[:8],validation[:8],root,'initial',rank,world,device,(progress['short_updates']+progress.get('adapt_updates',0)+progress['full_updates'])*8)
     if not args.resume:checkpoint(model,optimizer,progress,root,meta,rank,world,retain='checkpoint_initial.pt')
 
     def update(indices,phase,update_index,total):
         model.train();optimizer.zero_grad(set_to_none=True)
         factor=lr_factor(phase,update_index-short_origin if phase=='short' else update_index,total-short_origin if phase=='short' else total)
+        uweight=0. if phase=='adapt' else understanding_weight(update_index,CONFIG.get('understanding_loss_warmup_updates',0) if phase=='full' else 0)
         for group in optimizer.param_groups:group['lr']=group['base_lr']*factor
         rows=[];started=time.monotonic()
         for micro,index in enumerate(indices):
@@ -343,7 +366,7 @@ def run(args):
             sync=contextlib.nullcontext() if micro==len(indices)-1 else task.no_sync()
             exposure=(progress['short_updates']+progress['full_updates']+progress.get('adapt_updates',0))*8
             with sync:
-                loss,metrics=task(batch,exposure,phase=='adapt')
+                loss,metrics=task(batch,exposure,phase=='adapt',uweight)
                 if not torch.isfinite(loss):raise FloatingPointError('Nonfinite loss')
                 (loss/len(indices)).backward()
             rows.append(metrics);del loss,batch
@@ -362,8 +385,9 @@ def run(args):
             changed=(not torch.equal(p.detach(),before)) and probe_gradients[f]>0
             progress['proof']['updated_families'][f]=progress['proof']['updated_families'].get(f,False) or changed
         row={k:sum(r[k] for r in rows)/len(rows) for k in rows[0]}
-        row.update(phase=phase,phase_update=update_index+1,understanding_weight=0. if phase=='adapt' else 1.,understanding_optimizer_skipped=phase=='adapt',grad_norm=float(grad_norm),seconds=time.monotonic()-started,
+        row.update(phase=phase,phase_update=update_index+1,understanding_weight=uweight,weighted_understanding_loss=uweight*row['loss_understanding'],understanding_optimizer_skipped=phase=='adapt',grad_norm=float(grad_norm),seconds=time.monotonic()-started,
             cuda_peak_gib=torch.cuda.max_memory_allocated()/2**30,learning_rate_factor=factor,local_indices=indices,representative_grad_norms=probe_gradients)
+        row['learning_rates']={group['family']:group['lr'] for group in optimizer.param_groups}
         append(root/f'train_rank{rank:02d}.jsonl',row)
         if rank==0 and (update_index<3 or (update_index+1)%10==0):print('TRAIN',json.dumps(row),flush=True)
         return row
@@ -435,7 +459,7 @@ def run(args):
                 progress['epoch_counts'][index]+=1;progress['total_counts'][index]+=1
             progress['full_updates']+=1;progress['update_in_epoch']=step+1
             count=progress['full_updates']
-            if count%CONFIG['checkpoint_every_updates']==0:checkpoint(model,optimizer,progress,root,meta,rank,world)
+            if count==1 or count%CONFIG['checkpoint_every_updates']==0:checkpoint(model,optimizer,progress,root,meta,rank,world)
             if count==1 and rank==0:write(root/'FULL_STARTED.json',dict(full_updates=1,short_updates=progress['short_updates'],metrics=row))
             if count%CONFIG['full_monitor_every_updates']==0:
                 monitor(model,opt,short[:8],validation[:8],root,f'full_{count:05d}',rank,world,device,(progress['short_updates']+progress.get('adapt_updates',0)+count)*8)
@@ -469,12 +493,19 @@ def main():
     parser.add_argument('--staged-from',type=Path)
     parser.add_argument('--staged-source-digest')
     parser.add_argument('--defer-export',action='store_true')
+    parser.add_argument('--joint-warmup',action='store_true')
+    parser.add_argument('--warm-joint-from',type=Path)
+    parser.add_argument('--warm-source-digest')
     args=parser.parse_args()
     if args.resume_source_sha and not args.resume:parser.error('--resume-source-sha requires --resume')
     if args.staged_from:
         if args.resume or args.transition_from or args.adapt_epochs!=2:parser.error('Staged source requires fresh adapt2 run')
         if not args.staged_source_digest or digest(args.staged_from)!=args.staged_source_digest:parser.error('Staged source checkpoint checksum differs')
-    if args.adapt_epochs and not (args.staged_from or args.resume):parser.error('Adaptation requires explicit staged source or resume')
+    if args.warm_joint_from:
+        if not args.joint_warmup or args.architecture!='gfm_v3' or args.adapt_epochs!=2 or args.resume or args.transition_from or args.staged_from:parser.error('Warmup requires a fresh explicit adaptation2 checkpoint continuation')
+        if not args.warm_source_digest or digest(args.warm_joint_from)!=args.warm_source_digest:parser.error('Warmup source checkpoint checksum differs')
+    if args.joint_warmup and not (args.warm_joint_from or args.resume):parser.error('Warmup requires explicit source or resume')
+    if args.adapt_epochs and not (args.staged_from or args.resume or args.warm_joint_from):parser.error('Adaptation requires explicit staged source or resume')
     try:run(args)
     except BaseException as exc:
         if not isinstance(exc,SystemExit) or exc.code not in (0,3):

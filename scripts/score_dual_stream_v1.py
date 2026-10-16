@@ -2,6 +2,7 @@
 import argparse
 import csv
 import json
+import math
 from pathlib import Path
 import subprocess
 import sys
@@ -17,6 +18,20 @@ def itemize(x):
     return x
 
 
+def native_table_values(raw):
+    result=[raw[k] for k in ('absrel','rmse','psnr','ssim','lpips')]
+    for view in ('context','target'):result.extend([raw[view+'_miou'],raw[view+'_map']['map'],raw[view+'_pq'],None])
+    return result
+
+
+def json_safe(value,path='$',invalid=None):
+    if invalid is None:invalid=[]
+    if isinstance(value,float) and not math.isfinite(value):invalid.append(path);return None
+    if isinstance(value,dict):return {k:json_safe(v,path+'.'+k,invalid) for k,v in value.items()}
+    if isinstance(value,(list,tuple)):return [json_safe(v,path+f'[{i}]',invalid) for i,v in enumerate(value)]
+    return value
+
+
 def main():
     parser=argparse.ArgumentParser(description=__doc__);parser.add_argument('--run-root',type=Path,required=True);args=parser.parse_args()
     root=args.run_root/'evaluation'
@@ -30,7 +45,16 @@ def main():
         scopes={'target-all':{k:raw[k] for k in ('absrel','rmse','psnr','ssim','lpips')}|{'mIoU_t':None},'context':{'mIoU_t':None}},
         official_segmentation={'all':raw},official_native_result=raw,parameter_updates=0,
         depth_units=exported['depth_units'],prediction_protocol=exported['prediction_protocol'])
-    (root/'metrics.json').write_text(json.dumps(report,indent=2,allow_nan=False)+'\n')
+    values=native_table_values(raw)
+    invalid_metrics=[name for name,value in zip(FIELDS,values) if value is not None and not math.isfinite(value)]
+    invalid_paths=[];safe=json_safe(report,invalid=invalid_paths);safe['nonfinite_native_paths']=invalid_paths
+    if invalid_metrics:
+        safe.update(status='HELDOUT128_NATIVE_METRICS_INVALID',invalid_required_metrics=invalid_metrics,native_result_path=str(root/'all/results.json'))
+        (root/'metrics_invalid.json').write_text(json.dumps(safe,indent=2,allow_nan=False)+'\n')
+        with (root/'siu3r_table1_invalid.csv').open('w',newline='') as stream:
+            writer=csv.writer(stream);writer.writerow(FIELDS);writer.writerow(['' if v is None else ('NaN' if not math.isfinite(v) else v) for v in values])
+        raise FloatingPointError('Official metrics remain invalid (not filtered/repaired): '+', '.join(invalid_metrics))
+    (root/'metrics.json').write_text(json.dumps(safe,indent=2,allow_nan=False)+'\n')
     with (root/'siu3r_table1.csv').open('w',newline='') as stream:
         writer=csv.writer(stream);writer.writerow(FIELDS);writer.writerow(table_values(report))
     (root/'siu3r_table1.md').write_text('# Omega + SAM dual stream — held-out 128 scenes\n\n'+markdown_table(report)+'\n\nText mIoU columns remain blank. Target uses official context + four extra frames.\n')
