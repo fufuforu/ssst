@@ -289,6 +289,9 @@ def run(args):
     if args.understanding_loss_scale!=1.:
         from scripts.gfm_v4_weighted_policy import configure as configure_weighted
         configure_weighted(CONFIG)
+    if args.v3_direct_isolated:
+        from scripts.gfm_v3_fresh_isolated_policy import configure as configure_v3
+        configure_v3(CONFIG)
     windows,short_indices,validation=cohorts();short=[windows[i] for i in short_indices]
     model=constructor(opt,write_strength=0.).to(device)
     cache=install_frozen_caches(model,args.cache_root or root/'frozen_cache')
@@ -301,22 +304,30 @@ def run(args):
     if args.gate_policy!='legacy_v1':meta['learning_gate_policy']=args.gate_policy
     progress=dict(phase='short',short_updates=0,full_updates=0,epoch=0,update_in_epoch=0,gate_passed=False,
         epoch_counts=[0]*len(windows),total_counts=[0]*len(windows),proof=dict(finite=True,updated_families={}))
-    if args.v4_direct_joint:
+    if args.v4_direct_joint or args.v3_direct_isolated:
         progress.update(phase='full',gate_passed=True)
         meta['initialization_policy']='official_Omega_SAM_only_all_trainable_branches_fresh'
     if args.untrained_initial_from:
-        if args.isolate_gradients:
+        if args.v3_direct_isolated:
+            from scripts.gfm_v3_fresh_isolated_policy import validate_initial
+        elif args.isolate_gradients:
             from scripts.gfm_v4_isolated_policy import validate_initial
         else:
             from scripts.gfm_v4_weighted_policy import validate_initial
         blob=torch.load(args.untrained_initial_from,map_location='cpu',weights_only=False,mmap=True)
         validate_initial(blob['meta'],meta,blob)
-        restore_trainable_state(model,blob['model']);optimizer.load_state_dict(blob['optimizer'])
+        transfer_report={}
+        if args.v3_direct_isolated:
+            from scripts.gfm_v3_fresh_isolated_policy import restore_shared_initial
+            transfer_report=restore_shared_initial(model,optimizer,blob,optimizer_groups)
+        else:
+            restore_trainable_state(model,blob['model']);optimizer.load_state_dict(blob['optimizer'])
         progress=blob['progress'];restore_rng(blob['rank_rng'][rank])
         transition_key='isolated_gradient_transition' if args.isolate_gradients else 'loss_weight_transition'
         meta[transition_key]=dict(untrained_initial_checkpoint=str(args.untrained_initial_from.resolve()),
             sha256=args.untrained_initial_digest,source_training_updates=0,source_optimizer_states=0,
-            all_parameters_and_rank_rng_equal_to_baseline_initial_state=True)
+            all_parameters_and_rank_rng_equal_to_baseline_initial_state=not args.v3_direct_isolated,
+            all_shared_parameters_and_rank_rng_equal_to_baseline_initial_state=True,**transfer_report)
         if rank==0:write(root/('ISOLATED_GRADIENT_INITIALIZATION.json' if args.isolate_gradients else 'LOSS_WEIGHT_INITIALIZATION.json'),meta[transition_key])
         del blob
     if args.resume:
@@ -638,6 +649,7 @@ def main():
     parser.add_argument('--geometric-from',type=Path)
     parser.add_argument('--geometric-source-digest')
     parser.add_argument('--v4-direct-joint',action='store_true')
+    parser.add_argument('--v3-direct-isolated',action='store_true')
     parser.add_argument('--isolate-gradients',action='store_true')
     parser.add_argument('--reconstruction-understanding-gradient-scale',type=float,choices=(0.,.05),default=0.)
     parser.add_argument('--untrained-initial-from',type=Path)
@@ -648,8 +660,10 @@ def main():
     if args.reconstruction_understanding_gradient_scale and not args.isolate_gradients:parser.error('Selective gradient scale requires explicit routing')
     if args.understanding_loss_scale!=1.:
         if not args.v4_direct_joint or args.isolate_gradients or not (args.untrained_initial_from or args.resume):parser.error('Weight0.05 experiment requires ordinary V4 joint training from the explicit untrained state or own resume')
+    if args.v3_direct_isolated:
+        if args.architecture!='gfm_v3' or not args.isolate_gradients or args.v4_direct_joint or args.reconstruction_understanding_gradient_scale or args.understanding_loss_scale!=1. or args.adapt_epochs or args.transition_from or args.staged_from or args.warm_joint_from or args.geometric_from or args.joint_warmup or args.freeze_reconstruction:parser.error('V3 fresh ablation requires isolated zero-adaptation training only')
     if args.isolate_gradients:
-        if not args.v4_direct_joint or not (args.untrained_initial_from or args.resume):parser.error('Isolated experiment requires the explicit untrained baseline initial state or its own resume')
+        if not (args.v4_direct_joint or args.v3_direct_isolated) or not (args.untrained_initial_from or args.resume):parser.error('Isolated experiment requires the explicit untrained baseline initial state or its own resume')
     if args.untrained_initial_from:
         if not (args.isolate_gradients or args.understanding_loss_scale!=1.) or args.resume or not args.untrained_initial_digest or digest(args.untrained_initial_from)!=args.untrained_initial_digest:
             parser.error('Untrained initial checkpoint requires explicit weighted/isolated comparison and matching checksum')
