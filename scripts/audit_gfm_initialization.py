@@ -71,6 +71,7 @@ def observe_window(model,opt,window,destination,first):
         selected=trace.selected_masks(g);row=row_from_prediction(model,g,batch,window,observer,'native',selected)
         packed=np.packbits(selected.cpu().numpy(),axis=-1)
         np.savez_compressed(destination/'candidate_supports.npz',bits=packed,shape=np.asarray(selected.shape),candidate_hashes=np.asarray(row['candidate_hashes']))
+        row['initial_components']=observer.initial_stats(trace.records)
         write(destination/'native.json',row);n=row['proposal_queries']
         seed_hash=row['candidate_hashes'];reconstruction=g['gaussians'].detach().clone();del g,selected,row
         return batch,n,seed_hash,reconstruction,trace,observer

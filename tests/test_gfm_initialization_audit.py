@@ -52,6 +52,23 @@ class AuditTests(unittest.TestCase):
         stats=observer.initial_stats();self.assertEqual(len(stats['content_norm']),1);self.assertEqual(len(stats['geometry_encoding_norm']),1)
         observer.close()
 
+    def test_geometric_pooling_hooks_preserve_values_and_record_weights(self):
+        from tokengs.models.geometric_sam_initialization import GeometricSAMQueryInitializer
+        from scripts.gfm_instance_diagnostic_math import InitializerTrace
+        class Panoptic(nn.Module):
+            def __init__(self):super().__init__();self.layers=nn.ModuleDict()
+            def classify(self,q):return {'p_class':q[...,:19].softmax(-1)}
+        model=nn.Module();model.query_initializer=GeometricSAMQueryInitializer();model.panoptic=Panoptic()
+        memory=torch.ones(1,2,256,2,2);points=torch.randn(1,2,4,4,3);mu=torch.randn(1,10,3)
+        proposals=[[[dict(score=1.,mask=torch.ones(4,4,dtype=torch.bool))],[]]]
+        original=model.query_initializer(memory,proposals,points,mu)
+        trace=InitializerTrace(model.query_initializer);observer=InitializationObserver(model)
+        actual=model.query_initializer(memory,proposals,points,mu)
+        for x,y in zip(original[:3],actual[:3]):torch.testing.assert_close(x,y,rtol=0,atol=0)
+        stats=observer.initial_stats(trace.records)['geometric_pooling_regions'];self.assertEqual(len(stats),1)
+        self.assertEqual(stats[0]['sampled_points'],16);self.assertGreaterEqual(stats[0]['sigmoid_weight_min'],0.)
+        trace.close();observer.close()
+
     def test_summary_conditions_on_fixed_reference_and_keeps_seed_identity(self):
         row=dict(gt_ids=[7],gt_classes=[2],proposal_queries=1,source_index=10,p_class=[[0.]*18+[1.],[1.]+[0.]*18],eligible=[False,True],matched_query=[1],matched_gt=[0],
             mask_IoU={k:[[.8],[.7]] for k in ('raw','eligible','competition','final')},candidate_hashes=['maskA'])

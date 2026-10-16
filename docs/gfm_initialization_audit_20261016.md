@@ -13,7 +13,7 @@
 ## 审计问题
 
 1. SAM候选筛选/合并/截断后是否仍覆盖GT？沿同一候选，初始化→L6/8/10/12→Raw GS Mask→no-object/竞争/面积组装，在哪一步失去实例支持？
-2. 初始语义投影、几何编码与learned向量的范数/方向有何差异？SAM与fallback读取Anchor的尺度、3σ内Anchor数、注意力熵/有效Anchor数是否明显不同？
+2. 初始语义投影、几何编码与learned向量的范数/方向有何差异？同时记录V4逐区域点权重是否饱和、shape投影/加权语义分量的范数与方向；SAM与fallback读取Anchor的尺度、3σ内Anchor数、注意力熵/有效Anchor数是否明显不同？
 3. Saved checkpoint之间SAM/fallback匹配、no-object、梯度活动如何变化？区分初始偏置和训练后变化，不能把终点一次Hungarian匹配当作历史正样本数量。
 
 候选身份使用实际合并后mask的SHA和压缩支持mask，不把query索引当固定实例身份。相同GT的最佳候选可能随合并变化；报告hash缺失/变化。固定终点候选hash另外跨checkpoint追踪，避免“换了候选却声称跟踪同一个”。2D投影和中间层分类均为探针，非官方训练头，不将其IoU直接与GS读出作严格因果差值。
@@ -43,4 +43,4 @@ model.eval，重建参数不记录梯度；理解值与原生前向一致。调�
 
 每rank每stage首场：两次无观测器原生重复→带观测器输出，采用已验证的有硬上限重复性收据；每stage结束参数版本不变/.grad为空。保留source、cohort与干预匹配核对。结果写summary.json/report.md及候选支持NPZ、逐场景/逐梯度记录。
 
-CPU来源预检通过，12项测试通过：干预独立性/未干预槽不变、native恒等、观测器无值改动、候选hash身份、autograd.grad无累积/无更新、固定条件汇总及既有诊断/有界重复性回归。py_compile/bash -n/diff --check通过。GPU冒烟尚未宣称通过，以新作业产物为准。提交后单次核对调度状态即停止轮询，等待用户通知。
+CPU来源预检通过，13项测试通过：干预独立性/未干预槽不变、native恒等、观测器无值改动、候选hash身份、autograd.grad无累积/无更新、固定条件汇总及既有诊断/有界重复性回归。py_compile/bash -n/diff --check通过。GPU冒烟尚未宣称通过，以新作业产物为准。提交后单次核对调度状态即停止轮询，等待用户通知。
