@@ -1,5 +1,7 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **V4 几何感知初始化八卡训练已提交，停止轮询。** 训练65671已单次确认RUNNING，18节点8×4090；官方评测65672 afterok:65671；与V3冻结组/旧C比较65673 afterany:65666:65672。执行SHA175418b，新attempt10，源适配2已完成、637参数张量/637 Adam状态按名保留，新增29505初始化参数，冻结重建理解4epoch。23项CPU检查及真实源重建指纹预检通过；GPU首步尚未宣称通过。未改65661/65665。额外GitHub推送被自动审批拒绝，训练已照常提交，不能未经明确授权重试推送。
+
 > **新授权：18节点八张4090训练V4几何感知初始化，选择冻结重建理解4epoch。** 见 [gfm_geometric_frozen_node18_8gpu_20261016.md](gfm_geometric_frozen_node18_8gpu_20261016.md)。同一适配2起点/批8/理解LR及warmup与65665对照，仅改初始化；637共享tensor及637个Adam状态按名迁移，新增29505参数。真实源预检与重建指纹一致性通过，23项CPU检查通过。新attempt10_geometric_sam_frozen_node18_8gpu及独立代码快照；训练/评测/比较job以submission.json为准。不得重复适配或修改65661/65665，提交后单次核对并停止轮询。
 
 > **2026-10-16 新结构代码：仅初始化改为 ESAM 风格几何感知池化，独立 V4。** 见 [gfm_geometric_sam_pool_v4_20261016.md](gfm_geometric_sam_pool_v4_20261016.md)。区域内 VGGT 相对几何预测权重来池化 F_sem，并加整体形状编码；候选规则、交互层、Write 和 Gaussian 输出保持原设定。没有提交训练，没有迁移旧 checkpoint，不改 65661/65665 的不可变快照；旧 checkpoint 不能直接当新版本 resume。验证结果以该文档记录为准。

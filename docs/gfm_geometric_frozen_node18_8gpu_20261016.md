@@ -19,3 +19,9 @@ CPU预检读取真实2.2GiB源checkpoint核对checksum、完整参数/Adam映射
 新目录 attempt10_geometric_sam_frozen_node18_8gpu；不可变代码 `/space/mawb/ssst_gfm_geometric_frozen_code_20261016`。训练32CPU/192GiB/八张4090，最多72小时，4172理解更新。训练成功后单GPU导出同一128场景并走原生官方评分，11项必需指标、两项text留空。深度若NaN仍显式无效并报错，不改官方协议。比较任务等待V3冻结评测65666与V4评测结束后汇总native结果。
 
 具体job id、code SHA与提交请求以 attempt10/submission.json 为准。提交后只做一次分配状态核对，停止轮询，等待用户通知。不取消/重启65661或65665，不修改其执行快照。
+
+## 已提交并停止轮询
+
+训练 **65671** 已单次确认 RUNNING，3dimage-18 分配八张4090、32CPU、192GiB；官方评测 **65672** afterok:65671，V3/V4/旧C比较 **65673** afterany:65666:65672，均PENDING/Dependency。执行快照SHA `175418bedd8fd13dc158607918cf49476b177f26`，完整请求见attempt10/submission.json。这里只确认调度，未宣称GPU首步/新模块梯度已通过。
+
+代码已本地提交。额外GitHub推送被自动审批拒绝，理由是未明确授权向该远端导出代码；已向用户说明并询问是否授权。训练不依赖推送，未绕过拒绝。后续用户未授权时保留本地提交即可。
