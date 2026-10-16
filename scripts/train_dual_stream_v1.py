@@ -23,6 +23,7 @@ import torch.distributed as dist
 from torch.nn.parallel import DistributedDataParallel as DDP
 from scripts.dual_stream_training_policy import CONFIG,epoch_order,rank_microbatches,lr_factor,acceptance,validate_resume_metadata,validate_staged_source,adaptation_only
 from scripts.dual_stream_training_policy import understanding_weight,configure_joint_warmup,validate_joint_warmup_source,load_optimizer_preserving_moments_and_new_rates
+from scripts.dual_stream_training_policy import configure_frozen_reconstruction,freeze_reconstruction,enforce_frozen_reconstruction_eval,reconstruction_state_digest
 from scripts.dual_stream_frozen_cache import install_frozen_caches,cpu_tree,atomic_torch_save
 
 MANIFEST=Path('/space/mawb/ssst/group_plus/object_locus_panoptic_full1201_8gpu/manifest.json')
@@ -170,18 +171,28 @@ def monitor(model,opt,train_windows,validation_windows,root,label,rank,world,dev
                 for name,sl in [('context',slice(0,2)),('true_novel',slice(2,None))]:
                     mse=(render['images_pred'][:,sl]-batch['images_all'][:,sl]).square().flatten(2).mean(-1)
                     row[name+'_psnr']=float((-10*torch.log10(mse.clamp_min(1e-12))).mean())
-                rows.append(dict(scope=scope,index=index,scene=windows[index]['scene'],metrics=row))
+                entry=dict(scope=scope,index=index,scene=windows[index]['scene'],metrics=row)
+                if getattr(model,'_freeze_reconstruction_control',False):
+                    entry['gaussian_sha256']=hashlib.sha256(prediction['gaussians'].detach().float().cpu().contiguous().numpy().tobytes()).hexdigest()
+                rows.append(entry)
                 if index<2:save_preview(model,batch,prediction,root/'previews'/label/f'{scope}_{index:02d}.png')
                 del output,prediction,metrics,render,batch
     gathered=[None]*world;dist.all_gather_object(gathered,rows)
     allrows=[r for group in gathered for r in group]
+    if getattr(model,'_freeze_reconstruction_control',False) and label!='initial':
+        initial=json.loads((root/'monitor/initial.json').read_text())['windows']
+        expected={(r['scope'],r['index'],r['scene']):r['gaussian_sha256'] for r in initial}
+        if any(expected[(r['scope'],r['index'],r['scene'])]!=r['gaussian_sha256'] for r in allrows):
+            raise RuntimeError('Frozen reconstruction Gaussian output changed on the fixed monitor cohort')
     report={}
     for scope in ('train','validation'):
         selected=[r['metrics'] for r in allrows if r['scope']==scope]
         assert len(selected)==8
         report[scope]={key:sum(r[key] for r in selected)/len(selected) for key in selected[0]}
     if rank==0:write(root/'monitor'/f'{label}.json',dict(summary=report,windows=allrows,diagnostic_only=True,step=step))
-    model.train();torch.cuda.empty_cache()
+    model.train()
+    if getattr(model,'_freeze_reconstruction_control',False):enforce_frozen_reconstruction_eval(model)
+    torch.cuda.empty_cache()
     return report
 
 
@@ -252,11 +263,11 @@ def run(args):
         CONFIG['recipe']='omega_gfm_semantic_pool_v3_adapt2_joint4_v1'
         CONFIG['adaptation_epochs']=args.adapt_epochs
     if args.joint_warmup:configure_joint_warmup(CONFIG)
+    if args.freeze_reconstruction:configure_frozen_reconstruction(CONFIG)
     windows,short_indices,validation=cohorts();short=[windows[i] for i in short_indices]
     model=constructor(opt,write_strength=0.).to(device)
     cache=install_frozen_caches(model,args.cache_root or root/'frozen_cache')
     optimizer=torch.optim.AdamW(optimizer_groups(model),betas=(.9,.95),eps=1e-8)
-    task=DDP(Task(model),device_ids=[local],broadcast_buffers=False,find_unused_parameters=True)
     sha=subprocess.check_output(['git','-C',str(REPO),'rev-parse','HEAD'],text=True).strip()
     meta=dict(recipe=CONFIG['recipe'],config=CONFIG,world_size=world,global_batch=8,accumulation=8//world,
         execution_git_sha=sha,manifest_sha256=digest(MANIFEST),heldout_sha256=digest(HELDOUT),
@@ -334,9 +345,24 @@ def run(args):
             source_completed_short_updates=50,retained_optimizer_states=plan['retained_optimizer_states'],new_short_checks=[178,306],new_baseline_at_source_update=50)
         if rank==0:write(root/'ARCHITECTURE_TRANSITION.json',transition_receipt(meta['architecture_transition'],plan))
         del blob
+    frozen_reconstruction_digest=None
+    if args.freeze_reconstruction:
+        names=freeze_reconstruction(model)
+        if rank==0:
+            frozen_reconstruction_digest=reconstruction_state_digest(model)
+            initial_receipt=root/'FROZEN_RECONSTRUCTION_INITIAL.json'
+            if initial_receipt.exists():
+                if json.loads(initial_receipt.read_text())['state_sha256']!=frozen_reconstruction_digest:raise RuntimeError('Frozen reconstruction differs from original initial state on resume')
+            else:
+                write(initial_receipt,dict(state_sha256=frozen_reconstruction_digest,
+                    frozen_parameter_names=names,trainable_prefixes=['understanding.','query_initializer.','panoptic.'],
+                    adamw_skips_frozen_grad_none=True,write_strength=0.,reconstruction_modules_eval=True))
+    before_ddp_rng=rng_state()
+    task=DDP(Task(model),device_ids=[local],broadcast_buffers=False,find_unused_parameters=True)
+    restore_rng(before_ddp_rng)
     short_origin=meta.get('architecture_transition',{}).get('source_completed_short_updates',0)
     short_checks=[short_origin+step for step in CONFIG['short_checks']]
-    frozen_versions={n:p._version for n,p in model.named_parameters() if n.startswith(FROZEN)}
+    frozen_versions={n:p._version for n,p in model.named_parameters() if n.startswith(FROZEN) or (args.freeze_reconstruction and not p.requires_grad)}
     probes={}
     for name,p in model.named_parameters():
         f=family(name)
@@ -344,7 +370,7 @@ def run(args):
     if args.architecture in ('gfm_v2','gfm_v3'):
         named=dict(model.named_parameters())
         for label,name in [('gfm_reconstruction_adapter','reconstruction_adapter.projection.0.weight'),(query_projection_family,'query_initializer.content_projection.1.weight'),('anchor_gfm_content','anchor_visual_projection.1.weight')]:
-            probes[label]=(name,named[name].detach().clone())
+            if named[name].requires_grad:probes[label]=(name,named[name].detach().clone())
     if rank==0:
         write(root/'configuration.json',dict(**meta,optimizer_groups=[{k:v for k,v in group.items() if k!='params'} for group in optimizer.param_groups],
             trainable_parameters=sum(p.numel() for p in model.parameters() if p.requires_grad),gpu=torch.cuda.get_device_name(),short_windows=short,monitor_validation=validation[:8]))
@@ -356,6 +382,7 @@ def run(args):
 
     def update(indices,phase,update_index,total):
         model.train();optimizer.zero_grad(set_to_none=True)
+        if args.freeze_reconstruction:enforce_frozen_reconstruction_eval(model)
         factor=lr_factor(phase,update_index-short_origin if phase=='short' else update_index,total-short_origin if phase=='short' else total)
         uweight=0. if phase=='adapt' else understanding_weight(update_index,CONFIG.get('understanding_loss_warmup_updates',0) if phase=='full' else 0)
         for group in optimizer.param_groups:group['lr']=group['base_lr']*factor
@@ -376,7 +403,11 @@ def run(args):
         grad_norm=torch.nn.utils.clip_grad_norm_([p for p in model.parameters() if p.requires_grad],CONFIG['clip_norm'],error_if_nonfinite=True)
         parameters=dict(model.named_parameters())
         probe_gradients={f:float(parameters[name].grad.detach().norm()) if parameters[name].grad is not None else 0. for f,(name,_) in probes.items()}
+        if args.freeze_reconstruction and any(p.grad is not None for p in model.parameters() if not p.requires_grad):
+            raise RuntimeError('Frozen reconstruction received an optimizer gradient')
         optimizer.step()
+        if args.freeze_reconstruction and any(p._version!=frozen_versions[n] for n,p in model.named_parameters() if n in frozen_versions):
+            raise RuntimeError('Frozen reconstruction/backbone parameter changed during understanding training')
         if any(p._version!=blocked_versions[n] for n,p in blocked.items()):raise RuntimeError('Understanding parameters changed during reconstruction adaptation')
         # Meaningful value changes in representative tensors, rather than optimizer counters alone.
         for f,(name,before) in probes.items():
@@ -471,6 +502,11 @@ def run(args):
         report=monitor(model,opt,short[:8],validation[:8],root,f'epoch_{epoch+1:02d}',rank,world,device,(progress['short_updates']+progress.get('adapt_updates',0)+progress['full_updates'])*8)
         if rank==0:write(root/f'epoch_{epoch+1:02d}.json',dict(epoch=epoch+1,summary=report,counts=epoch_counts,full_updates=progress['full_updates']))
     if any(p._version!=frozen_versions[n] for n,p in model.named_parameters() if n in frozen_versions):raise RuntimeError('Frozen Omega/SAM changed')
+    if args.freeze_reconstruction and rank==0:
+        final_digest=reconstruction_state_digest(model)
+        if final_digest!=frozen_reconstruction_digest:raise RuntimeError('Frozen reconstruction state hash changed')
+        write(root/'FROZEN_RECONSTRUCTION_COMPLETE.json',dict(initial_state_sha256=frozen_reconstruction_digest,final_state_sha256=final_digest,
+            exact_state_unchanged=True,fixed_monitor_gaussians_unchanged=True,full_updates=progress['full_updates']))
     if rank==0:write(root/'TRAINING_COMPLETE.json',dict(status='FULL_FOUR_EPOCHS_COMPLETE',short_updates=progress['short_updates'],full_updates=progress['full_updates'],
         adaptation_epochs=progress.get('adapt_epoch',0),adaptation_updates=progress.get('adapt_updates',0),full_exposures=progress['full_updates']*8,full_window_unique_count=sum(x>0 for x in progress['total_counts']),frozen_unchanged=True,cache=cache))
     dist.barrier()
@@ -496,6 +532,7 @@ def main():
     parser.add_argument('--joint-warmup',action='store_true')
     parser.add_argument('--warm-joint-from',type=Path)
     parser.add_argument('--warm-source-digest')
+    parser.add_argument('--freeze-reconstruction',action='store_true')
     args=parser.parse_args()
     if args.resume_source_sha and not args.resume:parser.error('--resume-source-sha requires --resume')
     if args.staged_from:
@@ -505,6 +542,7 @@ def main():
         if not args.joint_warmup or args.architecture!='gfm_v3' or args.adapt_epochs!=2 or args.resume or args.transition_from or args.staged_from:parser.error('Warmup requires a fresh explicit adaptation2 checkpoint continuation')
         if not args.warm_source_digest or digest(args.warm_joint_from)!=args.warm_source_digest:parser.error('Warmup source checkpoint checksum differs')
     if args.joint_warmup and not (args.warm_joint_from or args.resume):parser.error('Warmup requires explicit source or resume')
+    if args.freeze_reconstruction and not args.joint_warmup:parser.error('Frozen control uses the same joint warmup source/schedule')
     if args.adapt_epochs and not (args.staged_from or args.resume or args.warm_joint_from):parser.error('Adaptation requires explicit staged source or resume')
     try:run(args)
     except BaseException as exc:

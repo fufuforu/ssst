@@ -71,6 +71,42 @@ def configure_joint_warmup(config):
         understanding_loss_warmup_updates=1043,full_monitor_every_updates=100)
 
 
+def configure_frozen_reconstruction(config):
+    configure_joint_warmup(config)
+    config.update(recipe='omega_gfm_semantic_pool_v3_adapt2_frozen_recon_understanding4_uwarm1_v1',
+        freeze_reconstruction=True,reconstruction_lr=0.,geometry_refinement_lr=0.)
+
+
+def understanding_parameter(name):
+    return name.startswith(('understanding.','query_initializer.','panoptic.'))
+
+
+def enforce_frozen_reconstruction_eval(model):
+    for name,module in model.named_children():
+        if not understanding_parameter(name+'.'):module.eval()
+
+
+def freeze_reconstruction(model):
+    if float(model.write_strength)!=0.:raise ValueError('Frozen reconstruction control requires Write=0')
+    frozen=[]
+    for name,p in model.named_parameters():
+        if not understanding_parameter(name):
+            p.requires_grad_(False);p.grad=None;frozen.append(name)
+    model._freeze_reconstruction_control=True
+    if hasattr(model,'anchor_decoder'):model.anchor_decoder.frozen_reconstruction_control=True
+    enforce_frozen_reconstruction_eval(model)
+    return frozen
+
+
+def reconstruction_state_digest(model):
+    import hashlib
+    result=hashlib.sha256()
+    for name,value in model.state_dict().items():
+        if understanding_parameter(name) or name.startswith(('frozen_omega.','sam_proposals.')):continue
+        result.update(name.encode());result.update(value.detach().cpu().contiguous().numpy().tobytes())
+    return result.hexdigest()
+
+
 def validate_joint_warmup_source(saved,current,progress):
     expected=dict(current)
     expected.update(execution_git_sha=saved['execution_git_sha'],world_size=4,accumulation=2,
@@ -78,6 +114,7 @@ def validate_joint_warmup_source(saved,current,progress):
     expected['config']=dict(current['config'],recipe=expected['recipe'],reconstruction_lr=1e-4,
         geometry_refinement_lr=1e-5,full_monitor_every_updates=250)
     expected['config'].pop('understanding_loss_warmup_updates',None)
+    expected['config'].pop('freeze_reconstruction',None)
     if saved!=expected:raise ValueError('Warmup source model/data/schedule metadata differs')
     if saved['execution_git_sha']!='75f6ce182b4ee79e75485db541daf0ffc85f91a9':raise ValueError('Unexpected adaptation checkpoint source code')
     if current['world_size']!=8 or current['global_batch']!=8 or current['accumulation']!=1:raise ValueError('Warmup continuation expects eight ranks, global batch8')

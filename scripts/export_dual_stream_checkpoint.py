@@ -38,6 +38,11 @@ def main():
     opt=config_defaults['train_siu3r_object_locus_gfm_dual_stream_v3']
     model=LocusGSGFMDualStreamV3(opt,write_strength=0.).to(torch.device('cuda',local))
     restore_trainable_state(model,blob['model'])
+    if not args.smoke and meta['config'].get('freeze_reconstruction',False):
+        from scripts.dual_stream_training_policy import reconstruction_state_digest
+        frozen=json.loads((args.run_root/'FROZEN_RECONSTRUCTION_COMPLETE.json').read_text())
+        if not frozen['exact_state_unchanged'] or not frozen['fixed_monitor_gaussians_unchanged']:raise ValueError('Frozen reconstruction control did not preserve state/output')
+        if reconstruction_state_digest(model)!=frozen['initial_state_sha256']:raise ValueError('Export checkpoint reconstruction differs from frozen initial state')
     cache=install_frozen_caches(model,Path('/space/mawb/ssst/group_plus/dual_stream_training_v1/attempt01/frozen_cache'))
     if cache['identity']!=meta['frozen_cache_identity']:raise ValueError('Frozen asset identity changed')
     del blob

@@ -65,6 +65,12 @@ class PointSeededAnchorDecoder(LocusGSAnchorDecoder):
                 result['joint_delta'] = result['joint_delta'] * write_strength
                 tokens = tokens + result['joint_delta']
                 result['scene_origin'] = origin
+            if getattr(self,'frozen_reconstruction_control',False):
+                if write_strength!=0.:raise ValueError('Frozen reconstruction cannot receive Write feedback')
+                # Write=0 contributes only a zero-valued autograd path from the
+                # understanding controller. Remove that path for this control;
+                # values and subsequent Object reads are unchanged.
+                tokens,mu,rho=tokens.detach(),mu.detach(),rho.detach()
             states.append(dict(**result,layer=layer,tokens=tokens,mu=mu,rho=rho,radii=radii,
                 beta=write_strength*0.1*min(max(float(exposure),0)/1000,1),
                 anchor_update=(mu-previous_mu).norm(dim=-1).mean().detach(),
