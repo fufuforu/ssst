@@ -1,5 +1,7 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **66047诊断已完成并审计，未提交新任务。** 详见 [gfm_instance_diagnostic_results_20261016.md](gfm_instance_diagnostic_results_20261016.md)。COMPLETED0:0/7:40，两模型各128场景492相同GT、更新0、参数版本不变、8份有界原生重复性收据通过。主要证据用0.05组：官方768帧767逐位一致另1帧差1像素；Raw Recall@.5 385→noobject资格297→竞争273→Final260，88个在资格阶段失去有效Mask；SAM槽5623中10eligible，官方420输出419fallback/1SAM，native匹配SAM40中39判noobject；小可见实例Raw36/112、Final13/112。不能将重复best-query的noobject计数直接当漏检，也不能说fallback没利用SAM间接信息。Ownership比shuffle更一致、Write0，无证据跨实例写坏。隔离组原官方packed跨运行复现有差异（平均1.61%、最坏帧50%，同inode权重），原Final262 vs诊断259，原因未定，仅辅助，不改原分数。新增CPU审计与两张典型图；建议Mask支持分类读回，等V3对照判断初始化因素，未实施。旧失败66042保留。
+
 > **诊断66042失败，已仅推理恢复66047，停止轮询。** 详见 [gfm_instance_diagnostic_recovery_20261016.md](gfm_instance_diagnostic_recovery_20261016.md)。66042在4场景冒烟因逐位完全相同断言拒绝约1e-6的Membership差异而FAILED1:0，完整128尚未开始，不能报告诊断结论。新attempt02/独立恢复快照SHAcafad90，18四卡先测两次无观测器原生重复误差，再用有固定上限的经验波动界验证观测器，并核对最终packed分割；6项CPU测试通过，GPU证据待作业产出，不能提前称原生非确定性已证实。模型/训练/官方协议未变，66039及65996和旧快照不动。旧失败保留，无训练重跑。用户通知后检查66047，不重复提交。
 
 > **V3初始化隔离对照66039＋18四卡诊断66042已提交，停止轮询。** 见 [gfm_v3_isolated_and_parallel_diagnostics_20261016.md](gfm_v3_isolated_and_parallel_diagnostics_20261016.md)。新attempt15，637共享零步张量/空Adam/8rank RNG，去掉V4几何池化12张量29505参数，直接4epoch4172完全隔离。训练可用13/14/17/18的单节点八卡；66040 afterok官方128评测，66041 afterany对照汇总。独立66042在18四卡，对已完成V4隔离/整体0.05各128场景做候选/分层Query/Anchor-Child/组装诊断＋shuffle负对照＋失败图，4场景无更新冒烟通过才全量；不依赖新训练。执行SHA63bf675。真实源预检和19项CPU测试通过；单次核对两新任务PENDING(Priority)，未宣称GPU通过。65996不改不停止，待用户通知后检查，勿重复提交。
