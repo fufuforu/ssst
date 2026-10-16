@@ -1,5 +1,7 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **梯度隔离V4从头joint4已提交65831，停止轮询。** 13节点8×3090已单次确认RUNNING；官方128评测65832 afterok:65831；对比普通joint/隔离joint/冻结/旧C的65833 afterany:65832。新attempt12_geometric_sam_isolated_node13_8gpu，执行SHAa54fcd3；65761的0步随机权重/空Adam/8rank RNG作为共同起点，未继承训练后模型。28项CPU检查（含真实双rank Gloo）及真实起点预检通过。GPU首步及八卡参数一致性未宣称通过，以ISOLATED_GRADIENT_SYNC_FIRST_UPDATE.json为准。数据、LR、warmup、4epoch、全局clip1与普通joint一致，仅梯度归属变化，前向不改。新增固定验证深度零值监测。不再轮询，用户通知后核对结果。
+
 > **新授权：V4从头joint4梯度隔离对照。** 见 [gfm_v4_isolated_joint_node13_20261016.md](gfm_v4_isolated_joint_node13_20261016.md)。与65761保持初始权重/8rank RNG/数据/学习率/warmup/clip/4epoch一致，仅重建参数接收重建loss、理解参数接收理解loss；复用的是0步空Adam初始状态，不是训练后checkpoint。普通DDP不支持该autograd.grad用法，本模式显式FP32 SUM/world及全局unused语义，首步检查全参数跨rank SHA。两进程CPU Gloo验证已通过；GPU同步以ISOLATED_GRADIENT_SYNC_FIRST_UPDATE.json为准，不能仅称RUNNING通过。新attempt12_geometric_sam_isolated_node13_8gpu及独立快照；提交后单次核对停止轮询。
 
 > **V4从头联合最终完成但质量未达标。** 65761/65762/65763全部COMPLETED；4172步、adapt/short0、官方128共11项有限。PSNR13.208、AbsRel.22148、RMSE.45588、target mAP7.70%/PQ46.13%，落后V4适配2后冻结（21.971/.06695/.19633/19.87%/55.45%）。详见 [gfm_v4_fresh_joint_results_20261016.md](gfm_v4_fresh_joint_results_20261016.md)。无新训练提交；建议单变量梯度隔离仍未实现。不要重跑已完成训练或将质量失败称程序崩溃；对照预算与初始化不同，不足以单独证明唯一原因。

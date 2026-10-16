@@ -29,3 +29,7 @@
 训练成功后自动官方评测，再比较普通V4从头joint、隔离V4从头joint、V4适配后冻结及旧C参考。作业ID见attempt12/submission.json。提交后单次核对分配、停止轮询，等待用户通知。
 
 实际CPU检查28项通过（含真实双rank Gloo、共享checkpoint双反向与既有策略回归）；真实0步初始checkpoint预检通过，source649张量、186881600重建/9128560理解参数、空optimizer、8rank RNG。Python编译/shell语法/diff检查通过。
+
+## 已提交并停止轮询
+
+训练65831，单次确认RUNNING，13节点8×3090；官方128评测65832 afterok:65831；隔离/普通联合/冻结/旧C比较65833 afterany:65832。执行SHA a54fcd3f76b5919e4141f676dcd5fbd2a5888440。GPU首步与八卡全参数一致性尚未宣称通过，需后续检查首步收据。
