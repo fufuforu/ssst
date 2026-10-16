@@ -126,9 +126,11 @@ def scalar_metrics(metrics,prediction):
 
 class Task(nn.Module):
     """Only return the live loss to DDP's unused-parameter traversal."""
-    def __init__(self,model):super().__init__();self.model=model
+    def __init__(self,model,isolated=False):super().__init__();self.model=model;self.isolated=isolated
     def forward(self,batch,step,reconstruction_only=False,understanding_weight=1.):
         output,metrics=self.model.step_loss(batch,step=step,understanding_weight=0. if reconstruction_only else understanding_weight)
+        if self.isolated:
+            return (metrics['loss_recon'],understanding_weight*metrics['loss_understanding'],metrics['loss']),scalar_metrics(metrics,output['prediction'])
         # Select rec directly, so the understanding graph receives no zero-valued
         # gradients that could still trigger AdamW weight decay/state updates.
         return metrics['loss_recon'] if reconstruction_only else metrics['loss'],scalar_metrics(metrics,output['prediction'])
@@ -171,6 +173,11 @@ def monitor(model,opt,train_windows,validation_windows,root,label,rank,world,dev
                 for name,sl in [('context',slice(0,2)),('true_novel',slice(2,None))]:
                     mse=(render['images_pred'][:,sl]-batch['images_all'][:,sl]).square().flatten(2).mean(-1)
                     row[name+'_psnr']=float((-10*torch.log10(mse.clamp_min(1e-12))).mean())
+                if getattr(model,'_gradient_isolation_control',False):
+                    depth=render['depths_pred'];valid=batch['depth_gt_m_all']>0
+                    if valid.shape!=depth.shape:valid=valid.reshape_as(depth)
+                    row['depth_nonfinite_fraction']=float((~torch.isfinite(depth)).float().mean())
+                    row['depth_export_zero_fraction_on_valid_gt']=float(((depth<7.5e-5)&valid).sum()/valid.sum().clamp_min(1))
                 entry=dict(scope=scope,index=index,scene=windows[index]['scene'],metrics=row)
                 if getattr(model,'_freeze_reconstruction_control',False):
                     entry['gaussian_sha256']=hashlib.sha256(prediction['gaussians'].detach().float().cpu().contiguous().numpy().tobytes()).hexdigest()
@@ -276,6 +283,9 @@ def run(args):
     if args.v4_direct_joint:
         from scripts.gfm_v4_direct_joint_policy import configure_direct_joint
         configure_direct_joint(CONFIG)
+    if args.isolate_gradients:
+        from scripts.gfm_v4_isolated_policy import configure
+        configure(CONFIG)
     windows,short_indices,validation=cohorts();short=[windows[i] for i in short_indices]
     model=constructor(opt,write_strength=0.).to(device)
     cache=install_frozen_caches(model,args.cache_root or root/'frozen_cache')
@@ -291,12 +301,24 @@ def run(args):
     if args.v4_direct_joint:
         progress.update(phase='full',gate_passed=True)
         meta['initialization_policy']='official_Omega_SAM_only_all_trainable_branches_fresh'
+    if args.untrained_initial_from:
+        from scripts.gfm_v4_isolated_policy import validate_initial
+        blob=torch.load(args.untrained_initial_from,map_location='cpu',weights_only=False,mmap=True)
+        validate_initial(blob['meta'],meta,blob)
+        restore_trainable_state(model,blob['model']);optimizer.load_state_dict(blob['optimizer'])
+        progress=blob['progress'];restore_rng(blob['rank_rng'][rank])
+        meta['isolated_gradient_transition']=dict(untrained_initial_checkpoint=str(args.untrained_initial_from.resolve()),
+            sha256=args.untrained_initial_digest,source_training_updates=0,source_optimizer_states=0,
+            all_parameters_and_rank_rng_equal_to_baseline_initial_state=True)
+        if rank==0:write(root/'ISOLATED_GRADIENT_INITIALIZATION.json',meta['isolated_gradient_transition'])
+        del blob
     if args.resume:
         blob=torch.load(root/'checkpoint_latest.pt',map_location='cpu',weights_only=False,mmap=True)
         if 'architecture_transition' in blob['meta']:meta['architecture_transition']=blob['meta']['architecture_transition']
         if 'adaptation_transition' in blob['meta']:meta['adaptation_transition']=blob['meta']['adaptation_transition']
         if 'joint_warmup_transition' in blob['meta']:meta['joint_warmup_transition']=blob['meta']['joint_warmup_transition']
         if 'geometric_initialization_transition' in blob['meta']:meta['geometric_initialization_transition']=blob['meta']['geometric_initialization_transition']
+        if 'isolated_gradient_transition' in blob['meta']:meta['isolated_gradient_transition']=blob['meta']['isolated_gradient_transition']
         validate_resume_metadata(blob['meta'],meta,source_sha=args.resume_source_sha)
         if args.resume_source_sha and rank==0:
             write(root/'RESUME_POLICY_TRANSITION.json',dict(source_meta=blob['meta'],target_meta=meta,
@@ -393,7 +415,13 @@ def run(args):
                     frozen_parameter_names=names,trainable_prefixes=['understanding.','query_initializer.','panoptic.'],
                     adamw_skips_frozen_grad_none=True,write_strength=0.,reconstruction_modules_eval=True))
     before_ddp_rng=rng_state()
-    task=DDP(Task(model),device_ids=[local],broadcast_buffers=False,find_unused_parameters=True)
+    if args.isolate_gradients:
+        # autograd.grad has its own explicit reducer; do not install DDP hooks.
+        from scripts.isolated_gradient_routing import accumulate as isolated_accumulate,synchronize as isolated_synchronize,gradient_norms,verify_parameters_identical
+        task=Task(model,isolated=True)
+        model._gradient_isolation_control=True
+    else:
+        task=DDP(Task(model),device_ids=[local],broadcast_buffers=False,find_unused_parameters=True)
     restore_rng(before_ddp_rng)
     short_origin=meta.get('architecture_transition',{}).get('source_completed_short_updates',0)
     short_checks=[short_origin+step for step in CONFIG['short_checks']]
@@ -416,7 +444,10 @@ def run(args):
         print('MODEL_AND_OPTIMIZER_READY',json.dumps(dict(world_size=world,trainable_parameters=sum(p.numel() for p in model.parameters() if p.requires_grad))),flush=True)
     baseline_path=root/'monitor'/'initial.json'
     if baseline_path.exists():baseline=json.loads(baseline_path.read_text())['summary']
-    else:baseline=monitor(model,opt,short[:8],validation[:8],root,'initial',rank,world,device,(progress['short_updates']+progress.get('adapt_updates',0)+progress['full_updates'])*8)
+    else:
+        monitor_rng=rng_state() if args.isolate_gradients else None
+        baseline=monitor(model,opt,short[:8],validation[:8],root,'initial',rank,world,device,(progress['short_updates']+progress.get('adapt_updates',0)+progress['full_updates'])*8)
+        if monitor_rng is not None:restore_rng(monitor_rng)
     if not args.resume:checkpoint(model,optimizer,progress,root,meta,rank,world,retain='checkpoint_initial.pt')
 
     def update(indices,phase,update_index,total):
@@ -429,13 +460,24 @@ def run(args):
         for micro,index in enumerate(indices):
             window=short[index] if phase=='short' else windows[index]
             batch=build_batch(opt,window,device)
-            sync=contextlib.nullcontext() if micro==len(indices)-1 else task.no_sync()
+            sync=contextlib.nullcontext() if args.isolate_gradients or micro==len(indices)-1 else task.no_sync()
             exposure=(progress['short_updates']+progress['full_updates']+progress.get('adapt_updates',0))*8
             with sync:
                 loss,metrics=task(batch,exposure,phase=='adapt',uweight)
-                if not torch.isfinite(loss):raise FloatingPointError('Nonfinite loss')
-                (loss/len(indices)).backward()
+                if args.isolate_gradients:
+                    rec_loss,under_loss,total_loss=loss
+                    if not all(torch.isfinite(x) for x in loss):raise FloatingPointError('Nonfinite isolated loss')
+                    isolated_accumulate(model,rec_loss,under_loss,len(indices))
+                else:
+                    if not torch.isfinite(loss):raise FloatingPointError('Nonfinite loss')
+                    (loss/len(indices)).backward()
             rows.append(metrics);del loss,batch
+            if args.isolate_gradients:del rec_loss,under_loss,total_loss
+        if args.isolate_gradients:
+            isolated_synchronize(model)
+            route_norms=gradient_norms(model)
+            if update_index==0 and not all(math.isfinite(x) and x>0 for x in route_norms.values()):
+                raise RuntimeError('Both isolated gradient paths must be finite and exercised')
         blocked={n:p for n,p in model.named_parameters() if p.requires_grad and not adaptation_only(n)} if phase=='adapt' else {}
         blocked_versions={n:p._version for n,p in blocked.items()}
         for p in blocked.values():p.grad=None
@@ -449,6 +491,9 @@ def run(args):
             dist.all_reduce(exercised,op=dist.ReduceOp.MIN)
             if not exercised.item():raise RuntimeError('Geometric pooling did not receive a gradient on all ranks')
         optimizer.step()
+        if args.isolate_gradients and update_index==0:
+            replica_sha=verify_parameters_identical(model)
+            if rank==0:write(root/'ISOLATED_GRADIENT_SYNC_FIRST_UPDATE.json',dict(world_size=world,all_trainable_replicas_identical=True,sha256=replica_sha,preclip_route_grad_norms=route_norms))
         if args.freeze_reconstruction and any(p._version!=frozen_versions[n] for n,p in model.named_parameters() if n in frozen_versions):
             raise RuntimeError('Frozen reconstruction/backbone parameter changed during understanding training')
         if any(p._version!=blocked_versions[n] for n,p in blocked.items()):raise RuntimeError('Understanding parameters changed during reconstruction adaptation')
@@ -462,6 +507,7 @@ def run(args):
         row.update(phase=phase,phase_update=update_index+1,understanding_weight=uweight,weighted_understanding_loss=uweight*row['loss_understanding'],understanding_optimizer_skipped=phase=='adapt',grad_norm=float(grad_norm),seconds=time.monotonic()-started,
             cuda_peak_gib=torch.cuda.max_memory_allocated()/2**30,learning_rate_factor=factor,local_indices=indices,representative_grad_norms=probe_gradients)
         row['learning_rates']={group['family']:group['lr'] for group in optimizer.param_groups}
+        if args.isolate_gradients:row['preclip_route_grad_norms']=route_norms
         append(root/f'train_rank{rank:02d}.jsonl',row)
         if rank==0 and (update_index<3 or (update_index+1)%10==0):print('TRAIN',json.dumps(row),flush=True)
         return row
@@ -579,8 +625,16 @@ def main():
     parser.add_argument('--geometric-from',type=Path)
     parser.add_argument('--geometric-source-digest')
     parser.add_argument('--v4-direct-joint',action='store_true')
+    parser.add_argument('--isolate-gradients',action='store_true')
+    parser.add_argument('--untrained-initial-from',type=Path)
+    parser.add_argument('--untrained-initial-digest')
     args=parser.parse_args()
     if args.resume_source_sha and not args.resume:parser.error('--resume-source-sha requires --resume')
+    if args.isolate_gradients:
+        if not args.v4_direct_joint or not (args.untrained_initial_from or args.resume):parser.error('Isolated experiment requires the explicit untrained baseline initial state or its own resume')
+    if args.untrained_initial_from:
+        if not args.isolate_gradients or args.resume or not args.untrained_initial_digest or digest(args.untrained_initial_from)!=args.untrained_initial_digest:
+            parser.error('Untrained initial checkpoint requires isolated fresh comparison and matching checksum')
     if args.v4_direct_joint:
         from scripts.gfm_v4_direct_joint_policy import validate_direct_arguments
         try:validate_direct_arguments(args)
