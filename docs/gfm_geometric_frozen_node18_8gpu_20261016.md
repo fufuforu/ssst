@@ -24,4 +24,4 @@ CPU预检读取真实2.2GiB源checkpoint核对checksum、完整参数/Adam映射
 
 训练 **65671** 已单次确认 RUNNING，3dimage-18 分配八张4090、32CPU、192GiB；官方评测 **65672** afterok:65671，V3/V4/旧C比较 **65673** afterany:65666:65672，均PENDING/Dependency。执行快照SHA `175418bedd8fd13dc158607918cf49476b177f26`，完整请求见attempt10/submission.json。这里只确认调度，未宣称GPU首步/新模块梯度已通过。
 
-代码已本地提交。额外GitHub推送被自动审批拒绝，理由是未明确授权向该远端导出代码；已向用户说明并询问是否授权。训练不依赖推送，未绕过拒绝。后续用户未授权时保留本地提交即可。
+代码已本地提交。额外GitHub推送被自动审批拒绝，理由是未明确授权向该远端导出代码；用户随后明确回复“授权推送到该仓库”，已获得向 https://github.com/fufuforu/ssst.git 推送的授权。训练不依赖推送，未绕过拒绝。
