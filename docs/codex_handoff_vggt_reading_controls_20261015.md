@@ -1,5 +1,7 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **V3初始化隔离对照66039＋18四卡诊断66042已提交，停止轮询。** 见 [gfm_v3_isolated_and_parallel_diagnostics_20261016.md](gfm_v3_isolated_and_parallel_diagnostics_20261016.md)。新attempt15，637共享零步张量/空Adam/8rank RNG，去掉V4几何池化12张量29505参数，直接4epoch4172完全隔离。训练可用13/14/17/18的单节点八卡；66040 afterok官方128评测，66041 afterany对照汇总。独立66042在18四卡，对已完成V4隔离/整体0.05各128场景做候选/分层Query/Anchor-Child/组装诊断＋shuffle负对照＋失败图，4场景无更新冒烟通过才全量；不依赖新训练。执行SHA63bf675。真实源预检和19项CPU测试通过；单次核对两新任务PENDING(Priority)，未宣称GPU通过。65996不改不停止，待用户通知后检查，勿重复提交。
+
 > **选择性梯度对照已提交65996，停止轮询。** 13节点8×3090单次确认RUNNING；官方128评测65997 afterok:65996，六模型比较65998 afterany:65997。见 [gfm_v4_selective_routing_node13_20261016.md](gfm_v4_selective_routing_node13_20261016.md)。重建梯度=dLrec+0.05×beta×dLunder，理解梯度=beta×dLunder；同零步初始化/空Adam/8rank RNG/4epoch4172/LR/clip1，未改前向结构、不重复适配。新attempt14及不可变快照ssst_gfm_v4_routed005_code_20261016，执行SHA0b92add。真实源预检及13项CPU测试（含真实双rankGloo）通过；GPU首步尚未核实，不能把RUNNING当反向验证。等待用户通知后检查，不重提交。
 
 > **65831/65838及全部评测、比较已完成，结果核实。** 详情见 [gfm_v4_isolated_vs_weight005_results_20261016.md](gfm_v4_isolated_vs_weight005_results_20261016.md)。两组相同0步起点、4epoch4172更新，官方128/11项有限。隔离组PSNR23.194/AbsRel.05463/target mAP18.98%/PQ53.62%；权重0.05组21.910/.12436/19.85%/58.79%；普通joint13.208/.22148/7.70%/46.13%。优化耦合与loss尺度都重要，架构具备正常学习能力；隔离重建最好、0.05理解更好，均未追平旧C实例mAP。未测梯度cosine，不能唯一归因方向冲突；globalclip1仍耦合。下一步仅建议分开理解自身梯度与流向重建的梯度强度，未实现或提交新作业。下方RUNNING/等待通知均为历史状态。

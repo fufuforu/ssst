@@ -31,3 +31,7 @@
 代码固定到独立快照 /space/mawb/ssst_gfm_v3_isolated_diagnostics_code_20261016；作业号以新attempt15/submission.json及诊断submission.json为准。CPU验证和真实源预检以实际收据为准；提交后只单次检查分配状态，不持续轮询GPU冒烟，待用户通知后再检查结果。
 
 验证记录：真实0步源预检PASSED（637共享张量、移除12张量/29505参数）；19项CPU测试通过（含V3共享权重迁移、初始化观测器不改变结果、有效像素IoU、官方area-filter阶段、真实双rank Gloo及旧策略回归）。py_compile/bash -n/diff --check通过。完整GPU冒烟由诊断作业首阶段执行，尚未宣称通过。
+
+## 已提交，停止轮询
+
+训练66039（13/14/17/18中单节点八卡），官方评测66040 afterok:66039，对照汇总66041 afterany:66040；18节点四卡诊断66042，无训练依赖。执行快照SHA63bf675869d4b9c78d44623a0f2263bff6c2e4d5。单次调度核对：66039和66042均PENDING(Priority)，评测/比较Dependency，尚未宣称GPU启动、冒烟或同步通过。CPU19项测试及真实源预检已通过。提交后停止轮询，等待用户通知；当前65996保持运行。
