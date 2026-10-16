@@ -1,5 +1,7 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **新授权：18节点八张4090训练V4几何感知初始化，选择冻结重建理解4epoch。** 见 [gfm_geometric_frozen_node18_8gpu_20261016.md](gfm_geometric_frozen_node18_8gpu_20261016.md)。同一适配2起点/批8/理解LR及warmup与65665对照，仅改初始化；637共享tensor及637个Adam状态按名迁移，新增29505参数。真实源预检与重建指纹一致性通过，23项CPU检查通过。新attempt10_geometric_sam_frozen_node18_8gpu及独立代码快照；训练/评测/比较job以submission.json为准。不得重复适配或修改65661/65665，提交后单次核对并停止轮询。
+
 > **2026-10-16 新结构代码：仅初始化改为 ESAM 风格几何感知池化，独立 V4。** 见 [gfm_geometric_sam_pool_v4_20261016.md](gfm_geometric_sam_pool_v4_20261016.md)。区域内 VGGT 相对几何预测权重来池化 F_sem，并加整体形状编码；候选规则、交互层、Write 和 Gaussian 输出保持原设定。没有提交训练，没有迁移旧 checkpoint，不改 65661/65665 的不可变快照；旧 checkpoint 不能直接当新版本 resume。验证结果以该文档记录为准。
 
 > **冻结重建八卡对照已提交，停止轮询**：训练65665（11节点8×3090，单次核对RUNNING）；官方评测65666 afterok:65665；五模型比较65667 afterany:65662:65666。代码1ee41b0，attempt09_frozen_recon_node11_8gpu。与13节点65661同适配2起点/batch8/理解LR及首epoch损失warmup；仅冻结重建参数/优化器/模式，并验证固定场景Gaussian不变。14项CPU验证通过，源预检通过；GPU首步/冻结指纹尚未宣称通过。13节点原warmup不受影响。用户通知后检查两组及评测，不重提交、不重做适配。

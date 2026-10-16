@@ -265,11 +265,14 @@ def run(args):
     else:
         opt=config_defaults['train_siu3r_object_locus_dual_stream_v1'];constructor=LocusGSDualStreamV1
     if args.adapt_epochs:
-        if args.architecture!='gfm_v3':raise ValueError('Staged schedule is defined only for GFM V3')
+        if args.architecture not in ('gfm_v3','gfm_v4'):raise ValueError('Staged schedule requires GFM V3/V4')
         CONFIG['recipe']='omega_gfm_semantic_pool_v3_adapt2_joint4_v1'
         CONFIG['adaptation_epochs']=args.adapt_epochs
     if args.joint_warmup:configure_joint_warmup(CONFIG)
     if args.freeze_reconstruction:configure_frozen_reconstruction(CONFIG)
+    if args.architecture=='gfm_v4' and args.freeze_reconstruction:
+        from scripts.gfm_geometric_transition import RECIPE
+        CONFIG['recipe']=RECIPE
     windows,short_indices,validation=cohorts();short=[windows[i] for i in short_indices]
     model=constructor(opt,write_strength=0.).to(device)
     cache=install_frozen_caches(model,args.cache_root or root/'frozen_cache')
@@ -287,6 +290,7 @@ def run(args):
         if 'architecture_transition' in blob['meta']:meta['architecture_transition']=blob['meta']['architecture_transition']
         if 'adaptation_transition' in blob['meta']:meta['adaptation_transition']=blob['meta']['adaptation_transition']
         if 'joint_warmup_transition' in blob['meta']:meta['joint_warmup_transition']=blob['meta']['joint_warmup_transition']
+        if 'geometric_initialization_transition' in blob['meta']:meta['geometric_initialization_transition']=blob['meta']['geometric_initialization_transition']
         validate_resume_metadata(blob['meta'],meta,source_sha=args.resume_source_sha)
         if args.resume_source_sha and rank==0:
             write(root/'RESUME_POLICY_TRANSITION.json',dict(source_meta=blob['meta'],target_meta=meta,
@@ -311,6 +315,25 @@ def run(args):
             reconstruction_lr=CONFIG['reconstruction_lr'],geometry_lr=CONFIG['geometry_refinement_lr'],understanding_lr=CONFIG['understanding_lr'],
             understanding_loss_ramp='min(1,(joint_update+1)/1043)',optimizer_moments_preserved=True)
         if rank==0:write(root/'JOINT_WARMUP_TRANSITION.json',meta['joint_warmup_transition'])
+        del blob
+    if args.geometric_from:
+        from scripts.gfm_geometric_transition import template,validate_source,transfer
+        blob=torch.load(args.geometric_from,map_location='cpu',weights_only=False,mmap=True)
+        for key in ('architecture_transition','adaptation_transition'):meta[key]=blob['meta'][key]
+        validate_source(blob['meta'],meta,blob['progress'])
+        plan=transfer(model,optimizer,template(3),blob,optimizer_groups)
+        progress=blob['progress']
+        progress['proof']=dict(finite=True,updated_families={})
+        if rank<4:restore_rng(blob['rank_rng'][rank])
+        else:
+            seed=CONFIG['seed']+80000+rank
+            random.seed(seed);np.random.seed(seed);torch.manual_seed(seed);torch.cuda.manual_seed(seed)
+        meta['geometric_initialization_transition']=dict(source_checkpoint=str(args.geometric_from.resolve()),
+            source_checkpoint_sha256=args.geometric_source_digest,source_world_size=4,target_world_size=8,
+            completed_adaptation_updates=2086,replayed_adaptation_updates=0,
+            retained_source_rng_ranks=[0,1,2,3],new_rank_seed_rule='31415+80000+rank',
+            shared_model_weights_preserved=True,new_pooling_parameters_fresh=True,**plan)
+        if rank==0:write(root/'GEOMETRIC_INITIALIZATION_TRANSITION.json',meta['geometric_initialization_transition'])
         del blob
     if args.staged_from:
         blob=torch.load(args.staged_from,map_location='cpu',weights_only=False,mmap=True)
@@ -415,6 +438,10 @@ def run(args):
         probe_gradients={f:float(parameters[name].grad.detach().norm()) if parameters[name].grad is not None else 0. for f,(name,_) in probes.items()}
         if args.freeze_reconstruction and any(p.grad is not None for p in model.parameters() if not p.requires_grad):
             raise RuntimeError('Frozen reconstruction received an optimizer gradient')
+        if args.architecture=='gfm_v4' and args.freeze_reconstruction and update_index==0:
+            exercised=torch.tensor(int(probe_gradients.get('geometric_query_pooling',0.)>0),device=device)
+            dist.all_reduce(exercised,op=dist.ReduceOp.MIN)
+            if not exercised.item():raise RuntimeError('Geometric pooling did not receive a gradient on all ranks')
         optimizer.step()
         if args.freeze_reconstruction and any(p._version!=frozen_versions[n] for n,p in model.named_parameters() if n in frozen_versions):
             raise RuntimeError('Frozen reconstruction/backbone parameter changed during understanding training')
@@ -543,19 +570,27 @@ def main():
     parser.add_argument('--warm-joint-from',type=Path)
     parser.add_argument('--warm-source-digest')
     parser.add_argument('--freeze-reconstruction',action='store_true')
+    parser.add_argument('--geometric-from',type=Path)
+    parser.add_argument('--geometric-source-digest')
     args=parser.parse_args()
     if args.resume_source_sha and not args.resume:parser.error('--resume-source-sha requires --resume')
-    if args.architecture=='gfm_v4' and (args.transition_from or args.staged_from or args.warm_joint_from or args.adapt_epochs or args.joint_warmup or args.freeze_reconstruction):
+    if args.architecture=='gfm_v4' and (args.transition_from or args.staged_from or args.warm_joint_from or ((args.adapt_epochs or args.joint_warmup or args.freeze_reconstruction) and not (args.geometric_from or args.resume))):
         parser.error('V4 uses a distinct initialization; old V3 checkpoint/optimizer migration requires an explicit audited transition')
+    if args.geometric_from:
+        from scripts.gfm_geometric_transition import SOURCE_DIGEST
+        if args.architecture!='gfm_v4' or args.resume or args.transition_from or args.staged_from or args.warm_joint_from or args.adapt_epochs!=2 or not args.joint_warmup or not args.freeze_reconstruction:
+            parser.error('Geometric source requires fresh V4 frozen-reconstruction continuation from adaptation2')
+        if args.geometric_source_digest!=SOURCE_DIGEST or digest(args.geometric_from)!=SOURCE_DIGEST:
+            parser.error('Geometric adaptation2 source checksum differs')
     if args.staged_from:
         if args.resume or args.transition_from or args.adapt_epochs!=2:parser.error('Staged source requires fresh adapt2 run')
         if not args.staged_source_digest or digest(args.staged_from)!=args.staged_source_digest:parser.error('Staged source checkpoint checksum differs')
     if args.warm_joint_from:
         if not args.joint_warmup or args.architecture!='gfm_v3' or args.adapt_epochs!=2 or args.resume or args.transition_from or args.staged_from:parser.error('Warmup requires a fresh explicit adaptation2 checkpoint continuation')
         if not args.warm_source_digest or digest(args.warm_joint_from)!=args.warm_source_digest:parser.error('Warmup source checkpoint checksum differs')
-    if args.joint_warmup and not (args.warm_joint_from or args.resume):parser.error('Warmup requires explicit source or resume')
+    if args.joint_warmup and not (args.warm_joint_from or args.geometric_from or args.resume):parser.error('Warmup requires explicit source or resume')
     if args.freeze_reconstruction and not args.joint_warmup:parser.error('Frozen control uses the same joint warmup source/schedule')
-    if args.adapt_epochs and not (args.staged_from or args.resume or args.warm_joint_from):parser.error('Adaptation requires explicit staged source or resume')
+    if args.adapt_epochs and not (args.staged_from or args.resume or args.warm_joint_from or args.geometric_from):parser.error('Adaptation requires explicit staged source or resume')
     try:run(args)
     except BaseException as exc:
         if not isinstance(exc,SystemExit) or exc.code not in (0,3):

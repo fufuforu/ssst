@@ -1,3 +1,5 @@
+> 后续用户已授权18节点八卡训练，专用迁移与冻结对照见 [gfm_geometric_frozen_node18_8gpu_20261016.md](gfm_geometric_frozen_node18_8gpu_20261016.md)。下文未提交状态为最初实现时记录。
+
 # SAM 几何感知 Query 初始化 V4
 
 用户本轮明确要求只修改初始化模块。实现为独立 V4：`siu3r_object_locus_gfm_dual_stream_v4`，配置 `train_siu3r_object_locus_gfm_dual_stream_v4`。V3 与正在运行的不可变训练快照不替换，不提交新作业。
@@ -24,5 +26,7 @@
 ## 验证边界
 
 测试覆盖几何平移/正尺度不变性与形状敏感性、单像素区域、无效点、无候选 fallback、确定性有界采样、语义 Adapter/池化各分支的反向梯度、V3 原池化逐值相等、完整模型 meta 构造与参数差异白名单。
+
+已完成 21 项初始化/兼容性 CPU 测试，全部通过；相关 Python 文件编译检查和 git diff --check 通过。
 
 仅 CPU 单元验证与 meta 模型构造不能证明完整 GPU 前向/反向通过，也不能证明 mAP/PQ 提升。当前两组 V3 对照仍为原代码运行，不在本轮轮询。
