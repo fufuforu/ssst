@@ -35,3 +35,9 @@
 ## 已完成的预检
 
 14项CPU检查通过：beta边界/恢复时钟、实际Task的梯度权重且重建仍可训练、AdamW moments保留与LR覆盖、真实适配终点的显式metadata迁移、无效深度保留标记、既有batch8 sampler/cache及并发发布。真实源checkpoint metadata和SHA256已核对，预检写入preflight.json。新对比脚本已在已有两组原生结果上验证队列一致、13列及NaN保留。Python编译、shell语法、diff检查通过。
+
+## 已提交
+
+执行SHA32da5ef2f000a014dcd73456352afaeca13843bc，已推送。训练65661；官方评测65662 afterok:65661；四模型原生结果比较65663 afterany:65662。比较结果目录为`/space/mawb/ssst/group_plus/dual_stream_training_v1/comparison_joint_warmup_20261016`。收据写attempt08/submission.json及比较目录submission.json。
+
+提交后单次核对：65661 RUNNING，确实分配3dimage-13的8张3090/32CPU/192GiB；65662/65663 PENDING/Dependency。此时仅确认资源分配，未宣称八卡首个训练更新完成，随后停止轮询。未来接手以JOINT_WARMUP_TRANSITION/FULL_STARTED/首步checkpoint及新journal验证实际恢复和beta/LR，勿重复提交或重跑适配2epoch。

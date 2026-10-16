@@ -1,5 +1,7 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **warmup八卡链已提交，停止轮询**：训练65661（13节点8×3090，单次核对RUNNING），官方评测65662 afterok:65661，四模型比较65663 afterany:65662。执行SHA32da5ef；新attempt08_joint_warmup_node13_8gpu，source为适配2完成checkpoint，sha256 2b07922b1b2c3e8f5dfa6c1591951e043bc418874f2cea379588003ddde6f3e3。重建/几何/理解LR=1e-5/1e-6/1e-4，理解beta首1043步线性升1，新的联合4epoch；global batch8不变，4→8rank RNG映射已记录。14项CPU检查和源预检通过；仅资源分配已确认，尚未宣称新GPU首步通过。用户通知后检查新链，勿重跑已完成适配或重复提交。
+
 > **新授权已实现：用户选择warmup并要求13节点八卡。** 详见[gfm_joint_warmup_node13_8gpu_20261016.md](gfm_joint_warmup_node13_8gpu_20261016.md)。从现有适配2epoch完成checkpoint继承权重/AdamW，新增联合4epoch；重建LR1e-5、几何1e-6、理解1e-4，理解loss beta在1043步从接近0升1，原100步LR warmup保留。不重复适配、不用坏掉的joint4终点、不改结构/冻结/Write/官方协议。13节点8×3090，global batch仍8。新attempt08_joint_warmup_node13_8gpu，14项CPU检查及真实源预检通过。作业号以submission.json为准，提交后单次核对并停止轮询；不能把RUNNING当八卡反向证明。
 
 > **2026-10-16最新：两组训练全部完成，结果未达标。** 65251直接joint4/4172与65252 adapt2/2086+joint4/4172均COMPLETED；128场景官方计算和导出均完成，65256/57因原生AbsRel/RMSE NaN在严格JSON汇总时失败，65258取消。已有原始results无需重算，已恢复9项有效指标＋2项显式无效NaN对比。报告[gfm_joint4_vs_adapt2_joint4_results_20261016.md](gfm_joint4_vs_adapt2_joint4_results_20261016.md)：官方PSNR直接12.826、分阶段12.496，旧C22.597；target mAP6.91%/5.79%，旧C27.38%。固定8验证适配2后PSNR21.486→联合1时13.271→联合4时12.704，首要证据指向联合阶段重建退化。直接4/768、分阶段2/768全零深度导致官方NaN；不能删帧/改协议伪造有限指标。比较表/曲线/失败图已保存。所有作业结束，无新训练/推理/评分提交；后续冻结重建只训练理解的控制仅为建议，文本分支亦未实施。
