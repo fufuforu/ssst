@@ -16,6 +16,8 @@ def main():
             if complete['smoke'] or not complete['parameter_versions_unchanged'] or complete['parameter_updates']:raise ValueError('Incomplete/modified diagnostic')
             records=[json.loads((root/f'{i}.json').read_text()) for i in complete['records']];rows+=records
         if len(rows)!=128 or len({r['source_index'] for r in rows})!=128:raise ValueError('Incomplete heldout128')
+        witnesses=[r for r in rows if r['observer_noop_witness']]
+        if len(witnesses)!=4 or any(not r.get('observer_witness_details',{}).get('passed',False) for r in witnesses):raise ValueError('Missing or failed calibrated observer witness')
         stages={};groups={k:[] for k in ('good_correct','good_no_object','good_wrong_class','good_below_score','poor_mask','small','duplicate')}
         paired=[]
         for row in rows:

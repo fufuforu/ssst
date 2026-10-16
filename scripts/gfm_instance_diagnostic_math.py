@@ -88,3 +88,30 @@ class InitializerTrace:
 
     def close(self):
         self.handle.remove();self.initializer.pool_region=self.original;self.records=[];self.inputs=None
+
+
+def repeat_calibrated_witness(native_a,native_b,observed):
+    """Bound observer differences by native repeat jitter, with fixed hard ceilings.
+
+    Rendering/lifting uses GPU reductions; no bitwise determinism is assumed.
+    These bounds certify the observer only and never change prediction thresholds.
+    """
+    limits={'gaussians':(1e-7,1e-5),'gaussian_membership':(1e-7,2e-5),
+            'p_class':(1e-8,1e-6),'region_mass':(1e-7,1e-4)}
+    receipt={'policy':'native_repeat_5x_plus_floor_with_fixed_ceiling_v1','tensors':{},'passed':True}
+    for key,(floor,ceiling) in limits.items():
+        a,b,c=native_a[key],native_b[key],observed[key]
+        if a.shape!=b.shape or a.shape!=c.shape:raise ValueError('Witness shape changed: '+key)
+        finite=bool(torch.isfinite(a).all() and torch.isfinite(b).all() and torch.isfinite(c).all())
+        repeat=float((a-b).abs().max());error=max(float((c-a).abs().max()),float((c-b).abs().max()))
+        tolerance=min(ceiling,5*repeat+floor)
+        passed=finite and repeat<=ceiling and error<=tolerance
+        receipt['tensors'][key]=dict(native_repeat_max_abs=repeat,observer_max_abs=error,tolerance=tolerance,hard_ceiling=ceiling,passed=passed)
+        receipt['passed'] &= passed
+    a,b,c=native_a['packed'],native_b['packed'],observed['packed']
+    repeat=float((a!=b).float().mean());error=max(float((a!=c).float().mean()),float((b!=c).float().mean()))
+    ceiling=1e-3;tolerance=min(ceiling,5*repeat+1/a.numel())
+    passed=repeat<=ceiling and error<=tolerance
+    receipt['packed']=dict(native_repeat_mismatch_fraction=repeat,observer_mismatch_fraction=error,tolerance=tolerance,hard_ceiling=ceiling,passed=passed)
+    receipt['passed'] &= passed
+    return receipt

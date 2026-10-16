@@ -17,7 +17,7 @@ from scripts.train_dual_stream_v1 import cohorts,build_batch,restore_trainable_s
 from scripts.dual_stream_frozen_cache import install_frozen_caches
 from scripts.eval_object_locus_frozen_vggt_posefree_v1 import generate_and_render
 from scripts.export_object_locus_v3_set_official import assemble_panoptic
-from scripts.gfm_instance_diagnostic_math import InitializerTrace,iou_matrix,stage_masks
+from scripts.gfm_instance_diagnostic_math import InitializerTrace,iou_matrix,stage_masks,repeat_calibrated_witness
 from scripts.vggt_ownership_math_v1 import parent_pool,js_divergence
 from tokengs.models.object_locus_v3_set_loss import build_context_instance_targets,final_hungarian
 from tokengs.models.object_locus_panoptic_v1 import alpha_normalize_membership
@@ -66,19 +66,25 @@ def figure(path,batch,gt,stages,selected,matrices):
 
 def observe(model,opt,trace,window,run,destination,device,witness):
     batch=build_batch(opt,window,device)
-    # Hook no-op witness against the exact same GPU native computation, not different hardware.
-    baseline=None
+    # Measure unobserved native repeat variability before testing observer effects.
+    def witness_values(output,clone=True):
+        values={k:output['generated'][k] for k in ('gaussians','gaussian_membership','p_class')}
+        values['region_mass']=output['render']['region_mass']
+        sem,ins,_=assemble_panoptic(output['render']);values['packed']=sem*1000+ins
+        return {k:v.clone() for k,v in values.items()} if clone else values
+    baselines=[];witness_details=None
     if witness:
         trace.close()
-        old=generate_and_render(model,batch['images_input'],batch['images_all'])
-        baseline={k:old['generated'][k].clone() for k in ('gaussians','gaussian_membership','p_class')}
-        baseline['region_mass']=old['render']['region_mass'].clone();del old
+        for _ in range(2):
+            old=generate_and_render(model,batch['images_input'],batch['images_all'])
+            baselines.append(witness_values(old));del old
         trace.__init__(model.query_initializer)
     result=generate_and_render(model,batch['images_input'],batch['images_all']);g=result['generated'];render=result['render']
-    if baseline is not None:
-        for key in ('gaussians','gaussian_membership','p_class'):torch.testing.assert_close(g[key],baseline[key],rtol=0,atol=0)
-        torch.testing.assert_close(render['region_mass'],baseline['region_mass'],rtol=0,atol=0)
-        del baseline
+    if baselines:
+        witness_details=repeat_calibrated_witness(*baselines,witness_values(result,False))
+        write(destination/f"{window['source_index']}_witness.json",witness_details)
+        if not witness_details['passed']:raise RuntimeError('Observer differs beyond bounded native repeat variability; see witness receipt')
+        del baselines
     targets,pairs=final_hungarian(g,batch);gt=targets['gt_pixel_masks'][0];valid=targets['valid_pixels'][0];classes=targets['gt_classes'][0]
     stages,labels,eligible=stage_masks(render)
     matrices={name:iou_matrix(mask[:2].permute(1,0,2,3),gt,valid) for name,mask in stages.items()}
@@ -118,7 +124,7 @@ def observe(model,opt,trace,window,run,destination,device,witness):
         query_class_probabilities=matrix_record(render['p_class'][0]),query_labels=labels.tolist(),eligible=eligible.tolist(),
         matched_query=pairs[0][0].tolist(),matched_gt=pairs[0][1].tolist(),ownership=layer_info,
         object_region_rgb=dict(pixels=int(object_mask.sum()),sse=float(error[object_mask].sum())),
-        official_packed_mismatch_fraction=golden_agreement(render,batch,window,run),observer_noop_witness=witness,
+        official_packed_mismatch_fraction=golden_agreement(render,batch,window,run),observer_noop_witness=witness,observer_witness_details=witness_details,
         actual_write_strength=float(model.write_strength),parameter_updates=0,GT_used_only_after_native_prediction=True)
     if row['input_rgb_sha256']!=window['expected_rgb_sha256']:raise ValueError('Input RGB differs')
     if not all(torch.isfinite(g[k]).all() for k in ('gaussians','gaussian_membership','p_class')):raise FloatingPointError('Nonfinite prediction')
