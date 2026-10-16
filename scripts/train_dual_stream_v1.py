@@ -273,6 +273,9 @@ def run(args):
     if args.architecture=='gfm_v4' and args.freeze_reconstruction:
         from scripts.gfm_geometric_transition import RECIPE
         CONFIG['recipe']=RECIPE
+    if args.v4_direct_joint:
+        from scripts.gfm_v4_direct_joint_policy import configure_direct_joint
+        configure_direct_joint(CONFIG)
     windows,short_indices,validation=cohorts();short=[windows[i] for i in short_indices]
     model=constructor(opt,write_strength=0.).to(device)
     cache=install_frozen_caches(model,args.cache_root or root/'frozen_cache')
@@ -285,6 +288,9 @@ def run(args):
     if args.gate_policy!='legacy_v1':meta['learning_gate_policy']=args.gate_policy
     progress=dict(phase='short',short_updates=0,full_updates=0,epoch=0,update_in_epoch=0,gate_passed=False,
         epoch_counts=[0]*len(windows),total_counts=[0]*len(windows),proof=dict(finite=True,updated_families={}))
+    if args.v4_direct_joint:
+        progress.update(phase='full',gate_passed=True)
+        meta['initialization_policy']='official_Omega_SAM_only_all_trainable_branches_fresh'
     if args.resume:
         blob=torch.load(root/'checkpoint_latest.pt',map_location='cpu',weights_only=False,mmap=True)
         if 'architecture_transition' in blob['meta']:meta['architecture_transition']=blob['meta']['architecture_transition']
@@ -438,7 +444,7 @@ def run(args):
         probe_gradients={f:float(parameters[name].grad.detach().norm()) if parameters[name].grad is not None else 0. for f,(name,_) in probes.items()}
         if args.freeze_reconstruction and any(p.grad is not None for p in model.parameters() if not p.requires_grad):
             raise RuntimeError('Frozen reconstruction received an optimizer gradient')
-        if args.architecture=='gfm_v4' and args.freeze_reconstruction and update_index==0:
+        if args.architecture=='gfm_v4' and (args.freeze_reconstruction or args.v4_direct_joint) and update_index==0:
             exercised=torch.tensor(int(probe_gradients.get('geometric_query_pooling',0.)>0),device=device)
             dist.all_reduce(exercised,op=dist.ReduceOp.MIN)
             if not exercised.item():raise RuntimeError('Geometric pooling did not receive a gradient on all ranks')
@@ -572,8 +578,13 @@ def main():
     parser.add_argument('--freeze-reconstruction',action='store_true')
     parser.add_argument('--geometric-from',type=Path)
     parser.add_argument('--geometric-source-digest')
+    parser.add_argument('--v4-direct-joint',action='store_true')
     args=parser.parse_args()
     if args.resume_source_sha and not args.resume:parser.error('--resume-source-sha requires --resume')
+    if args.v4_direct_joint:
+        from scripts.gfm_v4_direct_joint_policy import validate_direct_arguments
+        try:validate_direct_arguments(args)
+        except ValueError as exc:parser.error(str(exc))
     if args.architecture=='gfm_v4' and (args.transition_from or args.staged_from or args.warm_joint_from or ((args.adapt_epochs or args.joint_warmup or args.freeze_reconstruction) and not (args.geometric_from or args.resume))):
         parser.error('V4 uses a distinct initialization; old V3 checkpoint/optimizer migration requires an explicit audited transition')
     if args.geometric_from:

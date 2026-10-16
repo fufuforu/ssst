@@ -1,5 +1,9 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **用户最新纠正：V4从头直接联合4epoch，不微调适配。** 见 [gfm_v4_fresh_direct_joint_node13_20261016.md](gfm_v4_fresh_direct_joint_node13_20261016.md)。仅官方冻结Omega/SAM，其余全部新初始化，Adam无历史，不继承任何旧checkpoint，adapt/short更新0；重建/几何/理解LR=1e-4/1e-5/1e-4，首epoch理解loss warmup。13节点八卡新attempt11_geometric_sam_direct_joint_node13_8gpu；适配2后续训草案尚未提交且已取消。保持65665/65671，65661不恢复。作业以新submission.json为准，提交后单次核对停止轮询。
+
+> **2026-10-16 11:11 用户提出停止退化的降低LR+warmup对照，已发送取消。** 仅停止65661及失效依赖65662/65663/65667，保留V3冻结65665/65666、V4几何冻结65671/65672及二者比较65673。最新固定8验证PSNR初始21.482→2600步15.510，未把这组称作完成或程序崩溃。2650步完整checkpoint已硬链接保留为attempt08/checkpoint_stopped_warmup_control.pt，收据STOPPED_WARMUP_CONTROL.json。后续优先建议隔离理解loss到重建参数的梯度，同时允许重建由自身loss继续优化；尚未实现或提交该新策略。当前固定8 PSNR不能直接与论文/128场景官方PSNR比较。
+
 > **V4 几何感知初始化八卡训练已提交，停止轮询。** 训练65671已单次确认RUNNING，18节点8×4090；官方评测65672 afterok:65671；与V3冻结组/旧C比较65673 afterany:65666:65672。执行SHA175418b，新attempt10，源适配2已完成、637参数张量/637 Adam状态按名保留，新增29505初始化参数，冻结重建理解4epoch。23项CPU检查及真实源重建指纹预检通过；GPU首步尚未宣称通过。未改65661/65665。额外GitHub推送首次被自动审批拒绝；用户随后明确授权向 https://github.com/fufuforu/ssst.git 推送，允许继续推送本轮代码。
 
 > **新授权：18节点八张4090训练V4几何感知初始化，选择冻结重建理解4epoch。** 见 [gfm_geometric_frozen_node18_8gpu_20261016.md](gfm_geometric_frozen_node18_8gpu_20261016.md)。同一适配2起点/批8/理解LR及warmup与65665对照，仅改初始化；637共享tensor及637个Adam状态按名迁移，新增29505参数。真实源预检与重建指纹一致性通过，23项CPU检查通过。新attempt10_geometric_sam_frozen_node18_8gpu及独立代码快照；训练/评测/比较job以submission.json为准。不得重复适配或修改65661/65665，提交后单次核对并停止轮询。
