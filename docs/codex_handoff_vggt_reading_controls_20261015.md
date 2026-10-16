@@ -1,5 +1,7 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **2026-10-16最新：两组训练全部完成，结果未达标。** 65251直接joint4/4172与65252 adapt2/2086+joint4/4172均COMPLETED；128场景官方计算和导出均完成，65256/57因原生AbsRel/RMSE NaN在严格JSON汇总时失败，65258取消。已有原始results无需重算，已恢复9项有效指标＋2项显式无效NaN对比。报告[gfm_joint4_vs_adapt2_joint4_results_20261016.md](gfm_joint4_vs_adapt2_joint4_results_20261016.md)：官方PSNR直接12.826、分阶段12.496，旧C22.597；target mAP6.91%/5.79%，旧C27.38%。固定8验证适配2后PSNR21.486→联合1时13.271→联合4时12.704，首要证据指向联合阶段重建退化。直接4/768、分阶段2/768全零深度导致官方NaN；不能删帧/改协议伪造有限指标。比较表/曲线/失败图已保存。所有作业结束，无新训练/推理/评分提交；后续冻结重建只训练理解的控制仅为建议，文本分支亦未实施。
+
 > **恢复链已提交，停止轮询**：65251直接组从全量250 checkpoint续训（11四3090，单次核对RUNNING）；65252 afterany:65236条件复用成功或仅恢复已知缓存错误，不中断健康65236；最终正式评测65256 afterok:65251、65257 afterok:65252，比较65258 afterok:65256:65257。旧65238及后续待执行65253/54/55均已替换；新launcher2cece59修复Slurm spool目录，训练/评测Python快照75f6ce1。源状态完整、无已完成更新丢失，但尚未宣称新GPU首步通过；用户通知后检查新链，勿重播250步或恢复65199。
 
 > **65199已FAILED：SAM共享缓存发布FileExistsError，不是NaN/OOM；全量250步已完整checkpoint。** 修复与恢复见[gfm_cache_publication_failure_recovery_20261015.md](gfm_cache_publication_failure_recovery_20261015.md)。直接组新attempt07从251步继续，源optimizer/4rank RNG保留，不回到306短验证。65236当前健康、GPU冒烟及首个适配更新已通过，不能中断；为其设置afterany条件恢复/成功复用，再重接两组评测与对比依赖。旧65237/65239已因原parent失败取消，旧65238将替换，不能据旧submission重复提交。
