@@ -1,5 +1,7 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **冻结重建八卡对照已提交，停止轮询**：训练65665（11节点8×3090，单次核对RUNNING）；官方评测65666 afterok:65665；五模型比较65667 afterany:65662:65666。代码1ee41b0，attempt09_frozen_recon_node11_8gpu。与13节点65661同适配2起点/batch8/理解LR及首epoch损失warmup；仅冻结重建参数/优化器/模式，并验证固定场景Gaussian不变。14项CPU验证通过，源预检通过；GPU首步/冻结指纹尚未宣称通过。13节点原warmup不受影响。用户通知后检查两组及评测，不重提交、不重做适配。
+
 > **新授权：11节点八卡增加冻结重建、只训练理解对照，13节点warmup65661保持运行。** 见[gfm_frozen_reconstruction_node11_8gpu_20261016.md](gfm_frozen_reconstruction_node11_8gpu_20261016.md)。同一适配2checkpoint与batch8，理解LR1e-4及首epoch loss warmup与65661一致，只冻结重建参数/模式/优化器更新，并检查Gaussian输出不变。新attempt09_frozen_recon_node11_8gpu，14项CPU检查及源预检通过，训练理解4epoch，接官方128评测与五模型比较。提交后单次核对停止轮询；不能重复适配、不取消65661、不将RUNNING当GPU冻结保证。
 
 > **warmup八卡链已提交，停止轮询**：训练65661（13节点8×3090，单次核对RUNNING），官方评测65662 afterok:65661，四模型比较65663 afterany:65662。执行SHA32da5ef；新attempt08_joint_warmup_node13_8gpu，source为适配2完成checkpoint，sha256 2b07922b1b2c3e8f5dfa6c1591951e043bc418874f2cea379588003ddde6f3e3。重建/几何/理解LR=1e-5/1e-6/1e-4，理解beta首1043步线性升1，新的联合4epoch；global batch8不变，4→8rank RNG映射已记录。14项CPU检查和源预检通过；仅资源分配已确认，尚未宣称新GPU首步通过。用户通知后检查新链，勿重跑已完成适配或重复提交。

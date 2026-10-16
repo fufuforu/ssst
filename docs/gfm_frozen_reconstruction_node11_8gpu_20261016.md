@@ -36,3 +36,9 @@ CPU验证14项已通过：冻结权重/AdamW moments/模块模式/输出保持�
 比较目录：/space/mawb/ssst/group_plus/dual_stream_training_v1/comparison_joint_warmup_vs_frozen_recon_20261016。
 
 作业号以attempt09/submission.json为准。提交后单次核对调度并停止轮询，等用户通知。RUNNING仅说明分配资源，不能称GPU首步或完整冻结输出检查已通过；后续看FROZEN_RECONSTRUCTION_INITIAL、FULL_STARTED、monitor Gaussian SHA和FROZEN_RECONSTRUCTION_COMPLETE。
+
+## 已提交
+
+训练65665；官方评测65666 afterok:65665；五模型比较65667 afterany:65662:65666。训练/评测代码SHA1ee41b0229ae53840b5ce84111bf6a5c4cd2a10d已推送；运行与比较目录submission.json保存了完整资源及依赖收据。
+
+提交后单次核对：65665 RUNNING，11节点已分配8×3090、32CPU、192GiB；65666和65667 PENDING/Dependency。13节点65661没有被修改或中断。此时仅确认资源分配，未宣称GPU首步或冻结指纹已通过，随后停止轮询。不要重复提交或从short306重跑适配。
