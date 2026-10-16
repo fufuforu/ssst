@@ -1,5 +1,7 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **V4从头联合最终完成但质量未达标。** 65761/65762/65763全部COMPLETED；4172步、adapt/short0、官方128共11项有限。PSNR13.208、AbsRel.22148、RMSE.45588、target mAP7.70%/PQ46.13%，落后V4适配2后冻结（21.971/.06695/.19633/19.87%/55.45%）。详见 [gfm_v4_fresh_joint_results_20261016.md](gfm_v4_fresh_joint_results_20261016.md)。无新训练提交；建议单变量梯度隔离仍未实现。不要重跑已完成训练或将质量失败称程序崩溃；对照预算与初始化不同，不足以单独证明唯一原因。
+
 > **V4从头直接联合已提交：65761，停止轮询。** 13节点8×3090已单次确认RUNNING；官方128评测65762 afterok:65761；四模型比较65763 afterany:65666:65672:65762。新attempt11_geometric_sam_direct_joint_node13_8gpu，执行SHA5a3ff5f。source_checkpoint=null，adapt/short更新0，196010160可训练参数新初始化/空Adam，只加载官方冻结Omega/SAM；直接联合4epoch4172步，重建/几何/理解LR1e-4/1e-5/1e-4，理解loss首1043步warmup，无梯度隔离。25项CPU检查及官方资产/数据预检通过，GPU首步未宣称通过。适配2后续训草案未提交，不得误用旧草案目录的preflight。65665/65671保留，65661已取消不恢复。
 
 > **用户最新纠正：V4从头直接联合4epoch，不微调适配。** 见 [gfm_v4_fresh_direct_joint_node13_20261016.md](gfm_v4_fresh_direct_joint_node13_20261016.md)。仅官方冻结Omega/SAM，其余全部新初始化，Adam无历史，不继承任何旧checkpoint，adapt/short更新0；重建/几何/理解LR=1e-4/1e-5/1e-4，首epoch理解loss warmup。13节点八卡新attempt11_geometric_sam_direct_joint_node13_8gpu；适配2后续训草案尚未提交且已取消。保持65665/65671，65661不恢复。作业以新submission.json为准，提交后单次核对停止轮询。
