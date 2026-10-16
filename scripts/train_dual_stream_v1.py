@@ -173,7 +173,7 @@ def monitor(model,opt,train_windows,validation_windows,root,label,rank,world,dev
                 for name,sl in [('context',slice(0,2)),('true_novel',slice(2,None))]:
                     mse=(render['images_pred'][:,sl]-batch['images_all'][:,sl]).square().flatten(2).mean(-1)
                     row[name+'_psnr']=float((-10*torch.log10(mse.clamp_min(1e-12))).mean())
-                if getattr(model,'_gradient_isolation_control',False):
+                if getattr(model,'_gradient_isolation_control',False) or getattr(model,'_depth_diagnostics_control',False):
                     depth=render['depths_pred'];valid=batch['depth_gt_m_all']>0
                     if valid.shape!=depth.shape:valid=valid.reshape_as(depth)
                     row['depth_nonfinite_fraction']=float((~torch.isfinite(depth)).float().mean())
@@ -286,6 +286,9 @@ def run(args):
     if args.isolate_gradients:
         from scripts.gfm_v4_isolated_policy import configure
         configure(CONFIG)
+    if args.understanding_loss_scale!=1.:
+        from scripts.gfm_v4_weighted_policy import configure as configure_weighted
+        configure_weighted(CONFIG)
     windows,short_indices,validation=cohorts();short=[windows[i] for i in short_indices]
     model=constructor(opt,write_strength=0.).to(device)
     cache=install_frozen_caches(model,args.cache_root or root/'frozen_cache')
@@ -302,15 +305,19 @@ def run(args):
         progress.update(phase='full',gate_passed=True)
         meta['initialization_policy']='official_Omega_SAM_only_all_trainable_branches_fresh'
     if args.untrained_initial_from:
-        from scripts.gfm_v4_isolated_policy import validate_initial
+        if args.isolate_gradients:
+            from scripts.gfm_v4_isolated_policy import validate_initial
+        else:
+            from scripts.gfm_v4_weighted_policy import validate_initial
         blob=torch.load(args.untrained_initial_from,map_location='cpu',weights_only=False,mmap=True)
         validate_initial(blob['meta'],meta,blob)
         restore_trainable_state(model,blob['model']);optimizer.load_state_dict(blob['optimizer'])
         progress=blob['progress'];restore_rng(blob['rank_rng'][rank])
-        meta['isolated_gradient_transition']=dict(untrained_initial_checkpoint=str(args.untrained_initial_from.resolve()),
+        transition_key='isolated_gradient_transition' if args.isolate_gradients else 'loss_weight_transition'
+        meta[transition_key]=dict(untrained_initial_checkpoint=str(args.untrained_initial_from.resolve()),
             sha256=args.untrained_initial_digest,source_training_updates=0,source_optimizer_states=0,
             all_parameters_and_rank_rng_equal_to_baseline_initial_state=True)
-        if rank==0:write(root/'ISOLATED_GRADIENT_INITIALIZATION.json',meta['isolated_gradient_transition'])
+        if rank==0:write(root/('ISOLATED_GRADIENT_INITIALIZATION.json' if args.isolate_gradients else 'LOSS_WEIGHT_INITIALIZATION.json'),meta[transition_key])
         del blob
     if args.resume:
         blob=torch.load(root/'checkpoint_latest.pt',map_location='cpu',weights_only=False,mmap=True)
@@ -319,6 +326,7 @@ def run(args):
         if 'joint_warmup_transition' in blob['meta']:meta['joint_warmup_transition']=blob['meta']['joint_warmup_transition']
         if 'geometric_initialization_transition' in blob['meta']:meta['geometric_initialization_transition']=blob['meta']['geometric_initialization_transition']
         if 'isolated_gradient_transition' in blob['meta']:meta['isolated_gradient_transition']=blob['meta']['isolated_gradient_transition']
+        if 'loss_weight_transition' in blob['meta']:meta['loss_weight_transition']=blob['meta']['loss_weight_transition']
         validate_resume_metadata(blob['meta'],meta,source_sha=args.resume_source_sha)
         if args.resume_source_sha and rank==0:
             write(root/'RESUME_POLICY_TRANSITION.json',dict(source_meta=blob['meta'],target_meta=meta,
@@ -422,6 +430,7 @@ def run(args):
         model._gradient_isolation_control=True
     else:
         task=DDP(Task(model),device_ids=[local],broadcast_buffers=False,find_unused_parameters=True)
+    if args.understanding_loss_scale!=1.:model._depth_diagnostics_control=True
     restore_rng(before_ddp_rng)
     short_origin=meta.get('architecture_transition',{}).get('source_completed_short_updates',0)
     short_checks=[short_origin+step for step in CONFIG['short_checks']]
@@ -445,7 +454,7 @@ def run(args):
     baseline_path=root/'monitor'/'initial.json'
     if baseline_path.exists():baseline=json.loads(baseline_path.read_text())['summary']
     else:
-        monitor_rng=rng_state() if args.isolate_gradients else None
+        monitor_rng=rng_state() if args.isolate_gradients or args.understanding_loss_scale!=1. else None
         baseline=monitor(model,opt,short[:8],validation[:8],root,'initial',rank,world,device,(progress['short_updates']+progress.get('adapt_updates',0)+progress['full_updates'])*8)
         if monitor_rng is not None:restore_rng(monitor_rng)
     if not args.resume:checkpoint(model,optimizer,progress,root,meta,rank,world,retain='checkpoint_initial.pt')
@@ -455,6 +464,7 @@ def run(args):
         if args.freeze_reconstruction:enforce_frozen_reconstruction_eval(model)
         factor=lr_factor(phase,update_index-short_origin if phase=='short' else update_index,total-short_origin if phase=='short' else total)
         uweight=0. if phase=='adapt' else understanding_weight(update_index,CONFIG.get('understanding_loss_warmup_updates',0) if phase=='full' else 0)
+        uweight*=args.understanding_loss_scale
         for group in optimizer.param_groups:group['lr']=group['base_lr']*factor
         rows=[];started=time.monotonic()
         for micro,index in enumerate(indices):
@@ -508,6 +518,7 @@ def run(args):
             cuda_peak_gib=torch.cuda.max_memory_allocated()/2**30,learning_rate_factor=factor,local_indices=indices,representative_grad_norms=probe_gradients)
         row['learning_rates']={group['family']:group['lr'] for group in optimizer.param_groups}
         if args.isolate_gradients:row['preclip_route_grad_norms']=route_norms
+        if args.understanding_loss_scale!=1.:row['understanding_loss_scale']=args.understanding_loss_scale
         append(root/f'train_rank{rank:02d}.jsonl',row)
         if rank==0 and (update_index<3 or (update_index+1)%10==0):print('TRAIN',json.dumps(row),flush=True)
         return row
@@ -628,13 +639,16 @@ def main():
     parser.add_argument('--isolate-gradients',action='store_true')
     parser.add_argument('--untrained-initial-from',type=Path)
     parser.add_argument('--untrained-initial-digest')
+    parser.add_argument('--understanding-loss-scale',type=float,choices=(1.,.05),default=1.)
     args=parser.parse_args()
     if args.resume_source_sha and not args.resume:parser.error('--resume-source-sha requires --resume')
+    if args.understanding_loss_scale!=1.:
+        if not args.v4_direct_joint or args.isolate_gradients or not (args.untrained_initial_from or args.resume):parser.error('Weight0.05 experiment requires ordinary V4 joint training from the explicit untrained state or own resume')
     if args.isolate_gradients:
         if not args.v4_direct_joint or not (args.untrained_initial_from or args.resume):parser.error('Isolated experiment requires the explicit untrained baseline initial state or its own resume')
     if args.untrained_initial_from:
-        if not args.isolate_gradients or args.resume or not args.untrained_initial_digest or digest(args.untrained_initial_from)!=args.untrained_initial_digest:
-            parser.error('Untrained initial checkpoint requires isolated fresh comparison and matching checksum')
+        if not (args.isolate_gradients or args.understanding_loss_scale!=1.) or args.resume or not args.untrained_initial_digest or digest(args.untrained_initial_from)!=args.untrained_initial_digest:
+            parser.error('Untrained initial checkpoint requires explicit weighted/isolated comparison and matching checksum')
     if args.v4_direct_joint:
         from scripts.gfm_v4_direct_joint_policy import validate_direct_arguments
         try:validate_direct_arguments(args)

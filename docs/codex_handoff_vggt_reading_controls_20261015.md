@@ -1,5 +1,7 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **新实验：18节点八张4090，V4普通joint理解loss权重0.05。** 见 [gfm_v4_weight005_joint_node18_20261016.md](gfm_v4_weight005_joint_node18_20261016.md)。同0步随机初始权重/空Adam/8rank RNG，直接4epoch；理解有效权重0.05×首epoch ramp，普通DDP联合反向，重建不冻结、不隔离。与普通joint65761和隔离65831比较。真实起点预检/25项CPU检查通过；硬件4090与13节点3090不同。65831资源核实时约150步、实际GPU首步全参数8rank SHA一致收据已确认，无失败，不改其快照。新attempt13及独立快照，提交后单次核对停止轮询。
+
 > **梯度隔离V4从头joint4已提交65831，停止轮询。** 13节点8×3090已单次确认RUNNING；官方128评测65832 afterok:65831；对比普通joint/隔离joint/冻结/旧C的65833 afterany:65832。新attempt12_geometric_sam_isolated_node13_8gpu，执行SHAa54fcd3；65761的0步随机权重/空Adam/8rank RNG作为共同起点，未继承训练后模型。28项CPU检查（含真实双rank Gloo）及真实起点预检通过。GPU首步及八卡参数一致性未宣称通过，以ISOLATED_GRADIENT_SYNC_FIRST_UPDATE.json为准。数据、LR、warmup、4epoch、全局clip1与普通joint一致，仅梯度归属变化，前向不改。新增固定验证深度零值监测。不再轮询，用户通知后核对结果。
 
 > **新授权：V4从头joint4梯度隔离对照。** 见 [gfm_v4_isolated_joint_node13_20261016.md](gfm_v4_isolated_joint_node13_20261016.md)。与65761保持初始权重/8rank RNG/数据/学习率/warmup/clip/4epoch一致，仅重建参数接收重建loss、理解参数接收理解loss；复用的是0步空Adam初始状态，不是训练后checkpoint。普通DDP不支持该autograd.grad用法，本模式显式FP32 SUM/world及全局unused语义，首步检查全参数跨rank SHA。两进程CPU Gloo验证已通过；GPU同步以ISOLATED_GRADIENT_SYNC_FIRST_UPDATE.json为准，不能仅称RUNNING通过。新attempt12_geometric_sam_isolated_node13_8gpu及独立快照；提交后单次核对停止轮询。
