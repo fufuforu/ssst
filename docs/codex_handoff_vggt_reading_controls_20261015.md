@@ -1,5 +1,7 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **V4从头直接联合已提交：65761，停止轮询。** 13节点8×3090已单次确认RUNNING；官方128评测65762 afterok:65761；四模型比较65763 afterany:65666:65672:65762。新attempt11_geometric_sam_direct_joint_node13_8gpu，执行SHA5a3ff5f。source_checkpoint=null，adapt/short更新0，196010160可训练参数新初始化/空Adam，只加载官方冻结Omega/SAM；直接联合4epoch4172步，重建/几何/理解LR1e-4/1e-5/1e-4，理解loss首1043步warmup，无梯度隔离。25项CPU检查及官方资产/数据预检通过，GPU首步未宣称通过。适配2后续训草案未提交，不得误用旧草案目录的preflight。65665/65671保留，65661已取消不恢复。
+
 > **用户最新纠正：V4从头直接联合4epoch，不微调适配。** 见 [gfm_v4_fresh_direct_joint_node13_20261016.md](gfm_v4_fresh_direct_joint_node13_20261016.md)。仅官方冻结Omega/SAM，其余全部新初始化，Adam无历史，不继承任何旧checkpoint，adapt/short更新0；重建/几何/理解LR=1e-4/1e-5/1e-4，首epoch理解loss warmup。13节点八卡新attempt11_geometric_sam_direct_joint_node13_8gpu；适配2后续训草案尚未提交且已取消。保持65665/65671，65661不恢复。作业以新submission.json为准，提交后单次核对停止轮询。
 
 > **2026-10-16 11:11 用户提出停止退化的降低LR+warmup对照，已发送取消。** 仅停止65661及失效依赖65662/65663/65667，保留V3冻结65665/65666、V4几何冻结65671/65672及二者比较65673。最新固定8验证PSNR初始21.482→2600步15.510，未把这组称作完成或程序崩溃。2650步完整checkpoint已硬链接保留为attempt08/checkpoint_stopped_warmup_control.pt，收据STOPPED_WARMUP_CONTROL.json。后续优先建议隔离理解loss到重建参数的梯度，同时允许重建由自身loss继续优化；尚未实现或提交该新策略。当前固定8 PSNR不能直接与论文/128场景官方PSNR比较。

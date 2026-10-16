@@ -23,3 +23,7 @@
 作业号/执行SHA以attempt11/submission.json为准。提交后单次核对分配，停止轮询，等待用户通知。
 
 实际预检通过：两个官方资产SHA匹配；196010160可训练参数、空optimizer、无source checkpoint；8337训练窗口/128 heldout身份通过；25项CPU检查及Python编译、shell语法、diff检查通过。
+
+## 已提交
+
+训练65761，已单次确认RUNNING，13节点8×3090；官方128评测65762 afterok:65761；V3冻结/V4冻结/V4从头联合/旧C比较65763 afterany:65666:65672:65762。执行快照SHA5a3ff5fa70deb56c8d6bafe390d66f6171b50424。资源分配不代表GPU首步已通过；提交后已停止轮询。
