@@ -8,6 +8,7 @@
 - 独立快照：/space/mawb/ssst_gfm_initialization_audit_code_20261016。
 - 四个已存在checkpoint：checkpoint_initial（0步）、epoch1（1043）、epoch2（2086）、epoch4（4172）。SHA256、大小/mtime、数据/模型配置已CPU逐项核对并锁定在preflight.json。没有保留更早逐步状态，不重放训练或伪造逐步历史。
 - 每阶段同一128留出场景，GT/输入RGB逐场景一致。主要条件分析固定为上一轮已确认“存在IoU≥0.5 SAM显式支持”的152个GT，名单在新推理前从旧产物锁定；其余GT保留作对照，不仅汇报成功候选。
+- checkpoint间重建、语义Adapter和Decoder也都在变化，趋势不是初始化模块单独因果证据。
 - 同一16个固定训练窗口做梯度探针，来自原有short训练候选选择，非按本轮结果挑选；不对其做任何更新。
 
 ## 审计问题

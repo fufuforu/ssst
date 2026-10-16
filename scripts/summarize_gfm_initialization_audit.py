@@ -91,7 +91,7 @@ def main():
                 matched_gt_id=row['gt_ids'][row['matched_gt'][row['matched_query'].index(query)]] if query in row['matched_query'] else None)
         identity_tracks.append(dict(source_index=source_index,gt_id=iid,reference_candidate_hash=key,stages=track))
     result=dict(status='COMPLETE',parameter_updates=0,checkpoints=summary,interventions=interventions,gradient_probes=gradient_summary,reference_candidate_identity_tracks=identity_tracks,
-        qualified_GT_tracks=tracks,reference_selection_fixed_before_audit=True,limitations=plan['limitations'],
+        qualified_GT_tracks=tracks,reference_selection_fixed_before_audit=True,limitations=plan['limitations']+['Checkpoint trends also include changes to reconstruction, semantic adapter and decoder; they do not isolate initializer causality.','Same-index fallback vectors can have weak historical activity; inspect saved Adam evidence before interpreting embedding replacement.'],
         historical_gradient_activity=json.loads((PLAN.parent/'historical_gradient_activity.json').read_text()))
     (args.output/'summary.json').write_text(json.dumps(result,indent=2,allow_nan=False)+'\n')
     text=['# Initialization audit','', 'All weights fixed; context GT oracle recall is not official mAP/PQ. Interventions are diagnostic, not trained model results.','', '| Checkpoint/variant | Raw recall@.5 | Eligible | Final | SAM eligible/slots | SAM matched |', '|---|---:|---:|---:|---:|---:|']
