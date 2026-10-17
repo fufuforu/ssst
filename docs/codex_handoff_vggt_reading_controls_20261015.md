@@ -1,5 +1,7 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **最新：用户授权的Unified Superpoint Query V1已实现，未提交训练。** 详见 [unified_superpoint_query_v1_implementation_20261017.md](unified_superpoint_query_v1_implementation_20261017.md)。独立注册siu3r_unified_query_v1：冻结Omega GFM→提升三维点/体素跨视图融合→3D邻域编码→超点几何池化→唯一共享Query序列/12层decoder→Gaussian与类别/跨Gaussian实例Mask头。超点首版为可替换的三维体素过分割，预留融合点上的外部IDs接口，不依赖SAM，不冒称ESAM超点生成器复现；默认最多512 Query/32768 Gaussian，容量不同于旧版。来源约束动态匹配仅在预测后读取GT；训练入口独立且understanding-weight必须显式提供。12项CPU测试、5例旧100-query组装逐位一致核对及编译检查通过，合成Omega/假渲染器不能替代真实GPU验证。尚无真实Omega+CUDA冒烟/训练结果，不自动提交。B已取消且不得恢复，66353及旧快照不动。
+
 > **最新覆盖：用户明确停止B，66380/66381/66382均已CANCELLED，66353保持不动。** 原因是目标初始化应为三维点特征→超点特征→Query，而非几何辅助二维池化或当前SAM支持的更新Anchor插值。B日志/快照保留，200步完整checkpoint硬链接保留，收据attempt17/USER_CANCELLED_20261017.json。勿自动恢复B、重复提交或依据其未完成结果作性能结论；尚未授权新超点训练。详见 [gfm_updated_anchor_seed_experiment_b_20261017.md](gfm_updated_anchor_seed_experiment_b_20261017.md)。
 
 > **并行结构实验B已提交66380，停止轮询。** 请求18节点8×4090，单次核对PENDING(Priority)，未宣称已分配或GPU通过；官方128评测66381 afterok，比较66382 afterany:66381:66354。执行SHA678a47c，新attempt17，详见 [gfm_updated_anchor_seed_experiment_b_20261017.md](gfm_updated_anchor_seed_experiment_b_20261017.md)。24项CPU检查和真实零步649张量预检通过。先重建→SAM支持汇聚detach终点Anchor→learned-base残差query→理解重放原四层，原多层重建梯度保留、完全隔离、4epoch4172步。66353及其快照不改，用户通知后检查新作业，勿重复提交或继续轮询。

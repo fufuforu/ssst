@@ -1034,4 +1034,9 @@ config_defaults['train_siu3r_object_locus_gfm_dual_stream_v4'] = config_defaults
     model_type='siu3r_object_locus_gfm_dual_stream_v4', experiment_name='object_locus_gfm_dual_stream_v4',
     workspace='/space/mawb/ssst/workspace_group_plus/object_locus_gfm_dual_stream_v4')
 
+config_doc['train_siu3r_unified_query_v1'] = 'Frozen Omega -> 3D point encoding -> superpoint unified queries -> shared decoder and two task heads.'
+config_defaults['train_siu3r_unified_query_v1'] = config_defaults['train_siu3r_object_locus_gfm_dual_stream_v4'].evolve(
+    model_type='siu3r_unified_query_v1',experiment_name='unified_query_v1',
+    workspace='/space/mawb/ssst/workspace_group_plus/unified_query_v1',enc_embed_dim=256,enc_num_heads=8,num_gs_tokens=512)
+
 AllConfigs = tyro.extras.subcommand_type_from_defaults(config_defaults, config_doc)

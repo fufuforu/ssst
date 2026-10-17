@@ -45,10 +45,13 @@ from .object_locus_gfm_dual_stream_v2 import LocusGSGFMDualStreamV2
 from .object_locus_gfm_dual_stream_v3 import LocusGSGFMDualStreamV3
 from .object_locus_gfm_dual_stream_v4 import LocusGSGFMDualStreamV4
 
+from .unified_query_v1 import LocusGSUnifiedQueryV1
+
 # Model registry
 from .object_locus_joint_v1 import LocusGSObjectLocusJointV1Recon
 
 model_registry = {
+    'siu3r_unified_query_v1': LocusGSUnifiedQueryV1,
     'siu3r_object_locus_gfm_dual_stream_v4': LocusGSGFMDualStreamV4,
     'siu3r_object_locus_gfm_dual_stream_v3': LocusGSGFMDualStreamV3,
     'siu3r_object_locus_gfm_dual_stream_v2': LocusGSGFMDualStreamV2,
@@ -73,6 +76,7 @@ model_registry = {
 
 # Export for convenience
 __all__ = [
+    'LocusGSUnifiedQueryV1',
     'TokenGS',
     'split_data',
     'ModelInput',

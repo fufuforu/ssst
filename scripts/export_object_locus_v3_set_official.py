@@ -10,7 +10,9 @@ from PIL import Image
 
 
 def assemble_panoptic(out, *, eligible_override=None):
-    membership = out["region_mass"][0]  # [V,102,H,W], alpha-normalized sigmoid masks
+    membership = out["region_mass"][0]  # [V,N+2,H,W], alpha-normalized sigmoid masks
+    n=out["p_class"].shape[1]
+    if not 1<=n<1000 or membership.shape[1]!=n+2:raise ValueError("Invalid query count for packed official export")
     alpha = out["alpha"][0, :, 0]
     pclass = out["p_class"][0]
     thing_prob, thing_cls = pclass[:, :18].max(-1)
@@ -24,34 +26,34 @@ def assemble_panoptic(out, *, eligible_override=None):
     semantic = torch.full_like(raw_sem, 20)
     instance = torch.zeros_like(raw_sem)
     for v in range(membership.shape[0]):
-        score = membership.new_zeros((102, *membership.shape[-2:]))
+        score = membership.new_zeros((n+2, *membership.shape[-2:]))
         candidate = torch.zeros_like(score, dtype=torch.bool)
-        raw_area = torch.zeros(100, device=membership.device, dtype=torch.long)
-        for q in range(100):
+        raw_area = torch.zeros(n, device=membership.device, dtype=torch.long)
+        for q in range(n):
             mask = (membership[v, q] >= 0.5) & (alpha[v] > 0.05) & bool(eligible[q])
             raw_area[q] = mask.sum()
             candidate[q] = mask
             score[q] = thing_prob[q] * membership[v, q]
-        for c in (100, 101):
+        for c in (n, n+1):
             candidate[c] = (membership[v, c] >= 0.5) & (alpha[v] > 0.05)
             score[c] = membership[v, c]
         score = torch.where(candidate, score, torch.full_like(score, -1.0))
         maximum, winner = score.max(0)  # ties resolve to the lowest channel index
         has = maximum >= 0
         # Remove an object whose competition area falls below half its raw area.
-        for q in range(100):
+        for q in range(n):
             if not bool(eligible[q]) or int(raw_area[q]) == 0:
                 continue
             won = (winner == q) & has
             if int(won.sum()) / int(raw_area[q]) < 0.5:
                 has &= winner != q  # removed pixels remain void; no second-place reassignment
-        for q in range(100):
+        for q in range(n):
             take = has & (winner == q)
             semantic[v] = torch.where(take, thing_cls[q] + 2, semantic[v])
             instance[v] = torch.where(take, torch.full_like(instance[v], q + 1), instance[v])
-        for c in (100, 101):
+        for c in (n, n+1):
             take = has & (winner == c)
-            semantic[v] = torch.where(take, torch.full_like(semantic[v], c - 100), semantic[v])
+            semantic[v] = torch.where(take, torch.full_like(semantic[v], c - n), semantic[v])
     return semantic, instance, raw_sem
 
 
@@ -78,6 +80,7 @@ def write_official_pair(out, batch, window, root, *, target_frames="all", diagno
                       [i for i, f in enumerate(frame_ids) if f in set(map(int, window["novel"]))])
     sem, ins, raw_sem = assemble_panoptic(out, eligible_override=eligible_override)
     pclass = out["p_class"][0]
+    n=len(pclass)
     class_prob, cls0 = pclass[:, :18].max(-1)
     eligible = (pclass.argmax(-1) != 18) & (class_prob >= 0.05)
     if eligible_override is not None:
@@ -90,7 +93,7 @@ def write_official_pair(out, batch, window, root, *, target_frames="all", diagno
     membership = out["region_mass"][0]
     def rows(indices):
         result = []
-        for q in range(100):
+        for q in range(n):
             if not bool(eligible[q]):
                 continue
             assigned = torch.cat([(ins[i] == q + 1).reshape(-1) for i in indices])
