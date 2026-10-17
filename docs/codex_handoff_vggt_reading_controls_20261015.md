@@ -1,5 +1,7 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **并行结构实验B已提交66380，停止轮询。** 请求18节点8×4090，单次核对PENDING(Priority)，未宣称已分配或GPU通过；官方128评测66381 afterok，比较66382 afterany:66381:66354。执行SHA678a47c，新attempt17，详见 [gfm_updated_anchor_seed_experiment_b_20261017.md](gfm_updated_anchor_seed_experiment_b_20261017.md)。24项CPU检查和真实零步649张量预检通过。先重建→SAM支持汇聚detach终点Anchor→learned-base残差query→理解重放原四层，原多层重建梯度保留、完全隔离、4epoch4172步。66353及其快照不改，用户通知后检查新作业，勿重复提交或继续轮询。
+
 > **2026-10-17新授权：并行结构实验B，更新后的Anchor初始化Object Query。** 见 [gfm_updated_anchor_seed_experiment_b_20261017.md](gfm_updated_anchor_seed_experiment_b_20261017.md)。新attempt17/独立ssst_gfm_anchor_seed_code_20261017，18八张4090；先重建12层，复用现有under投影对detach终点Anchor编码，SAM预测3D支持局部4近邻插值与原几何池化形成seed，保留learned base＋.1门控，随后理解重放保存的L6/8/10/12，不重跑重建。返回states保留原始每层重建张量/监督梯度；Write0/完全隔离/同零步649共享张量、空Adam、8rank RNG、4epoch4172、adapt/short0。24项CPU测试/真实源预检通过；未宣称GPU通过。66353保持原快照不动，比较等待本组评测和66354；作业号以attempt17/submission.json为准，提交后单次核对停止轮询。
 
 > **SAM残差初始化隔离训练66353已提交，停止轮询。** 13节点8×3090单次确认RUNNING；官方128评测66354 afterok，比较汇总66355 afterany。新attempt16、执行快照SHA767cbe8，详见 [gfm_sam_residual_isolated_20261017.md](gfm_sam_residual_isolated_20261017.md)。14项CPU单测/真实649张量逐位预检通过；GPU首步与八rank同步尚未核实，待用户通知检查，不重提交、不改执行快照。
