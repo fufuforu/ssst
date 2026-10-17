@@ -28,3 +28,14 @@
 依赖CPU汇总比较旧C与原Unified epoch4/6/8，核对同128输入身份、实际checkpoint epoch和源SHA，输出`comparison_epoch4_6_8/{comparison.csv,comparison.md,COMPLETE.json}`。与A续训的综合对照待两组完成后用户通知再分析，不额外轮询A。
 
 独立干净代码快照：`/space/mawb/ssst_unified_query_extend_code_20261017`。具体SHA/测试项数/作业号/一次状态记录以run的preflight、VALIDATION_EVIDENCE、submission和SUBMISSION_STATUS_ONCE收据为准。原Unified此前同节点8卡4epoch耗时4h27m，本轮预计训练约4–4.5小时；评测各约15–20分钟可并行，排队另计。提交后停止轮询，等待用户通知。
+
+## 已提交并停止轮询
+
+执行SHA **4787f3696f8ef1121005d5edf17cc34811c500ff**，独立快照干净。真实源301张量/Adam4172/8rank RNG、冻结资产/数据及模型等价性预检通过，34项CPU测试、Python编译、shell语法与diff检查通过。新GPU加载/第一新增更新尚未核实，RUNNING仅代表调度状态。
+
+- **66648**：原Unified epoch4→8，11节点8×3090、32CPU/192G；唯一一次状态核对RUNNING。
+- **66649**：epoch6官方128，11节点1×3090；afterok:66648，PENDING(Dependency)。
+- **66650**：epoch8官方128，11节点1×3090；afterok:66648，PENDING(Dependency)。
+- **66651**：原Unified4/6/8及旧C CPU汇总；afterok:66649:66650，PENDING(Dependency)。
+
+已停止轮询，不等待GPU首步、训练进展或结果。没有查询A进度、重启A或提交B/串行新实验；用户通知完成后再检查。
