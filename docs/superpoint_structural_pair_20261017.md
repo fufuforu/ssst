@@ -44,3 +44,7 @@ A保留的是旧双分支的核心交互和读出，不是旧V4的严格纯初�
 两组在同一硬件/数据/全局批/更新预算下做方案比较，但参数量显著不同；B还新增直接语义监督。不能把结果差异只归因于共享/分离Query或初始化。初末探针包含PSNR、理解各项、来源支持GT/正Query数量、最佳Mask IoU、raw语义像素准确率、NMS和最终实例，以及紧凑预测张量。首更新检查4rank全参数SHA/分组梯度及冻结模块无梯度；结束各自自动汇总。
 
 共同run根：`/space/mawb/ssst/group_plus/unified_query_training_v1`，配对收据位于`structural_pair_20261017`。独立快照`/space/mawb/ssst_superpoint_structural_pair_code_20261017`，现有全量快照不修改。具体job/SHA以pair/submission.json为准；提交后只做一次状态核对，然后停止轮询，等用户通知完成后检查。
+
+## 已提交并停止轮询
+
+2026-10-17北京时间15:02:22：A **66487**、B **66488**，单次核对均RUNNING，18节点各4×4090、16CPU/128G。执行SHA`ead7f58`，独立快照干净；GPU首步、原生renderer-transpose/直接场前后向及四rank SHA尚未核实，不能将CPU/DDP检查或RUNNING称作GPU通过。pair/submission.json和SUBMISSION_STATUS_ONCE.json已记录。无额外全量/正式评测依赖，短测初末探针及汇总在各自同一作业内完成。已停止轮询，用户通知结束后检查，不重提、不影响66432/66433。
