@@ -49,6 +49,7 @@ class Task(nn.Module):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir',type=Path,required=True);parser.add_argument('--understanding-weight',type=float,required=True)
+    parser.add_argument('--architecture',choices=('unified','dual_superpoint','unified_direct'),default='unified')
     parser.add_argument('--epochs',type=int,default=4);parser.add_argument('--max-updates',type=int)
     parser.add_argument('--learning-rate',type=float,default=1e-4);parser.add_argument('--understanding-warmup',type=int,default=1043)
     parser.add_argument('--short-validation',action='store_true',help='16 fixed training scenes, 256 updates, initial/final probes')
@@ -70,7 +71,8 @@ def main():
     config=UnifiedQueryConfig(**json.loads(args.config.read_text())) if args.config else UnifiedQueryConfig()
     opt=config_defaults['train_siu3r_unified_query_v1'];windows,chosen,validation=cohorts()
     if args.short_validation:windows=[windows[i] for i in chosen]
-    model=LocusGSUnifiedQueryV1(opt,config=config).to(device)
+    from tokengs.models.superpoint_structural_variants import build_structural_model
+    model=build_structural_model(args.architecture,opt,config).to(device)
     if args.initial_checkpoint:
         if digest(args.initial_checkpoint)!=args.initial_sha256:raise ValueError('Zero-step checkpoint SHA differs')
         from scripts.unified_query_initial_state import validate_zero_initial

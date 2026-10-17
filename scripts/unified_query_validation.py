@@ -38,14 +38,17 @@ def run_probes(model,opt,train,validation,root,label,rank,world,device,weight):
                 iou=(pred&truth).sum(1)/(pred|truth).sum(1).clamp_min(1);ious.append(float(iou.max()))
             scalars={k:float(v) for k,v in metrics.items() if isinstance(v,(int,float)) or torch.is_tensor(v) and v.numel()==1}
             if not all(math.isfinite(v) for v in scalars.values()):raise FloatingPointError('Nonfinite probe')
-            row=dict(scope='train' if index<4 else 'heldout',scene=window['scene'],context=window['context'],metrics=scalars,
+            semantic_target=batch['semantic_label_all'][:,:2]
+            semantic_valid=(semantic_target>=0)&(semantic_target<20)
+            semantic_accuracy=float((p['semantic_scores'].argmax(2)[semantic_valid]==semantic_target[semantic_valid]).float().mean())
+            row=dict(raw_semantic_pixel_accuracy=semantic_accuracy,scope='train' if index<4 else 'heldout',scene=window['scene'],context=window['context'],metrics=scalars,
                 best_supported_gt_mask_iou=sum(ious)/max(1,len(ious)),supported_gt_count=len(ious),
                 nms_kept=int(p['instance_eligible'].sum()),final_instances=int(ins.unique().numel()-int((ins==0).any())),
                 source_observations=len(p['cloud']['source_indices']),fused_points=len(p['cloud']['points']),gaussians=p['gaussians'].shape[1])
             rows.append(row)
             folder=root/'probes'/label;folder.mkdir(parents=True,exist_ok=True)
             torch.save(dict(scene=window['scene'],context_rgb=p['generation_context_rgb'].cpu(),rgb=p['render']['images_pred'].cpu(),
-                semantic=sem.cpu(),instance=ins.cpu(),p_class=p['p_class'].cpu(),eligible=p['instance_eligible'].cpu()),folder/f'{index:02d}.pt')
+                semantic=sem.cpu(),raw_semantic=p['semantic_scores'].argmax(2).cpu(),instance=ins.cpu(),p_class=p['p_class'].cpu(),eligible=p['instance_eligible'].cpu()),folder/f'{index:02d}.pt')
             del output,p,mask,target
     random.setstate(py);model.train(was_training)
     allrows=[None]*world

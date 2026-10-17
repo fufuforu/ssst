@@ -32,12 +32,14 @@ def main():
         else:dist.init_process_group('nccl')
     torch.cuda.set_device(local);device=torch.device('cuda',local)
     saved=torch.load(args.checkpoint,map_location='cpu',weights_only=False,mmap=True);meta=saved['meta']
-    if meta['architecture']!=LocusGSUnifiedQueryV1.architecture_name or meta['manifest_sha256']!=digest(MANIFEST) or meta['heldout_sha256']!=digest(HELDOUT):raise ValueError('Checkpoint/data identity differs')
+    from tokengs.models.superpoint_structural_variants import MODELS
+    constructors={model.architecture_name:model for model in MODELS.values()}
+    if meta['architecture'] not in constructors or meta['manifest_sha256']!=digest(MANIFEST) or meta['heldout_sha256']!=digest(HELDOUT):raise ValueError('Checkpoint/data identity differs')
     if meta.get('short_validation') and not args.smoke:raise ValueError('Short trainability run is not full-data training; use --smoke only')
     if not args.smoke and saved['progress']['epoch']!=meta['epochs']:raise ValueError('Incomplete training; only --smoke export allowed')
     training,_,_=cohorts()
     if not args.smoke and saved['progress']['full_updates']!=meta['epochs']*(len(epoch_order(len(training),0))//8):raise ValueError('Training update count differs')
-    opt=config_defaults['train_siu3r_unified_query_v1'];model=LocusGSUnifiedQueryV1(opt,config=UnifiedQueryConfig(**meta['config'])).to(device)
+    opt=config_defaults['train_siu3r_unified_query_v1'];model=constructors[meta['architecture']](opt,config=UnifiedQueryConfig(**meta['config'])).to(device)
     if model.frozen_omega.source_identity!=meta['omega_identity']:raise ValueError('Frozen source identity differs')
     if (model.sam_proposals.source_identity if model.sam_proposals is not None else None)!=meta['sam_identity']:raise ValueError('SAM source identity differs')
     restore_state(model,saved['model']);_,_,windows=cohorts()

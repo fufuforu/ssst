@@ -10,7 +10,7 @@ from tokengs.models.locusgs_recon import LocusGSAnchorDecoder, anchor_ray_geomet
 from tokengs.models.object_locus_v3_set_controller import scene_normalization
 
 class PointSeededAnchorDecoder(LocusGSAnchorDecoder):
-    def forward_stateful(self, tokens, latent, rays, controller, fm, qpre, mask_embedder, exposure, *, seed_mu, seed_radius, seed_c, seed_s, write_strength=0.0, reconstruction_only=False, reconstruction_states=None):
+    def forward_stateful(self, tokens, latent, rays, controller, fm, qpre, mask_embedder, exposure, *, seed_mu, seed_radius, seed_c, seed_s, write_strength=0.0, reconstruction_only=False, reconstruction_states=None, normalization_fn=None):
         if reconstruction_only and reconstruction_states is not None:raise ValueError('Conflicting decoder stages')
         if (reconstruction_only or reconstruction_states is not None) and write_strength!=0.:raise ValueError('Two-stage decoding requires Write=0')
         if reconstruction_states is not None and len(reconstruction_states)!=len(self.decoder_blocks):raise ValueError('Incomplete reconstruction states')
@@ -59,7 +59,7 @@ class PointSeededAnchorDecoder(LocusGSAnchorDecoder):
             radii = self.activated_radius(rho)
             layer, result = index+1, {}
             if layer in (6,8,10,12) and not reconstruction_only:
-                if layer==6: origin,ell = scene_normalization(mu)
+                if layer==6: origin,ell = (normalization_fn or scene_normalization)(mu)
                 a = controller.encode_token(tokens,mu,radii,ell)
                 if reading is not None:
                     a = reading.anchor(a, mu)

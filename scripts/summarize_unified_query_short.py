@@ -15,7 +15,7 @@ def main():
     old={(r['scope'],r['scene']):r for r in before};new={(r['scope'],r['scene']):r for r in after};assert old.keys()==new.keys()
     changed={name:float((value-initial['model'][name]).float().norm()) for name,value in checkpoint['model'].items()}
     families={label:sum(value for name,value in changed.items() if name.startswith(prefix)) for label,prefix in
-        [('projection','gfm_projection.'),('3d_initializer','core.initializer.'),('shared_decoder','core.blocks.'),('reconstruction','core.activation_head.'),('classifier','core.classifier.'),('mask','core.child_feature.') ]}
+        [('projection','gfm_projection.'),('3d_initializer','core.initializer.'),('decoder',('core.blocks.','core.panoptic.layers.')),('reconstruction','core.activation_head.'),('classifier',('core.classifier.','core.panoptic.class_head.')),('mask',('core.child_feature.','core.instance_field.','core.panoptic.child_mlp.','core.semantic_memory.mask_embedder.')) ]}
     assert all(math.isfinite(v) and v>0 for v in families.values())
     rows=[]
     for key in old:

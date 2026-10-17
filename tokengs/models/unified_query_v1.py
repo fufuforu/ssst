@@ -20,6 +20,7 @@ from tokengs.models.tokengs import TokenGS
 class LocusGSUnifiedQueryV1(nn.Module):
     architecture_name='OMEGA_3D_SUPERPOINT_UNIFIED_QUERY_V1'
     reconstruction_only=False
+    core_type=UnifiedQueryCore
 
     def __init__(self,opt,*,config=None,omega=None,sam=None,renderer=None,omega_checkpoint='/datasets2/mengxl/vggt_omega/vggt_omega_1b_512.pt'):
         super().__init__();self.config=config or UnifiedQueryConfig();self.opt=opt
@@ -29,7 +30,7 @@ class LocusGSUnifiedQueryV1(nn.Module):
         self.sam_proposals=(sam if sam is not None else FrozenESAMSAM()) if self.config.superpoint_source=='esam_sam' else None
         if self.sam_proposals is not None:self.sam_proposals.requires_grad_(False).eval()
         self.gfm_projection=nn.Sequential(nn.LayerNorm(2048),nn.Linear(2048,self.config.dim))
-        self.core=UnifiedQueryCore(opt,self.config)
+        self.core=self.core_type(opt,self.config)
         if renderer is None:
             from tokengs.rendering.gs import GaussianRenderer
             renderer=GaussianRenderer(opt)
