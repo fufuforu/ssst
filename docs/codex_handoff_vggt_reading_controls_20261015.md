@@ -1,5 +1,7 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **最新：66414已完成并核实，可训练性通过但泛化未通过。** COMPLETED/0:0、13分58秒、8rank各256更新；301可训练张量全部变化/Adam均256，首步8rank全参数SHA一致，无非有限值。4train探针PSNR10.935→19.721、理解loss2.078→0.676、支持GT最佳Mask IoU（GT等权）0.1345→0.2673；4heldout PSNR11.625→10.049、Mask IoU0.1151→0.0722。20训练支持GT对应172正Query，分类约100%，证明多对一真实生效，但复杂场景Mask和最终组装仍弱。16场景重复128遍的小样本拟合不是正式128/11指标结果。详见[完成分析](unified_query_many_short_results_20261017.md)；运行目录新增RESULT_AUDIT.json和probe_comparison.png。建议保持结构做完整数据训练，未提交新作业、不重跑66414、不恢复B、不改66353。下方RUNNING均为历史状态。
+
 > **最新已提交并停止轮询：Unified Query多对一短验证66414。** 单次核对18节点8×4090 RUNNING；执行SHA6aa16a0，独立ssst_unified_esam_many_code_20261017。16固定训练场景/256更新/全局批8；前后4train＋4heldout探针及内置结束汇总，不是正式128评测，无全量自动续训。真实CPU权重/数据预检与21项检查通过；GPU首步、区域预算、CUDA反向及八rank SHA尚未验证。新run为`/space/mawb/ssst/group_plus/unified_query_training_v1/attempt01_esam_many_short_node18_8gpu`，以submission.json和结束收据为准。保持66353/旧快照不动，B不恢复。等待用户通知再检查，不重复提交、不继续轮询。详见[运行记录](unified_query_many_short_20261017.md)。
 
 > **2026-10-17最新授权：实现多对一完整实例监督，并提交Unified Query短训练验证。** 默认`source_many_to_one`：同一GT的多个合格超点Query均预测完整Mask，损失按GT平衡；context同类Mask NMS去重，身份复用于目标视图，不删除Gaussian。新attempt01_esam_many_short_node18_8gpu与独立快照ssst_unified_esam_many_code_20261017，18节点8×4090、固定16训练场景、256更新、全局批8、LR1e-4/20步warmup/短cosine、理解weight0.05/20步ramp；仅冻结Omega/SAM，其余全新，不加载旧checkpoint。训练前后各4train＋4heldout探针、首步全参数8rank SHA及梯度证据、结束自动汇总，不自动启动全量训练或声称官方128指标。20项CPU单测＋真实2rank Gloo测试、真实Omega/SAM权重/数据预检通过。GPU尚未验证；提交状态以新run/submission.json为准。旧66353不改、B不恢复。详见[短验证记录](unified_query_many_short_20261017.md)。
