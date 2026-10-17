@@ -1,5 +1,7 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **最新已提交，停止轮询：完整数据Unified Query训练66432／自动评测66433。** 2026-10-17 12:50:08，北京时间；单次核对训练RUNNING、11节点8×3090；评测PENDING(Dependency)、afterok:66432，同节点单卡，含固定128官方11项及旧C/V4已完成对照汇总。执行SHA09063a1／独立ssst_unified_esam_full_code_20261017，run为`/space/mawb/ssst/group_plus/unified_query_training_v1/attempt02_esam_many_full_node11_8gpu`。1191场景8337窗口、4epoch4172更新；读取66414的0步/空Adam/8rank RNG，不是256步终点。新GPU首步/八rank同步尚未核实，旧短测成功不是新任务GPU收据。21项CPU/实际零步资产与数据预检通过。保留首末及epoch探针/epoch checkpoint；已停止轮询，用户通知再检查，不重提、不影响旧作业。详见[全量记录](unified_query_many_full4_20261017.md)。
+
 > **最新授权：开始Unified Query完整数据4epoch。** 新attempt02_esam_many_full_node11_8gpu，11节点8×3090（18/14/17八卡已占用），1191场景/8337窗口、4172更新/全局批8。保持多对一完整Mask监督＋context NMS；官方Omega/SAM冻结，其他参数读取66414的**零步**权重/8rank RNG，空Adam，不继承256步拟合终点、不重复适配。LR1e-4/100步预热，理解weight0.05/1043步ramp，无隔离。独立ssst_unified_esam_full_code_20261017；初始/每epoch固定探针及epoch checkpoint，训练后依赖官方128/11项与已完成组比较。真实源/资产/数据/官方评分器预检及21项CPU测试通过，新的GPU首步尚未验证。详见[全量计划](unified_query_many_full4_20261017.md)，作业号以新run/submission.json为准；提交后单次核对停止轮询。
 
 > **最新：66414已完成并核实，可训练性通过但泛化未通过。** COMPLETED/0:0、13分58秒、8rank各256更新；301可训练张量全部变化/Adam均256，首步8rank全参数SHA一致，无非有限值。4train探针PSNR10.935→19.721、理解loss2.078→0.676、支持GT最佳Mask IoU（GT等权）0.1345→0.2673；4heldout PSNR11.625→10.049、Mask IoU0.1151→0.0722。20训练支持GT对应172正Query，分类约100%，证明多对一真实生效，但复杂场景Mask和最终组装仍弱。16场景重复128遍的小样本拟合不是正式128/11指标结果。详见[完成分析](unified_query_many_short_results_20261017.md)；运行目录新增RESULT_AUDIT.json和probe_comparison.png。建议保持结构做完整数据训练，未提交新作业、不重跑66414、不恢复B、不改66353。下方RUNNING均为历史状态。
