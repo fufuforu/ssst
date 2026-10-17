@@ -1,5 +1,7 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **最新覆盖：用户明确停止B，66380/66381/66382均已CANCELLED，66353保持不动。** 原因是目标初始化应为三维点特征→超点特征→Query，而非几何辅助二维池化或当前SAM支持的更新Anchor插值。B日志/快照保留，200步完整checkpoint硬链接保留，收据attempt17/USER_CANCELLED_20261017.json。勿自动恢复B、重复提交或依据其未完成结果作性能结论；尚未授权新超点训练。详见 [gfm_updated_anchor_seed_experiment_b_20261017.md](gfm_updated_anchor_seed_experiment_b_20261017.md)。
+
 > **并行结构实验B已提交66380，停止轮询。** 请求18节点8×4090，单次核对PENDING(Priority)，未宣称已分配或GPU通过；官方128评测66381 afterok，比较66382 afterany:66381:66354。执行SHA678a47c，新attempt17，详见 [gfm_updated_anchor_seed_experiment_b_20261017.md](gfm_updated_anchor_seed_experiment_b_20261017.md)。24项CPU检查和真实零步649张量预检通过。先重建→SAM支持汇聚detach终点Anchor→learned-base残差query→理解重放原四层，原多层重建梯度保留、完全隔离、4epoch4172步。66353及其快照不改，用户通知后检查新作业，勿重复提交或继续轮询。
 
 > **2026-10-17新授权：并行结构实验B，更新后的Anchor初始化Object Query。** 见 [gfm_updated_anchor_seed_experiment_b_20261017.md](gfm_updated_anchor_seed_experiment_b_20261017.md)。新attempt17/独立ssst_gfm_anchor_seed_code_20261017，18八张4090；先重建12层，复用现有under投影对detach终点Anchor编码，SAM预测3D支持局部4近邻插值与原几何池化形成seed，保留learned base＋.1门控，随后理解重放保存的L6/8/10/12，不重跑重建。返回states保留原始每层重建张量/监督梯度；Write0/完全隔离/同零步649共享张量、空Adam、8rank RNG、4epoch4172、adapt/short0。24项CPU测试/真实源预检通过；未宣称GPU通过。66353保持原快照不动，比较等待本组评测和66354；作业号以attempt17/submission.json为准，提交后单次核对停止轮询。
