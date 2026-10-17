@@ -4,7 +4,7 @@ import sys
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
 from scripts.runtime_bootstrap import prepare_runtime
 prepare_runtime(ROOT)
-import json
+import argparse,json
 import torch
 from scripts.train_dual_stream_v1 import cohorts,build_batch,digest,MANIFEST,HELDOUT
 from tokengs.options import config_defaults
@@ -13,6 +13,8 @@ RUN=Path('/space/mawb/ssst/group_plus/serial_query_diagnostics_v1/attempt01')
 SOURCES={'serial':BASE/'attempt07_serial_query_isolated_short_node18_4gpu','unified':BASE/'attempt01_esam_many_short_node18_8gpu'}
 
 def main():
+    global RUN
+    parser=argparse.ArgumentParser();parser.add_argument('--run-root',type=Path,default=RUN);args=parser.parse_args();RUN=args.run_root
     torch.set_num_threads(4)
     if (RUN/'submission.json').exists() or (RUN/'STARTED.json').exists():raise ValueError('Refusing duplicate diagnostic')
     records={};identity=None

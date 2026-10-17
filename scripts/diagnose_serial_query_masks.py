@@ -30,13 +30,31 @@ def witness_values(p):
 
 
 class Observer:
+    """Capture the unchanged encode_context return; never register layer hooks."""
     def __init__(self,model):
-        self.stages={};self.handles=[]
-        for i,block in enumerate(model.core.semantic_blocks):
-            def hook(module,args,output,i=i):self.stages[f'D{i+1}']=output.detach()
-            self.handles.append(block.register_forward_hook(hook))
+        self.model=model;self.memory=None
+        self.had_override='encode_context' in model.__dict__
+        self.previous_override=model.__dict__.get('encode_context')
+        self.original=model.encode_context
+        def capture(*args,**kwargs):
+            output=self.original(*args,**kwargs)
+            self.memory=output[2]
+            return output
+        model.encode_context=capture
+
     def close(self):
-        for h in self.handles:h.remove()
+        if self.had_override:self.model.encode_context=self.previous_override
+        else:delattr(self.model,'encode_context')
+
+    def replay(self,prediction):
+        q=prediction['semantic_query_initial'];seed=q.clone()
+        memory=self.memory['semantic'];before=memory.clone();stages={}
+        for i,block in enumerate(self.model.core.semantic_blocks):
+            q=block(q,memory);stages[f'D{i+1}']=q.detach()
+        torch.testing.assert_close(q,prediction['understanding_query'],rtol=1e-5,atol=1e-6)
+        if not torch.equal(memory,before) or not torch.equal(seed,prediction['semantic_query_initial']):
+            raise ValueError('Single-forward replay changed its inputs')
+        return stages
 
 
 def stage_prediction(model,p,q):
@@ -85,13 +103,20 @@ def observe(model,opt,window,index,scope,device,serial,do_witness,folder):
     try:p=model.generate(batch['images_input'])
     finally:
         if observer:observer.close()
-    calibrated=repeat_calibrated_witness(*references,witness_values(p)) if do_witness else None
-    if calibrated and not calibrated['passed']:raise ValueError('Observer exceeds native repeat witness tolerance')
+    calibrated=None
+    if do_witness:
+        try:calibrated=repeat_calibrated_witness(*references,witness_values(p))
+        except ValueError as error:calibrated=dict(passed=False,error=str(error),policy='native_repeat_shape_check')
+        # Full front-end/point-pooling repeats are a stability diagnostic, not an
+        # observer identity test. Preserve the original limits and full receipt.
+        (folder/f'WITNESS_{index:02d}.json').write_text(json.dumps(calibrated,indent=2)+'\n')
+    captured_stages=observer.replay(p) if observer else {}
+    if observer:(folder/f'REPLAY_{index:02d}.json').write_text(json.dumps(dict(passed=True,policy='same_native_seed_and_memory_no_layer_hooks',rtol=1e-5,atol=1e-6))+'\n')
     del references
     targets=build_context_instance_targets(batch)
     allowed,support=support_relation(p,batch,targets,model.config.support_purity,return_scores=True)
     result,labels,stages,matrices=analyze_native(p,targets,allowed,support,seed=1729+index)
-    result.update(index=index,scope=scope,scene=window['scene'],context=window['context'],input_rgb_sha256=hashlib.sha256(batch['images_input'].cpu().contiguous().numpy().tobytes()).hexdigest(),witness=calibrated,
+    result.update(index=index,scope=scope,scene=window['scene'],context=window['context'],input_rgb_sha256=hashlib.sha256(batch['images_input'].cpu().contiguous().numpy().tobytes()).hexdigest(),witness=calibrated,native_repeat_warning=bool(calibrated and not calibrated['passed']),same_forward_replay_verified=bool(observer),
         gt_ids=targets['gt_instance_ids'][0].cpu().tolist(),gt_classes=targets['gt_classes'][0].cpu().tolist())
     # Existing renderer adjoint measures actual per-Gaussian alpha-compositing
     # contribution. Its internal derivative is to a temporary feature probe,
@@ -113,7 +138,7 @@ def observe(model,opt,window,index,scope,device,serial,do_witness,folder):
     result['representation']={};result['counterfactual_stage_heads']={};stage_maps={} 
     tokens={'superpoint_initial':p['q_pre']}
     if serial:
-        tokens.update(Q_rec=p['reconstruction_query'],seed=p['semantic_query_initial'],**observer.stages)
+        tokens.update(Q_rec=p['reconstruction_query'],seed=p['semantic_query_initial'],**captured_stages)
         final=original_readout(model.core,tokens['D4'],p)
         for key in ['gaussian_mask_logits','gaussian_membership','thing_logits19']:torch.testing.assert_close(final[key],p[key],rtol=1e-5,atol=1e-6)
         result['final_head_replay_verified']=True

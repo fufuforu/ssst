@@ -1,5 +1,7 @@
 # 串行Query固定权重Mask链路诊断
 
+> 更新：66634在初始完整前向重复校验失败，未产出完整诊断。后续修复使用attempt02与独立retry快照，改为同一次原生前向的seed/memory重放验证，不再给理解层加hook；原完整前向差异原样保留为稳定性告警。下文初版hook/witness叙述是历史设计，以下修复节优先。原Unified仅作辅助参照，不是架构单变量对照。
+
 用户在66603短测后授权诊断，不更新参数、不修改结构或正式评测协议。新独立run：`/space/mawb/ssst/group_plus/serial_query_diagnostics_v1/attempt01`；独立快照：`/space/mawb/ssst_serial_query_diagnostics_code_20261017`。18节点4×4090/16CPU/128G；一个作业内完成推理与CPU汇总，提交后一次状态核对即停止轮询。
 
 ## 比较对象与数据
@@ -36,3 +38,15 @@
 ## 已提交并停止轮询
 
 诊断作业 **66634**，18节点4×4090、16CPU/128G，唯一一次调度核对 **RUNNING**。执行SHA **e4ae921**、独立快照干净。提交前11项CPU测试通过，包含完整模拟观察/现有渲染器转置/图像/64窗口汇总产物；真实源checkpoint与冻结资产SHA、32窗口选择及实际数据读取预检通过。GPU原生witness/不可变性/D4重放检查尚待该作业实际执行，RUNNING不等于这些验证通过。无训练或额外评测依赖；结束同作业自动汇总。提交与状态记录见run/submission.json、SUBMISSION_STATUS_ONCE.json。现停止轮询，用户通知完成后再分析报告和典型图。
+
+## 66634失败审计与单次前向重放修复
+
+66634 FAILED/1:0，运行1m35s；4rank均在第一窗口`Observer exceeds native repeat witness tolerance`退出，无COMPLETE/正式窗口JSON/汇总结果。源权重没有更新。原代码在异常前未落盘具体witness差异，不能宣称已确认是哪个CUDA算子、VGGT/SAM还是观察hook造成；只能确定旧跨完整前向校验没有通过，不能据此给串行模型下结论。失败目录attempt01及快照e4ae921全部保留。
+
+新方法不提高或改动原repeat_calibrated_witness的floor/ceiling。两次完整原生前向与第三次前向的原始差异保存为WITNESS文件；超界或Query形状改变显式写入native_repeat_warning。它只衡量完整路径稳定性，不再冒充“相同输入状态下的observer一致性”。汇总保留全部差异，若有告警则标记DIAGNOSTICS_COMPLETE_WITH_REPEAT_WARNINGS，不伪造通过。
+
+不再注册理解层forward hook。用透明的encode_context返回值捕获器原样返回同一个对象，仅保留当次semantic memory；原生generate照常执行。随后使用当次原生semantic_query_initial与该memory按同样顺序重放4层理解Decoder，严格核对D4与原生understanding_query，rtol1e-5/atol1e-6，并确认seed/memory未被改写。最终Mask/class头重放、生产组装重放、源权重逐张量不变及参数无grad检查继续强制通过。该校验避免重新运行VGGT/SAM/点聚合引入不同实现的输入状态，也消除层hook对执行路径的潜在影响；没有修改模型、原生阈值或源checkpoint。
+
+新增回归模拟变化的前端：原完整前向witness失败必须如实保存，但同次输入的D4重放仍需严格成功；另故意破坏D4重放结果，必须拒绝。汇总测试验证带告警的结果不会标为无告警完成。CPU回归及真实checkpoint/冻结资产/32场景预检重新执行，原Unified仍仅辅助参照。
+
+修复诊断独立run：`/space/mawb/ssst/group_plus/serial_query_diagnostics_v1/attempt02`；独立不可变快照：`/space/mawb/ssst_serial_query_diagnostics_retry01_code_20261017`。推理与自动汇总预算/输出内容仍为两模型各32窗口、18节点4×4090，无训练。原失败尝试没有已完成窗口可复用，本轮不重复任何成功训练。新作业号及验证证据以attempt02/submission.json和VALIDATION_EVIDENCE.json为准；提交后一次核对即停止轮询。
