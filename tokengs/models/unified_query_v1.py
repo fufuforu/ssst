@@ -59,7 +59,7 @@ class LocusGSUnifiedQueryV1(nn.Module):
         semantic[:,:,:2]=regions[:,:,n:n+2]
         semantic[:,:,2:]=torch.einsum('bvqhw,bqc->bvchw',regions[:,:,:n],p[...,:18])
         semantic=semantic/(semantic.sum(2,keepdim=True)+1e-6)
-        return dict(**render,region_mass=regions,pixel_membership=regions,alpha=alpha,semantic_scores=semantic,p_class=p,
+        return dict(**({'instance_eligible':generated['instance_eligible']} if 'instance_eligible' in generated else {}),**render,region_mass=regions,pixel_membership=regions,alpha=alpha,semantic_scores=semantic,p_class=p,
             states=generated['states'],gaussians=generated['gaussians'],gaussian_membership=generated['gaussian_membership'],num_thing_queries=n)
 
     def encode_context(self,context_rgb):
@@ -85,6 +85,9 @@ class LocusGSUnifiedQueryV1(nn.Module):
         rendered=self._render_understanding(output,decoder)
         output.update(render={k:rendered[k] for k in ('images_pred','depths_pred','alphas_pred')},
             **{k:rendered[k] for k in ('region_mass','pixel_membership','alpha','semantic_scores')})
+        from tokengs.models.unified_query_nms import context_mask_nms
+        output['instance_eligible'],output['instance_ranking_scores']=context_mask_nms(
+            output['p_class'],output['region_mass'],output['alpha'],self.config.mask_nms_iou)
         return output
 
     @torch.no_grad()

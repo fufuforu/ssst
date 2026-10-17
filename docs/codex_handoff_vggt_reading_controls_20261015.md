@@ -1,5 +1,7 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **2026-10-17最新授权：实现多对一完整实例监督，并提交Unified Query短训练验证。** 默认`source_many_to_one`：同一GT的多个合格超点Query均预测完整Mask，损失按GT平衡；context同类Mask NMS去重，身份复用于目标视图，不删除Gaussian。新attempt01_esam_many_short_node18_8gpu与独立快照ssst_unified_esam_many_code_20261017，18节点8×4090、固定16训练场景、256更新、全局批8、LR1e-4/20步warmup/短cosine、理解weight0.05/20步ramp；仅冻结Omega/SAM，其余全新，不加载旧checkpoint。训练前后各4train＋4heldout探针、首步全参数8rank SHA及梯度证据、结束自动汇总，不自动启动全量训练或声称官方128指标。20项CPU单测＋真实2rank Gloo测试、真实Omega/SAM权重/数据预检通过。GPU尚未验证；提交状态以新run/submission.json为准。旧66353不改、B不恢复。详见[短验证记录](unified_query_many_short_20261017.md)。
+
 > **2026-10-17 最新指令：Unified Query默认采用ESAM式SAM超点生成。** 使用VGGT预测相机/深度对应的点云替代实测几何；SAM区域按面积降序写标签，小覆盖大；未覆盖点按ESAM MV的XYZRGB KMeans8补分组。采样保留每个有效区域，同区域内压缩点，禁止跨区域融合，保留像素→点→超点映射。3D邻域编码后池化为query，非二维SAM mask直接池化。现有SAM ViT-B与原版H不同，三维骨干仍为本项目MLP，未宣称完整ESAM复现。详见[实现说明](unified_superpoint_query_v1_implementation_20261017.md)。不提交训练，不恢复B，不修改既有作业；16项CPU测试、语法和diff检查通过；GPU真实SAM/渲染及预算尚未验证。
 
 > **最新：用户授权的Unified Superpoint Query V1已实现，未提交训练。** 详见 [unified_superpoint_query_v1_implementation_20261017.md](unified_superpoint_query_v1_implementation_20261017.md)。独立注册siu3r_unified_query_v1：冻结Omega GFM→提升三维点/体素跨视图融合→3D邻域编码→超点几何池化→唯一共享Query序列/12层decoder→Gaussian与类别/跨Gaussian实例Mask头。超点首版为可替换的三维体素过分割，预留融合点上的外部IDs接口，不依赖SAM，不冒称ESAM超点生成器复现；默认最多512 Query/32768 Gaussian，容量不同于旧版。来源约束动态匹配仅在预测后读取GT；训练入口独立且understanding-weight必须显式提供。12项CPU测试、5例旧100-query组装逐位一致核对及编译检查通过，合成Omega/假渲染器不能替代真实GPU验证。尚无真实Omega+CUDA冒烟/训练结果，不自动提交。B已取消且不得恢复，66353及旧快照不动。

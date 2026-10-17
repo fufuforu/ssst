@@ -32,6 +32,7 @@ def main():
     torch.cuda.set_device(local);device=torch.device('cuda',local)
     saved=torch.load(args.checkpoint,map_location='cpu',weights_only=False,mmap=True);meta=saved['meta']
     if meta['architecture']!=LocusGSUnifiedQueryV1.architecture_name or meta['manifest_sha256']!=digest(MANIFEST) or meta['heldout_sha256']!=digest(HELDOUT):raise ValueError('Checkpoint/data identity differs')
+    if meta.get('short_validation') and not args.smoke:raise ValueError('Short trainability run is not full-data training; use --smoke only')
     if not args.smoke and saved['progress']['epoch']!=meta['epochs']:raise ValueError('Incomplete training; only --smoke export allowed')
     opt=config_defaults['train_siu3r_unified_query_v1'];model=LocusGSUnifiedQueryV1(opt,config=UnifiedQueryConfig(**meta['config'])).to(device)
     if model.frozen_omega.source_identity!=meta['omega_identity']:raise ValueError('Frozen source identity differs')

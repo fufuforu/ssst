@@ -47,8 +47,8 @@
 - 每超点Query生成64个Gaussian。默认最多512 Query/32768 Gaussian，低于旧1024×64的上限；这不是同容量单变量对照，不得直接将性能变化唯一归因共享query。
 - Gaussian父Query身份只表示**由谁生成**。实例Mask为每个Gaussian对每个Query独立预测的sigmoid关系，允许一个Query的Mask覆盖多个超点生成的Gaussian。没有把所有Child硬归到父Query实例。
 - 类别为每Query18类＋no-object；stuff两个Mask描述子从共享Query汇聚生成。重建包括背景超点，不因理解头判no-object而删除其Gaussian。
-- 默认匹配开启来源约束：预测完成后才读取context GT，根据源像素的GT实例统计每超点的所属关系，纯度≥0.5才允许相应query/GT匹配；在允许关系内执行一对一最小成本匹配。没有足够支持的GT不强行匹配，记录`unsupported_GT_count`。可显式关闭来源约束做全局匹配对照。
-- 这是本项目的来源约束Hungarian实现，**并非ESAM SparseMatcher的逐行复刻**。训练GT不进入超点划分、三维特征或query初始化，也不用于推理。
+- 最新默认匹配开启来源约束的多对一分配：预测完成后才读取context GT，根据源像素的GT实例统计每超点的所属关系，纯度≥0.5才允许匹配；每Query选择来源占比最高的合格GT（并列按GT顺序确定），一个GT可对应多个Query，所有正Query监督完整实例Mask。分类和Mask损失按GT内部平均再跨GT归一，no-object作为单独权重0.1的背景组。显式`matching_mode="hungarian"`保留旧一对一对照。没有足够支持的GT不强行匹配，记录`unsupported_GT_count`。可显式关闭来源约束做全局匹配对照。
+- 这是本项目的来源约束实例分配实现，**并非ESAM SparseMatcher的逐行复刻**。训练GT不进入超点划分、三维特征或query初始化，也不用于推理。
 - 分类/no-object权重、Mask BCE/Dice、stuff项沿用原系数形式，但查询数和允许匹配集合改变，是新的模型/训练定义；官方推理阈值、竞争及area-filter规则保持。
 - 两任务损失都可更新共享投影、三维编码、超点池化和共享decoder，CPU梯度测试分别验证了两条路径。任务头分组表示模块职责，不表示渲染几何梯度已隔离：理解Mask依赖Gaussian位置/opacity时也可向重建头反传。
 
@@ -94,3 +94,5 @@ output, metrics = model.step_loss(batch, understanding_weight=chosen_weight)
 本轮未提交训练、未查询/改动已有作业。实际SAM自动分割、CUDA原生Gaussian渲染、真实数据上的区域数/预算分布尚待GPU短验证；CPU测试使用合成Omega/SAM/renderer，不能替代这些检查。没有承诺新初始化已经改善mAP或小物体召回。
 
 验证：`OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 OPENBLAS_NUM_THREADS=1 python -m unittest tests.test_unified_query_v1 tests.test_gfm_instance_diagnostics`共16项通过（5.506s测试执行，不含启动）；新增小覆盖大、网格遗漏小区域补采样、跨视图ID分离、同位置异区域不融合、区域预算拒绝、未覆盖KMeans确定性/标签dtype、无效深度排除、SAM冻结和checkpoint排除检查。`py_compile`、`git diff --check`通过。scikit-learn固定1.5.2并在当前tokengs环境实际安装。
+
+最新授权短验证见[Unified Query多对一训练验证](unified_query_many_short_20261017.md)。默认增加context两视图同类Mask NMS（IoU>0.7），排名为类别最大概率×二值前景内Mask概率均值，不新增质量头。保留标志复用于目标视图；不改变Gaussian、不参与训练loss，旧模型不带此标志时组装逐位逻辑保持。该去重属于新模型推理定义变化，官方评分器及打包规则不变。

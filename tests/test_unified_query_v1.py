@@ -12,7 +12,7 @@ from tokengs.models.unified_query_v1 import LocusGSUnifiedQueryV1
 from scripts.export_object_locus_v3_set_official import assemble_panoptic
 
 
-def config():return UnifiedQueryConfig(superpoint_source="geometric_voxel",dim=16,heads=4,depth=2,point_grid=4,max_points=16,max_superpoints=4,neighbors=3,point_layers=1,checkpoint_blocks=False)
+def config():return UnifiedQueryConfig(superpoint_source="geometric_voxel",matching_mode="hungarian",dim=16,heads=4,depth=2,point_grid=4,max_points=16,max_superpoints=4,neighbors=3,point_layers=1,checkpoint_blocks=False)
 def opt():return config_defaults['train_siu3r_unified_query_v1'].evolve(dec_patch_size=2)
 def cloud():
     p=torch.tensor([[0.,0,0],[.01,0,0],[1.,0,0],[1.01,0,0]])
@@ -54,6 +54,53 @@ class FakeRenderer(nn.Module):
 
 class UnifiedTests(unittest.TestCase):
     def setUp(self):torch.manual_seed(3)
+
+    def test_actual_canonical_reconstruction_objective(self):
+        from tokengs.models.input_types import ModelInputDecoder,ModelSupervision
+        model=LocusGSUnifiedQueryV1(opt().evolve(img_size=(8,8)),config=config(),omega=FakeOmega(),renderer=FakeRenderer())
+        out=model.generate(torch.rand(1,2,3,256,256))
+        decoder=ModelInputDecoder(cam_view=torch.eye(4).expand(1,2,4,4),intrinsics=torch.tensor([4.,4.,4.,4.]).expand(1,2,4))
+        supervision=ModelSupervision(images_output=torch.rand(1,2,3,8,8),masks_output=torch.ones(1,2,1,8,8),has_mask=torch.tensor([False]),
+            rays_os=torch.zeros(1,2,3,8,8),rays_ds=torch.ones(1,2,3,8,8))
+        loss,metrics,*_=model._layer_objective(out['states'],decoder,supervision)
+        self.assertTrue(torch.isfinite(loss));loss.backward()
+        self.assertGreater(float(model.gfm_projection[1].weight.grad.norm()),0.)
+
+    def test_many_to_one_four_parts_receive_full_instance_supervision(self):
+        cfg=replace(config(),matching_mode='source_many_to_one')
+        n=4;regions=torch.full((1,2,n+2,2,2),.6,requires_grad=True)
+        logits=torch.zeros(1,n,19,requires_grad=True)
+        pred=dict(thing_logits19=logits,region_mass=regions,num_thing_queries=n,
+            cloud=dict(source_indices=torch.arange(8)),superpoints=dict(source_superpoint_ids=torch.tensor([0,1,2,3,0,1,2,3])))
+        batch=dict(semantic_label_all=torch.full((1,2,2,2),2),instance_label_all=torch.ones(1,2,2,2,dtype=torch.long))
+        loss,m=unified_instance_loss(pred,batch,cfg)
+        self.assertEqual(m['matched_query_count'],4);self.assertEqual(m['matched_gt_count'],1)
+        self.assertEqual(pred['final_pairs'][0][1].tolist(),[0]*4)
+        loss.backward();self.assertTrue((logits.grad[0,:,0]<0).all());self.assertTrue((regions.grad[0,:,:n]<0).all())
+
+    def test_many_to_one_loss_invariant_to_duplicating_same_object_parts(self):
+        cfg=replace(config(),matching_mode='source_many_to_one')
+        batch=dict(semantic_label_all=torch.tensor([[[[2,3]],[[2,3]]]]),instance_label_all=torch.tensor([[[[1,2]],[[1,2]]]]))
+        def evaluate(duplicate):
+            ids=[0,1]+([0,0] if duplicate else []);n=len(ids)
+            probs=torch.tensor([.8,.3])[ids]
+            regions=torch.cat((probs,torch.tensor([.1,.2])))[None,None,:,None,None].expand(1,2,n+2,1,2).clone()
+            logits=torch.stack((torch.arange(19)*.01,torch.arange(19)*-.03))[ids][None].clone()
+            source=torch.tensor([0,1]+([0,0] if duplicate else []))
+            pred=dict(thing_logits19=logits,region_mass=regions,num_thing_queries=n,cloud=dict(source_indices=source),superpoints=dict(source_superpoint_ids=torch.arange(n)))
+            return unified_instance_loss(pred,batch,cfg)[1]
+        a,b=evaluate(False),evaluate(True)
+        for key in ('loss_classification','loss_thing_bce','loss_thing_dice'):torch.testing.assert_close(a[key],b[key])
+
+    def test_class_aware_mask_nms_and_panoptic_propagation(self):
+        from tokengs.models.unified_query_nms import context_mask_nms
+        p=torch.zeros(1,4,19);p[0,:3,0]=.9;p[0,3,1]=.95;p[0,1,0]=.8
+        mass=torch.zeros(1,2,6,2,2);mass[:,:,:2,:,0]=.9;mass[:,:,2,:,1]=.9;mass[:,:,3,:,0]=.9
+        out=dict(p_class=p,region_mass=mass,alpha=torch.ones(1,2,1,2,2),semantic_scores=torch.zeros(1,2,20,2,2))
+        keep,scores=context_mask_nms(p,mass,out['alpha'])
+        self.assertEqual(keep.tolist(),[True,False,True,True])
+        out['instance_eligible']=keep;_,ins,_=assemble_panoptic(out);self.assertFalse((ins==2).any())
+        out['instance_eligible']=torch.zeros(4,dtype=torch.bool);_,ins,_=assemble_panoptic(out);self.assertTrue((ins==0).all())
 
     def test_esam_overlap_small_regions_overwrite_large(self):
         big=torch.ones(8,8,dtype=torch.bool);small=torch.zeros_like(big);small[0,0]=True

@@ -18,6 +18,7 @@ def assemble_panoptic(out, *, eligible_override=None):
     thing_prob, thing_cls = pclass[:, :18].max(-1)
     class_is_thing = pclass[:, :18].argmax(-1)
     eligible = (pclass.argmax(-1) != 18) & (thing_prob >= 0.05)
+    if eligible_override is None and 'instance_eligible' in out:eligible=eligible & out['instance_eligible']
     if eligible_override is not None:
         if eligible_override.shape != eligible.shape or eligible_override.dtype != torch.bool:
             raise ValueError('candidate override shape/type differs')
@@ -83,6 +84,7 @@ def write_official_pair(out, batch, window, root, *, target_frames="all", diagno
     n=len(pclass)
     class_prob, cls0 = pclass[:, :18].max(-1)
     eligible = (pclass.argmax(-1) != 18) & (class_prob >= 0.05)
+    if eligible_override is None and 'instance_eligible' in out:eligible=eligible & out['instance_eligible']
     if eligible_override is not None:
         eligible = eligible_override.to(eligible.device)
     if score_multiplier is not None:
