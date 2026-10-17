@@ -6,6 +6,11 @@ import numpy as np
 PLAN=Path('/space/mawb/ssst/group_plus/gfm_initialization_audit_v1/attempt01/preflight.json')
 
 
+def validate_observer_witness(root, complete):
+    proof=json.loads((root/str(complete['records'][0])/'observer_witness.json').read_text())
+    if not proof['passed']:raise ValueError('Observer validity witness failed')
+
+
 def summarize(rows,qualified):
     totals={};records=[];gradients=[]
     def add(key,n=1):totals[key]=totals.get(key,0)+n
@@ -40,8 +45,7 @@ def main():
         for rank in range(4):
             root=args.output/stage/f'rank{rank:02}';complete=json.loads((root/'COMPLETE.json').read_text())
             if complete['smoke'] or not complete['parameters_unchanged'] or complete['parameter_updates']:raise ValueError('Audit incomplete')
-            proof=json.loads((root/'observer_witness.json').read_text())
-            if not proof['passed']:raise ValueError('Observer validity witness failed')
+            validate_observer_witness(root,complete)
             rows += [json.loads((root/str(i)/'native.json').read_text()) for i in complete['records']]
             gradient_rows += [json.loads((root/f'train_gradient_{i:02}.json').read_text()) for i in complete['training_gradient_windows']]
         if len(rows)!=128 or len({r['source_index'] for r in rows})!=128 or len(gradient_rows)!=16:raise ValueError('Incomplete cohort')

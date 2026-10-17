@@ -1,13 +1,25 @@
 import copy
+import json
+import tempfile
+from pathlib import Path
 import unittest
 import torch
 from torch import nn
 from scripts.gfm_initialization_audit_tools import intervene,candidate_hashes,group_norms,InitializationObserver
 from tokengs.models.gfm_dual_stream_components import SemanticSAMQueryInitializer
-from scripts.summarize_gfm_initialization_audit import summarize
+from scripts.summarize_gfm_initialization_audit import summarize,validate_observer_witness
 
 
 class AuditTests(unittest.TestCase):
+    def test_summary_reads_nested_witness_and_rejects_failed_proof(self):
+        with tempfile.TemporaryDirectory() as directory:
+            root=Path(directory);sample=root/'42';sample.mkdir()
+            witness=sample/'observer_witness.json'
+            witness.write_text(json.dumps({'passed':True}))
+            validate_observer_witness(root,{'records':[42]})
+            witness.write_text(json.dumps({'passed':False}))
+            with self.assertRaises(ValueError):validate_observer_witness(root,{'records':[42]})
+
     def fixture(self):
         torch.manual_seed(3);init=SemanticSAMQueryInitializer();q=torch.randn(1,100,256);c=torch.randn(1,100,3);s=torch.ones(1,100,3)*.1
         mu=torch.randn(1,10,3);logs=[dict(proposal_queries=2)];return init,(None,None,None,mu),(q,c,s,logs)
