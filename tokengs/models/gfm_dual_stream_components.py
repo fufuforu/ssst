@@ -62,6 +62,9 @@ class GFMSAMQueryInitializer(SAMQueryInitializer):
         weights=F.interpolate(mask.float()[None,None],size=feature_map.shape[-2:],mode='area')[0,0]
         return (feature_map*weights[None]).sum((1,2))/weights.sum().clamp_min(1e-8)
 
+    def compose_seed(self,base,seed):
+        return seed
+
     def forward(self,gfm,proposals,points,mu):
         b,v,d,h,w=gfm.shape
         if d!=self.input_dim:raise ValueError(f'Query initializer expects {self.input_dim} feature channels, got {d}')
@@ -101,7 +104,8 @@ class GFMSAMQueryInitializer(SAMQueryInitializer):
             q=self.fallback.clone();c=origin.expand(self.slots,3).clone();s=ell.expand(self.slots,3).clone()
             for i,group in enumerate(groups):
                 c[i]=group['center'];s[i]=group['spread']
-                q[i]=self.content_projection(group['feat'])+self.geometry(torch.cat(((c[i]-origin)/ell,s[i]/ell)))
+                seed=self.content_projection(group['feat'])+self.geometry(torch.cat(((c[i]-origin)/ell,s[i]/ell)))
+                q[i]=self.compose_seed(self.fallback[i],seed)
             allq.append(self.norm(q));allc.append(c);alls.append(s)
             logs.append(dict(proposal_queries=len(groups),learned_queries=self.slots-len(groups),cross_view_groups=sum(len(g['views'])>1 for g in groups),pooling=getattr(self,'pooling_description','SAM area-weighted semantic adapter output then query projection' if self.input_dim==256 else 'SAM area-weighted raw GFM then projection')))
         return torch.stack(allq),torch.stack(allc),torch.stack(alls),logs

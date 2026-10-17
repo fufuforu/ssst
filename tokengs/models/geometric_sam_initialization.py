@@ -6,6 +6,7 @@ query position/scale encoding are inherited unchanged from the V3 initializer.
 import torch
 from torch import nn
 import torch.nn.functional as F
+import math
 from tokengs.models.gfm_dual_stream_components import SemanticSAMQueryInitializer
 
 
@@ -47,3 +48,22 @@ class GeometricSAMQueryInitializer(SemanticSAMQueryInitializer):
         # ESAM uses mean(weight * feature) plus a global shape feature, rather
         # than a softmax that forces point weights to sum to one.
         return (samples*weights).mean(0)+self.shape_projection(shape)
+
+
+class ResidualGeometricSAMQueryInitializer(GeometricSAMQueryInitializer):
+    """Keep learned slots; inject a bounded, RMS-calibrated SAM residual.
+
+    Candidate pooling, merging, centers/scales and final LayerNorm stay intact.
+    The shared learnable sigmoid gate starts at .1; detached base RMS avoids
+    making the base a trainable residual amplitude control.
+    """
+    pooling_description='V4 geometric SAM pooling with learned-base gated residual'
+
+    def __init__(self):
+        super().__init__()
+        self.residual_gate_logit=nn.Parameter(torch.tensor(math.log(.1/.9)))
+
+    def compose_seed(self,base,seed):
+        rms=base.detach().float().square().mean().clamp_min(1e-12).sqrt()
+        residual=F.layer_norm(seed.float(),(seed.shape[-1],))*rms
+        return base+self.residual_gate_logit.sigmoid()*residual.to(base.dtype)

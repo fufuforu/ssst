@@ -41,7 +41,11 @@ def main():
         from tokengs.models.object_locus_gfm_dual_stream_v4 import LocusGSGFMDualStreamV4
         opt=config_defaults['train_siu3r_object_locus_gfm_dual_stream_v4']
         constructor=LocusGSGFMDualStreamV4
-    model=constructor(opt,write_strength=0.).to(torch.device('cuda',local))
+    from scripts.gfm_sam_residual_policy import MODE
+    mode=meta['config'].get('sam_query_initialization')
+    if mode is not None and mode!=MODE:raise ValueError('Unknown SAM initialization mode')
+    if mode and meta['config'].get('query_pooling')!='geometric_sam_v4':raise ValueError('Residual initializer requires V4')
+    model=constructor(opt,write_strength=0.,**({'sam_residual':True} if mode else {})).to(torch.device('cuda',local))
     restore_trainable_state(model,blob['model'])
     if not args.smoke and meta['config'].get('freeze_reconstruction',False):
         from scripts.dual_stream_training_policy import reconstruction_state_digest

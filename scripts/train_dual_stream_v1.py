@@ -292,8 +292,11 @@ def run(args):
     if args.v3_direct_isolated:
         from scripts.gfm_v3_fresh_isolated_policy import configure as configure_v3
         configure_v3(CONFIG)
+    if args.sam_residual:
+        from scripts.gfm_sam_residual_policy import configure as configure_residual
+        configure_residual(CONFIG)
     windows,short_indices,validation=cohorts();short=[windows[i] for i in short_indices]
-    model=constructor(opt,write_strength=0.).to(device)
+    model=constructor(opt,write_strength=0.,**({'sam_residual':True} if args.sam_residual else {})).to(device)
     cache=install_frozen_caches(model,args.cache_root or root/'frozen_cache')
     optimizer=torch.optim.AdamW(optimizer_groups(model),betas=(.9,.95),eps=1e-8)
     sha=subprocess.check_output(['git','-C',str(REPO),'rev-parse','HEAD'],text=True).strip()
@@ -308,7 +311,9 @@ def run(args):
         progress.update(phase='full',gate_passed=True)
         meta['initialization_policy']='official_Omega_SAM_only_all_trainable_branches_fresh'
     if args.untrained_initial_from:
-        if args.v3_direct_isolated:
+        if args.sam_residual:
+            from scripts.gfm_sam_residual_policy import validate_initial
+        elif args.v3_direct_isolated:
             from scripts.gfm_v3_fresh_isolated_policy import validate_initial
         elif args.isolate_gradients:
             from scripts.gfm_v4_isolated_policy import validate_initial
@@ -317,7 +322,10 @@ def run(args):
         blob=torch.load(args.untrained_initial_from,map_location='cpu',weights_only=False,mmap=True)
         validate_initial(blob['meta'],meta,blob)
         transfer_report={}
-        if args.v3_direct_isolated:
+        if args.sam_residual:
+            from scripts.gfm_sam_residual_policy import restore_shared_initial
+            transfer_report=restore_shared_initial(model,optimizer,blob,optimizer_groups)
+        elif args.v3_direct_isolated:
             from scripts.gfm_v3_fresh_isolated_policy import restore_shared_initial
             transfer_report=restore_shared_initial(model,optimizer,blob,optimizer_groups)
         else:
@@ -326,7 +334,7 @@ def run(args):
         transition_key='isolated_gradient_transition' if args.isolate_gradients else 'loss_weight_transition'
         meta[transition_key]=dict(untrained_initial_checkpoint=str(args.untrained_initial_from.resolve()),
             sha256=args.untrained_initial_digest,source_training_updates=0,source_optimizer_states=0,
-            all_parameters_and_rank_rng_equal_to_baseline_initial_state=not args.v3_direct_isolated,
+            all_parameters_and_rank_rng_equal_to_baseline_initial_state=not (args.v3_direct_isolated or args.sam_residual),
             all_shared_parameters_and_rank_rng_equal_to_baseline_initial_state=True,**transfer_report)
         if rank==0:write(root/('ISOLATED_GRADIENT_INITIALIZATION.json' if args.isolate_gradients else 'LOSS_WEIGHT_INITIALIZATION.json'),meta[transition_key])
         del blob
@@ -458,6 +466,9 @@ def run(args):
         name='query_initializer.point_weight.2.weight'
         p=dict(model.named_parameters())[name]
         probes['geometric_query_pooling']=(name,p.detach().clone())
+    if args.sam_residual:
+        name='query_initializer.residual_gate_logit';p=dict(model.named_parameters())[name]
+        probes['sam_residual_gate']=(name,p.detach().clone())
     if rank==0:
         write(root/'configuration.json',dict(**meta,optimizer_groups=[{k:v for k,v in group.items() if k!='params'} for group in optimizer.param_groups],
             trainable_parameters=sum(p.numel() for p in model.parameters() if p.requires_grad),gpu=torch.cuda.get_device_name(),short_windows=short,monitor_validation=validation[:8]))
@@ -528,6 +539,7 @@ def run(args):
         row.update(phase=phase,phase_update=update_index+1,understanding_weight=uweight,weighted_understanding_loss=uweight*row['loss_understanding'],understanding_optimizer_skipped=phase=='adapt',grad_norm=float(grad_norm),seconds=time.monotonic()-started,
             cuda_peak_gib=torch.cuda.max_memory_allocated()/2**30,learning_rate_factor=factor,local_indices=indices,representative_grad_norms=probe_gradients)
         row['learning_rates']={group['family']:group['lr'] for group in optimizer.param_groups}
+        if args.sam_residual:row['sam_residual_gate']=float(model.query_initializer.residual_gate_logit.detach().sigmoid())
         if args.isolate_gradients:
             row['preclip_route_grad_norms']=route_norms
             if args.reconstruction_understanding_gradient_scale:row['reconstruction_understanding_gradient_scale']=args.reconstruction_understanding_gradient_scale
@@ -650,12 +662,14 @@ def main():
     parser.add_argument('--geometric-source-digest')
     parser.add_argument('--v4-direct-joint',action='store_true')
     parser.add_argument('--v3-direct-isolated',action='store_true')
+    parser.add_argument('--sam-residual',action='store_true')
     parser.add_argument('--isolate-gradients',action='store_true')
     parser.add_argument('--reconstruction-understanding-gradient-scale',type=float,choices=(0.,.05),default=0.)
     parser.add_argument('--untrained-initial-from',type=Path)
     parser.add_argument('--untrained-initial-digest')
     parser.add_argument('--understanding-loss-scale',type=float,choices=(1.,.05),default=1.)
     args=parser.parse_args()
+    if args.sam_residual and (not args.v4_direct_joint or not args.isolate_gradients or args.reconstruction_understanding_gradient_scale or args.understanding_loss_scale!=1.):parser.error('SAM residual requires the fresh fully isolated V4 control')
     if args.resume_source_sha and not args.resume:parser.error('--resume-source-sha requires --resume')
     if args.reconstruction_understanding_gradient_scale and not args.isolate_gradients:parser.error('Selective gradient scale requires explicit routing')
     if args.understanding_loss_scale!=1.:
