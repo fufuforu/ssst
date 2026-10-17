@@ -25,3 +25,7 @@
 具体执行SHA、验证项数、作业号及提交状态以preflight.json、VALIDATION_EVIDENCE.json、submission.json与SUBMISSION_STATUS_ONCE.json为准。已完成短测的GPU同步证据不能替代新全量的首步证据。
 
 提交前验证已完成：真实零步693张量逐位一致，源4rank RNG完全一致并显式扩展到8rank，空Adam/0更新、实际冻结文件及完整数据校验通过；28项CPU回归通过，shell语法、Python编译及diff检查通过。新全量GPU首步仍未核实。
+
+## 已提交并停止轮询
+
+A完整训练 **66506**：13节点8×3090、32CPU/192G；唯一一次状态核对为 **RUNNING**。官方128评测与自动比较 **66507**：afterok:66506、同节点1×3090/4CPU/64G，核对为 **PENDING (Dependency)**。执行SHA **b7a775f**，独立干净快照；具体提交时间见run/submission.json。新全量GPU首步及8rank同步尚未核实，RUNNING仅表示已调度。未改动66432/66433。已停止轮询，待用户通知完成后检查。
