@@ -25,3 +25,14 @@ CPU afterok汇总核对三组128RGB/cohort一致、11有效值与原始metrics�
 提交前检查真实epoch4/Adam状态、冻结资产SHA、manifest/heldoutSHA与样本实际读取、A关键模型代码与源版本相同、官方评分器未改；针对性CPU测试覆盖源身份/数据/策略拒绝、完整保留Adam与下一更新数值、累计进度与新epoch采样、LR边界及显式epoch6导出拒绝错误进度，另回归现有探针/结构/训练策略。实际项数、执行SHA与检查收据见新run的`VALIDATION_EVIDENCE.json`、`preflight.json`。
 
 执行独立干净快照`/space/mawb/ssst_superpoint_dual_extend_code_20261017`。作业号与一次调度状态见`submission.json`和`SUBMISSION_STATUS_ONCE.json`。提交后停止轮询，等待用户通知完成。按A先前13八卡4epoch耗时5h40m，预计本轮训练约5.5–6小时，另两组评测各约15–20分钟（可并行，排队另计）。
+
+## 已提交，停止轮询
+
+执行SHA **7965e85c0573fb2d3fe007195364fd18214dc19a**，独立worktree干净。真实源/冻结资产/数据预检通过；21项CPU测试通过，Python编译、shell语法与diff检查通过。新GPU首步尚未核实；运行中会要求8份CONTINUATION_LOADED精确源权重摘要/Adam4172收据及第一新增更新同步证明，不将调度RUNNING等同于这些检查通过。
+
+- **66640**：A epoch4→8续训，13节点8×3090、32CPU/192G；唯一一次调度核对RUNNING。
+- **66641**：epoch6官方128评测，13节点1×3090；afterok:66640，单次核对PENDING(Dependency)。
+- **66642**：epoch8官方128评测，13节点1×3090；afterok:66640，单次核对PENDING(Dependency)。
+- **66643**：A4/6/8及旧C CPU汇总，afterok:66641:66642，单次核对PENDING(Dependency)。
+
+没有轮询GPU首步、训练进度或评测状态；已停止轮询，等待用户通知完成后检查。
