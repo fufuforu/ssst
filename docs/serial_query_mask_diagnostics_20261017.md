@@ -50,3 +50,7 @@
 新增回归模拟变化的前端：原完整前向witness失败必须如实保存，但同次输入的D4重放仍需严格成功；另故意破坏D4重放结果，必须拒绝。汇总测试验证带告警的结果不会标为无告警完成。CPU回归及真实checkpoint/冻结资产/32场景预检重新执行，原Unified仍仅辅助参照。
 
 修复诊断独立run：`/space/mawb/ssst/group_plus/serial_query_diagnostics_v1/attempt02`；独立不可变快照：`/space/mawb/ssst_serial_query_diagnostics_retry01_code_20261017`。推理与自动汇总预算/输出内容仍为两模型各32窗口、18节点4×4090，无训练。原失败尝试没有已完成窗口可复用，本轮不重复任何成功训练。新作业号及验证证据以attempt02/submission.json和VALIDATION_EVIDENCE.json为准；提交后一次核对即停止轮询。
+
+修复提交前13项CPU回归通过（含变化前端、破坏重放必须拒绝、告警汇总、既有Mask/可视化/不可变性），32窗口真实数据与冻结资产/源checkpoint校验再次通过。独立修复执行SHA **e7a610c**。
+
+补跑作业 **66637**：18节点4×4090、16CPU/128G，唯一一次调度核对 **RUNNING**；新GPU同输入重放/完整推理检查尚未核实。无训练更新。原66634及attempt01保留，补跑收据见attempt02/submission.json及SUBMISSION_STATUS_ONCE.json。已停止轮询，待用户通知完成后再检查；本次尚没有可汇报的模型诊断结论。
