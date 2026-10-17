@@ -1,5 +1,7 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **最新已提交并停止轮询：Unified Query多对一短验证66414。** 单次核对18节点8×4090 RUNNING；执行SHA6aa16a0，独立ssst_unified_esam_many_code_20261017。16固定训练场景/256更新/全局批8；前后4train＋4heldout探针及内置结束汇总，不是正式128评测，无全量自动续训。真实CPU权重/数据预检与21项检查通过；GPU首步、区域预算、CUDA反向及八rank SHA尚未验证。新run为`/space/mawb/ssst/group_plus/unified_query_training_v1/attempt01_esam_many_short_node18_8gpu`，以submission.json和结束收据为准。保持66353/旧快照不动，B不恢复。等待用户通知再检查，不重复提交、不继续轮询。详见[运行记录](unified_query_many_short_20261017.md)。
+
 > **2026-10-17最新授权：实现多对一完整实例监督，并提交Unified Query短训练验证。** 默认`source_many_to_one`：同一GT的多个合格超点Query均预测完整Mask，损失按GT平衡；context同类Mask NMS去重，身份复用于目标视图，不删除Gaussian。新attempt01_esam_many_short_node18_8gpu与独立快照ssst_unified_esam_many_code_20261017，18节点8×4090、固定16训练场景、256更新、全局批8、LR1e-4/20步warmup/短cosine、理解weight0.05/20步ramp；仅冻结Omega/SAM，其余全新，不加载旧checkpoint。训练前后各4train＋4heldout探针、首步全参数8rank SHA及梯度证据、结束自动汇总，不自动启动全量训练或声称官方128指标。20项CPU单测＋真实2rank Gloo测试、真实Omega/SAM权重/数据预检通过。GPU尚未验证；提交状态以新run/submission.json为准。旧66353不改、B不恢复。详见[短验证记录](unified_query_many_short_20261017.md)。
 
 > **2026-10-17 最新指令：Unified Query默认采用ESAM式SAM超点生成。** 使用VGGT预测相机/深度对应的点云替代实测几何；SAM区域按面积降序写标签，小覆盖大；未覆盖点按ESAM MV的XYZRGB KMeans8补分组。采样保留每个有效区域，同区域内压缩点，禁止跨区域融合，保留像素→点→超点映射。3D邻域编码后池化为query，非二维SAM mask直接池化。现有SAM ViT-B与原版H不同，三维骨干仍为本项目MLP，未宣称完整ESAM复现。详见[实现说明](unified_superpoint_query_v1_implementation_20261017.md)。不提交训练，不恢复B，不修改既有作业；16项CPU测试、语法和diff检查通过；GPU真实SAM/渲染及预算尚未验证。

@@ -32,3 +32,7 @@
 真实CPU预检已加载并校验官方Omega和SAM权重，核对可训练分组全覆盖、16场景/128 heldout隔离、数据SHA及训练/验证真实RGB与标注读取；验证RGB256、2context与完整view首两张相同，heldout输入SHA匹配旧C。真实CUDA渲染、SAM提议预算和八卡GPU更新仍待本作业内执行，不把CPU或RUNNING称为GPU已通过。
 
 作业号与执行SHA以submission.json为准。提交后只做一次有界状态核对并停止轮询，待用户通知完成再分析。
+
+## 已提交并停止轮询
+
+训练及内置探针/汇总作业 **66414**，2026-10-17 12:18:12（北京时间）提交；单次核对RUNNING、3dimage-18、8×4090、32CPU/192G。执行SHA`6aa16a0f7a81dd55d38a25ad5379fdba05cdb56f`，独立快照干净；源码中的LFS展示素材采用skip-smudge检出，训练权重仍使用已校验的外部实际文件。GPU首步、真实SAM区域预算、CUDA反向及八卡SHA尚未核实，不能把RUNNING视为训练通过。已停止轮询，用户通知后检查FIRST_UPDATE_VERIFIED.json、逐rank日志、TRAINING_COMPLETE.json、SHORT_VALIDATION_SUMMARY.json及初末探针。没有可靠的新架构实测步时，暂不给完成时间保证；作业会记录seconds和显存以供后续估算。
