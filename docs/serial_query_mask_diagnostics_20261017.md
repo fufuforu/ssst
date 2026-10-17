@@ -1,5 +1,7 @@
 # 串行Query固定权重Mask链路诊断
 
+> **最新完成**：66637已完成64窗口，固定权重0更新，同次seed/memory严格重放与8份参数不变检查通过；保留4个完整前向重复告警。最终模型分析、阈值与负对照限制、典型图、A完整训练结果见[A完整结果与串行诊断](A_full4_and_serial_diagnostic_results_20261017.md)。下文提交时“尚未核实”均为历史状态；不要重跑。
+
 > 更新：66634在初始完整前向重复校验失败，未产出完整诊断。后续修复使用attempt02与独立retry快照，改为同一次原生前向的seed/memory重放验证，不再给理解层加hook；原完整前向差异原样保留为稳定性告警。下文初版hook/witness叙述是历史设计，以下修复节优先。原Unified仅作辅助参照，不是架构单变量对照。
 
 用户在66603短测后授权诊断，不更新参数、不修改结构或正式评测协议。新独立run：`/space/mawb/ssst/group_plus/serial_query_diagnostics_v1/attempt01`；独立快照：`/space/mawb/ssst_serial_query_diagnostics_code_20261017`。18节点4×4090/16CPU/128G；一个作业内完成推理与CPU汇总，提交后一次状态核对即停止轮询。
