@@ -5,6 +5,7 @@ from tokengs.models.unified_query_v1 import LocusGSUnifiedQueryV1
 from tokengs.models.superpoint_dual_core import SuperpointDualCore
 from tokengs.models.direct_gaussian_core import DirectGaussianCore
 from tokengs.models.serial_query_core import SerialQueryCore
+from tokengs.models.serial_residual_query_core import SerialResidualQueryCore
 from tokengs.models.gfm_dual_stream_components import gfm_grid
 from tokengs.models.object_locus_v3_set import alpha_normalize_membership
 
@@ -62,7 +63,17 @@ class LocusGSSerialQuery(LocusGSUnifiedQueryV1):
         return groups
 
 
-MODELS={'unified':LocusGSUnifiedQueryV1,'dual_superpoint':LocusGSSuperpointDual,'unified_direct':LocusGSDirectGaussian,'serial_query':LocusGSSerialQuery}
+class LocusGSSerialResidualQuery(LocusGSSerialQuery):
+    architecture_name='OMEGA_3D_SUPERPOINT_SERIAL_QUERY_IDENTITY_RESIDUAL_V1'
+    core_type=SerialResidualQueryCore
+
+    def step_loss(self,*args,**kwargs):
+        output,metrics=super().step_loss(*args,**kwargs)
+        metrics['identity_residual_gate']=self.core.identity_gate_logit.sigmoid().detach()
+        return output,metrics
+
+
+MODELS={'unified':LocusGSUnifiedQueryV1,'dual_superpoint':LocusGSSuperpointDual,'unified_direct':LocusGSDirectGaussian,'serial_query':LocusGSSerialQuery,'serial_residual':LocusGSSerialResidualQuery}
 
 
 def build_structural_model(architecture,opt,config,**kwargs):

@@ -17,7 +17,7 @@ def main():
     families={label:sum(value for name,value in changed.items() if name.startswith(prefix)) for label,prefix in
         [('projection','gfm_projection.'),('3d_initializer','core.initializer.'),('decoder',('core.blocks.','core.panoptic.layers.')),('reconstruction','core.activation_head.'),('classifier',('core.classifier.','core.panoptic.class_head.')),('mask',('core.child_feature.','core.instance_field.','core.panoptic.child_mlp.','core.semantic_memory.mask_embedder.')) ]}
     assert all(math.isfinite(v) and v>0 for v in families.values())
-    if checkpoint['meta']['architecture']=='OMEGA_3D_SUPERPOINT_SERIAL_QUERY_ISOLATED_V1':
+    if checkpoint['meta']['architecture'] in ('OMEGA_3D_SUPERPOINT_SERIAL_QUERY_ISOLATED_V1','OMEGA_3D_SUPERPOINT_SERIAL_QUERY_IDENTITY_RESIDUAL_V1'):
         for label,prefix in [('semantic_memory','core.semantic_memory.'),('semantic_seed','core.semantic_seed.'),('semantic_decoder','core.semantic_blocks.')]:
             families[label]=sum(value for name,value in changed.items() if name.startswith(prefix))
             assert math.isfinite(families[label]) and families[label]>0
@@ -35,7 +35,7 @@ def main():
         assert all(math.isfinite(r['loss']) and math.isfinite(r['grad_norm']) for r in values)
         rank_rows.append(dict(rank=rank,updates=len(values),mean_step_seconds=sum(r['seconds'] for r in values)/len(values),peak_memory_bytes=max(r['peak_cuda_memory_bytes'] for r in values)))
     report=dict(status='TRAINABILITY_RUN_COMPLETE_REVIEW_QUALITY',official_128=False,updates=256,training_scenes=16,global_batch=8,
-        source_checkpoint=None,parameter_change_norms=families,first_update_sync=sync,rank_statistics=rank_rows,probe_changes=rows,
+        source_checkpoint=checkpoint['meta'].get('initial_checkpoint'),parameter_change_norms=families,first_update_sync=sync,rank_statistics=rank_rows,probe_changes=rows,
         acceptance='Finite forward/backward, all branches update and ranks agree; no mandatory loss decrease; quality requires review. No full-data auto-submit.')
     (root/'SHORT_VALIDATION_SUMMARY.json').write_text(json.dumps(report,indent=2)+'\n');print(json.dumps(report,indent=2))
 

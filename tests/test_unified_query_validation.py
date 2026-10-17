@@ -6,6 +6,7 @@ from pathlib import Path
 from unittest.mock import patch
 
 import torch
+import numpy as np
 from scripts.unified_query_validation import run_probes
 
 
@@ -13,7 +14,7 @@ class ProbeTests(unittest.TestCase):
     def test_complete_probe_uses_batch_semantics_and_preserves_rng(self):
         class Model(torch.nn.Module):
             def step_loss(self, batch, understanding_weight):
-                random.random();torch.rand(1)
+                random.random();torch.rand(1);np.random.rand()
                 truth=batch['semantic_label_all'][:,:2]
                 scores=torch.nn.functional.one_hot(truth.clamp_max(19),20).permute(0,1,4,2,3).float()
                 p=dict(final_pairs=[(torch.tensor([0]),torch.tensor([0]))],
@@ -29,7 +30,7 @@ class ProbeTests(unittest.TestCase):
         labels=torch.full((1,3,2,2),2,dtype=torch.long);labels[0,0,0,0]=20
         windows=[dict(scene=str(i),context=[0,1]) for i in range(8)]
         def assemble(p):return (p['semantic_scores'].argmax(2),torch.ones(1,2,2,2,dtype=torch.long),None)
-        before=random.getstate();torch_before=torch.get_rng_state()
+        before=random.getstate();torch_before=torch.get_rng_state();np_before=np.random.get_state()
         with tempfile.TemporaryDirectory() as folder,patch('scripts.unified_query_validation.build_batch',return_value=dict(semantic_label_all=labels)),patch('scripts.unified_query_validation.assemble_panoptic',side_effect=assemble):
             run_probes(model,None,windows[:4],windows[4:],Path(folder),'initial',0,1,torch.device('cpu'),.05)
             result=json.loads((Path(folder)/'PROBES_INITIAL.json').read_text())
@@ -39,6 +40,7 @@ class ProbeTests(unittest.TestCase):
             self.assertTrue(all(r['best_supported_gt_mask_iou']==1. for r in result['rows']))
         self.assertTrue(model.training);self.assertEqual(before,random.getstate())
         self.assertTrue(torch.equal(torch_before,torch.get_rng_state()))
+        self.assertTrue(np.array_equal(np_before[1],np.random.get_state()[1]));self.assertEqual(np_before[2:],np.random.get_state()[2:])
 
 
 if __name__=='__main__':unittest.main()

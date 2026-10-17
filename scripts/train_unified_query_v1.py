@@ -49,7 +49,7 @@ class Task(nn.Module):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir',type=Path,required=True);parser.add_argument('--understanding-weight',type=float,required=True)
-    parser.add_argument('--architecture',choices=('unified','dual_superpoint','unified_direct','serial_query'),default='unified')
+    parser.add_argument('--architecture',choices=('unified','dual_superpoint','unified_direct','serial_query','serial_residual'),default='unified')
     parser.add_argument('--epochs',type=int,default=4);parser.add_argument('--max-updates',type=int)
     parser.add_argument('--learning-rate',type=float,default=1e-4);parser.add_argument('--understanding-warmup',type=int,default=1043)
     parser.add_argument('--short-validation',action='store_true',help='16 fixed training scenes, 256 updates, initial/final probes')
@@ -59,7 +59,8 @@ def main():
     parser.add_argument('--config',type=Path);parser.add_argument('--resume',action='store_true');parser.add_argument('--checkpoint-every',type=int,default=50)
     args=parser.parse_args()
     if args.understanding_weight<0 or not math.isfinite(args.understanding_weight) or args.epochs<1 or args.learning_rate<=0 or args.understanding_warmup<0 or args.checkpoint_every<1 or args.max_updates is not None and args.max_updates<1:parser.error('Invalid training settings')
-    if bool(args.initial_checkpoint)!=bool(args.initial_sha256) or args.initial_checkpoint and (args.resume or args.short_validation):parser.error('Zero-step initialization requires SHA and fresh full training')
+    if bool(args.initial_checkpoint)!=bool(args.initial_sha256) or args.initial_checkpoint and (args.resume or args.short_validation and args.architecture!='serial_residual'):parser.error('Zero-step initialization requires SHA; short transfer is limited to serial_residual')
+    if args.architecture=='serial_residual' and (not args.short_validation or not args.initial_checkpoint):parser.error('Serial residual is authorized only as a source-initialized short test')
     if bool(args.continue_checkpoint)!=bool(args.continue_sha256) or args.continue_checkpoint and (args.initial_checkpoint or args.short_validation):parser.error('Continuation requires source SHA and full training without zero-step initialization')
     if args.short_validation:
         if args.resume or args.max_updates is not None:parser.error('Short validation uses a fresh bounded run')
@@ -75,11 +76,13 @@ def main():
     if args.short_validation:windows=[windows[i] for i in chosen]
     from tokengs.models.superpoint_structural_variants import build_structural_model
     model=build_structural_model(args.architecture,opt,config).to(device)
+    transferred_rng=None
     if args.initial_checkpoint:
         if digest(args.initial_checkpoint)!=args.initial_sha256:raise ValueError('Zero-step checkpoint SHA differs')
         from scripts.unified_query_initial_state import validate_zero_initial
         initial=torch.load(args.initial_checkpoint,map_location='cpu',weights_only=False,mmap=True)
         validate_zero_initial(initial,model,manifest_sha256=digest(MANIFEST),heldout_sha256=digest(HELDOUT),world=world)
+        if args.architecture=='serial_residual':transferred_rng=initial['rank_rng'][rank]
         restore_state(model,initial['model']);restore_rng(initial['rank_rng'][rank]);del initial
     grouped={}
     for name,p in model.named_parameters():
@@ -122,6 +125,10 @@ def main():
     probe_train=windows if args.short_validation else [windows[i] for i in chosen]
     if not args.resume and (args.short_validation or args.epoch_probes):run_probes(model,opt,probe_train,validation,root,'initial',rank,world,device,args.understanding_weight)
     initial_digest=parameter_digest(model)
+    if transferred_rng is not None:
+        from scripts.serial_residual_initial import rng_equal
+        if not rng_equal(rng(),transferred_rng):raise ValueError('Initial residual probes changed transferred training RNG')
+        (root/f'SOURCE_RNG_VERIFIED_rank{rank:02}.json').write_text(json.dumps(dict(status='PASSED',source_sha256=args.initial_sha256,exact_python_numpy_torch_cuda_rng=True))+'\n')
     if continuation_model_digest is not None:
         if initial_digest!=continuation_model_digest:raise ValueError('Loaded continuation parameters differ from source')
         (root/f'CONTINUATION_LOADED_rank{rank:02}.json').write_text(json.dumps(dict(status='PASSED',source_sha256=args.continue_sha256,model_parameter_sha256=initial_digest,all_trainable_parameters_exact=True,progress=progress,adam_steps=sorted({float(s['step']) for s in optimizer.state.values()}),rank_rng_restored=True),indent=2)+'\n')

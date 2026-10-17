@@ -1,5 +1,6 @@
 """Bounded trainability probes; no official full-cohort claims or loss-drop gate."""
 import hashlib,json,math,random
+import numpy as np
 import torch
 import torch.distributed as dist
 from scripts.train_dual_stream_v1 import build_batch
@@ -23,7 +24,7 @@ def synchronized_first_update(model,before,root,rank,world):
 
 @torch.no_grad()
 def run_probes(model,opt,train,validation,root,label,rank,world,device,weight):
-    py=random.getstate();was_training=model.training;model.eval();rows=[]
+    py=random.getstate();np_before=np.random.get_state();was_training=model.training;model.eval();rows=[]
     with torch.random.fork_rng(devices=[device.index] if device.type=='cuda' else []):
         for index,window in enumerate(train[:4]+validation[:4]):
             if index%world!=rank:continue
@@ -51,7 +52,7 @@ def run_probes(model,opt,train,validation,root,label,rank,world,device,weight):
             torch.save(dict(scene=window['scene'],context_rgb=p['generation_context_rgb'].cpu(),rgb=p['render']['images_pred'].cpu(),
                 semantic=sem.cpu(),raw_semantic=p['semantic_scores'].argmax(2).cpu(),instance=ins.cpu(),p_class=p['p_class'].cpu(),eligible=p['instance_eligible'].cpu()),folder/f'{index:02d}.pt')
             del output,p,mask,target
-    random.setstate(py);model.train(was_training)
+    random.setstate(py);np.random.set_state(np_before);model.train(was_training)
     allrows=[None]*world
     if world>1:dist.all_gather_object(allrows,rows)
     else:allrows=[rows]

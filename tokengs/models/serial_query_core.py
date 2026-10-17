@@ -15,6 +15,9 @@ class SerialQueryCore(UnifiedQueryCore):
         nn.init.eye_(self.semantic_seed[1].weight);nn.init.zeros_(self.semantic_seed[1].bias)
         self.semantic_blocks=nn.ModuleList([nn.TransformerDecoderLayer(d,config.heads,4*d,dropout=0.,activation='gelu',batch_first=True,norm_first=True) for _ in range(self.semantic_depth)])
 
+    def make_semantic_seed(self,reconstruction_query,initial_query):
+        return self.semantic_seed(reconstruction_query.detach())
+
     def forward(self,cloud,memory,superpoint_ids=None):
         initial=self.initializer(cloud,superpoint_ids)
         q=initial['query'];centers=initial['centers'];radii=initial['radii'];states=[]
@@ -23,7 +26,7 @@ class SerialQueryCore(UnifiedQueryCore):
             update=head(q);centers=centers+.1*radii[...,None]*update[...,:3].tanh();radii=radii*torch.exp(.1*update[...,3].tanh())
             states.append(dict(layer=i+1,tokens=self.reconstruction_adapter(q),mu=centers,radii=radii,unified_query=q))
         gaussians=self.activation_head(states[-1]['tokens'],centers,radii)
-        semantic_seed=self.semantic_seed(q.detach());semantic_query=semantic_seed
+        semantic_seed=self.make_semantic_seed(q,initial['query']);semantic_query=semantic_seed
         for block in self.semantic_blocks:
             semantic_query=checkpoint(block,semantic_query,memory['semantic'],use_reentrant=False) if self.config.checkpoint_blocks and self.training and torch.is_grad_enabled() else block(semantic_query,memory['semantic'])
         semantic=self.semantic_adapter(semantic_query);logits=self.classifier(semantic)

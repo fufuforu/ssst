@@ -94,7 +94,7 @@ def case_figure(path,batch,p,targets,allowed,matrices,stage_maps,fixed_gt=None):
 
 
 @torch.no_grad()
-def observe(model,opt,window,index,scope,device,serial,do_witness,folder):
+def observe(model,opt,window,index,scope,device,serial,do_witness,folder,reference_folder=None):
     batch=build_batch(opt,window,device);references=[]
     if do_witness:
         for _ in range(2):
@@ -153,8 +153,8 @@ def observe(model,opt,window,index,scope,device,serial,do_witness,folder):
         result['counterfactual_warning']='Final-trained heads applied off-distribution to earlier states; fixed geometry. Diagnostic only, not trained ablations or official performance.'
     if index<4 or 16<=index<20:
         fixed_gt=None
-        reference=folder.parent/'serial'/f'{index:02d}.json'
-        if not serial and reference.exists():
+        reference=(Path(reference_folder) if reference_folder is not None else folder.parent/'serial')/f'{index:02d}.json'
+        if (reference_folder is not None or not serial) and reference.exists():
             prior=json.loads(reference.read_text()).get('visualization')
             if prior is not None:fixed_gt=prior['gt_index']
         result['visualization']=case_figure(folder/f'{index:02d}.png',batch,p,targets,allowed,matrices,stage_maps,fixed_gt)
