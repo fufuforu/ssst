@@ -1,5 +1,7 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **SAM残差初始化隔离训练66353已提交，停止轮询。** 13节点8×3090单次确认RUNNING；官方128评测66354 afterok，比较汇总66355 afterany。新attempt16、执行快照SHA767cbe8，详见 [gfm_sam_residual_isolated_20261017.md](gfm_sam_residual_isolated_20261017.md)。14项CPU单测/真实649张量逐位预检通过；GPU首步与八rank同步尚未核实，待用户通知检查，不重提交、不改执行快照。
+
 > **2026-10-17新授权：提交learned-base＋SAM残差初始化隔离训练。** 见 [gfm_sam_residual_isolated_20261017.md](gfm_sam_residual_isolated_20261017.md)。新attempt16，独立快照ssst_gfm_sam_residual_code_20261017；13八张3090，同零步649共享张量/空Adam/8rank RNG，新增1个gate参数。保留learned base，SAM内容/几何编码无仿射LN并校准到base RMS，以初始.1可学习门控加回；候选/c-s/交互/匹配/loss不改，完全隔离，4epoch4172更新、adapt/short0。14项CPU测试及真实源实体张量预检通过。训练成功自动官方128与V3/V4原隔离比较；作业号以attempt16/submission.json为准，提交后单次核对停止轮询。此前组已完成不重跑，GPU首步以新作业收据为准。
 
 > **2026-10-17：65996/66039训练与全部官方评测、比较已完成；66092 GPU审计完成，末尾CPU汇总失败已仅CPU修复。** 详见 [gfm_completed_controls_and_initialization_audit_20261017.md](gfm_completed_controls_and_initialization_audit_20261017.md)。选择性组PSNR21.522/Target mAP21.203%/PQ58.437%，未保住隔离组23.194PSNR；V3隔离23.232/16.423%/52.683%，理解低于V4隔离。审计SAM eligible零步5619/5619→终点10/5623，GT匹配143→40；固定152合格SAM候选仍在，终点全部noobject，梯度非零且正匹配SAM梯度接近fallback。单独全局c/s未恢复，换embedding提高SAM资格但整体Final无收益。当前建议单变量learned-base＋门控SAM残差初始化，未实现/未提交。66092原Slurm FAILED和旧日志保留，恢复收据位于attempt01/CPU_SUMMARY_RECOVERY_20261017.json；GPU/训练均未重跑。下方等待状态均为历史，勿重复提交。

@@ -37,3 +37,7 @@ CPU测试覆盖base/seed/gate梯度、残差norm与尺度/偏移归一化、门�
 作业号与提交时间以run下submission.json为准。提交后仅单次核对调度状态并停止轮询，待用户通知结束后再检查，不在本轮持续等待GPU首步或训练结束。
 
 验证记录：14项CPU单测通过，py_compile/bash -n/diff --check通过。真实CPU实体张量预检PASSED：649个共享张量值逐位一致，仅新增gate标量1参数；重建186881600、理解9128561参数，源SHA b9d7bd597cc2bd0d2439a1eae3771760f2be55241a2db1c4ef3879b08a75a03e，空Adam/8rank RNG及数据配置锁定。预检将meta模板实体化时保留原参数_no_weight_decay标记，以正确核对原优化器分组，不改变训练规则。GPU首步/同步未宣称通过，以作业收据为准。
+
+## 已提交并停止轮询
+
+训练66353：单次核对RUNNING、13节点8×3090；官方评测66354 afterok:66353；比较汇总66355 afterany:66354，二者当前Dependency。执行SHA767cbe87c8baabcb749b85a6e3121ca0e7a008fc，snapshot干净。GPU首步/门控梯度/八rank同步尚未核实，RUNNING仅证明资源分配，不作为训练数学通过证据。提交后不再轮询，待用户通知。按同节点此前隔离组估计训练4.5–5小时、评测10–20分钟，非完成时间保证。
