@@ -1,9 +1,4 @@
-"""Context-derived 3D points -> neighborhood features -> superpoint queries.
-
-Geometric voxel oversegmentation is the explicit first implementation, not a
-claim of reproducing ESAM's dataset-specific superpoint generator. No SAM or
-learned fallback query table is used. All discrete geometry is detached.
-"""
+"""VGGT geometry + ESAM-style SAM partitions -> encoded 3D superpoint queries."""
 from dataclasses import dataclass,asdict
 import torch
 from torch import nn
@@ -12,6 +7,8 @@ import torch.nn.functional as F
 
 @dataclass(frozen=True)
 class UnifiedQueryConfig:
+    superpoint_source:str="esam_sam"
+    uncovered_clusters:int=8
     dim:int=256
     heads:int=8
     depth:int=12
@@ -27,6 +24,7 @@ class UnifiedQueryConfig:
     support_purity:float=.5
 
     def __post_init__(self):
+        if self.superpoint_source not in ("esam_sam","geometric_voxel") or self.uncovered_clusters<1:raise ValueError("Invalid superpoint source/settings")
         if self.dim<8 or self.heads<1 or self.dim%self.heads or min(self.depth,self.point_grid,self.max_points,self.max_superpoints,self.neighbors,self.point_layers)<1:raise ValueError('Invalid unified dimensions/budgets')
         if self.max_superpoints>999:raise ValueError('Official packed instance IDs must remain below1000')
         if min(self.point_voxel,self.superpoint_voxel)<=0 or not 0<self.support_purity<=1:raise ValueError('Invalid geometry/matching settings')
@@ -59,35 +57,89 @@ def scene_frame(points):
     return center,scale
 
 
-def lift_context_cloud(omega,feature_grid,rgb,config):
-    """One scene, source pixel -> predicted XYZ + bilinear feature sample.
+@torch.no_grad()
+def esam_image_partition(masks,height,width,device):
+    """ESAM: descending area, smaller regions overwrite larger regions."""
+    labels=torch.full((height,width),-1,dtype=torch.long,device=device)
+    converted=[torch.as_tensor(m.get('mask',m.get('segmentation')),device=device,dtype=torch.bool) for m in masks]
+    if any(m.shape!=(height,width) for m in converted):raise ValueError('SAM/geometry pixel grids differ')
+    for index,mask in enumerate(sorted(converted,key=lambda m:-int(m.sum()))):labels[mask]=index
+    return labels
 
-    Per-image grid cells retain their best finite-confidence pixel. Subsequent
-    3D voxel fusion averages observations from either view; no source observation
-    is discarded to enforce the 3D point budget.
+
+@torch.no_grad()
+def labelled_voxel_partition(points,labels,scale,relative_size,budget):
+    """Fuse only observations of the SAME superpoint; never erase its boundary."""
+    if len(labels.unique())>budget:raise ValueError('Point budget cannot retain every superpoint')
+    origin=points.amin(0);size=float(scale)*relative_size
+    for _ in range(128):
+        keys=torch.cat((labels[:,None],torch.floor((points-origin)/size).long()),-1)
+        _,ids=torch.unique(keys,dim=0,sorted=True,return_inverse=True)
+        if int(ids.max())+1<=budget:return ids,size
+        size*=1.25
+    raise RuntimeError('Could not construct region-preserving bounded cloud')
+
+
+def lift_context_cloud(omega,feature_grid,rgb,config,proposals=None):
+    """Lift context pixels; retain every finite SAM region before point fusion.
+
+    ESAM MV uncovered labels use deterministic XYZRGB KMeans (RGB 0..255).
+    Region IDs are view-specific, not speculative cross-view instance matches.
     """
     points=omega['points'][0].detach();v,h,w,_=points.shape
     confidence=omega['confidence'][0].reshape(v,h,w).detach()
-    source=[]
+    source=[];source_labels=[];offset=0
+    esam=config.superpoint_source=="esam_sam"
+    if esam and (proposals is None or len(proposals)!=v):raise ValueError("ESAM mode requires per-view SAM masks")
+    depth=omega["depth"][0].reshape(v,h,w).detach()
+    colors=F.interpolate(rgb[0],size=(h,w),mode="bilinear",align_corners=False).permute(0,2,3,1).detach()
     with torch.no_grad():
         for view in range(v):
-            valid=torch.isfinite(points[view]).all(-1)&torch.isfinite(confidence[view])
+            valid=torch.isfinite(points[view]).all(-1)&torch.isfinite(confidence[view])&torch.isfinite(depth[view])&(depth[view]>0)
             score=confidence[view].masked_fill(~valid,-torch.inf)[None,None]
             _,ids=F.adaptive_max_pool2d(score,(min(h,config.point_grid),min(w,config.point_grid)),return_indices=True)
             ids=ids.flatten();ids=ids[valid.flatten()[ids]].unique(sorted=True)
+            if esam:
+                labels=esam_image_partition(proposals[view],h,w,points.device).flatten()
+                # Add one valid source per region, including tiny regions missed by grid sampling.
+                retained=[]
+                for label in labels[valid.flatten()].unique():
+                    if label>=0:retained.append(torch.where(valid.flatten()&(labels==label))[0][0])
+                if retained:ids=torch.cat((ids,torch.stack(retained))).unique(sorted=True)
+                groups=labels[ids].clone();uncovered=groups<0;n=int(uncovered.sum())
+                next_id=int(groups.max())+1 if len(groups) else 0
+                if n:
+                    if n<config.uncovered_clusters:extra=torch.zeros(n,device=points.device,dtype=torch.long)
+                    else:
+                        from sklearn.cluster import KMeans
+                        values=torch.cat((points[view].reshape(-1,3)[ids[uncovered]],(colors[view].reshape(-1,3)[ids[uncovered]]*255).round()),-1)
+                        extra=torch.as_tensor(KMeans(n_clusters=config.uncovered_clusters,n_init=10,random_state=42).fit_predict(values.cpu().numpy()),device=points.device,dtype=torch.long)
+                    groups[uncovered]=extra+next_id
+                if len(groups):
+                    _,groups=torch.unique(groups,sorted=True,return_inverse=True)
+                    source_labels.append(groups+offset);offset+=int(groups.max())+1
             source.append(ids+view*h*w)
         source=torch.cat(source)
         if not len(source):raise ValueError('No finite context geometry')
         xyz=points.reshape(-1,3)[source];origin,scale=scene_frame(xyz)
-        point_ids,voxel_size=voxel_partition(xyz,scale,config.point_voxel,config.max_points)
+        if esam:
+            labels=torch.cat(source_labels)
+            if offset>config.max_superpoints:raise ValueError(f'ESAM generated {offset} superpoints, budget {config.max_superpoints}; no truncation')
+            point_ids,voxel_size=labelled_voxel_partition(xyz,labels,scale,config.point_voxel,config.max_points)
+        else:point_ids,voxel_size=voxel_partition(xyz,scale,config.point_voxel,config.max_points)
     view=source//(h*w);pixel=source%(h*w)
     xy=torch.stack(((pixel%w+.5)*2/w-1,(pixel//w+.5)*2/h-1),-1)
     # Sample each view, then gather its actual source observation.
     samples=F.grid_sample(feature_grid[0],xy[None,:,None].expand(v,-1,-1,-1),align_corners=False,padding_mode='border')[:,:, :,0]
     samples=samples.permute(2,0,1)[torch.arange(len(source),device=source.device),view]
     count=int(point_ids.max())+1
-    return dict(points=scatter_mean(xyz,point_ids,count).detach(),features=scatter_mean(samples,point_ids,count),
+    result=dict(points=scatter_mean(xyz,point_ids,count).detach(),features=scatter_mean(samples,point_ids,count),
         source_indices=source,source_to_point=point_ids,source_points=xyz,origin=origin,scale=scale,point_voxel_size=voxel_size)
+    if esam:
+        # All members of a fused point have identical labels, so the mean is exact.
+        result['point_superpoint_ids']=scatter_mean(labels.double()[:,None],point_ids,count).squeeze(-1).long()
+        result['superpoint_source']='esam_sam'
+    return result
 
 
 @torch.no_grad()
@@ -121,7 +173,9 @@ class SuperpointQueryInitializer(nn.Module):
     def forward(self,cloud,superpoint_ids=None):
         points=cloud['points'].detach();scale=cloud['scale'].detach();origin=cloud['origin'].detach()
         features=self.point_encoder(cloud['features'],points,scale)
+        if superpoint_ids is None and 'point_superpoint_ids' in cloud:superpoint_ids=cloud['point_superpoint_ids']
         if superpoint_ids is None:
+            if self.config.superpoint_source!='geometric_voxel':raise ValueError('ESAM cloud is missing superpoint IDs')
             ids,voxel_size=voxel_partition(points,scale,self.config.superpoint_voxel,self.config.max_superpoints)
         else:
             supplied=torch.as_tensor(superpoint_ids,device=points.device)

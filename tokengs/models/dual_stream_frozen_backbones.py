@@ -90,3 +90,25 @@ class FrozenSAM(nn.Module):
                 views.append([dict(mask=m['segmentation'],score=m['predicted_iou']*m['stability_score']) for m in masks[:128]])
             result.append(views)
         return result
+
+
+class FrozenESAMSAM(FrozenSAM):
+    """ESAM AMG defaults, all masks retained; separate identity from legacy SAM."""
+    def __init__(self,checkpoint='/space/mawb/ssst_dual_stream_assets/sam_vit_b_01ec64.pth'):
+        super().__init__(checkpoint)
+        from segment_anything import SamAutomaticMaskGenerator
+        settings=dict(points_per_side=32,points_per_batch=64,pred_iou_thresh=.88,stability_score_thresh=.95,
+            stability_score_offset=1.,box_nms_thresh=.7,crop_n_layers=0,crop_nms_thresh=.7,
+            crop_overlap_ratio=512/1500,crop_n_points_downscale_factor=1,min_mask_region_area=0,output_mode='binary_mask')
+        self.generator=SamAutomaticMaskGenerator(self.sam,**settings)
+        self.source_identity['generator_settings']=settings
+        self.source_identity.update(points_per_side=32,crop_n_layers=0,per_view_budget=None,
+            partition='descending_area_small_overwrites_large',pipeline='ESAM_MV',
+            esam_revision='188fc6de44f7577fecec2d69b75c7adbd9992251')
+
+    @torch.no_grad()
+    def forward(self,rgb):
+        images=(rgb.detach().clamp(0,1)*255).round().byte().permute(0,1,3,4,2).cpu().numpy()
+        return [[[dict(mask=m['segmentation'],area=m['area'])
+                  for m in self.generator.generate(np.ascontiguousarray(image))]
+                 for image in scene] for scene in images]

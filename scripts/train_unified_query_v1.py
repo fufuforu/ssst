@@ -22,11 +22,11 @@ from scripts.dual_stream_training_policy import epoch_order,rank_microbatches,lr
 from scripts.dual_stream_frozen_cache import atomic_torch_save,cpu_tree
 
 
-def trainable_state(model):return cpu_tree({k:v for k,v in model.state_dict().items() if not k.startswith('frozen_omega.')})
+def trainable_state(model):return cpu_tree({k:v for k,v in model.state_dict().items() if not k.startswith(('frozen_omega.','sam_proposals.'))})
 
 
 def restore_state(model,state):
-    target=model.state_dict();keys={k for k in target if not k.startswith('frozen_omega.')}
+    target=model.state_dict();keys={k for k in target if not k.startswith(('frozen_omega.','sam_proposals.'))}
     if set(state)!=keys or any(target[k].shape!=state[k].shape for k in keys):raise ValueError('Unified checkpoint architecture differs')
     with torch.no_grad():
         for k in keys:target[k].copy_(state[k])
@@ -68,7 +68,7 @@ def main():
         if p.requires_grad:grouped.setdefault(0. if p.ndim<2 or getattr(p,'_no_weight_decay',False) else .05,[]).append(p)
     optimizer=torch.optim.AdamW([dict(params=ps,weight_decay=wd) for wd,ps in grouped.items()],lr=args.learning_rate,betas=(.9,.95),eps=1e-8)
     root=args.output_dir;root.mkdir(parents=True,exist_ok=True)
-    meta=dict(architecture=model.architecture_name,config=config.to_dict(),code_sha=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),manifest_sha256=digest(MANIFEST),heldout_sha256=digest(HELDOUT),omega_identity=model.frozen_omega.source_identity,
+    meta=dict(architecture=model.architecture_name,config=config.to_dict(),code_sha=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),manifest_sha256=digest(MANIFEST),heldout_sha256=digest(HELDOUT),omega_identity=model.frozen_omega.source_identity,sam_identity=model.sam_proposals.source_identity if model.sam_proposals is not None else None,
         world_size=world,global_batch=8,epochs=args.epochs,understanding_weight=args.understanding_weight,understanding_warmup=args.understanding_warmup,learning_rate=args.learning_rate)
     progress=dict(epoch=0,update_in_epoch=0,full_updates=0)
     if args.resume:

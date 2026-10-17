@@ -1,11 +1,11 @@
 """Pose-free unified superpoint queries for reconstruction and instance understanding.
 
 Independent architecture: no old Anchor/Object decoder, no random query table,
-no MASt3R weights, no SAM dependency, and no implicit checkpoint migration.
+no MASt3R weights and no implicit checkpoint migration. SAM supplies partitions only.
 """
 import torch
 from torch import nn
-from tokengs.models.dual_stream_frozen_backbones import FrozenOmega
+from tokengs.models.dual_stream_frozen_backbones import FrozenOmega,FrozenESAMSAM
 from tokengs.models.gfm_dual_stream_components import gfm_grid
 from tokengs.models.unified_superpoints import UnifiedQueryConfig,lift_context_cloud
 from tokengs.models.unified_query_core import UnifiedQueryCore
@@ -21,11 +21,13 @@ class LocusGSUnifiedQueryV1(nn.Module):
     architecture_name='OMEGA_3D_SUPERPOINT_UNIFIED_QUERY_V1'
     reconstruction_only=False
 
-    def __init__(self,opt,*,config=None,omega=None,renderer=None,omega_checkpoint='/datasets2/mengxl/vggt_omega/vggt_omega_1b_512.pt'):
+    def __init__(self,opt,*,config=None,omega=None,sam=None,renderer=None,omega_checkpoint='/datasets2/mengxl/vggt_omega/vggt_omega_1b_512.pt'):
         super().__init__();self.config=config or UnifiedQueryConfig();self.opt=opt
         self.img_size=tuple(opt.img_size)
         self.frozen_omega=omega if omega is not None else FrozenOmega(omega_checkpoint)
         self.frozen_omega.requires_grad_(False).eval()
+        self.sam_proposals=(sam if sam is not None else FrozenESAMSAM()) if self.config.superpoint_source=='esam_sam' else None
+        if self.sam_proposals is not None:self.sam_proposals.requires_grad_(False).eval()
         self.gfm_projection=nn.Sequential(nn.LayerNorm(2048),nn.Linear(2048,self.config.dim))
         self.core=UnifiedQueryCore(opt,self.config)
         if renderer is None:
@@ -44,7 +46,9 @@ class LocusGSUnifiedQueryV1(nn.Module):
     _layer_objective=LocusGSRecon._layer_objective
 
     def train(self,mode=True):
-        super().train(mode);self.frozen_omega.eval();return self
+        super().train(mode);self.frozen_omega.eval()
+        if self.sam_proposals is not None:self.sam_proposals.eval()
+        return self
 
     def _render_understanding(self,generated,decoder):
         render=self.render_reconstruction(generated['reconstruction'],decoder)
@@ -63,7 +67,8 @@ class LocusGSUnifiedQueryV1(nn.Module):
         if not torch.isfinite(context_rgb).all() or context_rgb.min()<0 or context_rgb.max()>1:raise ValueError('Finite RGB in[0,1] required')
         omega=self.frozen_omega(context_rgb)
         raw=gfm_grid(omega['patch_layers']);grid=self.gfm_projection(raw.permute(0,1,3,4,2)).permute(0,1,4,2,3).contiguous()
-        cloud=lift_context_cloud(omega,grid,context_rgb,self.config)
+        proposals=self.sam_proposals(context_rgb)[0] if self.sam_proposals is not None else None
+        cloud=lift_context_cloud(omega,grid,context_rgb,self.config,proposals)
         memory=grid.permute(0,1,3,4,2).reshape(1,-1,self.config.dim)
         return omega,cloud,memory
 
@@ -75,7 +80,8 @@ class LocusGSUnifiedQueryV1(nn.Module):
         decoder=ModelInputDecoder(cam_view=torch.linalg.inv(omega['c2w']).transpose(-1,-2),intrinsics=camera_vectors(omega['k']))
         output.update(reconstruction=self._reconstruction_from_gaussians(output['gaussians']),predicted_context_c2w=omega['c2w'],
             predicted_context_intrinsics=decoder.intrinsics,predicted_context_intrinsics_matrix=omega['k'],predicted_points=omega['points'],
-            depth=omega['depth'],confidence=omega['confidence'],generation_context_rgb=context_rgb.detach(),omega_source_identity=self.frozen_omega.source_identity)
+            depth=omega['depth'],confidence=omega['confidence'],generation_context_rgb=context_rgb.detach(),omega_source_identity=self.frozen_omega.source_identity,
+            sam_source_identity=self.sam_proposals.source_identity if self.sam_proposals is not None else None)
         rendered=self._render_understanding(output,decoder)
         output.update(render={k:rendered[k] for k in ('images_pred','depths_pred','alphas_pred')},
             **{k:rendered[k] for k in ('region_mass','pixel_membership','alpha','semantic_scores')})

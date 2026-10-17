@@ -1,17 +1,18 @@
 import copy
+from dataclasses import replace
 import unittest
 from unittest.mock import patch
 import torch
 from torch import nn
 from tokengs.options import config_defaults
-from tokengs.models.unified_superpoints import UnifiedQueryConfig,voxel_partition,scatter_mean,SuperpointQueryInitializer,PointNeighborhoodEncoder
+from tokengs.models.unified_superpoints import UnifiedQueryConfig,voxel_partition,scatter_mean,SuperpointQueryInitializer,PointNeighborhoodEncoder,esam_image_partition,labelled_voxel_partition,lift_context_cloud
 from tokengs.models.unified_query_core import UnifiedQueryCore
 from tokengs.models.unified_query_loss import unified_instance_loss
 from tokengs.models.unified_query_v1 import LocusGSUnifiedQueryV1
 from scripts.export_object_locus_v3_set_official import assemble_panoptic
 
 
-def config():return UnifiedQueryConfig(dim=16,heads=4,depth=2,point_grid=4,max_points=16,max_superpoints=4,neighbors=3,point_layers=1,checkpoint_blocks=False)
+def config():return UnifiedQueryConfig(superpoint_source="geometric_voxel",dim=16,heads=4,depth=2,point_grid=4,max_points=16,max_superpoints=4,neighbors=3,point_layers=1,checkpoint_blocks=False)
 def opt():return config_defaults['train_siu3r_unified_query_v1'].evolve(dec_patch_size=2)
 def cloud():
     p=torch.tensor([[0.,0,0],[.01,0,0],[1.,0,0],[1.01,0,0]])
@@ -31,6 +32,14 @@ class FakeOmega(nn.Module):
             patch_layers=[feature]*4,c2w=torch.eye(4,device=device).expand(b,v,4,4).clone(),k=torch.eye(3,device=device).expand(b,v,3,3).clone())
 
 
+class FakeSAM(nn.Module):
+    source_identity={'synthetic_sam':True}
+    def __init__(self):super().__init__();self.weight=nn.Parameter(torch.tensor(1.))
+    @torch.no_grad()
+    def forward(self,rgb):
+        return [[[dict(mask=torch.ones(8,8,dtype=torch.bool))] for _ in scene] for scene in rgb]
+
+
 class FakeRenderer(nn.Module):
     def render(self,g,cam_view,bg_color,intrinsics):
         b,v=cam_view.shape[:2];rgb=g[...,11:14].mean(1)[:,None,:,None,None].expand(b,v,3,8,8)
@@ -45,6 +54,49 @@ class FakeRenderer(nn.Module):
 
 class UnifiedTests(unittest.TestCase):
     def setUp(self):torch.manual_seed(3)
+
+    def test_esam_overlap_small_regions_overwrite_large(self):
+        big=torch.ones(8,8,dtype=torch.bool);small=torch.zeros_like(big);small[0,0]=True
+        labels=esam_image_partition([dict(mask=small),dict(mask=big)],8,8,'cpu')
+        self.assertNotEqual(labels[0,0],labels[0,1]);self.assertEqual(int((labels==labels[0,0]).sum()),1)
+        with self.assertRaises(ValueError):esam_image_partition([dict(mask=big)],4,4,'cpu')
+
+    def test_esam_retains_tiny_regions_view_ids_and_fusion_boundaries(self):
+        cfg=replace(config(),superpoint_source='esam_sam',point_grid=1,max_points=8,max_superpoints=4)
+        rgb=torch.rand(1,2,3,8,8);omega=FakeOmega()(rgb)
+        big=torch.ones(8,8,dtype=torch.bool);small=torch.zeros_like(big);small[-1,-1]=True
+        proposals=[[dict(mask=big),dict(mask=small)] for _ in range(2)]
+        grid=torch.randn(1,2,16,4,4,requires_grad=True)
+        c=lift_context_cloud(omega,grid,rgb,cfg,proposals)
+        self.assertEqual(len(c['point_superpoint_ids'].unique()),4)
+        self.assertIn(63,c['source_indices'].tolist());self.assertIn(127,c['source_indices'].tolist())
+        out=SuperpointQueryInitializer(cfg)(c);self.assertEqual(out['query'].shape,(1,4,16))
+        out['query'][0,0,0].backward();self.assertGreater(float(grid.grad.norm()),0.)
+        # Identical spatial locations with different labels must remain separate.
+        ids,_=labelled_voxel_partition(torch.zeros(4,3),torch.tensor([0,0,1,1]),1.,.1,2)
+        self.assertEqual(ids[0],ids[1]);self.assertNotEqual(ids[0],ids[2])
+        with self.assertRaises(ValueError):labelled_voxel_partition(torch.zeros(4,3),torch.tensor([0,0,1,1]),1.,.1,1)
+        with self.assertRaises(ValueError):lift_context_cloud(omega,grid,rgb,replace(cfg,max_superpoints=3),proposals)
+
+    def test_esam_uncovered_kmeans_determinism_and_invalid_depth(self):
+        cfg=replace(config(),superpoint_source='esam_sam',max_points=32,max_superpoints=16)
+        rgb=torch.rand(1,2,3,8,8);omega=FakeOmega()(rgb);grid=torch.randn(1,2,16,4,4)
+        omega['depth'][0,0,0,0,0]=0
+        a=lift_context_cloud(omega,grid,rgb,cfg,[[],[]]);b=lift_context_cloud(omega,grid,rgb,cfg,[[],[]])
+        torch.testing.assert_close(a['point_superpoint_ids'],b['point_superpoint_ids'])
+        self.assertEqual(len(a['point_superpoint_ids'].unique()),16)
+        self.assertNotIn(0,a['source_indices'].tolist())
+        with self.assertRaises(ValueError):lift_context_cloud(omega,grid,rgb,cfg)
+
+    def test_esam_model_freezes_sam_and_checkpoint_omits_frozen_assets(self):
+        from scripts.train_unified_query_v1 import trainable_state,restore_state
+        cfg=replace(config(),superpoint_source='esam_sam')
+        model=LocusGSUnifiedQueryV1(opt(),config=cfg,omega=FakeOmega(),sam=FakeSAM(),renderer=FakeRenderer()).train()
+        self.assertFalse(model.sam_proposals.training);self.assertFalse(model.sam_proposals.weight.requires_grad)
+        out=model.generate(torch.rand(1,2,3,256,256));self.assertEqual(out['num_thing_queries'],2)
+        state=trainable_state(model);self.assertFalse(any(k.startswith(('frozen_omega.','sam_proposals.')) for k in state))
+        out['gaussians'].sum().backward();self.assertIsNone(model.sam_proposals.weight.grad)
+        restore_state(model,state)
 
     def test_spatial_partition_full_coverage_and_fusion_gradients(self):
         p=cloud()['points'];ids,size=voxel_partition(p,.5,.02,2)

@@ -35,6 +35,7 @@ def main():
     if not args.smoke and saved['progress']['epoch']!=meta['epochs']:raise ValueError('Incomplete training; only --smoke export allowed')
     opt=config_defaults['train_siu3r_unified_query_v1'];model=LocusGSUnifiedQueryV1(opt,config=UnifiedQueryConfig(**meta['config'])).to(device)
     if model.frozen_omega.source_identity!=meta['omega_identity']:raise ValueError('Frozen source identity differs')
+    if (model.sam_proposals.source_identity if model.sam_proposals is not None else None)!=meta['sam_identity']:raise ValueError('SAM source identity differs')
     restore_state(model,saved['model']);_,_,windows=cohorts()
     if args.smoke:windows=windows[:1]
     export(model,opt,windows,args.output,rank,world,device,expected_windows=len(windows))
