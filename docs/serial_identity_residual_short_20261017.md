@@ -47,3 +47,9 @@ W0为256→256线性投影，权重单位阵、偏置0；门控初始0.1。归�
 20项CPU测试通过：精确残差公式/初值、构造器RNG与原参数不变、gate0恢复原理解输出、重建输出不变、全理解梯度不进入重建、零步迁移拒绝错误状态、原串行梯度/clip、完整原生重放/权重不变、警告保留、汇总与GT不一致拒绝、NumPy/Python/Torch探针RNG保护。Python编译、shell语法及diff检查通过。新GPU首步、完整训练及新GPU诊断尚未核实。
 
 执行快照`/space/mawb/ssst_serial_identity_residual_code_20261017`，作业号与唯一一次状态见run/submission.json和SUBMISSION_STATUS_ONCE.json。预计训练约25–30分钟，加诊断与汇总约2–5分钟；排队另计。提交后停止轮询，等待用户通知完成。
+
+## 已提交并停止轮询
+
+作业 **66653**，18节点4×4090、16CPU/128G，唯一一次调度核对 **RUNNING**。执行SHA **db948ab55fc3fb70d66fbe1e3ac2a3e0bfd64cf2**，独立快照干净。20项CPU回归、真实零步/资产/数据/旧原生记录SHA预检以及编译/语法/diff检查通过；新GPU源RNG检查、第一步同步、256步训练与新GPU固定权重诊断尚未核实。RUNNING不代表这些检查通过。
+
+同作业内训练→短测汇总→32窗口原生诊断→与复用66637结果比较并生成图集，无额外训练依赖、无官方128或全量自动提交。已停止轮询，不等待首步或结果；A66640、原Unified66648未查询或修改。用户通知完成后检查此run的COMPLETE、SHORT_VALIDATION_SUMMARY及diagnostics/REPORT、SUMMARY、gallery和所有验证收据。
