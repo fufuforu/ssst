@@ -55,6 +55,19 @@ class FakeRenderer(nn.Module):
 class UnifiedTests(unittest.TestCase):
     def setUp(self):torch.manual_seed(3)
 
+    def test_full_training_zero_step_boundary_rejects_trained_or_incompatible_state(self):
+        from scripts.unified_query_initial_state import validate_zero_initial
+        model=LocusGSUnifiedQueryV1(opt(),config=config(),omega=FakeOmega(),renderer=FakeRenderer())
+        meta=dict(architecture=model.architecture_name,config=model.config.to_dict(),manifest_sha256='train',heldout_sha256='val',world_size=8,
+            omega_identity=model.frozen_omega.source_identity,sam_identity=None)
+        saved=dict(meta=meta,progress=dict(epoch=0,update_in_epoch=0,full_updates=0),optimizer=dict(state={}),rank_rng=[{} for _ in range(8)])
+        def check(blob):validate_zero_initial(blob,model,manifest_sha256='train',heldout_sha256='val',world=8)
+        check(saved)
+        for mutate in [lambda x:x['progress'].update(full_updates=256),lambda x:x['optimizer']['state'].update({0:{'step':1}}),
+                       lambda x:x['meta'].update(manifest_sha256='other'),lambda x:x['meta'].update(config={}),lambda x:x.update(rank_rng=[{}])]:
+            bad=copy.deepcopy(saved);mutate(bad)
+            with self.assertRaises(ValueError):check(bad)
+
     def test_actual_canonical_reconstruction_objective(self):
         from tokengs.models.input_types import ModelInputDecoder,ModelSupervision
         model=LocusGSUnifiedQueryV1(opt().evolve(img_size=(8,8)),config=config(),omega=FakeOmega(),renderer=FakeRenderer())

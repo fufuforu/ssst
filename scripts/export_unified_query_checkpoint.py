@@ -12,6 +12,7 @@ from tokengs.models.unified_query_v1 import LocusGSUnifiedQueryV1
 from tokengs.models.unified_superpoints import UnifiedQueryConfig
 from scripts.train_unified_query_v1 import restore_state
 from scripts.train_dual_stream_v1 import cohorts,digest,MANIFEST,HELDOUT
+from scripts.dual_stream_training_policy import epoch_order
 from scripts.dual_stream_official_export import export
 
 
@@ -34,13 +35,19 @@ def main():
     if meta['architecture']!=LocusGSUnifiedQueryV1.architecture_name or meta['manifest_sha256']!=digest(MANIFEST) or meta['heldout_sha256']!=digest(HELDOUT):raise ValueError('Checkpoint/data identity differs')
     if meta.get('short_validation') and not args.smoke:raise ValueError('Short trainability run is not full-data training; use --smoke only')
     if not args.smoke and saved['progress']['epoch']!=meta['epochs']:raise ValueError('Incomplete training; only --smoke export allowed')
+    training,_,_=cohorts()
+    if not args.smoke and saved['progress']['full_updates']!=meta['epochs']*(len(epoch_order(len(training),0))//8):raise ValueError('Training update count differs')
     opt=config_defaults['train_siu3r_unified_query_v1'];model=LocusGSUnifiedQueryV1(opt,config=UnifiedQueryConfig(**meta['config'])).to(device)
     if model.frozen_omega.source_identity!=meta['omega_identity']:raise ValueError('Frozen source identity differs')
     if (model.sam_proposals.source_identity if model.sam_proposals is not None else None)!=meta['sam_identity']:raise ValueError('SAM source identity differs')
     restore_state(model,saved['model']);_,_,windows=cohorts()
     if args.smoke:windows=windows[:1]
     export(model,opt,windows,args.output,rank,world,device,expected_windows=len(windows))
-    if rank==0:(args.output/'checkpoint_identity.json').write_text(json.dumps(dict(checkpoint=str(args.checkpoint.resolve()),meta=meta,parameter_updates=0,smoke_only=args.smoke),indent=2)+'\n')
+    if rank==0:
+        record=json.loads((args.output/'export_complete.json').read_text())
+        record['panoptic_assembly']='Unified Query: context-only class-aware Mask NMS IoU>'+str(model.config.mask_nms_iou)+' then existing candidate thresholds/competition/area filter'
+        (args.output/'export_complete.json').write_text(json.dumps(record,indent=2)+'\n')
+        (args.output/'checkpoint_identity.json').write_text(json.dumps(dict(checkpoint=str(args.checkpoint.resolve()),meta=meta,parameter_updates=0,smoke_only=args.smoke),indent=2)+'\n')
     dist.destroy_process_group()
 
 

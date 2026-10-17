@@ -52,9 +52,12 @@ def main():
     parser.add_argument('--epochs',type=int,default=4);parser.add_argument('--max-updates',type=int)
     parser.add_argument('--learning-rate',type=float,default=1e-4);parser.add_argument('--understanding-warmup',type=int,default=1043)
     parser.add_argument('--short-validation',action='store_true',help='16 fixed training scenes, 256 updates, initial/final probes')
+    parser.add_argument('--epoch-probes',action='store_true',help='Fixed train/heldout probes initially and at each full epoch')
+    parser.add_argument('--initial-checkpoint',type=Path);parser.add_argument('--initial-sha256')
     parser.add_argument('--config',type=Path);parser.add_argument('--resume',action='store_true');parser.add_argument('--checkpoint-every',type=int,default=50)
     args=parser.parse_args()
     if args.understanding_weight<0 or not math.isfinite(args.understanding_weight) or args.epochs<1 or args.learning_rate<=0 or args.understanding_warmup<0 or args.checkpoint_every<1 or args.max_updates is not None and args.max_updates<1:parser.error('Invalid training settings')
+    if bool(args.initial_checkpoint)!=bool(args.initial_sha256) or args.initial_checkpoint and (args.resume or args.short_validation):parser.error('Zero-step initialization requires SHA and fresh full training')
     if args.short_validation:
         if args.resume or args.max_updates is not None:parser.error('Short validation uses a fresh bounded run')
         args.epochs=128;args.max_updates=256;args.understanding_warmup=20
@@ -68,16 +71,23 @@ def main():
     opt=config_defaults['train_siu3r_unified_query_v1'];windows,chosen,validation=cohorts()
     if args.short_validation:windows=[windows[i] for i in chosen]
     model=LocusGSUnifiedQueryV1(opt,config=config).to(device)
+    if args.initial_checkpoint:
+        if digest(args.initial_checkpoint)!=args.initial_sha256:raise ValueError('Zero-step checkpoint SHA differs')
+        from scripts.unified_query_initial_state import validate_zero_initial
+        initial=torch.load(args.initial_checkpoint,map_location='cpu',weights_only=False,mmap=True)
+        validate_zero_initial(initial,model,manifest_sha256=digest(MANIFEST),heldout_sha256=digest(HELDOUT),world=world)
+        restore_state(model,initial['model']);restore_rng(initial['rank_rng'][rank]);del initial
     grouped={}
     for name,p in model.named_parameters():
         if p.requires_grad:grouped.setdefault(0. if p.ndim<2 or getattr(p,'_no_weight_decay',False) else .05,[]).append(p)
     optimizer=torch.optim.AdamW([dict(params=ps,weight_decay=wd) for wd,ps in grouped.items()],lr=args.learning_rate,betas=(.9,.95),eps=1e-8)
     root=args.output_dir;root.mkdir(parents=True,exist_ok=True)
     meta=dict(architecture=model.architecture_name,config=config.to_dict(),code_sha=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),manifest_sha256=digest(MANIFEST),heldout_sha256=digest(HELDOUT),omega_identity=model.frozen_omega.source_identity,sam_identity=model.sam_proposals.source_identity if model.sam_proposals is not None else None,
-        short_validation=args.short_validation,training_windows=windows if args.short_validation else None,world_size=world,global_batch=8,epochs=args.epochs,understanding_weight=args.understanding_weight,understanding_warmup=args.understanding_warmup,learning_rate=args.learning_rate)
+        initial_checkpoint=str(args.initial_checkpoint.resolve()) if args.initial_checkpoint else None,initial_sha256=args.initial_sha256,initial_updates=0,epoch_probes=args.epoch_probes,short_validation=args.short_validation,training_windows=windows if args.short_validation else None,world_size=world,global_batch=8,epochs=args.epochs,understanding_weight=args.understanding_weight,understanding_warmup=args.understanding_warmup,learning_rate=args.learning_rate)
     progress=dict(epoch=0,update_in_epoch=0,full_updates=0)
     if args.resume:
         saved=torch.load(root/'checkpoint_latest.pt',map_location='cpu',weights_only=False,mmap=True)
+        for key in ('initial_checkpoint','initial_sha256','initial_updates'):meta[key]=saved['meta'][key]
         if saved['meta']!=meta:raise ValueError('Resume source/config/code/data differ')
         restore_state(model,saved['model']);optimizer.load_state_dict(saved['optimizer']);progress=saved['progress'];restore_rng(saved['rank_rng'][rank]);del saved
     else:
@@ -89,12 +99,14 @@ def main():
     if args.max_updates is not None and progress['full_updates']>=args.max_updates:raise ValueError('Requested update limit already reached; no updates replayed')
     if rank==0:(root/'last_request.json').write_text(json.dumps(dict(resume=args.resume,max_updates=args.max_updates),indent=2)+'\n')
     from scripts.unified_query_validation import run_probes,parameter_digest,synchronized_first_update
-    if args.short_validation:run_probes(model,opt,windows,validation,root,'initial',rank,world,device,args.understanding_weight)
+    probe_train=windows if args.short_validation else [windows[i] for i in chosen]
+    if not args.resume and (args.short_validation or args.epoch_probes):run_probes(model,opt,probe_train,validation,root,'initial',rank,world,device,args.understanding_weight)
     initial_digest=parameter_digest(model)
     before_ddp=rng()
     task=Task(model);task=DDP(task,device_ids=[local],find_unused_parameters=True) if world>1 else task
     restore_rng(before_ddp)
     updates_per_epoch=len(epoch_order(len(windows),0))//8;total=args.epochs*updates_per_epoch
+    if args.resume and progress['full_updates']>=total:raise ValueError('Training already complete; no updates replayed')
     def save():
         local_rng=rng();states=[local_rng]
         if world>1:states=[None]*world;dist.all_gather_object(states,local_rng)
@@ -137,6 +149,11 @@ def main():
             if args.max_updates is not None and step+1>=args.max_updates:stop=True;break
         if not stop:progress.update(epoch=epoch+1,update_in_epoch=0)
         if not args.short_validation or stop or progress["full_updates"]==total:save()
+        if args.epoch_probes and not args.short_validation and progress['update_in_epoch']==0:
+            if rank==0:
+                epoch_checkpoint=root/f'checkpoint_epoch{progress["epoch"]}.pt'
+                if not epoch_checkpoint.exists():os.link(root/'checkpoint_latest.pt',epoch_checkpoint)
+            run_probes(model,opt,probe_train,validation,root,'final' if progress['epoch']==args.epochs else f'epoch{progress["epoch"]}',rank,world,device,args.understanding_weight)
         if stop:break
     if args.short_validation:run_probes(model,opt,windows,validation,root,'final',rank,world,device,args.understanding_weight)
     if rank==0:

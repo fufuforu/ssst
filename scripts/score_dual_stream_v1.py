@@ -57,7 +57,7 @@ def main():
     (root/'metrics.json').write_text(json.dumps(safe,indent=2,allow_nan=False)+'\n')
     with (root/'siu3r_table1.csv').open('w',newline='') as stream:
         writer=csv.writer(stream);writer.writerow(FIELDS);writer.writerow(table_values(report))
-    (root/'siu3r_table1.md').write_text('# Omega + SAM dual stream — held-out 128 scenes\n\n'+markdown_table(report)+'\n\nText mIoU columns remain blank. Target uses official context + four extra frames.\n')
+    (root/'siu3r_table1.md').write_text('# '+configuration['recipe']+' — held-out 128 scenes\n\n'+markdown_table(report)+'\n\nText mIoU columns remain blank. Target uses official context + four extra frames.\n')
     reference=Path('/space/mawb/ssst/group_plus/vggt_classification_readback_v1/attempts/attempt01/object_support/evaluation/siu3r_table1.csv')
     with reference.open() as stream:
         reader=csv.reader(stream);fields=next(reader);old=next(reader)
