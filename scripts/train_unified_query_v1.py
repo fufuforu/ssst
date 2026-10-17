@@ -8,7 +8,7 @@ import sys
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
 from scripts.runtime_bootstrap import prepare_runtime
 prepare_runtime(ROOT)
-import argparse,contextlib,json,math,os,random,subprocess,time
+import argparse,contextlib,hashlib,json,math,os,random,subprocess,time
 import numpy as np
 import torch
 from torch import nn
@@ -55,10 +55,12 @@ def main():
     parser.add_argument('--short-validation',action='store_true',help='16 fixed training scenes, 256 updates, initial/final probes')
     parser.add_argument('--epoch-probes',action='store_true',help='Fixed train/heldout probes initially and at each full epoch')
     parser.add_argument('--initial-checkpoint',type=Path);parser.add_argument('--initial-sha256')
+    parser.add_argument('--continue-checkpoint',type=Path);parser.add_argument('--continue-sha256')
     parser.add_argument('--config',type=Path);parser.add_argument('--resume',action='store_true');parser.add_argument('--checkpoint-every',type=int,default=50)
     args=parser.parse_args()
     if args.understanding_weight<0 or not math.isfinite(args.understanding_weight) or args.epochs<1 or args.learning_rate<=0 or args.understanding_warmup<0 or args.checkpoint_every<1 or args.max_updates is not None and args.max_updates<1:parser.error('Invalid training settings')
     if bool(args.initial_checkpoint)!=bool(args.initial_sha256) or args.initial_checkpoint and (args.resume or args.short_validation):parser.error('Zero-step initialization requires SHA and fresh full training')
+    if bool(args.continue_checkpoint)!=bool(args.continue_sha256) or args.continue_checkpoint and (args.initial_checkpoint or args.short_validation):parser.error('Continuation requires source SHA and full training without zero-step initialization')
     if args.short_validation:
         if args.resume or args.max_updates is not None:parser.error('Short validation uses a fresh bounded run')
         args.epochs=128;args.max_updates=256;args.understanding_warmup=20
@@ -87,6 +89,21 @@ def main():
     meta=dict(architecture=model.architecture_name,config=config.to_dict(),code_sha=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),manifest_sha256=digest(MANIFEST),heldout_sha256=digest(HELDOUT),omega_identity=model.frozen_omega.source_identity,sam_identity=model.sam_proposals.source_identity if model.sam_proposals is not None else None,
         initial_checkpoint=str(args.initial_checkpoint.resolve()) if args.initial_checkpoint else None,initial_sha256=args.initial_sha256,initial_updates=0,epoch_probes=args.epoch_probes,short_validation=args.short_validation,training_windows=windows if args.short_validation else None,world_size=world,global_batch=8,epochs=args.epochs,understanding_weight=args.understanding_weight,understanding_warmup=args.understanding_warmup,learning_rate=args.learning_rate)
     progress=dict(epoch=0,update_in_epoch=0,full_updates=0)
+    continuation_model_digest=None
+    if args.continue_checkpoint:
+        from scripts.superpoint_dual_continuation import POLICY,validate_source,validate_optimizer_layout
+        meta.update(continuation_checkpoint=str(args.continue_checkpoint.resolve()),continuation_sha256=args.continue_sha256,continuation_policy=POLICY)
+        if not args.resume:
+            if digest(args.continue_checkpoint)!=args.continue_sha256:raise ValueError('Continuation source SHA differs')
+            saved=torch.load(args.continue_checkpoint,map_location='cpu',weights_only=False,mmap=True)
+            progress=validate_source(saved,meta)
+            validate_optimizer_layout(optimizer,saved['optimizer'])
+            witness=hashlib.sha256()
+            for name,p in model.named_parameters():
+                if p.requires_grad:witness.update(name.encode());witness.update(saved['model'][name].contiguous().numpy().tobytes())
+            continuation_model_digest=witness.hexdigest()
+            for key in ('initial_checkpoint','initial_sha256','initial_updates'):meta[key]=saved['meta'][key]
+            restore_state(model,saved['model']);optimizer.load_state_dict(saved['optimizer']);restore_rng(saved['rank_rng'][rank]);del saved
     if args.resume:
         saved=torch.load(root/'checkpoint_latest.pt',map_location='cpu',weights_only=False,mmap=True)
         for key in ('initial_checkpoint','initial_sha256','initial_updates'):meta[key]=saved['meta'][key]
@@ -100,10 +117,14 @@ def main():
         if world>1:dist.barrier()
     if args.max_updates is not None and progress['full_updates']>=args.max_updates:raise ValueError('Requested update limit already reached; no updates replayed')
     if rank==0:(root/'last_request.json').write_text(json.dumps(dict(resume=args.resume,max_updates=args.max_updates),indent=2)+'\n')
+    first_update=progress['full_updates']
     from scripts.unified_query_validation import run_probes,parameter_digest,synchronized_first_update
     probe_train=windows if args.short_validation else [windows[i] for i in chosen]
     if not args.resume and (args.short_validation or args.epoch_probes):run_probes(model,opt,probe_train,validation,root,'initial',rank,world,device,args.understanding_weight)
     initial_digest=parameter_digest(model)
+    if continuation_model_digest is not None:
+        if initial_digest!=continuation_model_digest:raise ValueError('Loaded continuation parameters differ from source')
+        (root/f'CONTINUATION_LOADED_rank{rank:02}.json').write_text(json.dumps(dict(status='PASSED',source_sha256=args.continue_sha256,model_parameter_sha256=initial_digest,all_trainable_parameters_exact=True,progress=progress,adam_steps=sorted({float(s['step']) for s in optimizer.state.values()}),rank_rng_restored=True),indent=2)+'\n')
     before_ddp=rng()
     task=Task(model);task=DDP(task,device_ids=[local],find_unused_parameters=True) if world>1 else task
     restore_rng(before_ddp)
@@ -124,7 +145,11 @@ def main():
         for update in range(progress['update_in_epoch'],updates_per_epoch):
             started=time.monotonic();model.train();optimizer.zero_grad(set_to_none=True);rows=[]
             step=progress['full_updates'];beta=min(1.,(step+1)/max(1,args.understanding_warmup))
-            for group in optimizer.param_groups:group['lr']=args.learning_rate*lr_factor('short' if args.short_validation else 'full',step,total)
+            if args.continue_checkpoint:
+                from scripts.superpoint_dual_continuation import continuation_lr
+                rate=continuation_lr(step,peak=args.learning_rate)
+            else:rate=args.learning_rate*lr_factor('short' if args.short_validation else 'full',step,total)
+            for group in optimizer.param_groups:group['lr']=rate
             indices=rank_microbatches(order,update,rank,world)
             for micro,index in enumerate(indices):
                 batch=build_batch(opt,windows[index],device)
@@ -132,7 +157,7 @@ def main():
                 with sync:
                     loss,row=task(batch,step*8,args.understanding_weight*beta);(loss/len(indices)).backward()
                 rows.append(row)
-            if step==0:
+            if step==first_update:
                 gradient_evidence={}
                 for name,parameters in model.parameter_groups().items():
                     if not parameters:continue
@@ -147,9 +172,9 @@ def main():
             else:
                 norm=torch.nn.utils.clip_grad_norm_([p for p in model.parameters() if p.requires_grad],1.,error_if_nonfinite=True)
             optimizer.step()
-            if step==0:synchronized_first_update(model,initial_digest,root,rank,world)
+            if step==first_update:synchronized_first_update(model,initial_digest,root,rank,world)
             progress.update(epoch=epoch+int(update+1==updates_per_epoch),update_in_epoch=0 if update+1==updates_per_epoch else update+1,full_updates=step+1)
-            row={k:sum(r[k] for r in rows)/len(rows) for k in rows[0]};row.update(update=step+1,epoch=epoch,grad_norm=float(norm),understanding_weight=args.understanding_weight*beta,local_indices=indices,seconds=time.monotonic()-started,peak_cuda_memory_bytes=torch.cuda.max_memory_allocated(device))
+            row={k:sum(r[k] for r in rows)/len(rows) for k in rows[0]};row.update(update=step+1,epoch=epoch,grad_norm=float(norm),learning_rate=rate,understanding_weight=args.understanding_weight*beta,local_indices=indices,seconds=time.monotonic()-started,peak_cuda_memory_bytes=torch.cuda.max_memory_allocated(device))
             with (root/f'train_rank{rank:02}.jsonl').open('a') as stream:stream.write(json.dumps(row,allow_nan=False)+'\n')
             if rank==0 and (step<3 or (step+1)%10==0):print(json.dumps(row),flush=True)
             if (step+1)%args.checkpoint_every==0:save()

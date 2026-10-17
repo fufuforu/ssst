@@ -66,7 +66,7 @@ def main():
     differences=[None if b is None or a=='' else b-float(a) for a,b in zip(old,current)]
     with (root/'comparison_to_old_C.csv').open('w',newline='') as stream:
         writer=csv.writer(stream);writer.writerow(['model']+list(FIELDS));writer.writerow(['old_VGGT_MASt3R_C']+old)
-        writer.writerow([configuration['recipe']+'_epoch4']+current);writer.writerow(['new_minus_old']+differences)
+        writer.writerow([configuration['recipe']+'_epoch'+str(configuration.get('evaluation_epoch',configuration.get('epochs',4)))]+current);writer.writerow(['new_minus_old']+differences)
     (args.run_root/'COMPLETE.json').write_text(json.dumps(dict(status='TRAINING_AND_HELDOUT128_OFFICIAL_EVAL_COMPLETE',training=json.loads((args.run_root/'TRAINING_COMPLETE.json').read_text()),metrics=str(root/'metrics.json')),indent=2)+'\n')
 
 if __name__=='__main__':main()

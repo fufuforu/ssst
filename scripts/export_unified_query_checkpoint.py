@@ -19,6 +19,7 @@ from scripts.dual_stream_official_export import export
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--checkpoint',type=Path,required=True);parser.add_argument('--output',type=Path,required=True)
+    parser.add_argument('--evaluation-epoch',type=int,help='Explicit completed epoch6/8 of the authorized A continuation')
     parser.add_argument('--smoke',action='store_true',help='One-window engineering check, never full128 results')
     args=parser.parse_args();rank=int(os.environ.get('RANK',0));world=int(os.environ.get('WORLD_SIZE',1));local=int(os.environ.get('LOCAL_RANK',0))
     torch.cuda.set_device(local)
@@ -36,9 +37,14 @@ def main():
     constructors={model.architecture_name:model for model in MODELS.values()}
     if meta['architecture'] not in constructors or meta['manifest_sha256']!=digest(MANIFEST) or meta['heldout_sha256']!=digest(HELDOUT):raise ValueError('Checkpoint/data identity differs')
     if meta.get('short_validation') and not args.smoke:raise ValueError('Short trainability run is not full-data training; use --smoke only')
-    if not args.smoke and saved['progress']['epoch']!=meta['epochs']:raise ValueError('Incomplete training; only --smoke export allowed')
+    if args.smoke and args.evaluation_epoch is not None:raise ValueError('Smoke and explicit epoch export are mutually exclusive')
+    evaluated_epoch=meta['epochs']
+    if not args.smoke and args.evaluation_epoch is not None:
+        from scripts.superpoint_dual_continuation import validate_epoch_export
+        evaluated_epoch=validate_epoch_export(saved,args.evaluation_epoch)
+    elif not args.smoke and saved['progress']['epoch']!=meta['epochs']:raise ValueError('Incomplete training; only --smoke export allowed')
     training,_,_=cohorts()
-    if not args.smoke and saved['progress']['full_updates']!=meta['epochs']*(len(epoch_order(len(training),0))//8):raise ValueError('Training update count differs')
+    if not args.smoke and saved['progress']['full_updates']!=evaluated_epoch*(len(epoch_order(len(training),0))//8):raise ValueError('Training update count differs')
     opt=config_defaults['train_siu3r_unified_query_v1'];model=constructors[meta['architecture']](opt,config=UnifiedQueryConfig(**meta['config'])).to(device)
     if model.frozen_omega.source_identity!=meta['omega_identity']:raise ValueError('Frozen source identity differs')
     if (model.sam_proposals.source_identity if model.sam_proposals is not None else None)!=meta['sam_identity']:raise ValueError('SAM source identity differs')
@@ -49,7 +55,7 @@ def main():
         record=json.loads((args.output/'export_complete.json').read_text())
         record['panoptic_assembly']='Unified Query: context-only class-aware Mask NMS IoU>'+str(model.config.mask_nms_iou)+' then existing candidate thresholds/competition/area filter'
         (args.output/'export_complete.json').write_text(json.dumps(record,indent=2)+'\n')
-        (args.output/'checkpoint_identity.json').write_text(json.dumps(dict(checkpoint=str(args.checkpoint.resolve()),meta=meta,parameter_updates=0,smoke_only=args.smoke),indent=2)+'\n')
+        (args.output/'checkpoint_identity.json').write_text(json.dumps(dict(checkpoint=str(args.checkpoint.resolve()),meta=meta,evaluated_epoch=evaluated_epoch,parameter_updates=0,smoke_only=args.smoke),indent=2)+'\n')
     dist.destroy_process_group()
 
 
