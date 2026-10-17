@@ -43,9 +43,10 @@ def main():
         constructor=LocusGSGFMDualStreamV4
     from scripts.gfm_sam_residual_policy import MODE
     mode=meta['config'].get('sam_query_initialization')
-    if mode is not None and mode!=MODE:raise ValueError('Unknown SAM initialization mode')
+    from scripts.gfm_anchor_seed_policy import MODE as ANCHOR_MODE
+    if mode is not None and mode not in (MODE,ANCHOR_MODE):raise ValueError('Unknown SAM initialization mode')
     if mode and meta['config'].get('query_pooling')!='geometric_sam_v4':raise ValueError('Residual initializer requires V4')
-    model=constructor(opt,write_strength=0.,**({'sam_residual':True} if mode else {})).to(torch.device('cuda',local))
+    model=constructor(opt,write_strength=0.,**({'sam_residual':True,'anchor_query_seed':mode==ANCHOR_MODE} if mode else {})).to(torch.device('cuda',local))
     restore_trainable_state(model,blob['model'])
     if not args.smoke and meta['config'].get('freeze_reconstruction',False):
         from scripts.dual_stream_training_policy import reconstruction_state_digest

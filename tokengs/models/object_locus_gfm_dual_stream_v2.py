@@ -25,6 +25,12 @@ class LocusGSGFMDualStreamV2(LocusGSDualStreamV1):
     def query_seed_memory(self,raw_gfm,fm):
         return raw_gfm
 
+    def decode_scene(self,tokens,latent,rays,fm,proposals,omega,mu,radius,raw_gfm):
+        q,c,s,proposal_log=self.query_initializer(self.query_seed_memory(raw_gfm,fm),proposals,omega['points'],mu)
+        states,stats=self.anchor_decoder.forward_stateful(tokens,latent,rays,self.panoptic,fm,q,self.understanding.mask_embedder,self.understanding_step,
+            seed_mu=mu,seed_radius=radius,seed_c=c,seed_s=s,write_strength=self.write_strength)
+        return states,stats,q,c,s,proposal_log,states[-1]
+
     def generate(self,context_rgb,runtime_config=None):
         if runtime_config: raise ValueError('configure architecture at construction; no implicit runtime overrides')
         if context_rgb.ndim!=5 or context_rgb.shape[1:]!=(2,3,256,256):
@@ -44,10 +50,8 @@ class LocusGSGFMDualStreamV2(LocusGSDualStreamV1):
         tokens=self.get_gs_tokens(batch_size=len(context_rgb))+self.anchor_content(content)+self.anchor_visual_projection(anchor_visual)
         fm=self.understanding(omega['patch_layers'],context_rgb)
         proposals=self.sam_proposals(context_rgb)
-        q,c,s,proposal_log=self.query_initializer(self.query_seed_memory(raw_gfm,fm),proposals,omega['points'],mu)
-        states,stats=self.anchor_decoder.forward_stateful(tokens,latent,rays,self.panoptic,fm,q,self.understanding.mask_embedder,self.understanding_step,
-            seed_mu=mu,seed_radius=radius,seed_c=c,seed_s=s,write_strength=self.write_strength)
-        final=states[-1]; gaussians=self.activation_head(final['tokens'],final['mu'],final['radii'])
+        states,stats,q,c,s,proposal_log,reconstruction_final=self.decode_scene(tokens,latent,rays,fm,proposals,omega,mu,radius,raw_gfm)
+        final=states[-1];gaussians=self.activation_head(reconstruction_final['tokens'],reconstruction_final['mu'],reconstruction_final['radii'])
         reconstruction=self._reconstruction_from_gaussians(gaussians)
         output=dict(states=states,gaussians=gaussians,reconstruction=reconstruction,render=self.render_reconstruction(reconstruction,model_input.decoder),
             F_m=fm,q_pre=q,ray_stats=stats,beta=final['beta'],predicted_context_c2w=omega['c2w'],

@@ -120,6 +120,11 @@ def scalar_metrics(metrics,prediction):
     keep=('loss','loss_recon','loss_understanding','psnr','loss_classification','loss_thing_bce','loss_thing_dice','loss_stuff_bce','loss_stuff_dice','matched_classification_accuracy')
     result={k:float(metrics[k].detach()) if torch.is_tensor(metrics[k]) else float(metrics[k]) for k in keep}
     result.update(quality(prediction))
+    proposals=prediction.get('proposal_initialization',[])
+    if any('anchor_seed_regions' in log for log in proposals):
+        regions=[r for log in proposals for r in log['anchor_seed_regions']]
+        result.update(anchor_seed_regions=len(regions),anchor_seed_unsupported_regions=sum(r['supported_points']==0 for r in regions),
+            anchor_seed_supported_point_fraction=sum(r['supported_points'] for r in regions)/max(1,sum(r['support_points'] for r in regions)))
     if not all(math.isfinite(v) for v in result.values()):raise FloatingPointError('Nonfinite training/monitor metric')
     return result
 
@@ -292,11 +297,14 @@ def run(args):
     if args.v3_direct_isolated:
         from scripts.gfm_v3_fresh_isolated_policy import configure as configure_v3
         configure_v3(CONFIG)
-    if args.sam_residual:
+    if args.sam_residual and not args.anchor_query_seed:
         from scripts.gfm_sam_residual_policy import configure as configure_residual
         configure_residual(CONFIG)
+    if args.anchor_query_seed:
+        from scripts.gfm_anchor_seed_policy import configure as configure_anchor_seed
+        configure_anchor_seed(CONFIG)
     windows,short_indices,validation=cohorts();short=[windows[i] for i in short_indices]
-    model=constructor(opt,write_strength=0.,**({'sam_residual':True} if args.sam_residual else {})).to(device)
+    model=constructor(opt,write_strength=0.,**({'sam_residual':True,'anchor_query_seed':args.anchor_query_seed} if args.sam_residual else {})).to(device)
     cache=install_frozen_caches(model,args.cache_root or root/'frozen_cache')
     optimizer=torch.optim.AdamW(optimizer_groups(model),betas=(.9,.95),eps=1e-8)
     sha=subprocess.check_output(['git','-C',str(REPO),'rev-parse','HEAD'],text=True).strip()
@@ -311,7 +319,9 @@ def run(args):
         progress.update(phase='full',gate_passed=True)
         meta['initialization_policy']='official_Omega_SAM_only_all_trainable_branches_fresh'
     if args.untrained_initial_from:
-        if args.sam_residual:
+        if args.anchor_query_seed:
+            from scripts.gfm_anchor_seed_policy import validate_initial
+        elif args.sam_residual:
             from scripts.gfm_sam_residual_policy import validate_initial
         elif args.v3_direct_isolated:
             from scripts.gfm_v3_fresh_isolated_policy import validate_initial
@@ -469,6 +479,9 @@ def run(args):
     if args.sam_residual:
         name='query_initializer.residual_gate_logit';p=dict(model.named_parameters())[name]
         probes['sam_residual_gate']=(name,p.detach().clone())
+    if args.anchor_query_seed:
+        name='panoptic.proj_h.weight';p=dict(model.named_parameters())[name]
+        probes['anchor_seed_projection']=(name,p.detach().clone())
     if rank==0:
         write(root/'configuration.json',dict(**meta,optimizer_groups=[{k:v for k,v in group.items() if k!='params'} for group in optimizer.param_groups],
             trainable_parameters=sum(p.numel() for p in model.parameters() if p.requires_grad),gpu=torch.cuda.get_device_name(),short_windows=short,monitor_validation=validation[:8]))
@@ -663,12 +676,14 @@ def main():
     parser.add_argument('--v4-direct-joint',action='store_true')
     parser.add_argument('--v3-direct-isolated',action='store_true')
     parser.add_argument('--sam-residual',action='store_true')
+    parser.add_argument('--anchor-query-seed',action='store_true')
     parser.add_argument('--isolate-gradients',action='store_true')
     parser.add_argument('--reconstruction-understanding-gradient-scale',type=float,choices=(0.,.05),default=0.)
     parser.add_argument('--untrained-initial-from',type=Path)
     parser.add_argument('--untrained-initial-digest')
     parser.add_argument('--understanding-loss-scale',type=float,choices=(1.,.05),default=1.)
     args=parser.parse_args()
+    if args.anchor_query_seed and not args.sam_residual:parser.error('Anchor seeding requires --sam-residual')
     if args.sam_residual and (not args.v4_direct_joint or not args.isolate_gradients or args.reconstruction_understanding_gradient_scale or args.understanding_loss_scale!=1.):parser.error('SAM residual requires the fresh fully isolated V4 control')
     if args.resume_source_sha and not args.resume:parser.error('--resume-source-sha requires --resume')
     if args.reconstruction_understanding_gradient_scale and not args.isolate_gradients:parser.error('Selective gradient scale requires explicit routing')

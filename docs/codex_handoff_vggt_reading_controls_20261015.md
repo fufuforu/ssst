@@ -1,5 +1,7 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **2026-10-17新授权：并行结构实验B，更新后的Anchor初始化Object Query。** 见 [gfm_updated_anchor_seed_experiment_b_20261017.md](gfm_updated_anchor_seed_experiment_b_20261017.md)。新attempt17/独立ssst_gfm_anchor_seed_code_20261017，18八张4090；先重建12层，复用现有under投影对detach终点Anchor编码，SAM预测3D支持局部4近邻插值与原几何池化形成seed，保留learned base＋.1门控，随后理解重放保存的L6/8/10/12，不重跑重建。返回states保留原始每层重建张量/监督梯度；Write0/完全隔离/同零步649共享张量、空Adam、8rank RNG、4epoch4172、adapt/short0。24项CPU测试/真实源预检通过；未宣称GPU通过。66353保持原快照不动，比较等待本组评测和66354；作业号以attempt17/submission.json为准，提交后单次核对停止轮询。
+
 > **SAM残差初始化隔离训练66353已提交，停止轮询。** 13节点8×3090单次确认RUNNING；官方128评测66354 afterok，比较汇总66355 afterany。新attempt16、执行快照SHA767cbe8，详见 [gfm_sam_residual_isolated_20261017.md](gfm_sam_residual_isolated_20261017.md)。14项CPU单测/真实649张量逐位预检通过；GPU首步与八rank同步尚未核实，待用户通知检查，不重提交、不改执行快照。
 
 > **2026-10-17新授权：提交learned-base＋SAM残差初始化隔离训练。** 见 [gfm_sam_residual_isolated_20261017.md](gfm_sam_residual_isolated_20261017.md)。新attempt16，独立快照ssst_gfm_sam_residual_code_20261017；13八张3090，同零步649共享张量/空Adam/8rank RNG，新增1个gate参数。保留learned base，SAM内容/几何编码无仿射LN并校准到base RMS，以初始.1可学习门控加回；候选/c-s/交互/匹配/loss不改，完全隔离，4epoch4172更新、adapt/short0。14项CPU测试及真实源实体张量预检通过。训练成功自动官方128与V3/V4原隔离比较；作业号以attempt16/submission.json为准，提交后单次核对停止轮询。此前组已完成不重跑，GPU首步以新作业收据为准。

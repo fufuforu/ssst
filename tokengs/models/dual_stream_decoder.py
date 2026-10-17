@@ -10,15 +10,20 @@ from tokengs.models.locusgs_recon import LocusGSAnchorDecoder, anchor_ray_geomet
 from tokengs.models.object_locus_v3_set_controller import scene_normalization
 
 class PointSeededAnchorDecoder(LocusGSAnchorDecoder):
-    def forward_stateful(self, tokens, latent, rays, controller, fm, qpre, mask_embedder, exposure, *, seed_mu, seed_radius, seed_c, seed_s, write_strength=0.0):
+    def forward_stateful(self, tokens, latent, rays, controller, fm, qpre, mask_embedder, exposure, *, seed_mu, seed_radius, seed_c, seed_s, write_strength=0.0, reconstruction_only=False, reconstruction_states=None):
+        if reconstruction_only and reconstruction_states is not None:raise ValueError('Conflicting decoder stages')
+        if (reconstruction_only or reconstruction_states is not None) and write_strength!=0.:raise ValueError('Two-stage decoding requires Write=0')
+        if reconstruction_states is not None and len(reconstruction_states)!=len(self.decoder_blocks):raise ValueError('Incomplete reconstruction states')
         moment, direction = rays
         batch = tokens.shape[0]
         if moment.shape[1] != latent.keys.shape[-2]: raise ValueError('ray/key count mismatch')
         mu = seed_mu
         positive = (seed_radius-self.epsilon).clamp_min(1e-6)
         rho = positive + torch.log(-torch.expm1(-positive))
-        image = F.interpolate(fm.flatten(0,1),size=(32,32),mode='bilinear',align_corners=False)
-        image = image.reshape(batch,2,256,1024).permute(0,1,3,2).reshape(batch,2048,256)
+        image = None
+        if not reconstruction_only:
+            image = F.interpolate(fm.flatten(0,1),size=(32,32),mode='bilinear',align_corners=False)
+            image = image.reshape(batch,2,256,1024).permute(0,1,3,2).reshape(batch,2048,256)
         states, ray_stats = [], []
         q = c = s = ell = origin = None
         reading = getattr(controller, 'reading_control', None)
@@ -45,10 +50,15 @@ class PointSeededAnchorDecoder(LocusGSAnchorDecoder):
                 return h,m+hm(h),r+hr(h).squeeze(-1)
             previous_mu, previous_radii = mu,self.activated_radius(rho)
             args = (tokens,mu,rho,latent.keys,latent.values,moment,direction)
-            tokens,mu,rho = checkpoint(reconstruction_block,*args,use_reentrant=False,preserve_rng_state=True) if self.training and torch.is_grad_enabled() else reconstruction_block(*args)
+            if reconstruction_states is None:
+                tokens,mu,rho = checkpoint(reconstruction_block,*args,use_reentrant=False,preserve_rng_state=True) if self.training and torch.is_grad_enabled() else reconstruction_block(*args)
+            else:
+                saved=reconstruction_states[index]
+                if saved['layer']!=index+1:raise ValueError('Reconstruction state order differs')
+                tokens,mu,rho=(saved[key].detach() for key in ('tokens','mu','rho'))
             radii = self.activated_radius(rho)
             layer, result = index+1, {}
-            if layer in (6,8,10,12):
+            if layer in (6,8,10,12) and not reconstruction_only:
                 if layer==6: origin,ell = scene_normalization(mu)
                 a = controller.encode_token(tokens,mu,radii,ell)
                 if reading is not None:
