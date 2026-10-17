@@ -40,6 +40,7 @@ def worker(rank,path,kind):
 
 
 class StructuralDistributedTests(unittest.TestCase):
+    def test_serial_query(self):self.run_variant('serial_query')
     def test_legacy_dual(self):self.run_variant('dual_superpoint')
     def test_unified_direct(self):self.run_variant('unified_direct')
     def run_variant(self,kind):

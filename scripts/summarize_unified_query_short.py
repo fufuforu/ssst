@@ -17,6 +17,10 @@ def main():
     families={label:sum(value for name,value in changed.items() if name.startswith(prefix)) for label,prefix in
         [('projection','gfm_projection.'),('3d_initializer','core.initializer.'),('decoder',('core.blocks.','core.panoptic.layers.')),('reconstruction','core.activation_head.'),('classifier',('core.classifier.','core.panoptic.class_head.')),('mask',('core.child_feature.','core.instance_field.','core.panoptic.child_mlp.','core.semantic_memory.mask_embedder.')) ]}
     assert all(math.isfinite(v) and v>0 for v in families.values())
+    if checkpoint['meta']['architecture']=='OMEGA_3D_SUPERPOINT_SERIAL_QUERY_ISOLATED_V1':
+        for label,prefix in [('semantic_memory','core.semantic_memory.'),('semantic_seed','core.semantic_seed.'),('semantic_decoder','core.semantic_blocks.')]:
+            families[label]=sum(value for name,value in changed.items() if name.startswith(prefix))
+            assert math.isfinite(families[label]) and families[label]>0
     rows=[]
     for key in old:
         a,b=old[key],new[key]

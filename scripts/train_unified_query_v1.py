@@ -49,7 +49,7 @@ class Task(nn.Module):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir',type=Path,required=True);parser.add_argument('--understanding-weight',type=float,required=True)
-    parser.add_argument('--architecture',choices=('unified','dual_superpoint','unified_direct'),default='unified')
+    parser.add_argument('--architecture',choices=('unified','dual_superpoint','unified_direct','serial_query'),default='unified')
     parser.add_argument('--epochs',type=int,default=4);parser.add_argument('--max-updates',type=int)
     parser.add_argument('--learning-rate',type=float,default=1e-4);parser.add_argument('--understanding-warmup',type=int,default=1043)
     parser.add_argument('--short-validation',action='store_true',help='16 fixed training scenes, 256 updates, initial/final probes')
@@ -135,12 +135,17 @@ def main():
             if step==0:
                 gradient_evidence={}
                 for name,parameters in model.parameter_groups().items():
+                    if not parameters:continue
                     value=float(torch.stack([p.grad.detach().float().square().sum() for p in parameters if p.grad is not None]).sum().sqrt())
                     if not math.isfinite(value) or value<=0:raise ValueError('Missing/nonfinite first gradient: '+name)
                     gradient_evidence[name]=value
                 if any(p.grad is not None for module in (model.frozen_omega,model.sam_proposals) if module is not None for p in module.parameters()):raise ValueError('Frozen source received gradients')
                 (root/f'FIRST_GRADIENTS_rank{rank:02}.json').write_text(json.dumps(gradient_evidence,indent=2)+'\n')
-            norm=torch.nn.utils.clip_grad_norm_([p for p in model.parameters() if p.requires_grad],1.,error_if_nonfinite=True)
+            if getattr(model,'isolated_task_gradients',False):
+                norms=[torch.nn.utils.clip_grad_norm_(parameters,1.,error_if_nonfinite=True) for parameters in model.parameter_groups().values() if parameters]
+                norm=torch.stack(norms).square().sum().sqrt()
+            else:
+                norm=torch.nn.utils.clip_grad_norm_([p for p in model.parameters() if p.requires_grad],1.,error_if_nonfinite=True)
             optimizer.step()
             if step==0:synchronized_first_update(model,initial_digest,root,rank,world)
             progress.update(epoch=epoch+int(update+1==updates_per_epoch),update_in_epoch=0 if update+1==updates_per_epoch else update+1,full_updates=step+1)

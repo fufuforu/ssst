@@ -4,6 +4,8 @@ import torch.nn.functional as F
 from tokengs.models.unified_query_v1 import LocusGSUnifiedQueryV1
 from tokengs.models.superpoint_dual_core import SuperpointDualCore
 from tokengs.models.direct_gaussian_core import DirectGaussianCore
+from tokengs.models.serial_query_core import SerialQueryCore
+from tokengs.models.gfm_dual_stream_components import gfm_grid
 from tokengs.models.object_locus_v3_set import alpha_normalize_membership
 
 
@@ -38,7 +40,29 @@ class LocusGSDirectGaussian(LocusGSUnifiedQueryV1):
         return output,metrics
 
 
-MODELS={'unified':LocusGSUnifiedQueryV1,'dual_superpoint':LocusGSSuperpointDual,'unified_direct':LocusGSDirectGaussian}
+class LocusGSSerialQuery(LocusGSUnifiedQueryV1):
+    architecture_name='OMEGA_3D_SUPERPOINT_SERIAL_QUERY_ISOLATED_V1'
+    core_type=SerialQueryCore
+    isolated_task_gradients=True
+
+    def encode_context(self,rgb):
+        omega,cloud,memory=super().encode_context(rgb)
+        raw=gfm_grid(omega['patch_layers']).permute(0,1,3,4,2).reshape(1,-1,2048)
+        return omega,cloud,dict(reconstruction=memory,semantic=self.core.semantic_memory(raw))
+
+    def _render_understanding(self,generated,decoder):
+        # Detaching only the token seed is insufficient: mask rendering also
+        # depends on Gaussian positions/scale/opacity. Keep RGB reconstruction
+        # and its supervision graph intact, detach the understanding rasterizer.
+        return super()._render_understanding(dict(generated,gaussians=generated['gaussians'].detach()),decoder)
+
+    def parameter_groups(self):
+        groups=self.core.parameter_groups()
+        groups['reconstruction']=list(self.gfm_projection.parameters())+groups['reconstruction']
+        return groups
+
+
+MODELS={'unified':LocusGSUnifiedQueryV1,'dual_superpoint':LocusGSSuperpointDual,'unified_direct':LocusGSDirectGaussian,'serial_query':LocusGSSerialQuery}
 
 
 def build_structural_model(architecture,opt,config,**kwargs):
