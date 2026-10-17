@@ -48,3 +48,15 @@ A保留的是旧双分支的核心交互和读出，不是旧V4的严格纯初�
 ## 已提交并停止轮询
 
 2026-10-17北京时间15:02:22：A **66487**、B **66488**，单次核对均RUNNING，18节点各4×4090、16CPU/128G。执行SHA`ead7f58`，独立快照干净；GPU首步、原生renderer-transpose/直接场前后向及四rank SHA尚未核实，不能将CPU/DDP检查或RUNNING称作GPU通过。pair/submission.json和SUBMISSION_STATUS_ONCE.json已记录。无额外全量/正式评测依赖，短测初末探针及汇总在各自同一作业内完成。已停止轮询，用户通知结束后检查，不重提、不影响66432/66433。
+
+## 2026-10-17 用户通知后的失败审计与修复
+
+66487/66488实际均FAILED（1:0），分别运行1m30s/1m31s。共同异常位于`unified_query_validation.run_probes`新增的raw语义准确率统计：前面直接将`build_batch(...)`传给step_loss，后面却引用没有绑定的`batch`，触发NameError。四rank均在initial探针中退出，未进入训练更新；无initial checkpoint/训练日志/首更新收据。因此不能解读为架构失败或训练效果差，也没有A/B质量结果。
+
+修复为显式保存同一batch再传给step_loss，统计仍只取context前两视图，忽略20类ignore。新增完整run_probes回归覆盖8个初始探针、语义统计、输出保存、GT IoU、模型模式与Python/Torch RNG恢复；CPU允许空CUDA RNG设备列表。没有修改模型、数据、训练策略及评测协议。
+
+原失败目录及快照全部保留。重试使用原目录名加`_retry01`，配对目录`structural_pair_20261017_retry01`，不可变代码目录`/space/mawb/ssst_superpoint_structural_pair_code_20261017_retry01`；修复后从零开始只补这两组未产生更新的短测。原提交脚本保留默认防重复行为，显式`--retry`选择上述独立目录。
+
+同时有限核对全量66432：实际仍在运行，检查时2138/4172步（约51%），rank0日志所有浮点标量有限，最近100步平均3.689秒/步，训练估计剩约2.1小时（含少量探针/保存开销，非评测耗时）。66433依赖训练成功，尚未产生正式128评测。原代码快照和训练均不触动。
+
+固定4 heldout探针初始→epoch1→epoch2：PSNR 11.625→16.755→17.367；理解loss 2.078→0.705→0.603；来源支持GT的最佳Mask IoU 0.1649→0.5469→0.6238。4 train对应PSNR10.935→17.231→17.694，IoU0.1941→0.5283→0.5891。IoU只对已有来源支持/匹配的GT汇总，并非全部GT覆盖率、mAP或PQ；这些探针不代表官方128场景质量。

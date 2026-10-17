@@ -1,5 +1,5 @@
 """Submit exactly two authorized independent 4-GPU trainability experiments."""
-import datetime,json,subprocess,shutil
+import argparse,datetime,json,subprocess,shutil
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
 BASE=Path('/space/mawb/ssst/group_plus/unified_query_training_v1')
@@ -9,7 +9,14 @@ RUNS={'dual_superpoint':BASE/'attempt03_legacy_dual_superpoint_short_node18_4gpu
 
 
 def main():
-    if ROOT!=Path('/space/mawb/ssst_superpoint_structural_pair_code_20261017'):raise ValueError('Use independent immutable snapshot')
+    parser=argparse.ArgumentParser();parser.add_argument('--retry',action='store_true');args=parser.parse_args()
+    global PAIR,RUNS
+    expected='/space/mawb/ssst_superpoint_structural_pair_code_20261017'
+    if args.retry:
+        expected+='_retry01'
+        PAIR=BASE/'structural_pair_20261017_retry01'
+        RUNS={kind:run.with_name(run.name+'_retry01') for kind,run in RUNS.items()}
+    if ROOT!=Path(expected):raise ValueError('Use independent immutable snapshot')
     if subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True).strip():raise ValueError('Snapshot is dirty')
     preflight=json.loads((PAIR/'preflight.json').read_text());evidence=json.loads((PAIR/'validation.json').read_text())
     if preflight['status']!='PASSED' or evidence['status']!='PASSED':raise ValueError('Missing pre-submission checks')

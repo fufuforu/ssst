@@ -24,10 +24,11 @@ def synchronized_first_update(model,before,root,rank,world):
 @torch.no_grad()
 def run_probes(model,opt,train,validation,root,label,rank,world,device,weight):
     py=random.getstate();was_training=model.training;model.eval();rows=[]
-    with torch.random.fork_rng(devices=[device.index]):
+    with torch.random.fork_rng(devices=[device.index] if device.type=='cuda' else []):
         for index,window in enumerate(train[:4]+validation[:4]):
             if index%world!=rank:continue
-            output,metrics=model.step_loss(build_batch(opt,window,device),understanding_weight=weight)
+            batch=build_batch(opt,window,device)
+            output,metrics=model.step_loss(batch,understanding_weight=weight)
             p=output['prediction'];qi,ki=p['final_pairs'][0];t=p['final_targets'];n=p['num_thing_queries']
             sem,ins,_=assemble_panoptic(p)
             valid=t['valid_pixels'][0].flatten();mask=p['region_mass'][0,:2,:n].permute(1,0,2,3).flatten(1)[:,valid]>=.5
