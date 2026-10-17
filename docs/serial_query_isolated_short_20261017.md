@@ -32,3 +32,7 @@
 新实现：`tokengs/models/serial_query_core.py`，包装与factory在`superpoint_structural_variants.py`。现有export按架构factory可识别新变体；短测checkpoint仍禁止冒充完整训练官方导出。
 
 提交收据与参数量见run/preflight.json、VALIDATION_EVIDENCE.json和submission.json。只做一次调度核对后停止轮询，等待用户通知完成，不恢复历史66380、不干预A/B。
+
+## 已提交并停止轮询
+
+短验证 **66603**，请求18节点4×4090、16CPU/128G，256更新；唯一一次状态核对 **PENDING (Priority)**。执行SHA **a57ce7d**、独立快照干净，383个可训练张量/19,424,708参数（重建14,209,457、理解5,215,251）。本次无正式128评测或全量续训依赖，初末探针和自动汇总在同一作业内执行。新GPU首步和4rank同步尚未核实，不能把CPU/Gloo成功当原生GPU验证。具体时间与收据见run/submission.json和SUBMISSION_STATUS_ONCE.json。已停止轮询，待用户通知完成后检查。
