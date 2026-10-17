@@ -91,8 +91,8 @@ def main():
     progress=dict(epoch=0,update_in_epoch=0,full_updates=0)
     continuation_model_digest=None
     if args.continue_checkpoint:
-        from scripts.superpoint_dual_continuation import POLICY,validate_source,validate_optimizer_layout
-        meta.update(continuation_checkpoint=str(args.continue_checkpoint.resolve()),continuation_sha256=args.continue_sha256,continuation_policy=POLICY)
+        from scripts.superpoint_dual_continuation import architecture_policy,validate_source,validate_optimizer_layout
+        meta.update(continuation_checkpoint=str(args.continue_checkpoint.resolve()),continuation_sha256=args.continue_sha256,continuation_policy=architecture_policy(model.architecture_name))
         if not args.resume:
             if digest(args.continue_checkpoint)!=args.continue_sha256:raise ValueError('Continuation source SHA differs')
             saved=torch.load(args.continue_checkpoint,map_location='cpu',weights_only=False,mmap=True)

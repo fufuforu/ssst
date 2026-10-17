@@ -19,7 +19,7 @@ from scripts.dual_stream_official_export import export
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--checkpoint',type=Path,required=True);parser.add_argument('--output',type=Path,required=True)
-    parser.add_argument('--evaluation-epoch',type=int,help='Explicit completed epoch6/8 of the authorized A continuation')
+    parser.add_argument('--evaluation-epoch',type=int,help='Explicit completed epoch6/8 of an authorized A/Unified continuation')
     parser.add_argument('--smoke',action='store_true',help='One-window engineering check, never full128 results')
     args=parser.parse_args();rank=int(os.environ.get('RANK',0));world=int(os.environ.get('WORLD_SIZE',1));local=int(os.environ.get('LOCAL_RANK',0))
     torch.cuda.set_device(local)

@@ -6,7 +6,7 @@ import unittest
 from pathlib import Path
 from unittest.mock import patch
 import torch
-from scripts.superpoint_dual_continuation import POLICY,validate_source,validate_optimizer_layout,continuation_lr,validate_epoch_export
+from scripts.superpoint_dual_continuation import POLICY,UNIFIED_POLICY,VARIANTS,architecture_policy,validate_source,validate_optimizer_layout,continuation_lr,validate_epoch_export
 from scripts.dual_stream_training_policy import epoch_order,rank_microbatches
 
 
@@ -65,21 +65,23 @@ class ContinuationTests(unittest.TestCase):
 
     def test_final_comparison_preserves_epoch_identity_and_deltas(self):
         from scripts.compare_superpoint_dual_extend import main
-        with tempfile.TemporaryDirectory() as directory:
+        for variant,spec in VARIANTS.items():
+          with self.subTest(variant=variant),tempfile.TemporaryDirectory() as directory:
             root=Path(directory)/'continuation';root.mkdir();(root/'preflight.json').write_text(json.dumps({'source_sha256':'source'}))
             for epoch in (6,8):
                 folder=root/f'official_epoch{epoch}'/'evaluation';folder.mkdir(parents=True)
-                (folder/'checkpoint_identity.json').write_text(json.dumps(dict(evaluated_epoch=epoch,parameter_updates=0,meta=dict(continuation_policy=POLICY,continuation_sha256='source'))))
+                (folder/'checkpoint_identity.json').write_text(json.dumps(dict(evaluated_epoch=epoch,parameter_updates=0,meta=dict(continuation_policy=spec['policy'],architecture=spec['architecture'],continuation_sha256='source'))))
             row=['1']*13;row[8]=row[12]=''
             def complete(run):
                 values=list(row)
                 if run.name=='official_epoch8':values[2]='2'
                 return values,{'records':[dict(name='scene',source_index=0,frame_ids=[1,2],input_rgb_sha256='rgb')]}
-            with patch('sys.argv',['compare','--run-root',str(root)]),patch('scripts.compare_superpoint_dual_extend.check_complete',side_effect=complete),patch('scripts.compare_superpoint_dual_extend.table_row',return_value=row):main()
-            rows=list(csv.reader((root/'comparison_epoch4_6_8/comparison.csv').open()))
-            self.assertEqual([r[0] for r in rows[1:5]],['old_C','A_epoch4','A_epoch6','A_epoch8'])
+            with patch('sys.argv',['compare','--run-root',str(root),'--variant',variant]),patch('scripts.compare_superpoint_dual_extend.check_complete',side_effect=complete),patch('scripts.compare_superpoint_dual_extend.table_row',return_value=row):main()
+            with (root/'comparison_epoch4_6_8/comparison.csv').open() as stream:rows=list(csv.reader(stream))
+            self.assertEqual([r[0] for r in rows[1:5]],['old_C']+[spec['label']+'_epoch'+str(e) for e in (4,6,8)])
             self.assertEqual(float(rows[-1][3]),1.)
             self.assertEqual(rows[-1][9],'')
+            self.assertEqual(json.loads((root/'comparison_epoch4_6_8/COMPLETE.json').read_text())['status'],spec['label'].upper()+'_EPOCH4_6_8_OFFICIAL_COMPARISON_COMPLETE')
 
     def test_final_comparison_rejects_different_rgb(self):
         from scripts.compare_superpoint_dual_extend import main
@@ -87,6 +89,35 @@ class ContinuationTests(unittest.TestCase):
             root=Path(directory)/'continuation';root.mkdir()
             def complete(run):return ['1']*13,{'records':[dict(name='scene',source_index=0,frame_ids=[1,2],input_rgb_sha256=run.name)]}
             with patch('sys.argv',['compare','--run-root',str(root)]),patch('scripts.compare_superpoint_dual_extend.check_complete',side_effect=complete),self.assertRaises(ValueError):main()
+
+    def unified_fixture(self):
+        saved,current=self.fixture();architecture=VARIANTS['unified']['architecture']
+        saved['meta']['architecture']=current['architecture']=architecture
+        current['continuation_policy']=UNIFIED_POLICY
+        saved['model']={k:v for k,v in saved['model'].items() if int(k)<301}
+        saved['optimizer']['state']={k:v for k,v in saved['optimizer']['state'].items() if k<301}
+        return saved,current
+
+    def test_unified_301_tensor_source_and_adam_are_accepted(self):
+        saved,current=self.unified_fixture()
+        self.assertEqual(validate_source(saved,current),dict(epoch=4,update_in_epoch=0,full_updates=4172))
+        self.assertEqual(architecture_policy(current['architecture']),UNIFIED_POLICY)
+        saved['optimizer']['state'].pop(0)
+        with self.assertRaises(ValueError):validate_source(saved,current)
+
+    def test_continuation_policies_cannot_cross_architectures(self):
+        saved,current=self.unified_fixture()
+        with self.assertRaises(ValueError):validate_source(saved,dict(current,continuation_policy=POLICY))
+        a,ca=self.fixture()
+        with self.assertRaises(ValueError):validate_source(a,dict(ca,continuation_policy=UNIFIED_POLICY))
+        for architecture in ('OMEGA_3D_SUPERPOINT_SERIAL_QUERY_ISOLATED_V1','OMEGA_3D_SUPERPOINT_UNIFIED_DIRECT_MASK_V1'):
+            with self.assertRaises(ValueError):architecture_policy(architecture)
+
+    def test_unified_epoch6_export_checks_architecture_policy(self):
+        saved,current=self.unified_fixture();saved['meta']=current;saved['progress']=dict(epoch=6,update_in_epoch=0,full_updates=6258)
+        self.assertEqual(validate_epoch_export(saved,6),6)
+        saved['meta']['continuation_policy']=POLICY
+        with self.assertRaises(ValueError):validate_epoch_export(saved,6)
 
 
 if __name__=='__main__':unittest.main()
