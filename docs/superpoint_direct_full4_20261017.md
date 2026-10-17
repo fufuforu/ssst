@@ -21,3 +21,7 @@
 作业号与执行SHA以submission.json为准。提交后仅一次有界状态核对并停止轮询，等用户通知完成后检查。
 
 提交前验证完成：B的296张量与短测零步源逐位一致，源4rank RNG相同并显式扩展8rank，0更新/空Adam、真实资产SHA、1191/8337/128数据和官方评测版本预检通过；9项受影响CPU回归通过，shell语法、Python编译和diff检查通过。尚未核实新全量GPU首步。
+
+## 已提交，停止轮询
+
+执行SHA **584e814**、独立干净快照。B训练 **66509**：18节点8×4090，唯一一次核对 **RUNNING**。官方128评测/控制比较 **66510**：afterok:66509、18节点1×4090，核对 **PENDING (Dependency)**。A/B最终汇总 **66511**：无GPU、1CPU/8G，afterok:66507:66510，核对 **PENDING (Dependency)**。实际时间及资源见run/submission.json、SUBMISSION_STATUS_ONCE.json。新全量GPU首步和8rank同步尚未核实，RUNNING仅表示调度启动。现停止轮询，等用户通知完成后检查。
