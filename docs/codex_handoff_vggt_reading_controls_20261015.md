@@ -1,5 +1,7 @@
 # VGGT 重建与理解实验交接：2026-10-15
 
+> **新对话首读：[2026-10-18独立交接](codex_handoff_gaussian_consistency_20261018.md)。** 包含当前67292身份、不可重复提交约定、已知历史调度状态、模型配方、基线/诊断证据和完成后检查清单。本轮仅整理交接，未重新查询作业状态。
+
 > **最新提交67292，停止轮询。** 见[GPU门禁与短测](gaussian_instance_consistency_short_20261018.md)。唯一调度核对RUNNING/13节点4×3090；独立ssst_gaussian_instance_consistency_short_code_20261018，执行SHA0882660，新attempt15。17项CPU检查/实际Omega与SAM及数据预检通过；与67050共同305零步张量完全相同，无新增参数、不重训基线。先检查原16场景新项真实正负样本/独立梯度/显式几何隔离及两步DDP同步，通过才丢弃smoke更新并用seed42/空Adam短训16场景256步/global batch8，作业内自动原探针与基线比较。不要求loss下降，无全量/官方128；GPU门禁/首步尚未核实，不读取日志等待。用户通知完成后检查SMOKE_PASSED/JOB_FAILED/COMPLETE/GAUSSIAN_SHORT_AUDIT。下方未提交状态均为历史，不重复提交。
 
 > **最新授权：GPU门禁通过后做渲染前Gaussian一致性短测。** 见[实验流程](gaussian_instance_consistency_short_20261018.md)。独立attempt15/13节点4×3090，基线67050不重训；先真实新项样本/独立梯度隔离及两步DDP同步，再丢弃smoke更新，以同seed42/305零步张量/空Adam进行16场景256步/global batch8短测。结束自动原探针及新项活动审计，无全量/官方128。作业号和单次调度状态以run/submission.json和SCHEDULING_CHECK.json为准，提交后停止轮询，用户通知再核查。下方“未授权GPU”均为历史。
