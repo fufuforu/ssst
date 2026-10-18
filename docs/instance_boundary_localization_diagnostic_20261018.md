@@ -45,3 +45,9 @@
 CPU数学检查覆盖GT void/stuff处理、阶跃与平坦场、训练校准、打乱控制、精确最大贡献（含分块与tie）、贡献归属纯度/混合拒绝、同实例跨父Token，6项通过。原生模型文件未修改；GPU路径只能由作业内门禁核实，CPU通过不是CUDA通过。
 
 提交前预检实际checkpoint/资产/数据和独立快照，提交后只做一次有界调度核对，停止轮询，不等待首个GPU窗口或最终结果。作业号/状态见输出的submission及SUBMISSION_STATUS_ONCE；用户通知完成后再检查SUMMARY与固定权重收据。
+
+## 已提交并停止轮询
+
+作业 **67235**，2026-10-18提交；唯一一次调度核对 **RUNNING / 3dimage-13 / 4×3090**。执行SHA `0c4e0e19f5c7aa0efb29655698eb291575704f27`，独立快照如上，模型代码未修改。四个实际检查点SHA、Omega/SAM文件SHA、原生模型文件等价、八窗口RGB与GT缓存一致、六项CPU数学检查及Python/Shell语法检查全部通过。证据在 `preflight.json`、`VALIDATION_EVIDENCE.json`、`LOCAL_CHECKS.log`。
+
+GPU首窗口门禁、原生FP32对照、权重不变收据和最终总结尚未由控制端查看；RUNNING不代表这些已经通过。预计约10–30分钟，精确分块贡献计算尚未实测，排队另计；2小时上限。自动汇总与GPU推理在同一作业内，无额外训练/评测作业、不产生新checkpoint。已停止轮询，用户通知完成后检查 `GPU_COMPLETE.json`、各模型 `FIXED_WEIGHTS_VERIFIED.json`、`SUMMARY.json` / `COMPLETE.json` 或 `JOB_FAILED.json`。
