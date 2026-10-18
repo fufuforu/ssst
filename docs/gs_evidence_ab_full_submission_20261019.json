@@ -1,0 +1,2200 @@
+{
+  "code_sha": "1982cd18c9ecd3cb7643cba7ff143b91738fd050",
+  "snapshot": "/space/mawb/ssst_gs_evidence_ab_full_code_20261019",
+  "submitted_utc": "2026-10-18T16:39:07.710301+00:00",
+  "jobs": {
+    "A_train": 67700,
+    "A_eval128": 67701,
+    "B_train": 67702,
+    "B_eval128": 67703,
+    "AB_comparison": 67704
+  },
+  "stop_polling_after_submission": true,
+  "checked_china_time": "2026-10-19T00:39:57.990944+08:00",
+  "scheduling_checks_performed": 1,
+  "stopped_polling": true,
+  "scheduling": {
+    "A_train": {
+      "id": 67700,
+      "state": "RUNNING",
+      "node": "3dimage-12",
+      "gpus": 8,
+      "cpus": 32,
+      "memory": "192G"
+    },
+    "B_train": {
+      "id": 67702,
+      "state": "RUNNING",
+      "node": "3dimage-13",
+      "gpus": 8,
+      "cpus": 32,
+      "memory": "192G"
+    },
+    "A_eval128": {
+      "id": 67701,
+      "state": "PENDING",
+      "reason": "Dependency",
+      "afterok": 67700,
+      "node": "3dimage-12",
+      "gpus": 1
+    },
+    "B_eval128": {
+      "id": 67703,
+      "state": "PENDING",
+      "reason": "Dependency",
+      "afterok": 67702,
+      "node": "3dimage-13",
+      "gpus": 1
+    },
+    "AB_comparison": {
+      "id": 67704,
+      "state": "PENDING",
+      "reason": "Dependency",
+      "afterok": [
+        67701,
+        67703
+      ],
+      "node": "3dimage-12",
+      "gpus": 0
+    }
+  },
+  "preflight": {
+    "A": {
+      "status": "PASSED",
+      "group": "A",
+      "architecture_key": "unified_gs_evidence",
+      "architecture": "OMEGA_3D_SUPERPOINT_UNIFIED_QUERY_GS_EVIDENCE_V1",
+      "code_sha": "1982cd18c9ecd3cb7643cba7ff143b91738fd050",
+      "config": {
+        "superpoint_source": "esam_sam",
+        "uncovered_clusters": 8,
+        "dim": 256,
+        "heads": 8,
+        "depth": 12,
+        "point_grid": 48,
+        "max_points": 4096,
+        "max_superpoints": 512,
+        "point_voxel": 0.01,
+        "superpoint_voxel": 0.08,
+        "neighbors": 12,
+        "point_layers": 2,
+        "checkpoint_blocks": true,
+        "matching_mode": "source_many_to_one",
+        "mask_nms_iou": 0.7,
+        "support_matching": true,
+        "support_purity": 0.5
+      },
+      "extra_checkpoint_metadata": {},
+      "initial_sha256": "bef9d5704797789f881ac10b48c9078df6953d94d16532106335ef3f709ad1db",
+      "initial_updates": 0,
+      "initial_optimizer_empty": true,
+      "initialization": "fresh seed42; no trained weights; exact baseline zero-step rank RNG replay",
+      "rng_source": "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt02_esam_many_full_node11_8gpu/checkpoint_untrained_initial.pt",
+      "rng_source_sha256": "9034bac7a2b251ef78fd43c708eed05edc22a95dadcf052b4a6ef89948acc7a5",
+      "baseline_run": "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt02_esam_many_full_node11_8gpu",
+      "baseline_initial_sha256": "1b1392c80722fcdb766355bbd78f17e0e57cdf7a138244cce551db00a80628c6",
+      "baseline_final_sha256": "530119fbf436b84cbe0dc636b43d26b4070021c255af9ec90647259c099f99af",
+      "baseline_export_sha256": "c29b336d48cfc14b2514dbc9f34ab58080dc79f9c421f741f434859e73b3b8a7",
+      "baseline_table": [
+        "0.08883613753641839",
+        "0.21764044557736875",
+        "18.085460028300684",
+        "0.6348038284146847",
+        "0.609879330615513",
+        "0.4387630753219128",
+        "0.1892472207546234",
+        "0.467336901986289",
+        "",
+        "0.437518529035151",
+        "0.16519224643707275",
+        "0.45011391190528344",
+        ""
+      ],
+      "same_ab_initial_tensors": 301,
+      "baseline_exact_common_tensors": 300,
+      "baseline_mismatches": [
+        "core.child_feature.0.weight"
+      ],
+      "trainable_parameter_names": [
+        "gfm_projection.0.weight",
+        "gfm_projection.0.bias",
+        "gfm_projection.1.weight",
+        "gfm_projection.1.bias",
+        "core.initializer.point_encoder.layers.0.0.weight",
+        "core.initializer.point_encoder.layers.0.0.bias",
+        "core.initializer.point_encoder.layers.0.1.weight",
+        "core.initializer.point_encoder.layers.0.1.bias",
+        "core.initializer.point_encoder.layers.0.3.weight",
+        "core.initializer.point_encoder.layers.0.3.bias",
+        "core.initializer.point_encoder.layers.1.0.weight",
+        "core.initializer.point_encoder.layers.1.0.bias",
+        "core.initializer.point_encoder.layers.1.1.weight",
+        "core.initializer.point_encoder.layers.1.1.bias",
+        "core.initializer.point_encoder.layers.1.3.weight",
+        "core.initializer.point_encoder.layers.1.3.bias",
+        "core.initializer.point_encoder.norms.0.weight",
+        "core.initializer.point_encoder.norms.0.bias",
+        "core.initializer.point_encoder.norms.1.weight",
+        "core.initializer.point_encoder.norms.1.bias",
+        "core.initializer.local_shape.0.weight",
+        "core.initializer.local_shape.0.bias",
+        "core.initializer.local_shape.1.weight",
+        "core.initializer.local_shape.1.bias",
+        "core.initializer.local_shape.3.weight",
+        "core.initializer.local_shape.3.bias",
+        "core.initializer.point_weight.0.weight",
+        "core.initializer.point_weight.0.bias",
+        "core.initializer.point_weight.2.weight",
+        "core.initializer.point_weight.2.bias",
+        "core.initializer.projection.0.weight",
+        "core.initializer.projection.0.bias",
+        "core.initializer.projection.1.weight",
+        "core.initializer.projection.1.bias",
+        "core.initializer.position.0.weight",
+        "core.initializer.position.0.bias",
+        "core.initializer.position.2.weight",
+        "core.initializer.position.2.bias",
+        "core.initializer.norm.weight",
+        "core.initializer.norm.bias",
+        "core.blocks.0.self_attn.in_proj_weight",
+        "core.blocks.0.self_attn.in_proj_bias",
+        "core.blocks.0.self_attn.out_proj.weight",
+        "core.blocks.0.self_attn.out_proj.bias",
+        "core.blocks.0.multihead_attn.in_proj_weight",
+        "core.blocks.0.multihead_attn.in_proj_bias",
+        "core.blocks.0.multihead_attn.out_proj.weight",
+        "core.blocks.0.multihead_attn.out_proj.bias",
+        "core.blocks.0.linear1.weight",
+        "core.blocks.0.linear1.bias",
+        "core.blocks.0.linear2.weight",
+        "core.blocks.0.linear2.bias",
+        "core.blocks.0.norm1.weight",
+        "core.blocks.0.norm1.bias",
+        "core.blocks.0.norm2.weight",
+        "core.blocks.0.norm2.bias",
+        "core.blocks.0.norm3.weight",
+        "core.blocks.0.norm3.bias",
+        "core.blocks.1.self_attn.in_proj_weight",
+        "core.blocks.1.self_attn.in_proj_bias",
+        "core.blocks.1.self_attn.out_proj.weight",
+        "core.blocks.1.self_attn.out_proj.bias",
+        "core.blocks.1.multihead_attn.in_proj_weight",
+        "core.blocks.1.multihead_attn.in_proj_bias",
+        "core.blocks.1.multihead_attn.out_proj.weight",
+        "core.blocks.1.multihead_attn.out_proj.bias",
+        "core.blocks.1.linear1.weight",
+        "core.blocks.1.linear1.bias",
+        "core.blocks.1.linear2.weight",
+        "core.blocks.1.linear2.bias",
+        "core.blocks.1.norm1.weight",
+        "core.blocks.1.norm1.bias",
+        "core.blocks.1.norm2.weight",
+        "core.blocks.1.norm2.bias",
+        "core.blocks.1.norm3.weight",
+        "core.blocks.1.norm3.bias",
+        "core.blocks.2.self_attn.in_proj_weight",
+        "core.blocks.2.self_attn.in_proj_bias",
+        "core.blocks.2.self_attn.out_proj.weight",
+        "core.blocks.2.self_attn.out_proj.bias",
+        "core.blocks.2.multihead_attn.in_proj_weight",
+        "core.blocks.2.multihead_attn.in_proj_bias",
+        "core.blocks.2.multihead_attn.out_proj.weight",
+        "core.blocks.2.multihead_attn.out_proj.bias",
+        "core.blocks.2.linear1.weight",
+        "core.blocks.2.linear1.bias",
+        "core.blocks.2.linear2.weight",
+        "core.blocks.2.linear2.bias",
+        "core.blocks.2.norm1.weight",
+        "core.blocks.2.norm1.bias",
+        "core.blocks.2.norm2.weight",
+        "core.blocks.2.norm2.bias",
+        "core.blocks.2.norm3.weight",
+        "core.blocks.2.norm3.bias",
+        "core.blocks.3.self_attn.in_proj_weight",
+        "core.blocks.3.self_attn.in_proj_bias",
+        "core.blocks.3.self_attn.out_proj.weight",
+        "core.blocks.3.self_attn.out_proj.bias",
+        "core.blocks.3.multihead_attn.in_proj_weight",
+        "core.blocks.3.multihead_attn.in_proj_bias",
+        "core.blocks.3.multihead_attn.out_proj.weight",
+        "core.blocks.3.multihead_attn.out_proj.bias",
+        "core.blocks.3.linear1.weight",
+        "core.blocks.3.linear1.bias",
+        "core.blocks.3.linear2.weight",
+        "core.blocks.3.linear2.bias",
+        "core.blocks.3.norm1.weight",
+        "core.blocks.3.norm1.bias",
+        "core.blocks.3.norm2.weight",
+        "core.blocks.3.norm2.bias",
+        "core.blocks.3.norm3.weight",
+        "core.blocks.3.norm3.bias",
+        "core.blocks.4.self_attn.in_proj_weight",
+        "core.blocks.4.self_attn.in_proj_bias",
+        "core.blocks.4.self_attn.out_proj.weight",
+        "core.blocks.4.self_attn.out_proj.bias",
+        "core.blocks.4.multihead_attn.in_proj_weight",
+        "core.blocks.4.multihead_attn.in_proj_bias",
+        "core.blocks.4.multihead_attn.out_proj.weight",
+        "core.blocks.4.multihead_attn.out_proj.bias",
+        "core.blocks.4.linear1.weight",
+        "core.blocks.4.linear1.bias",
+        "core.blocks.4.linear2.weight",
+        "core.blocks.4.linear2.bias",
+        "core.blocks.4.norm1.weight",
+        "core.blocks.4.norm1.bias",
+        "core.blocks.4.norm2.weight",
+        "core.blocks.4.norm2.bias",
+        "core.blocks.4.norm3.weight",
+        "core.blocks.4.norm3.bias",
+        "core.blocks.5.self_attn.in_proj_weight",
+        "core.blocks.5.self_attn.in_proj_bias",
+        "core.blocks.5.self_attn.out_proj.weight",
+        "core.blocks.5.self_attn.out_proj.bias",
+        "core.blocks.5.multihead_attn.in_proj_weight",
+        "core.blocks.5.multihead_attn.in_proj_bias",
+        "core.blocks.5.multihead_attn.out_proj.weight",
+        "core.blocks.5.multihead_attn.out_proj.bias",
+        "core.blocks.5.linear1.weight",
+        "core.blocks.5.linear1.bias",
+        "core.blocks.5.linear2.weight",
+        "core.blocks.5.linear2.bias",
+        "core.blocks.5.norm1.weight",
+        "core.blocks.5.norm1.bias",
+        "core.blocks.5.norm2.weight",
+        "core.blocks.5.norm2.bias",
+        "core.blocks.5.norm3.weight",
+        "core.blocks.5.norm3.bias",
+        "core.blocks.6.self_attn.in_proj_weight",
+        "core.blocks.6.self_attn.in_proj_bias",
+        "core.blocks.6.self_attn.out_proj.weight",
+        "core.blocks.6.self_attn.out_proj.bias",
+        "core.blocks.6.multihead_attn.in_proj_weight",
+        "core.blocks.6.multihead_attn.in_proj_bias",
+        "core.blocks.6.multihead_attn.out_proj.weight",
+        "core.blocks.6.multihead_attn.out_proj.bias",
+        "core.blocks.6.linear1.weight",
+        "core.blocks.6.linear1.bias",
+        "core.blocks.6.linear2.weight",
+        "core.blocks.6.linear2.bias",
+        "core.blocks.6.norm1.weight",
+        "core.blocks.6.norm1.bias",
+        "core.blocks.6.norm2.weight",
+        "core.blocks.6.norm2.bias",
+        "core.blocks.6.norm3.weight",
+        "core.blocks.6.norm3.bias",
+        "core.blocks.7.self_attn.in_proj_weight",
+        "core.blocks.7.self_attn.in_proj_bias",
+        "core.blocks.7.self_attn.out_proj.weight",
+        "core.blocks.7.self_attn.out_proj.bias",
+        "core.blocks.7.multihead_attn.in_proj_weight",
+        "core.blocks.7.multihead_attn.in_proj_bias",
+        "core.blocks.7.multihead_attn.out_proj.weight",
+        "core.blocks.7.multihead_attn.out_proj.bias",
+        "core.blocks.7.linear1.weight",
+        "core.blocks.7.linear1.bias",
+        "core.blocks.7.linear2.weight",
+        "core.blocks.7.linear2.bias",
+        "core.blocks.7.norm1.weight",
+        "core.blocks.7.norm1.bias",
+        "core.blocks.7.norm2.weight",
+        "core.blocks.7.norm2.bias",
+        "core.blocks.7.norm3.weight",
+        "core.blocks.7.norm3.bias",
+        "core.blocks.8.self_attn.in_proj_weight",
+        "core.blocks.8.self_attn.in_proj_bias",
+        "core.blocks.8.self_attn.out_proj.weight",
+        "core.blocks.8.self_attn.out_proj.bias",
+        "core.blocks.8.multihead_attn.in_proj_weight",
+        "core.blocks.8.multihead_attn.in_proj_bias",
+        "core.blocks.8.multihead_attn.out_proj.weight",
+        "core.blocks.8.multihead_attn.out_proj.bias",
+        "core.blocks.8.linear1.weight",
+        "core.blocks.8.linear1.bias",
+        "core.blocks.8.linear2.weight",
+        "core.blocks.8.linear2.bias",
+        "core.blocks.8.norm1.weight",
+        "core.blocks.8.norm1.bias",
+        "core.blocks.8.norm2.weight",
+        "core.blocks.8.norm2.bias",
+        "core.blocks.8.norm3.weight",
+        "core.blocks.8.norm3.bias",
+        "core.blocks.9.self_attn.in_proj_weight",
+        "core.blocks.9.self_attn.in_proj_bias",
+        "core.blocks.9.self_attn.out_proj.weight",
+        "core.blocks.9.self_attn.out_proj.bias",
+        "core.blocks.9.multihead_attn.in_proj_weight",
+        "core.blocks.9.multihead_attn.in_proj_bias",
+        "core.blocks.9.multihead_attn.out_proj.weight",
+        "core.blocks.9.multihead_attn.out_proj.bias",
+        "core.blocks.9.linear1.weight",
+        "core.blocks.9.linear1.bias",
+        "core.blocks.9.linear2.weight",
+        "core.blocks.9.linear2.bias",
+        "core.blocks.9.norm1.weight",
+        "core.blocks.9.norm1.bias",
+        "core.blocks.9.norm2.weight",
+        "core.blocks.9.norm2.bias",
+        "core.blocks.9.norm3.weight",
+        "core.blocks.9.norm3.bias",
+        "core.blocks.10.self_attn.in_proj_weight",
+        "core.blocks.10.self_attn.in_proj_bias",
+        "core.blocks.10.self_attn.out_proj.weight",
+        "core.blocks.10.self_attn.out_proj.bias",
+        "core.blocks.10.multihead_attn.in_proj_weight",
+        "core.blocks.10.multihead_attn.in_proj_bias",
+        "core.blocks.10.multihead_attn.out_proj.weight",
+        "core.blocks.10.multihead_attn.out_proj.bias",
+        "core.blocks.10.linear1.weight",
+        "core.blocks.10.linear1.bias",
+        "core.blocks.10.linear2.weight",
+        "core.blocks.10.linear2.bias",
+        "core.blocks.10.norm1.weight",
+        "core.blocks.10.norm1.bias",
+        "core.blocks.10.norm2.weight",
+        "core.blocks.10.norm2.bias",
+        "core.blocks.10.norm3.weight",
+        "core.blocks.10.norm3.bias",
+        "core.blocks.11.self_attn.in_proj_weight",
+        "core.blocks.11.self_attn.in_proj_bias",
+        "core.blocks.11.self_attn.out_proj.weight",
+        "core.blocks.11.self_attn.out_proj.bias",
+        "core.blocks.11.multihead_attn.in_proj_weight",
+        "core.blocks.11.multihead_attn.in_proj_bias",
+        "core.blocks.11.multihead_attn.out_proj.weight",
+        "core.blocks.11.multihead_attn.out_proj.bias",
+        "core.blocks.11.linear1.weight",
+        "core.blocks.11.linear1.bias",
+        "core.blocks.11.linear2.weight",
+        "core.blocks.11.linear2.bias",
+        "core.blocks.11.norm1.weight",
+        "core.blocks.11.norm1.bias",
+        "core.blocks.11.norm2.weight",
+        "core.blocks.11.norm2.bias",
+        "core.blocks.11.norm3.weight",
+        "core.blocks.11.norm3.bias",
+        "core.geometry.0.weight",
+        "core.geometry.0.bias",
+        "core.geometry.1.weight",
+        "core.geometry.1.bias",
+        "core.geometry.2.weight",
+        "core.geometry.2.bias",
+        "core.geometry.3.weight",
+        "core.geometry.3.bias",
+        "core.geometry.4.weight",
+        "core.geometry.4.bias",
+        "core.geometry.5.weight",
+        "core.geometry.5.bias",
+        "core.geometry.6.weight",
+        "core.geometry.6.bias",
+        "core.geometry.7.weight",
+        "core.geometry.7.bias",
+        "core.geometry.8.weight",
+        "core.geometry.8.bias",
+        "core.geometry.9.weight",
+        "core.geometry.9.bias",
+        "core.geometry.10.weight",
+        "core.geometry.10.bias",
+        "core.geometry.11.weight",
+        "core.geometry.11.bias",
+        "core.reconstruction_adapter.0.weight",
+        "core.reconstruction_adapter.0.bias",
+        "core.reconstruction_adapter.1.weight",
+        "core.reconstruction_adapter.1.bias",
+        "core.activation_head.deconv.weight",
+        "core.activation_head.deconv.bias",
+        "core.semantic_adapter.0.weight",
+        "core.semantic_adapter.0.bias",
+        "core.semantic_adapter.1.weight",
+        "core.semantic_adapter.1.bias",
+        "core.classifier.weight",
+        "core.classifier.bias",
+        "core.query_mask.weight",
+        "core.query_mask.bias",
+        "core.child_index.weight",
+        "core.child_feature.0.weight",
+        "core.child_feature.0.bias",
+        "core.child_feature.2.weight",
+        "core.child_feature.2.bias",
+        "core.stuff_feature.weight",
+        "core.stuff_feature.bias"
+      ],
+      "manifest_sha256": "87e3cde298569c4e7735cf75ee596868eadf01e9a6a95438c6be51e42f55a523",
+      "heldout_sha256": "9a310d764358ebd7cdd3d1844a48685264d25d48cced5d4263ef4da68c239a44",
+      "omega_identity": {
+        "path": "/datasets2/mengxl/vggt_omega/vggt_omega_1b_512.pt",
+        "sha256": "c02da418b18bb01d0392598d3f6147366bcde1bb70fd08a5e3bf7925b0667934",
+        "source": "/space/mawb/querysplat/third_party/vggt_omega"
+      },
+      "sam_identity": {
+        "path": "/space/mawb/ssst_dual_stream_assets/sam_vit_b_01ec64.pth",
+        "sha256": "ec2df62732614e57411cdcf32a23ffdf28910380d03139ee0f4fcbe91eb8c912",
+        "model": "SAM ViT-B",
+        "points_per_side": 32,
+        "crop_n_layers": 0,
+        "per_view_budget": null,
+        "generator_settings": {
+          "points_per_side": 32,
+          "points_per_batch": 64,
+          "pred_iou_thresh": 0.88,
+          "stability_score_thresh": 0.95,
+          "stability_score_offset": 1.0,
+          "box_nms_thresh": 0.7,
+          "crop_n_layers": 0,
+          "crop_nms_thresh": 0.7,
+          "crop_overlap_ratio": 0.3413333333333333,
+          "crop_n_points_downscale_factor": 1,
+          "min_mask_region_area": 0,
+          "output_mode": "binary_mask"
+        },
+        "partition": "descending_area_small_overwrites_large",
+        "pipeline": "ESAM_MV",
+        "esam_revision": "188fc6de44f7577fecec2d69b75c7adbd9992251"
+      },
+      "training_windows": 8337,
+      "training_scenes": 1191,
+      "epochs": 4,
+      "updates": 4172,
+      "global_batch": 8,
+      "world_size": 8,
+      "model_seed": 42,
+      "order_seed": 31415,
+      "learning_rate": 0.0001,
+      "lr_warmup": 100,
+      "understanding_weight": 0.05,
+      "understanding_warmup": 1043,
+      "smoke_windows": [
+        {
+          "scene": "scene0279_02",
+          "context": [
+            31,
+            57
+          ],
+          "novel": [
+            35,
+            38
+          ],
+          "pair_iou": 0.35301661491394043,
+          "semantic_classes_context": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            10,
+            12,
+            13,
+            14,
+            19
+          ],
+          "thing_instance_count": 12,
+          "thing_gt_area": {
+            "1": 10185,
+            "7": 17692,
+            "9": 2293,
+            "10": 9611,
+            "13": 655,
+            "19": 181,
+            "21": 2367,
+            "23": 1378,
+            "24": 26570,
+            "27": 940,
+            "28": 6356,
+            "33": 6266
+          },
+          "sampling_seed": 42509,
+          "attempt": 8,
+          "window_index": 7,
+          "target": [
+            31,
+            57,
+            35,
+            38
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0570_00",
+          "context": [
+            113,
+            173
+          ],
+          "novel": [
+            121,
+            138
+          ],
+          "pair_iou": 0.504318356513977,
+          "semantic_classes_context": [
+            7,
+            11,
+            15,
+            16,
+            17,
+            18
+          ],
+          "thing_instance_count": 7,
+          "thing_gt_area": {
+            "2": 14559,
+            "4": 14656,
+            "6": 5004,
+            "7": 657,
+            "8": 1691,
+            "13": 12747,
+            "20": 4284
+          },
+          "sampling_seed": 43004,
+          "attempt": 8,
+          "window_index": 7,
+          "target": [
+            113,
+            173,
+            121,
+            138
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0051_00",
+          "context": [
+            553,
+            563
+          ],
+          "novel": [
+            554,
+            562
+          ],
+          "pair_iou": 0.44169142842292786,
+          "semantic_classes_context": [
+            3,
+            8,
+            9
+          ],
+          "thing_instance_count": 3,
+          "thing_gt_area": {
+            "1": 15774,
+            "10": 36740,
+            "15": 1405
+          },
+          "sampling_seed": 42091,
+          "attempt": 3,
+          "scene_index": 89,
+          "piece": 1,
+          "index": 713,
+          "window_index": 713,
+          "target": [
+            553,
+            563,
+            554,
+            562
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0454_00",
+          "context": [
+            18,
+            52
+          ],
+          "novel": [
+            39,
+            45
+          ],
+          "pair_iou": 0.5483177304267883,
+          "semantic_classes_context": [
+            19
+          ],
+          "thing_instance_count": 2,
+          "thing_gt_area": {
+            "1": 8882,
+            "2": 84496
+          },
+          "sampling_seed": 42815,
+          "attempt": 2,
+          "window_index": 0,
+          "target": [
+            18,
+            52,
+            39,
+            45
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0206_01",
+          "context": [
+            1748,
+            1808
+          ],
+          "novel": [
+            1799,
+            1803
+          ],
+          "pair_iou": 0.40052106976509094,
+          "semantic_classes_context": [
+            4,
+            8,
+            19
+          ],
+          "thing_instance_count": 2,
+          "thing_gt_area": {
+            "7": 9606,
+            "12": 18377
+          },
+          "sampling_seed": 42381,
+          "attempt": 9,
+          "window_index": 7,
+          "target": [
+            1748,
+            1808,
+            1799,
+            1803
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0372_00",
+          "context": [
+            1835,
+            1859
+          ],
+          "novel": [
+            1839,
+            1848
+          ],
+          "pair_iou": 0.42668992280960083,
+          "semantic_classes_context": [
+            4,
+            6
+          ],
+          "thing_instance_count": 5,
+          "thing_gt_area": {
+            "4": 23024,
+            "8": 342,
+            "10": 9512,
+            "15": 1318,
+            "26": 5775
+          },
+          "sampling_seed": 42668,
+          "attempt": 6,
+          "window_index": 5,
+          "target": [
+            1835,
+            1859,
+            1839,
+            1848
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0123_02",
+          "context": [
+            310,
+            337
+          ],
+          "novel": [
+            318,
+            330
+          ],
+          "pair_iou": 0.3146250545978546,
+          "semantic_classes_context": [
+            4,
+            6
+          ],
+          "thing_instance_count": 6,
+          "thing_gt_area": {
+            "10": 7239,
+            "12": 547,
+            "14": 1576,
+            "15": 1445,
+            "23": 11177,
+            "26": 3710
+          },
+          "sampling_seed": 42236,
+          "attempt": 8,
+          "window_index": 7,
+          "target": [
+            310,
+            337,
+            318,
+            330
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0027_00",
+          "context": [
+            1075,
+            1101
+          ],
+          "novel": [
+            1088,
+            1095
+          ],
+          "pair_iou": 0.646843433380127,
+          "semantic_classes_context": [
+            4,
+            10,
+            19
+          ],
+          "thing_instance_count": 6,
+          "thing_gt_area": {
+            "4": 6446,
+            "8": 3955,
+            "9": 3081,
+            "11": 2279,
+            "13": 1972,
+            "14": 2281
+          },
+          "sampling_seed": 42047,
+          "attempt": 8,
+          "scene_index": 47,
+          "piece": 5,
+          "index": 381,
+          "window_index": 381,
+          "target": [
+            1075,
+            1101,
+            1088,
+            1095
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0614_01",
+          "context": [
+            712,
+            727
+          ],
+          "novel": [
+            721,
+            724
+          ],
+          "pair_iou": 0.6633191704750061,
+          "semantic_classes_context": [
+            2,
+            4,
+            12,
+            19
+          ],
+          "thing_instance_count": 4,
+          "thing_gt_area": {
+            "5": 20528,
+            "8": 2906,
+            "10": 893,
+            "33": 27038
+          },
+          "sampling_seed": 43081,
+          "attempt": 5,
+          "window_index": 4,
+          "target": [
+            712,
+            727,
+            721,
+            724
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0410_01",
+          "context": [
+            1351,
+            1372
+          ],
+          "novel": [
+            1352,
+            1353
+          ],
+          "pair_iou": 0.380126953125,
+          "semantic_classes_context": [
+            7,
+            10,
+            16
+          ],
+          "thing_instance_count": 3,
+          "thing_gt_area": {
+            "5": 7437,
+            "6": 2143,
+            "22": 291
+          },
+          "sampling_seed": 42737,
+          "attempt": 4,
+          "window_index": 3,
+          "target": [
+            1351,
+            1372,
+            1352,
+            1353
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0345_01",
+          "context": [
+            1158,
+            1176
+          ],
+          "novel": [
+            1164,
+            1173
+          ],
+          "pair_iou": 0.4581976532936096,
+          "semantic_classes_context": [
+            4,
+            6,
+            8,
+            19
+          ],
+          "thing_instance_count": 10,
+          "thing_gt_area": {
+            "6": 4468,
+            "7": 10314,
+            "25": 16581,
+            "26": 16946,
+            "27": 2449,
+            "28": 643,
+            "31": 209,
+            "32": 882,
+            "33": 347,
+            "34": 695
+          },
+          "sampling_seed": 42619,
+          "attempt": 4,
+          "window_index": 3,
+          "target": [
+            1158,
+            1176,
+            1164,
+            1173
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0281_00",
+          "context": [
+            306,
+            398
+          ],
+          "novel": [
+            330,
+            378
+          ],
+          "pair_iou": 0.30461928248405457,
+          "semantic_classes_context": [
+            4,
+            5,
+            6,
+            10
+          ],
+          "thing_instance_count": 8,
+          "thing_gt_area": {
+            "2": 211,
+            "5": 361,
+            "6": 2870,
+            "13": 35543,
+            "16": 36915,
+            "19": 2856,
+            "22": 518,
+            "28": 848
+          },
+          "sampling_seed": 42513,
+          "attempt": 9,
+          "window_index": 7,
+          "target": [
+            306,
+            398,
+            330,
+            378
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0074_01",
+          "context": [
+            2898,
+            2929
+          ],
+          "novel": [
+            2908,
+            2913
+          ],
+          "pair_iou": 0.3550287187099457,
+          "semantic_classes_context": [
+            7,
+            13
+          ],
+          "thing_instance_count": 2,
+          "thing_gt_area": {
+            "1": 40477,
+            "11": 18174
+          },
+          "sampling_seed": 42139,
+          "attempt": 16,
+          "window_index": 3,
+          "target": [
+            2898,
+            2929,
+            2908,
+            2913
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0570_01",
+          "context": [
+            218,
+            301
+          ],
+          "novel": [
+            235,
+            250
+          ],
+          "pair_iou": 0.5695879459381104,
+          "semantic_classes_context": [
+            7,
+            16,
+            18
+          ],
+          "thing_instance_count": 3,
+          "thing_gt_area": {
+            "3": 23671,
+            "5": 28496,
+            "15": 2032
+          },
+          "sampling_seed": 43005,
+          "attempt": 1,
+          "window_index": 0,
+          "target": [
+            218,
+            301,
+            235,
+            250
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0163_01",
+          "context": [
+            509,
+            536
+          ],
+          "novel": [
+            520,
+            522
+          ],
+          "pair_iou": 0.45807456970214844,
+          "semantic_classes_context": [
+            4,
+            6,
+            8
+          ],
+          "thing_instance_count": 4,
+          "thing_gt_area": {
+            "6": 14884,
+            "9": 3458,
+            "11": 13166,
+            "24": 7999
+          },
+          "sampling_seed": 42306,
+          "attempt": 5,
+          "window_index": 4,
+          "target": [
+            509,
+            536,
+            520,
+            522
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0241_00",
+          "context": [
+            1579,
+            1638
+          ],
+          "novel": [
+            1587,
+            1604
+          ],
+          "pair_iou": 0.44589802622795105,
+          "semantic_classes_context": [
+            7
+          ],
+          "thing_instance_count": 2,
+          "thing_gt_area": {
+            "23": 66427,
+            "26": 13033
+          },
+          "sampling_seed": 42438,
+          "attempt": 8,
+          "window_index": 7,
+          "target": [
+            1579,
+            1638,
+            1587,
+            1604
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        }
+      ],
+      "samples": [
+        {
+          "scene": "scene0279_02",
+          "context": [
+            31,
+            57
+          ]
+        },
+        {
+          "scene": "scene0570_00",
+          "context": [
+            113,
+            173
+          ]
+        },
+        {
+          "scene": "scene0051_00",
+          "context": [
+            553,
+            563
+          ]
+        },
+        {
+          "scene": "scene0454_00",
+          "context": [
+            18,
+            52
+          ]
+        },
+        {
+          "scene": "scene0011_00",
+          "context": [
+            1727,
+            1744
+          ]
+        },
+        {
+          "scene": "scene0019_01",
+          "context": [
+            151,
+            165
+          ]
+        },
+        {
+          "scene": "scene0030_00",
+          "context": [
+            808,
+            865
+          ]
+        },
+        {
+          "scene": "scene0030_01",
+          "context": [
+            1478,
+            1517
+          ]
+        },
+        {
+          "scene": "scene0000_00",
+          "context": [
+            3551,
+            3596
+          ]
+        },
+        {
+          "scene": "scene0706_00",
+          "context": [
+            287,
+            320
+          ]
+        },
+        {
+          "scene": "scene0704_01",
+          "context": [
+            1681,
+            1709
+          ]
+        }
+      ],
+      "all_required_data_files_accessible": 135955,
+      "validation_report_sha256": "90dc87fc71635db82c209771f78a7060b9e13b1d7e482aa1bd0f534db4ae38f6",
+      "evaluator_commit": "8ea80166be76854f938e90521f1a5b688b755c87",
+      "baseline_retrained": false
+    },
+    "B": {
+      "status": "PASSED",
+      "group": "B",
+      "architecture_key": "unified_gs_evidence_coverage",
+      "architecture": "OMEGA_3D_SUPERPOINT_UNIFIED_QUERY_GS_EVIDENCE_COVERAGE_V1",
+      "code_sha": "1982cd18c9ecd3cb7643cba7ff143b91738fd050",
+      "config": {
+        "superpoint_source": "esam_sam",
+        "uncovered_clusters": 8,
+        "dim": 256,
+        "heads": 8,
+        "depth": 12,
+        "point_grid": 48,
+        "max_points": 4096,
+        "max_superpoints": 512,
+        "point_voxel": 0.01,
+        "superpoint_voxel": 0.08,
+        "neighbors": 12,
+        "point_layers": 2,
+        "checkpoint_blocks": true,
+        "matching_mode": "source_many_to_one",
+        "mask_nms_iou": 0.7,
+        "support_matching": true,
+        "support_purity": 0.5
+      },
+      "extra_checkpoint_metadata": {
+        "coverage_recipe": {
+          "loss_weight": 0.1,
+          "erode_px": 1,
+          "views": 2,
+          "max_inside_fraction_guard": 1.0
+        }
+      },
+      "initial_sha256": "fa65d6a8067311f1276d4b7968177f00a349ae3d3c71431a2c0506de3f4a975a",
+      "initial_updates": 0,
+      "initial_optimizer_empty": true,
+      "initialization": "fresh seed42; no trained weights; exact baseline zero-step rank RNG replay",
+      "rng_source": "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt02_esam_many_full_node11_8gpu/checkpoint_untrained_initial.pt",
+      "rng_source_sha256": "9034bac7a2b251ef78fd43c708eed05edc22a95dadcf052b4a6ef89948acc7a5",
+      "baseline_run": "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt02_esam_many_full_node11_8gpu",
+      "baseline_initial_sha256": "1b1392c80722fcdb766355bbd78f17e0e57cdf7a138244cce551db00a80628c6",
+      "baseline_final_sha256": "530119fbf436b84cbe0dc636b43d26b4070021c255af9ec90647259c099f99af",
+      "baseline_export_sha256": "c29b336d48cfc14b2514dbc9f34ab58080dc79f9c421f741f434859e73b3b8a7",
+      "baseline_table": [
+        "0.08883613753641839",
+        "0.21764044557736875",
+        "18.085460028300684",
+        "0.6348038284146847",
+        "0.609879330615513",
+        "0.4387630753219128",
+        "0.1892472207546234",
+        "0.467336901986289",
+        "",
+        "0.437518529035151",
+        "0.16519224643707275",
+        "0.45011391190528344",
+        ""
+      ],
+      "same_ab_initial_tensors": 301,
+      "baseline_exact_common_tensors": 300,
+      "baseline_mismatches": [
+        "core.child_feature.0.weight"
+      ],
+      "trainable_parameter_names": [
+        "gfm_projection.0.weight",
+        "gfm_projection.0.bias",
+        "gfm_projection.1.weight",
+        "gfm_projection.1.bias",
+        "core.initializer.point_encoder.layers.0.0.weight",
+        "core.initializer.point_encoder.layers.0.0.bias",
+        "core.initializer.point_encoder.layers.0.1.weight",
+        "core.initializer.point_encoder.layers.0.1.bias",
+        "core.initializer.point_encoder.layers.0.3.weight",
+        "core.initializer.point_encoder.layers.0.3.bias",
+        "core.initializer.point_encoder.layers.1.0.weight",
+        "core.initializer.point_encoder.layers.1.0.bias",
+        "core.initializer.point_encoder.layers.1.1.weight",
+        "core.initializer.point_encoder.layers.1.1.bias",
+        "core.initializer.point_encoder.layers.1.3.weight",
+        "core.initializer.point_encoder.layers.1.3.bias",
+        "core.initializer.point_encoder.norms.0.weight",
+        "core.initializer.point_encoder.norms.0.bias",
+        "core.initializer.point_encoder.norms.1.weight",
+        "core.initializer.point_encoder.norms.1.bias",
+        "core.initializer.local_shape.0.weight",
+        "core.initializer.local_shape.0.bias",
+        "core.initializer.local_shape.1.weight",
+        "core.initializer.local_shape.1.bias",
+        "core.initializer.local_shape.3.weight",
+        "core.initializer.local_shape.3.bias",
+        "core.initializer.point_weight.0.weight",
+        "core.initializer.point_weight.0.bias",
+        "core.initializer.point_weight.2.weight",
+        "core.initializer.point_weight.2.bias",
+        "core.initializer.projection.0.weight",
+        "core.initializer.projection.0.bias",
+        "core.initializer.projection.1.weight",
+        "core.initializer.projection.1.bias",
+        "core.initializer.position.0.weight",
+        "core.initializer.position.0.bias",
+        "core.initializer.position.2.weight",
+        "core.initializer.position.2.bias",
+        "core.initializer.norm.weight",
+        "core.initializer.norm.bias",
+        "core.blocks.0.self_attn.in_proj_weight",
+        "core.blocks.0.self_attn.in_proj_bias",
+        "core.blocks.0.self_attn.out_proj.weight",
+        "core.blocks.0.self_attn.out_proj.bias",
+        "core.blocks.0.multihead_attn.in_proj_weight",
+        "core.blocks.0.multihead_attn.in_proj_bias",
+        "core.blocks.0.multihead_attn.out_proj.weight",
+        "core.blocks.0.multihead_attn.out_proj.bias",
+        "core.blocks.0.linear1.weight",
+        "core.blocks.0.linear1.bias",
+        "core.blocks.0.linear2.weight",
+        "core.blocks.0.linear2.bias",
+        "core.blocks.0.norm1.weight",
+        "core.blocks.0.norm1.bias",
+        "core.blocks.0.norm2.weight",
+        "core.blocks.0.norm2.bias",
+        "core.blocks.0.norm3.weight",
+        "core.blocks.0.norm3.bias",
+        "core.blocks.1.self_attn.in_proj_weight",
+        "core.blocks.1.self_attn.in_proj_bias",
+        "core.blocks.1.self_attn.out_proj.weight",
+        "core.blocks.1.self_attn.out_proj.bias",
+        "core.blocks.1.multihead_attn.in_proj_weight",
+        "core.blocks.1.multihead_attn.in_proj_bias",
+        "core.blocks.1.multihead_attn.out_proj.weight",
+        "core.blocks.1.multihead_attn.out_proj.bias",
+        "core.blocks.1.linear1.weight",
+        "core.blocks.1.linear1.bias",
+        "core.blocks.1.linear2.weight",
+        "core.blocks.1.linear2.bias",
+        "core.blocks.1.norm1.weight",
+        "core.blocks.1.norm1.bias",
+        "core.blocks.1.norm2.weight",
+        "core.blocks.1.norm2.bias",
+        "core.blocks.1.norm3.weight",
+        "core.blocks.1.norm3.bias",
+        "core.blocks.2.self_attn.in_proj_weight",
+        "core.blocks.2.self_attn.in_proj_bias",
+        "core.blocks.2.self_attn.out_proj.weight",
+        "core.blocks.2.self_attn.out_proj.bias",
+        "core.blocks.2.multihead_attn.in_proj_weight",
+        "core.blocks.2.multihead_attn.in_proj_bias",
+        "core.blocks.2.multihead_attn.out_proj.weight",
+        "core.blocks.2.multihead_attn.out_proj.bias",
+        "core.blocks.2.linear1.weight",
+        "core.blocks.2.linear1.bias",
+        "core.blocks.2.linear2.weight",
+        "core.blocks.2.linear2.bias",
+        "core.blocks.2.norm1.weight",
+        "core.blocks.2.norm1.bias",
+        "core.blocks.2.norm2.weight",
+        "core.blocks.2.norm2.bias",
+        "core.blocks.2.norm3.weight",
+        "core.blocks.2.norm3.bias",
+        "core.blocks.3.self_attn.in_proj_weight",
+        "core.blocks.3.self_attn.in_proj_bias",
+        "core.blocks.3.self_attn.out_proj.weight",
+        "core.blocks.3.self_attn.out_proj.bias",
+        "core.blocks.3.multihead_attn.in_proj_weight",
+        "core.blocks.3.multihead_attn.in_proj_bias",
+        "core.blocks.3.multihead_attn.out_proj.weight",
+        "core.blocks.3.multihead_attn.out_proj.bias",
+        "core.blocks.3.linear1.weight",
+        "core.blocks.3.linear1.bias",
+        "core.blocks.3.linear2.weight",
+        "core.blocks.3.linear2.bias",
+        "core.blocks.3.norm1.weight",
+        "core.blocks.3.norm1.bias",
+        "core.blocks.3.norm2.weight",
+        "core.blocks.3.norm2.bias",
+        "core.blocks.3.norm3.weight",
+        "core.blocks.3.norm3.bias",
+        "core.blocks.4.self_attn.in_proj_weight",
+        "core.blocks.4.self_attn.in_proj_bias",
+        "core.blocks.4.self_attn.out_proj.weight",
+        "core.blocks.4.self_attn.out_proj.bias",
+        "core.blocks.4.multihead_attn.in_proj_weight",
+        "core.blocks.4.multihead_attn.in_proj_bias",
+        "core.blocks.4.multihead_attn.out_proj.weight",
+        "core.blocks.4.multihead_attn.out_proj.bias",
+        "core.blocks.4.linear1.weight",
+        "core.blocks.4.linear1.bias",
+        "core.blocks.4.linear2.weight",
+        "core.blocks.4.linear2.bias",
+        "core.blocks.4.norm1.weight",
+        "core.blocks.4.norm1.bias",
+        "core.blocks.4.norm2.weight",
+        "core.blocks.4.norm2.bias",
+        "core.blocks.4.norm3.weight",
+        "core.blocks.4.norm3.bias",
+        "core.blocks.5.self_attn.in_proj_weight",
+        "core.blocks.5.self_attn.in_proj_bias",
+        "core.blocks.5.self_attn.out_proj.weight",
+        "core.blocks.5.self_attn.out_proj.bias",
+        "core.blocks.5.multihead_attn.in_proj_weight",
+        "core.blocks.5.multihead_attn.in_proj_bias",
+        "core.blocks.5.multihead_attn.out_proj.weight",
+        "core.blocks.5.multihead_attn.out_proj.bias",
+        "core.blocks.5.linear1.weight",
+        "core.blocks.5.linear1.bias",
+        "core.blocks.5.linear2.weight",
+        "core.blocks.5.linear2.bias",
+        "core.blocks.5.norm1.weight",
+        "core.blocks.5.norm1.bias",
+        "core.blocks.5.norm2.weight",
+        "core.blocks.5.norm2.bias",
+        "core.blocks.5.norm3.weight",
+        "core.blocks.5.norm3.bias",
+        "core.blocks.6.self_attn.in_proj_weight",
+        "core.blocks.6.self_attn.in_proj_bias",
+        "core.blocks.6.self_attn.out_proj.weight",
+        "core.blocks.6.self_attn.out_proj.bias",
+        "core.blocks.6.multihead_attn.in_proj_weight",
+        "core.blocks.6.multihead_attn.in_proj_bias",
+        "core.blocks.6.multihead_attn.out_proj.weight",
+        "core.blocks.6.multihead_attn.out_proj.bias",
+        "core.blocks.6.linear1.weight",
+        "core.blocks.6.linear1.bias",
+        "core.blocks.6.linear2.weight",
+        "core.blocks.6.linear2.bias",
+        "core.blocks.6.norm1.weight",
+        "core.blocks.6.norm1.bias",
+        "core.blocks.6.norm2.weight",
+        "core.blocks.6.norm2.bias",
+        "core.blocks.6.norm3.weight",
+        "core.blocks.6.norm3.bias",
+        "core.blocks.7.self_attn.in_proj_weight",
+        "core.blocks.7.self_attn.in_proj_bias",
+        "core.blocks.7.self_attn.out_proj.weight",
+        "core.blocks.7.self_attn.out_proj.bias",
+        "core.blocks.7.multihead_attn.in_proj_weight",
+        "core.blocks.7.multihead_attn.in_proj_bias",
+        "core.blocks.7.multihead_attn.out_proj.weight",
+        "core.blocks.7.multihead_attn.out_proj.bias",
+        "core.blocks.7.linear1.weight",
+        "core.blocks.7.linear1.bias",
+        "core.blocks.7.linear2.weight",
+        "core.blocks.7.linear2.bias",
+        "core.blocks.7.norm1.weight",
+        "core.blocks.7.norm1.bias",
+        "core.blocks.7.norm2.weight",
+        "core.blocks.7.norm2.bias",
+        "core.blocks.7.norm3.weight",
+        "core.blocks.7.norm3.bias",
+        "core.blocks.8.self_attn.in_proj_weight",
+        "core.blocks.8.self_attn.in_proj_bias",
+        "core.blocks.8.self_attn.out_proj.weight",
+        "core.blocks.8.self_attn.out_proj.bias",
+        "core.blocks.8.multihead_attn.in_proj_weight",
+        "core.blocks.8.multihead_attn.in_proj_bias",
+        "core.blocks.8.multihead_attn.out_proj.weight",
+        "core.blocks.8.multihead_attn.out_proj.bias",
+        "core.blocks.8.linear1.weight",
+        "core.blocks.8.linear1.bias",
+        "core.blocks.8.linear2.weight",
+        "core.blocks.8.linear2.bias",
+        "core.blocks.8.norm1.weight",
+        "core.blocks.8.norm1.bias",
+        "core.blocks.8.norm2.weight",
+        "core.blocks.8.norm2.bias",
+        "core.blocks.8.norm3.weight",
+        "core.blocks.8.norm3.bias",
+        "core.blocks.9.self_attn.in_proj_weight",
+        "core.blocks.9.self_attn.in_proj_bias",
+        "core.blocks.9.self_attn.out_proj.weight",
+        "core.blocks.9.self_attn.out_proj.bias",
+        "core.blocks.9.multihead_attn.in_proj_weight",
+        "core.blocks.9.multihead_attn.in_proj_bias",
+        "core.blocks.9.multihead_attn.out_proj.weight",
+        "core.blocks.9.multihead_attn.out_proj.bias",
+        "core.blocks.9.linear1.weight",
+        "core.blocks.9.linear1.bias",
+        "core.blocks.9.linear2.weight",
+        "core.blocks.9.linear2.bias",
+        "core.blocks.9.norm1.weight",
+        "core.blocks.9.norm1.bias",
+        "core.blocks.9.norm2.weight",
+        "core.blocks.9.norm2.bias",
+        "core.blocks.9.norm3.weight",
+        "core.blocks.9.norm3.bias",
+        "core.blocks.10.self_attn.in_proj_weight",
+        "core.blocks.10.self_attn.in_proj_bias",
+        "core.blocks.10.self_attn.out_proj.weight",
+        "core.blocks.10.self_attn.out_proj.bias",
+        "core.blocks.10.multihead_attn.in_proj_weight",
+        "core.blocks.10.multihead_attn.in_proj_bias",
+        "core.blocks.10.multihead_attn.out_proj.weight",
+        "core.blocks.10.multihead_attn.out_proj.bias",
+        "core.blocks.10.linear1.weight",
+        "core.blocks.10.linear1.bias",
+        "core.blocks.10.linear2.weight",
+        "core.blocks.10.linear2.bias",
+        "core.blocks.10.norm1.weight",
+        "core.blocks.10.norm1.bias",
+        "core.blocks.10.norm2.weight",
+        "core.blocks.10.norm2.bias",
+        "core.blocks.10.norm3.weight",
+        "core.blocks.10.norm3.bias",
+        "core.blocks.11.self_attn.in_proj_weight",
+        "core.blocks.11.self_attn.in_proj_bias",
+        "core.blocks.11.self_attn.out_proj.weight",
+        "core.blocks.11.self_attn.out_proj.bias",
+        "core.blocks.11.multihead_attn.in_proj_weight",
+        "core.blocks.11.multihead_attn.in_proj_bias",
+        "core.blocks.11.multihead_attn.out_proj.weight",
+        "core.blocks.11.multihead_attn.out_proj.bias",
+        "core.blocks.11.linear1.weight",
+        "core.blocks.11.linear1.bias",
+        "core.blocks.11.linear2.weight",
+        "core.blocks.11.linear2.bias",
+        "core.blocks.11.norm1.weight",
+        "core.blocks.11.norm1.bias",
+        "core.blocks.11.norm2.weight",
+        "core.blocks.11.norm2.bias",
+        "core.blocks.11.norm3.weight",
+        "core.blocks.11.norm3.bias",
+        "core.geometry.0.weight",
+        "core.geometry.0.bias",
+        "core.geometry.1.weight",
+        "core.geometry.1.bias",
+        "core.geometry.2.weight",
+        "core.geometry.2.bias",
+        "core.geometry.3.weight",
+        "core.geometry.3.bias",
+        "core.geometry.4.weight",
+        "core.geometry.4.bias",
+        "core.geometry.5.weight",
+        "core.geometry.5.bias",
+        "core.geometry.6.weight",
+        "core.geometry.6.bias",
+        "core.geometry.7.weight",
+        "core.geometry.7.bias",
+        "core.geometry.8.weight",
+        "core.geometry.8.bias",
+        "core.geometry.9.weight",
+        "core.geometry.9.bias",
+        "core.geometry.10.weight",
+        "core.geometry.10.bias",
+        "core.geometry.11.weight",
+        "core.geometry.11.bias",
+        "core.reconstruction_adapter.0.weight",
+        "core.reconstruction_adapter.0.bias",
+        "core.reconstruction_adapter.1.weight",
+        "core.reconstruction_adapter.1.bias",
+        "core.activation_head.deconv.weight",
+        "core.activation_head.deconv.bias",
+        "core.semantic_adapter.0.weight",
+        "core.semantic_adapter.0.bias",
+        "core.semantic_adapter.1.weight",
+        "core.semantic_adapter.1.bias",
+        "core.classifier.weight",
+        "core.classifier.bias",
+        "core.query_mask.weight",
+        "core.query_mask.bias",
+        "core.child_index.weight",
+        "core.child_feature.0.weight",
+        "core.child_feature.0.bias",
+        "core.child_feature.2.weight",
+        "core.child_feature.2.bias",
+        "core.stuff_feature.weight",
+        "core.stuff_feature.bias"
+      ],
+      "manifest_sha256": "87e3cde298569c4e7735cf75ee596868eadf01e9a6a95438c6be51e42f55a523",
+      "heldout_sha256": "9a310d764358ebd7cdd3d1844a48685264d25d48cced5d4263ef4da68c239a44",
+      "omega_identity": {
+        "path": "/datasets2/mengxl/vggt_omega/vggt_omega_1b_512.pt",
+        "sha256": "c02da418b18bb01d0392598d3f6147366bcde1bb70fd08a5e3bf7925b0667934",
+        "source": "/space/mawb/querysplat/third_party/vggt_omega"
+      },
+      "sam_identity": {
+        "path": "/space/mawb/ssst_dual_stream_assets/sam_vit_b_01ec64.pth",
+        "sha256": "ec2df62732614e57411cdcf32a23ffdf28910380d03139ee0f4fcbe91eb8c912",
+        "model": "SAM ViT-B",
+        "points_per_side": 32,
+        "crop_n_layers": 0,
+        "per_view_budget": null,
+        "generator_settings": {
+          "points_per_side": 32,
+          "points_per_batch": 64,
+          "pred_iou_thresh": 0.88,
+          "stability_score_thresh": 0.95,
+          "stability_score_offset": 1.0,
+          "box_nms_thresh": 0.7,
+          "crop_n_layers": 0,
+          "crop_nms_thresh": 0.7,
+          "crop_overlap_ratio": 0.3413333333333333,
+          "crop_n_points_downscale_factor": 1,
+          "min_mask_region_area": 0,
+          "output_mode": "binary_mask"
+        },
+        "partition": "descending_area_small_overwrites_large",
+        "pipeline": "ESAM_MV",
+        "esam_revision": "188fc6de44f7577fecec2d69b75c7adbd9992251"
+      },
+      "training_windows": 8337,
+      "training_scenes": 1191,
+      "epochs": 4,
+      "updates": 4172,
+      "global_batch": 8,
+      "world_size": 8,
+      "model_seed": 42,
+      "order_seed": 31415,
+      "learning_rate": 0.0001,
+      "lr_warmup": 100,
+      "understanding_weight": 0.05,
+      "understanding_warmup": 1043,
+      "smoke_windows": [
+        {
+          "scene": "scene0279_02",
+          "context": [
+            31,
+            57
+          ],
+          "novel": [
+            35,
+            38
+          ],
+          "pair_iou": 0.35301661491394043,
+          "semantic_classes_context": [
+            2,
+            3,
+            4,
+            5,
+            6,
+            10,
+            12,
+            13,
+            14,
+            19
+          ],
+          "thing_instance_count": 12,
+          "thing_gt_area": {
+            "1": 10185,
+            "7": 17692,
+            "9": 2293,
+            "10": 9611,
+            "13": 655,
+            "19": 181,
+            "21": 2367,
+            "23": 1378,
+            "24": 26570,
+            "27": 940,
+            "28": 6356,
+            "33": 6266
+          },
+          "sampling_seed": 42509,
+          "attempt": 8,
+          "window_index": 7,
+          "target": [
+            31,
+            57,
+            35,
+            38
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0570_00",
+          "context": [
+            113,
+            173
+          ],
+          "novel": [
+            121,
+            138
+          ],
+          "pair_iou": 0.504318356513977,
+          "semantic_classes_context": [
+            7,
+            11,
+            15,
+            16,
+            17,
+            18
+          ],
+          "thing_instance_count": 7,
+          "thing_gt_area": {
+            "2": 14559,
+            "4": 14656,
+            "6": 5004,
+            "7": 657,
+            "8": 1691,
+            "13": 12747,
+            "20": 4284
+          },
+          "sampling_seed": 43004,
+          "attempt": 8,
+          "window_index": 7,
+          "target": [
+            113,
+            173,
+            121,
+            138
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0051_00",
+          "context": [
+            553,
+            563
+          ],
+          "novel": [
+            554,
+            562
+          ],
+          "pair_iou": 0.44169142842292786,
+          "semantic_classes_context": [
+            3,
+            8,
+            9
+          ],
+          "thing_instance_count": 3,
+          "thing_gt_area": {
+            "1": 15774,
+            "10": 36740,
+            "15": 1405
+          },
+          "sampling_seed": 42091,
+          "attempt": 3,
+          "scene_index": 89,
+          "piece": 1,
+          "index": 713,
+          "window_index": 713,
+          "target": [
+            553,
+            563,
+            554,
+            562
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0454_00",
+          "context": [
+            18,
+            52
+          ],
+          "novel": [
+            39,
+            45
+          ],
+          "pair_iou": 0.5483177304267883,
+          "semantic_classes_context": [
+            19
+          ],
+          "thing_instance_count": 2,
+          "thing_gt_area": {
+            "1": 8882,
+            "2": 84496
+          },
+          "sampling_seed": 42815,
+          "attempt": 2,
+          "window_index": 0,
+          "target": [
+            18,
+            52,
+            39,
+            45
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0206_01",
+          "context": [
+            1748,
+            1808
+          ],
+          "novel": [
+            1799,
+            1803
+          ],
+          "pair_iou": 0.40052106976509094,
+          "semantic_classes_context": [
+            4,
+            8,
+            19
+          ],
+          "thing_instance_count": 2,
+          "thing_gt_area": {
+            "7": 9606,
+            "12": 18377
+          },
+          "sampling_seed": 42381,
+          "attempt": 9,
+          "window_index": 7,
+          "target": [
+            1748,
+            1808,
+            1799,
+            1803
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0372_00",
+          "context": [
+            1835,
+            1859
+          ],
+          "novel": [
+            1839,
+            1848
+          ],
+          "pair_iou": 0.42668992280960083,
+          "semantic_classes_context": [
+            4,
+            6
+          ],
+          "thing_instance_count": 5,
+          "thing_gt_area": {
+            "4": 23024,
+            "8": 342,
+            "10": 9512,
+            "15": 1318,
+            "26": 5775
+          },
+          "sampling_seed": 42668,
+          "attempt": 6,
+          "window_index": 5,
+          "target": [
+            1835,
+            1859,
+            1839,
+            1848
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0123_02",
+          "context": [
+            310,
+            337
+          ],
+          "novel": [
+            318,
+            330
+          ],
+          "pair_iou": 0.3146250545978546,
+          "semantic_classes_context": [
+            4,
+            6
+          ],
+          "thing_instance_count": 6,
+          "thing_gt_area": {
+            "10": 7239,
+            "12": 547,
+            "14": 1576,
+            "15": 1445,
+            "23": 11177,
+            "26": 3710
+          },
+          "sampling_seed": 42236,
+          "attempt": 8,
+          "window_index": 7,
+          "target": [
+            310,
+            337,
+            318,
+            330
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0027_00",
+          "context": [
+            1075,
+            1101
+          ],
+          "novel": [
+            1088,
+            1095
+          ],
+          "pair_iou": 0.646843433380127,
+          "semantic_classes_context": [
+            4,
+            10,
+            19
+          ],
+          "thing_instance_count": 6,
+          "thing_gt_area": {
+            "4": 6446,
+            "8": 3955,
+            "9": 3081,
+            "11": 2279,
+            "13": 1972,
+            "14": 2281
+          },
+          "sampling_seed": 42047,
+          "attempt": 8,
+          "scene_index": 47,
+          "piece": 5,
+          "index": 381,
+          "window_index": 381,
+          "target": [
+            1075,
+            1101,
+            1088,
+            1095
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0614_01",
+          "context": [
+            712,
+            727
+          ],
+          "novel": [
+            721,
+            724
+          ],
+          "pair_iou": 0.6633191704750061,
+          "semantic_classes_context": [
+            2,
+            4,
+            12,
+            19
+          ],
+          "thing_instance_count": 4,
+          "thing_gt_area": {
+            "5": 20528,
+            "8": 2906,
+            "10": 893,
+            "33": 27038
+          },
+          "sampling_seed": 43081,
+          "attempt": 5,
+          "window_index": 4,
+          "target": [
+            712,
+            727,
+            721,
+            724
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0410_01",
+          "context": [
+            1351,
+            1372
+          ],
+          "novel": [
+            1352,
+            1353
+          ],
+          "pair_iou": 0.380126953125,
+          "semantic_classes_context": [
+            7,
+            10,
+            16
+          ],
+          "thing_instance_count": 3,
+          "thing_gt_area": {
+            "5": 7437,
+            "6": 2143,
+            "22": 291
+          },
+          "sampling_seed": 42737,
+          "attempt": 4,
+          "window_index": 3,
+          "target": [
+            1351,
+            1372,
+            1352,
+            1353
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0345_01",
+          "context": [
+            1158,
+            1176
+          ],
+          "novel": [
+            1164,
+            1173
+          ],
+          "pair_iou": 0.4581976532936096,
+          "semantic_classes_context": [
+            4,
+            6,
+            8,
+            19
+          ],
+          "thing_instance_count": 10,
+          "thing_gt_area": {
+            "6": 4468,
+            "7": 10314,
+            "25": 16581,
+            "26": 16946,
+            "27": 2449,
+            "28": 643,
+            "31": 209,
+            "32": 882,
+            "33": 347,
+            "34": 695
+          },
+          "sampling_seed": 42619,
+          "attempt": 4,
+          "window_index": 3,
+          "target": [
+            1158,
+            1176,
+            1164,
+            1173
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0281_00",
+          "context": [
+            306,
+            398
+          ],
+          "novel": [
+            330,
+            378
+          ],
+          "pair_iou": 0.30461928248405457,
+          "semantic_classes_context": [
+            4,
+            5,
+            6,
+            10
+          ],
+          "thing_instance_count": 8,
+          "thing_gt_area": {
+            "2": 211,
+            "5": 361,
+            "6": 2870,
+            "13": 35543,
+            "16": 36915,
+            "19": 2856,
+            "22": 518,
+            "28": 848
+          },
+          "sampling_seed": 42513,
+          "attempt": 9,
+          "window_index": 7,
+          "target": [
+            306,
+            398,
+            330,
+            378
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0074_01",
+          "context": [
+            2898,
+            2929
+          ],
+          "novel": [
+            2908,
+            2913
+          ],
+          "pair_iou": 0.3550287187099457,
+          "semantic_classes_context": [
+            7,
+            13
+          ],
+          "thing_instance_count": 2,
+          "thing_gt_area": {
+            "1": 40477,
+            "11": 18174
+          },
+          "sampling_seed": 42139,
+          "attempt": 16,
+          "window_index": 3,
+          "target": [
+            2898,
+            2929,
+            2908,
+            2913
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0570_01",
+          "context": [
+            218,
+            301
+          ],
+          "novel": [
+            235,
+            250
+          ],
+          "pair_iou": 0.5695879459381104,
+          "semantic_classes_context": [
+            7,
+            16,
+            18
+          ],
+          "thing_instance_count": 3,
+          "thing_gt_area": {
+            "3": 23671,
+            "5": 28496,
+            "15": 2032
+          },
+          "sampling_seed": 43005,
+          "attempt": 1,
+          "window_index": 0,
+          "target": [
+            218,
+            301,
+            235,
+            250
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0163_01",
+          "context": [
+            509,
+            536
+          ],
+          "novel": [
+            520,
+            522
+          ],
+          "pair_iou": 0.45807456970214844,
+          "semantic_classes_context": [
+            4,
+            6,
+            8
+          ],
+          "thing_instance_count": 4,
+          "thing_gt_area": {
+            "6": 14884,
+            "9": 3458,
+            "11": 13166,
+            "24": 7999
+          },
+          "sampling_seed": 42306,
+          "attempt": 5,
+          "window_index": 4,
+          "target": [
+            509,
+            536,
+            520,
+            522
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        },
+        {
+          "scene": "scene0241_00",
+          "context": [
+            1579,
+            1638
+          ],
+          "novel": [
+            1587,
+            1604
+          ],
+          "pair_iou": 0.44589802622795105,
+          "semantic_classes_context": [
+            7
+          ],
+          "thing_instance_count": 2,
+          "thing_gt_area": {
+            "23": 66427,
+            "26": 13033
+          },
+          "sampling_seed": 42438,
+          "attempt": 8,
+          "window_index": 7,
+          "target": [
+            1579,
+            1638,
+            1587,
+            1604
+          ],
+          "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+        }
+      ],
+      "samples": [
+        {
+          "scene": "scene0279_02",
+          "context": [
+            31,
+            57
+          ]
+        },
+        {
+          "scene": "scene0570_00",
+          "context": [
+            113,
+            173
+          ]
+        },
+        {
+          "scene": "scene0051_00",
+          "context": [
+            553,
+            563
+          ]
+        },
+        {
+          "scene": "scene0454_00",
+          "context": [
+            18,
+            52
+          ]
+        },
+        {
+          "scene": "scene0011_00",
+          "context": [
+            1727,
+            1744
+          ]
+        },
+        {
+          "scene": "scene0019_01",
+          "context": [
+            151,
+            165
+          ]
+        },
+        {
+          "scene": "scene0030_00",
+          "context": [
+            808,
+            865
+          ]
+        },
+        {
+          "scene": "scene0030_01",
+          "context": [
+            1478,
+            1517
+          ]
+        },
+        {
+          "scene": "scene0000_00",
+          "context": [
+            3551,
+            3596
+          ]
+        },
+        {
+          "scene": "scene0706_00",
+          "context": [
+            287,
+            320
+          ]
+        },
+        {
+          "scene": "scene0704_01",
+          "context": [
+            1681,
+            1709
+          ]
+        }
+      ],
+      "all_required_data_files_accessible": 135955,
+      "validation_report_sha256": "90dc87fc71635db82c209771f78a7060b9e13b1d7e482aa1bd0f534db4ae38f6",
+      "evaluator_commit": "8ea80166be76854f938e90521f1a5b688b755c87",
+      "baseline_retrained": false
+    }
+  },
+  "cuda_gate_verified": false,
+  "formal_first_update_verified": false,
+  "training_logs_read_after_submission": false,
+  "eta": "5–8h parallel training, then 20–45min per evaluation; queueing extra; not a guarantee",
+  "limits": [
+    "RUNNING is scheduler status only; no CUDA smoke/first-step claim",
+    "No repeated polling or log reads; wait for user completion notification",
+    "Reuse attempt02 final official128; no baseline retraining",
+    "A adds detached GS evidence; B adds coverage only; same zero-step tensors/RNG, budget and matching"
+  ]
+}

@@ -1,5 +1,18 @@
 # 新对话交接：Unified 渲染前 Gaussian 实例一致性
 
+## 最新授权与已提交：A evidence / B evidence+coverage full4（2026-10-19）
+
+用户授权两组完整数据八卡，分别使用12、13节点。**A训练67700 RUNNING，3dimage-12、8×3090、32CPU/192G；B训练67702 RUNNING，3dimage-13、8×3090、32CPU/192G。** A官方128评测67701 afterok:67700、B评测67703 afterok:67702，各同节点1×3090/4CPU/64G；CPU汇总67704 afterok:67701:67703、12节点4CPU/16G。这是唯一一次有界调度检查；RUNNING只代表调度状态，**未核实CUDA门禁/正式首步、未读取训练日志，已停止轮询，等用户通知完成再检查，不能重提作业。**
+
+执行SHA `1982cd18c9ecd3cb7643cba7ff143b91738fd050`；独立快照 `/space/mawb/ssst_gs_evidence_ab_full_code_20261019`。运行根 `/space/mawb/ssst/group_plus/unified_query_training_v1`，A `attempt18_gs_evidence_full_node12_8gpu`，B `attempt19_gs_evidence_coverage_full_node13_8gpu`。两组1191场景/8337窗口、4epoch/4172更新、batch8、LR1e-4/100 warmup/原cosine、under .05/1043 warmup、模型seed42，原数据排序seed31415不变。匹配仍source_many_to_one/support true/purity .5，绝非上一轮新一对一入口。
+
+A `unified_gs_evidence`，逐GS投影原GFM采样256维证据，位置detach，新增evidence_zero_fraction float；B `unified_gs_evidence_coverage`，同A参数/前向，多GT实例内部腐蚀1像素后alpha→1 BCE，0.1权重不乘understanding_weight；无8D/HDBSCAN或匹配/后处理改动。A对比既有attempt02（不重训），B对比A，同official128终点epoch4。两组301初始张量逐值相同；相对attempt02 300/301完全一致，唯一不同child_feature.0.weight。新的零步空Adam checkpoint只重放原baseline零步8rank RNG，不继承任何训练权重/门禁更新。
+
+52项CPU检查通过（44模型回归+8门禁策略），之前真实CPU同窗口evidence统计逐值一致、位置梯度None/GFM梯度有效、两变体全state_dict一致。新prepare核对真实冻结资产、配置/数据SHA、135955个所需数据文件可访问、11真实样本及8probe RGB一致、evaluator固定源码。每训练作业内先16窗口真实CUDA/采样梯度门禁+2次8rankDDP更新，再丢弃，重新进程从准备零步checkpoint正式训练；失败写JOB_FAILED阻止正式训练。不能把这些计划执行的门禁写成已通过。
+
+用户通知后检查两组SMOKE_PASSED、FIRST_UPDATE_VERIFIED、TRAINING_COMPLETE、FULL_TRAINING_AUDIT、evaluation、comparison/FULL_EXPERIMENT_COMPLETE；若失败先查JOB_FAILED/EVALUATION_FAILED及Slurm状态，不自动恢复/重提。正式审计包括初始参数/RNG一致、Adam4172、301权重变化、8rank连续日志/原顺序/学习率、zero fraction及>.25次数、B总损失权重。耗时估计并行训练5–8小时、评测20–45分钟，排队另计。详见 `docs/gs_evidence_ab_full_20261019.md`、`docs/gs_evidence_ab_full_validation_20261019.json`、`docs/gs_evidence_ab_full_submission_20261019.json`。
+
+
 ## 最新实现要求：直接8维属性改为全局一对一（本轮未提交训练）
 
 用户明确要求取消多对一、Query数多于GT时确保不漏GT训练匹配。新增主线入口`unified_direct_instance_attributes_one_to_one`，身份`OMEGA_UNIFIED_DIRECT_INSTANCE_ATTRIBUTES_ONE_TO_ONE_V1`，强制`matching_mode=global_hungarian`、`support_matching=False`；完整有限成本匈牙利，无来源约束、无匹配后过滤。N>=K时每GT恰好一个正Query，其余Query为no-object；N<K/成本非有限/覆盖不完整明确报错。保证的是有效GT训练配对覆盖，不保证推理召回。

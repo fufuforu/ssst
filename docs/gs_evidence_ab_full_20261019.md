@@ -27,3 +27,7 @@ CPU 检查通过不代表 CUDA/首步已经通过；上述 CUDA 阶段在作业�
 每组新目录收据：preflight.json、configuration.json、checkpoint_untrained_initial.pt、submission.json；运行后 SMOKE_PASSED.json、FIRST_UPDATE_VERIFIED.json、TRAINING_COMPLETE.json、FULL_TRAINING_AUDIT.json、evaluation、FULL_EXPERIMENT_COMPLETE.json。训练预计5–8小时/组（两组并行，参考原4172更新8×3090约4.5小时并留门禁/额外采样余量）；各评测约20–45分钟，排队另计。仅单seed，不能据小差异宣称统计显著。
 
 提交后只做一次有界调度核对，完成记录/推送后停止轮询，等用户通知完成再检查。不能因本页准备状态或历史 RUNNING 自动重复提交。
+
+## 已提交收据
+
+执行SHA `1982cd1`。唯一调度核对：A训练67700（12节点8卡）与B训练67702（13节点8卡）均RUNNING；评测67701/67703依赖各自训练，CPU汇总67704依赖两评测，均PENDING(Dependency)。CUDA门禁与正式首步尚未核实，未读训练日志；已停止轮询，等用户通知完成后检查。完整记录见 `gs_evidence_ab_full_submission_20261019.json`。
