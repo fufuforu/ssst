@@ -1,0 +1,21 @@
+{
+  "status": "PASSED",
+  "cpu_unique_checks": 52,
+  "new_lifecycle_policy_checks": 8,
+  "previous_model_regressions": 44,
+  "python_compile": true,
+  "shell_syntax": true,
+  "git_diff_check": true,
+  "real_cpu_model_forward": "previous evidence/coverage report: PASSED",
+  "cuda_verified_before_submission": false,
+  "gpu_gate": "Each training job performs 16-window evidence probes and two discarded 8-rank DDP updates before fresh full training",
+  "tests_command": "pytest -q tests/test_gs_evidence_full_policy.py tests/test_unified_gs_evidence.py tests/test_unified_gs_evidence_coverage.py tests/test_unified_query_v1.py",
+  "source_sha256": {
+    "scripts/gs_evidence_full.py": "74b35b17e70bacfd18667d0216220a29a8794c02e8bbc636274a24d6de9b5e26",
+    "scripts/smoke_gs_evidence_full.py": "685a2a39fa4a45913047f75b9d0efb579d9e59ebe87b2f0d62f3d0d576f4e6dc",
+    "scripts/run_gs_evidence_full.sh": "e1781f368fd3a059bbce16636b55b41e4aa6a6c7500d8bed21587cb23b7d8dc2",
+    "scripts/run_gs_evidence_evaluation.sh": "77be38c00bccaeced3301423c19476aca1f35f6680f8abc72523046b94f00352",
+    "scripts/run_gs_evidence_comparison.sh": "5dec83c1f329896c288ac9ab639a7239d36c6ddd57e6a143cdc0801401e1c691",
+    "tests/test_gs_evidence_full_policy.py": "844b5cc3228f182a784138b477037ad4229d2850dfc4060617a52678d842d323"
+  }
+}

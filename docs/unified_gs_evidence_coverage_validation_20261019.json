@@ -1,0 +1,220 @@
+{
+  "status": "PASSED",
+  "architecture_key": "unified_gs_evidence",
+  "architecture": "OMEGA_3D_SUPERPOINT_UNIFIED_QUERY_GS_EVIDENCE_V1",
+  "base_git_sha": "b6b949b557e3247defd6519c058de700dc1c96ca",
+  "evidence_path": "explicit_projection_grid_sample",
+  "reuse_rejection": "RendererTranspose grad_outputs need 256x256, but native GFM is 32x32; reproduced in unit test. No resizing or learned evidence generator.",
+  "matching_mode": "source_many_to_one",
+  "support_matching": true,
+  "support_purity": 0.5,
+  "config": {
+    "superpoint_source": "esam_sam",
+    "uncovered_clusters": 8,
+    "dim": 256,
+    "heads": 8,
+    "depth": 12,
+    "point_grid": 48,
+    "max_points": 4096,
+    "max_superpoints": 512,
+    "point_voxel": 0.01,
+    "superpoint_voxel": 0.08,
+    "neighbors": 12,
+    "point_layers": 2,
+    "checkpoint_blocks": true,
+    "matching_mode": "source_many_to_one",
+    "mask_nms_iou": 0.7,
+    "support_matching": true,
+    "support_purity": 0.5
+  },
+  "initialization": {
+    "checkpoint": "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt02_esam_many_full_node11_8gpu/checkpoint_untrained_initial.pt",
+    "checkpoint_sha256": "9034bac7a2b251ef78fd43c708eed05edc22a95dadcf052b4a6ef89948acc7a5",
+    "seed": 42,
+    "common_keys": 301,
+    "identical_keys": 300,
+    "mismatched_keys": [
+      "core.child_feature.0.weight"
+    ],
+    "only_child_feature_first_weight": true,
+    "new_first_weight_shape": [
+      256,
+      531
+    ],
+    "baseline_first_weight_shape": [
+      256,
+      275
+    ],
+    "new_keys": [],
+    "removed_keys": [],
+    "loaded_baseline_into_model": false,
+    "excluded_frozen_prefixes": [
+      "frozen_omega.",
+      "sam_proposals."
+    ]
+  },
+  "evidence": {
+    "evidence_zero_fraction": 0.10085227340459824,
+    "shape": [
+      1,
+      3520,
+      256
+    ],
+    "mean": -0.0072211166843771935,
+    "variance": 0.21637889742851257,
+    "zero_fraction": 0.10085227340459824,
+    "all_zero_gs_fraction": 0.10085227340459824,
+    "finite": true,
+    "variance_definition": "population; all tensor elements",
+    "scene": "scene0279_02",
+    "frame_window": {
+      "scene": "scene0279_02",
+      "context": [
+        31,
+        57
+      ],
+      "novel": [
+        35,
+        38
+      ],
+      "pair_iou": 0.35301661491394043,
+      "semantic_classes_context": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        10,
+        12,
+        13,
+        14,
+        19
+      ],
+      "thing_instance_count": 12,
+      "thing_gt_area": {
+        "1": 10185,
+        "7": 17692,
+        "9": 2293,
+        "10": 9611,
+        "13": 655,
+        "19": 181,
+        "21": 2367,
+        "23": 1378,
+        "24": 26570,
+        "27": 940,
+        "28": 6356,
+        "33": 6266
+      },
+      "sampling_seed": 42509,
+      "attempt": 8,
+      "window_index": 7,
+      "target": [
+        31,
+        57,
+        35,
+        38
+      ],
+      "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+    },
+    "rgb_sha256": "7f293d7ef7cba054084f6002d2cfe269476ff5149a41e478ac369e42f0e9959d",
+    "grid_shape": [
+      1,
+      2,
+      256,
+      32,
+      32
+    ],
+    "num_queries": 55,
+    "membership_logits_shape": [
+      1,
+      3520,
+      57
+    ],
+    "real_frozen_omega": true,
+    "real_frozen_sam": true,
+    "real_gfm": true,
+    "forward_scope": "CPU real encode_context + core; excludes CUDA rasterization"
+  },
+  "detach_validation": {
+    "real_evidence_bitwise_equal": true,
+    "before_tensor_sha256": "a5d75e3b99f36ee97fd5690a8c57fdecfbc505559076e64d056e49b9a1ffba59",
+    "after_tensor_sha256": "a5d75e3b99f36ee97fd5690a8c57fdecfbc505559076e64d056e49b9a1ffba59",
+    "historical_statistics_exactly_equal": true,
+    "mu_gradient_is_none": true,
+    "old_mu_gradient_max_abs": 3915.02001953125,
+    "gfm_gradient_finite": true,
+    "gfm_gradient_nonzero": true,
+    "reference": "Same function source with only mu.detach removed; projection, depth gates and view average identical."
+  },
+  "variant_equality": {
+    "state_keys_equal": true,
+    "state_tensor_count": 2026,
+    "mismatched_keys": [],
+    "all_tensors_bitwise_equal": true,
+    "trainable_tensor_count": 301,
+    "trainable_parameter_count": 14681028,
+    "added_parameters": 0,
+    "initialization_rng_equal": true,
+    "frozen_assets_reused": true,
+    "post_frozen_rng_replayed": true,
+    "note": "Independent full-config trainable modules; real frozen assets reused. Unit tests also build both mock models independently from seed42."
+  },
+  "coverage_architecture": "OMEGA_3D_SUPERPOINT_UNIFIED_QUERY_GS_EVIDENCE_COVERAGE_V1",
+  "coverage_recipe": {
+    "loss_weight": 0.1,
+    "erode_px": 1,
+    "views": 2,
+    "max_inside_fraction_guard": 1.0
+  },
+  "coverage_multiplied_by_understanding_weight": false,
+  "child_feature_understanding_not_shared": true,
+  "protected_source_files_unchanged": [
+    "tokengs/models/unified_query_core.py",
+    "tokengs/models/unified_query_loss.py",
+    "tokengs/models/direct_instance_attributes.py",
+    "tokengs/models/unified_superpoints.py",
+    "tokengs/models/canonical_recon_models.py"
+  ],
+  "baseline_checkpoint_unchanged": true,
+  "real_cpu_forward": true,
+  "cuda_verified": false,
+  "quality_effect_verified": false,
+  "training_jobs_submitted": false,
+  "training_updates": 0,
+  "attempt_directories_created": false,
+  "elapsed_seconds": 384.4240789152682,
+  "cpu_unique_checks": 44,
+  "legacy_cpu_regressions": 30,
+  "new_detach_metric_coverage_checks": 14,
+  "real_cpu_asset_forward_checks": 1,
+  "total_unique_checks": 45,
+  "python_compile": true,
+  "git_diff_check": true,
+  "training_script_only_architecture_choices_changed": true,
+  "sampling_algorithm_only_mu_detach_and_optional_statistic": true,
+  "historical_validation_json_unchanged": true,
+  "regression_test_adjustment": "Only old step_loss function identity assertion changed to generate inheritance: the task explicitly requires step_loss override. All test cases retained, with new dedicated super-call/unchanged-loss/float-forwarding verification.",
+  "runs": [
+    {
+      "command": "OMP_NUM_THREADS=1 MKL_NUM_THREADS=1 python -m pytest -q tests/test_unified_gs_evidence.py tests/test_unified_gs_evidence_coverage.py tests/test_unified_query_v1.py",
+      "passed": 44,
+      "failed": 0,
+      "seconds": 40.43
+    },
+    {
+      "command": "OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 python scripts/validate_unified_gs_evidence.py --output /tmp/unified_gs_evidence_coverage_real_20261019.json",
+      "passed": 1,
+      "failed": 0,
+      "seconds": 384.4240789152682
+    }
+  ],
+  "source_sha256": {
+    "tokengs/models/unified_query_gs_evidence.py": "168b0eceb5812c2c422cda52a96da0786c3efa1a399b8c3a2060087e144f81de",
+    "tokengs/models/superpoint_structural_variants.py": "f1be8be8752368bb2bd523f2a4603953a48865910238b63e75dd5a1944169831",
+    "scripts/train_unified_query_v1.py": "da9457a3a7e2554fb198827f10c9e68b085d537fccba17ba9f022b3f21aec2f0",
+    "scripts/validate_unified_gs_evidence.py": "4223538c6c9ff8e77fd753a72886e35f656d307f22e55739a12d718e3ff158f1",
+    "tests/test_unified_gs_evidence.py": "9c881e763321bf5932bdd84776be6d3b5b0113a8d1afe893fa0d4107370fb010",
+    "tests/test_unified_gs_evidence_coverage.py": "0ba7c6085f334d1e2ba4ab905282b38cdcc569e8759e988a2e2993b81b68ad47"
+  },
+  "prior_evidence_module_sha256": "c4465aa2fa7a9ac0cfdb56e0e9132a0f41a6e95ec71f3a2e689c98369214084c"
+}

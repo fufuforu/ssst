@@ -1,0 +1,193 @@
+{
+  "status": "PASSED",
+  "architecture_key": "unified_gs_evidence",
+  "architecture": "OMEGA_3D_SUPERPOINT_UNIFIED_QUERY_GS_EVIDENCE_V1",
+  "base_git_sha": "b6b949b557e3247defd6519c058de700dc1c96ca",
+  "evidence_path": "explicit_projection_grid_sample",
+  "reuse_rejection": "RendererTranspose grad_outputs need 256x256, but native GFM is 32x32; reproduced in unit test. No resizing or learned evidence generator.",
+  "matching_mode": "source_many_to_one",
+  "support_matching": true,
+  "support_purity": 0.5,
+  "config": {
+    "superpoint_source": "esam_sam",
+    "uncovered_clusters": 8,
+    "dim": 256,
+    "heads": 8,
+    "depth": 12,
+    "point_grid": 48,
+    "max_points": 4096,
+    "max_superpoints": 512,
+    "point_voxel": 0.01,
+    "superpoint_voxel": 0.08,
+    "neighbors": 12,
+    "point_layers": 2,
+    "checkpoint_blocks": true,
+    "matching_mode": "source_many_to_one",
+    "mask_nms_iou": 0.7,
+    "support_matching": true,
+    "support_purity": 0.5
+  },
+  "initialization": {
+    "checkpoint": "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt02_esam_many_full_node11_8gpu/checkpoint_untrained_initial.pt",
+    "checkpoint_sha256": "9034bac7a2b251ef78fd43c708eed05edc22a95dadcf052b4a6ef89948acc7a5",
+    "seed": 42,
+    "common_keys": 301,
+    "identical_keys": 300,
+    "mismatched_keys": [
+      "core.child_feature.0.weight"
+    ],
+    "only_child_feature_first_weight": true,
+    "new_first_weight_shape": [
+      256,
+      531
+    ],
+    "baseline_first_weight_shape": [
+      256,
+      275
+    ],
+    "new_keys": [],
+    "removed_keys": [],
+    "loaded_baseline_into_model": false,
+    "excluded_frozen_prefixes": [
+      "frozen_omega.",
+      "sam_proposals."
+    ]
+  },
+  "evidence": {
+    "shape": [
+      1,
+      3520,
+      256
+    ],
+    "mean": -0.0072211166843771935,
+    "variance": 0.21637889742851257,
+    "zero_fraction": 0.10085227340459824,
+    "all_zero_gs_fraction": 0.10085227340459824,
+    "finite": true,
+    "variance_definition": "population; all tensor elements",
+    "scene": "scene0279_02",
+    "frame_window": {
+      "scene": "scene0279_02",
+      "context": [
+        31,
+        57
+      ],
+      "novel": [
+        35,
+        38
+      ],
+      "pair_iou": 0.35301661491394043,
+      "semantic_classes_context": [
+        2,
+        3,
+        4,
+        5,
+        6,
+        10,
+        12,
+        13,
+        14,
+        19
+      ],
+      "thing_instance_count": 12,
+      "thing_gt_area": {
+        "1": 10185,
+        "7": 17692,
+        "9": 2293,
+        "10": 9611,
+        "13": 655,
+        "19": 181,
+        "21": 2367,
+        "23": 1378,
+        "24": 26570,
+        "27": 940,
+        "28": 6356,
+        "33": 6266
+      },
+      "sampling_seed": 42509,
+      "attempt": 8,
+      "window_index": 7,
+      "target": [
+        31,
+        57,
+        35,
+        38
+      ],
+      "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider"
+    },
+    "rgb_sha256": "7f293d7ef7cba054084f6002d2cfe269476ff5149a41e478ac369e42f0e9959d",
+    "grid_shape": [
+      1,
+      2,
+      256,
+      32,
+      32
+    ],
+    "num_queries": 55,
+    "membership_logits_shape": [
+      1,
+      3520,
+      57
+    ],
+    "real_frozen_omega": true,
+    "real_frozen_sam": true,
+    "real_gfm": true,
+    "forward_scope": "CPU real encode_context + core; excludes CUDA rasterization"
+  },
+  "child_feature_understanding_not_shared": true,
+  "protected_source_files_unchanged": [
+    "tokengs/models/unified_query_core.py",
+    "tokengs/models/unified_query_loss.py",
+    "tokengs/models/direct_instance_attributes.py",
+    "tokengs/models/unified_superpoints.py"
+  ],
+  "baseline_checkpoint_unchanged": true,
+  "real_cpu_forward": true,
+  "cuda_verified": false,
+  "quality_effect_verified": false,
+  "training_jobs_submitted": false,
+  "training_updates": 0,
+  "attempt_directories_created": false,
+  "elapsed_seconds": 384.30770299211144,
+  "cpu_unique_checks": 30,
+  "new_gs_evidence_checks": 12,
+  "legacy_cpu_regressions": 18,
+  "real_cpu_asset_forward_checks": 1,
+  "total_unique_checks": 31,
+  "python_compile": true,
+  "git_diff_check": true,
+  "training_script_only_architecture_choice_changed": true,
+  "source_sha256": {
+    "tokengs/models/unified_query_gs_evidence.py": "c4465aa2fa7a9ac0cfdb56e0e9132a0f41a6e95ec71f3a2e689c98369214084c",
+    "tokengs/models/superpoint_structural_variants.py": "d701968fe3e79dbdcd644d1941e37bb889e141780cb29c7a7839438f969723fe",
+    "scripts/train_unified_query_v1.py": "1082056dc47dc0da74da14f8c60d4a9b3fadd0669f461f63c641f805d2587ea4",
+    "scripts/validate_unified_gs_evidence.py": "b2c2a078f9b03b21f1ed8d5e542389ad15e9b0a7a7ffeb9750e1c9c6d1090709",
+    "tests/test_unified_gs_evidence.py": "467a4f5ef6934784aa47a3bf8ba690f558d39aec4df5a1082fa15bbccd2f30eb"
+  },
+  "runs": [
+    {
+      "command": "pytest -q tests/test_unified_gs_evidence.py tests/test_unified_query_v1.py",
+      "passed": 29,
+      "failed": 1,
+      "note": "First mock fixture mixed 8x8 geometry with 256x256 depth; production unchanged. All 18 original regressions passed."
+    },
+    {
+      "command": "pytest -q tests/test_unified_gs_evidence.py",
+      "passed": 11,
+      "failed": 1,
+      "note": "Second mock fixture had one GFM view instead of two; corrected fixture, no production change or weakened assertions."
+    },
+    {
+      "command": "pytest -q tests/test_unified_gs_evidence.py",
+      "passed": 12,
+      "failed": 0,
+      "note": "Final fixture: geometry/depth/SAM 256x256 and two GFM views. Includes exact sample values, depth/camera gates, model forward, grouping, RNG and initialization, failure assertions and lift incompatibility."
+    },
+    {
+      "command": "python scripts/validate_unified_gs_evidence.py --output /tmp/unified_gs_evidence_real_validation_20261019.json",
+      "passed": 1,
+      "failed": 0,
+      "note": "Real frozen weights, actual attempt02 checkpoint comparison and actual scene0279_02 CPU encode/core forward. No optimizer or training."
+    }
+  ]
+}

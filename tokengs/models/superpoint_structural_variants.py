@@ -11,6 +11,7 @@ from tokengs.models.unified_instance_grounding import LocusGSInstanceGroundedUni
 from tokengs.models.unified_instance_coupling import LocusGSInstanceLift,LocusGSInstanceBoundary,LocusGSInstanceBidirectional
 from tokengs.models.gaussian_instance_consistency import LocusGSGaussianInstanceConsistency
 from tokengs.models.direct_instance_attributes import LocusGSDirectInstanceAttributes,LocusGSOneToOneDirectInstanceAttributes
+from tokengs.models.unified_query_gs_evidence import LocusGSGSEvidenceUnified,LocusGSGSEvidenceCoverage
 from tokengs.models.gfm_dual_stream_components import gfm_grid
 from tokengs.models.object_locus_v3_set import alpha_normalize_membership
 
@@ -97,7 +98,7 @@ class LocusGSGeometryBiasedUnified(LocusGSUnifiedQueryV1):
         return output,metrics
 
 
-MODELS={'unified':LocusGSUnifiedQueryV1,'dual_superpoint':LocusGSSuperpointDual,'unified_direct':LocusGSDirectGaussian,'serial_query':LocusGSSerialQuery,'serial_residual':LocusGSSerialResidualQuery,
+MODELS={'unified':LocusGSUnifiedQueryV1,'unified_gs_evidence':LocusGSGSEvidenceUnified,'unified_gs_evidence_coverage':LocusGSGSEvidenceCoverage,'dual_superpoint':LocusGSSuperpointDual,'unified_direct':LocusGSDirectGaussian,'serial_query':LocusGSSerialQuery,'serial_residual':LocusGSSerialResidualQuery,
     'dual_bounded':LocusGSBoundedSuperpointDual,'unified_ray_bias':LocusGSGeometryBiasedUnified,
     'unified_instance_grounding':LocusGSInstanceGroundedUnified,
     'unified_instance_lift':LocusGSInstanceLift,'unified_instance_boundary':LocusGSInstanceBoundary,
