@@ -41,3 +41,11 @@ smoke验收关注工程正确性，不要求两步loss下降。最终短训也�
 本轮15项针对性CPU测试通过（新增门禁2项、真实双rank Gloo1项，另含实例模型11项及探针回归1项）；原模型实现阶段的54项回归结果仍保留。Shell语法和Python AST检查通过，未重复运行无关训练。
 
 提交后只进行一次有界调度核对，随后停止轮询。后续状态以用户通知后检查为准。
+
+## 已提交并停止轮询
+
+作业 **67050**，2026-10-18提交。唯一一次调度核对为 **RUNNING / 3dimage-13 / 4×3090**；执行SHA `7203b3ebd4de419c1ae29473c9a98a1e2ea2eca1`，独立快照与preflight完全一致。实际CPU预检已严格加载官方Omega/SAM，核对原16场景及数据清单；可训练参数shared13,912,881、reconstruction296,576、understanding408,603。
+
+运行目录保存 `preflight.json`、`VALIDATION_EVIDENCE.json`、`submission.json`、`SUBMISSION_STATUS_ONCE.json`。GPU smoke及四rank实际更新尚未由控制端查看，不能将RUNNING描述为smoke通过。由同一作业中的严格门禁决定是否进入短训。
+
+参考同节点四卡结构短测约7.29秒/步及原Unified八卡短测约2.82秒/步，含smoke、模型重新加载和初末探针，预计约35–45分钟，排队另计。已停止轮询，用户通知后检查 `SMOKE_PASSED.json`、短训完成/失败收据与初末探针；没有启动额外监控。
