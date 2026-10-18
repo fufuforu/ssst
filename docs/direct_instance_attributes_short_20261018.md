@@ -38,3 +38,13 @@
 新专用入口：`preflight_direct_instance_short.py`、`smoke_direct_instance_attributes.py`、`direct_instance_short_policy.py`、`run_direct_instance_short.sh`、`summarize_direct_instance_short.py`、`submit_direct_instance_short.py`。双读出用`evaluate_direct_instance_attributes.py`，已修复多rank输出拒绝检查的时序竞争，并对训练探针缓存核对RGB。旧smoke/旧305张量审计不用于新架构。
 
 提交前软件验证：50项CPU检查（模型/原架构/聚类45、专用门禁3、端到端汇总/拒绝继承更新2），另1项真实两rank Gloo两步更新/全参数同步通过。Python编译、shell语法和git diff检查通过。GPU门禁尚未执行，不能把CPU通过写成CUDA已验证。
+
+## 提交收据
+
+已提交 **67369**。唯一调度核对为北京时间2026-10-18 **16:20:57，RUNNING，3dimage-13、4×3090、16CPU、128G**。执行SHA `f9b5a5d2e68d0701a6b81ebb651d01db316142a0`，独立快照与上文一致。
+
+实际CPU预检通过：292个共同零步张量逐值相同，删除13个旧读出张量、新增14个新读出张量；实际资产hash、16train+4heldout窗口、8探针RGB/GT、基线world/batch/LR/权重/warmup/epochs核对通过。不重训基线。
+
+训练、初末固定权重双读出评测及汇总均包含在67369内，无额外依赖作业。**RUNNING仅表示调度状态；真实GPU门禁、首步、训练和评测均未核实**，提交后未读日志，未继续轮询。预计40–60分钟，排队另计，4小时为申请上限而非ETA。
+
+已停止轮询，等用户通知完成后再检查。收据归档`docs/direct_instance_attributes_short_submission_20261018.json`，实际执行状态与结果以运行目录为准。

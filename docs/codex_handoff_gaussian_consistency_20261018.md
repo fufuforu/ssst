@@ -2,6 +2,8 @@
 
 ## 最新授权：直接实例属性短测（2026-10-18）
 
+**已提交67369，唯一调度核对：北京时间16:20:57，RUNNING，3dimage-13、4×3090、16CPU、128G。** 执行快照SHA `f9b5a5d2e68d0701a6b81ebb651d01db316142a0`。同一作业内依次专用GPU门禁、丢弃smoke两步、全新16场景256步训练、初末checkpoint各自prototype/HDBSCAN评测及自动汇总。CPU50项+真实两rank Gloo1项通过；292个共同零步张量逐值相同，旧头13张量删除/新头14张量新增；实际资产和20个窗口预检通过。真实GPU门禁/首步/结果尚未核实，提交后未读日志，已停止轮询。**等用户通知完成后再检查，不能重提或重训本组。** 收据见`docs/direct_instance_attributes_short_submission_20261018.json`；预计40–60分钟，真实耗时未测。
+
 用户已在实现后明确授权“短测一下”。按原16场景/256步，准备一个新架构`unified_direct_instance_attributes`的专用真实GPU门禁→丢弃smoke两步→全新seed42/空Adam短训→初末checkpoint各自prototype/HDBSCAN双读出→自动基线比较。范围与停止轮询约定见`docs/direct_instance_attributes_short_20261018.md`。独立run为`/space/mawb/ssst/group_plus/unified_query_training_v1/attempt16_direct_instance_attributes_short_node13_4gpu`，代码快照为`/space/mawb/ssst_direct_instance_short_code_20261018`。实际提交状态以该run的submission.json和后续提交记录为准，不能仅凭下文历史“未授权/未提交”重新询问或重复提交。
 
 ## 最新实现任务：直接Gaussian实例属性（2026-10-18）
