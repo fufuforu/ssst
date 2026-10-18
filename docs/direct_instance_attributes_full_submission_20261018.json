@@ -1,0 +1,119 @@
+{
+  "run_root": "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt17_direct_instance_attributes_full_node13_8gpu",
+  "submission": {
+    "code_sha": "3d06c39ad97657959052329c892bda023f07436b",
+    "code_root": "/space/mawb/ssst_direct_instance_full_code_20261018",
+    "submitted_utc": "2026-10-18T09:31:28.318602+00:00",
+    "configuration": {
+      "recipe": "direct_gaussian_attributes_prototype_rendered_instance_full4_v1",
+      "architecture": "OMEGA_UNIFIED_DIRECT_INSTANCE_ATTRIBUTES_V1",
+      "config": {
+        "superpoint_source": "esam_sam",
+        "uncovered_clusters": 8,
+        "dim": 256,
+        "heads": 8,
+        "depth": 12,
+        "point_grid": 48,
+        "max_points": 4096,
+        "max_superpoints": 512,
+        "point_voxel": 0.01,
+        "superpoint_voxel": 0.08,
+        "neighbors": 12,
+        "point_layers": 2,
+        "checkpoint_blocks": true,
+        "matching_mode": "source_many_to_one",
+        "mask_nms_iou": 0.7,
+        "support_matching": true,
+        "support_purity": 0.5
+      },
+      "epochs": 4,
+      "full_updates": 4172,
+      "training_windows": 8337,
+      "training_scenes": 1191,
+      "global_batch": 8,
+      "world_size": 8,
+      "learning_rate": 0.0001,
+      "lr_warmup": 100,
+      "understanding_weight": 0.05,
+      "understanding_warmup": 1043,
+      "node": "3dimage-13",
+      "gpus": "3090:8",
+      "initial_updates": 0,
+      "initial_optimizer_states": 0,
+      "initial_sha256": "3aef50b2aa1185c3812fa59584adaafc98ae3bed5380dea4dc83f395b7acd883",
+      "execution_code_sha": "3d06c39ad97657959052329c892bda023f07436b",
+      "baseline_run": "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt02_esam_many_full_node11_8gpu",
+      "baseline_retrained": false,
+      "official128": true,
+      "auxiliary_hdbscan_windows": 8,
+      "full8_first_update_verified": false
+    },
+    "stop_polling_after_submission": true,
+    "jobs": {
+      "full_training4_and_audit": 67390,
+      "official128_auxiliary_readout_and_comparison": 67391
+    }
+  },
+  "scheduling_check": {
+    "checked_utc": "2026-10-18T09:31:39.790358+00:00",
+    "jobs": [
+      67390,
+      67391
+    ],
+    "raw_squeue": "             JOBID                      NAME      STATE           NODELIST        TRES_PER_NODE                       DEPENDENCY               NODELIST(REASON)\n             67391       direct_attr_eval128    PENDING                         gres/gpu:3090:1       afterok:67390(unfulfilled)                   (Dependency)\n             67390         direct_attr_full4    RUNNING         3dimage-13      gres/gpu:3090:8                           (null)                     3dimage-13\n",
+    "only_scheduling_check": true,
+    "full8_first_update_verified": false,
+    "training_or_evaluation_logs_read": false,
+    "stop_polling_after_this": true
+  },
+  "validation": {
+    "status": "PASSED",
+    "unique_cpu_checks": 21,
+    "commands": [
+      {
+        "command": "pytest -q tests/test_direct_instance_full_policy.py tests/test_direct_instance_attributes.py tests/test_direct_instance_short_policy.py tests/test_direct_instance_short_summary.py",
+        "passed": 17,
+        "note": "Before adding two full audit/comparison integration tests"
+      },
+      {
+        "command": "pytest -q tests/test_direct_instance_full_policy.py tests/test_superpoint_full_preparation.py",
+        "passed": 6,
+        "note": "Includes both new full audit/comparison integration tests; two initial policy checks overlap prior run"
+      }
+    ],
+    "shell_syntax": true,
+    "python_compile": true,
+    "git_diff_check": true,
+    "model_training_inference_implementation_unchanged_from_cuda_verified_short": true,
+    "previous_real_cuda_job": 67369,
+    "full8_first_update_verified": false
+  },
+  "data_availability": {
+    "status": "PASSED",
+    "unique_required_files": 169614,
+    "train_scenes": 1191,
+    "train_windows": 8337,
+    "heldout_scenes": 128,
+    "missing": []
+  },
+  "preflight_summary": {
+    "status": "PASSED",
+    "common_initial_tensors_exact": 292,
+    "initial_updates": 0,
+    "initial_adam_states": 0,
+    "previous_gpu_gate_job": 67369,
+    "untrained_initial_sha256": "3aef50b2aa1185c3812fa59584adaafc98ae3bed5380dea4dc83f395b7acd883",
+    "manifest_sha256": "87e3cde298569c4e7735cf75ee596868eadf01e9a6a95438c6be51e42f55a523",
+    "heldout_sha256": "9a310d764358ebd7cdd3d1844a48685264d25d48cced5d4263ef4da68c239a44",
+    "baseline_run": "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt02_esam_many_full_node11_8gpu",
+    "baseline_initial_sha256": "1b1392c80722fcdb766355bbd78f17e0e57cdf7a138244cce551db00a80628c6",
+    "baseline_final_sha256": "530119fbf436b84cbe0dc636b43d26b4070021c255af9ec90647259c099f99af",
+    "evaluator_commit": "8ea80166be76854f938e90521f1a5b688b755c87",
+    "limits": [
+      "Compared to original Unified full4, not a full-data instance_grounding run.",
+      "Direct attributes/prototypes and rendered Pull/Push/Cross are a combined change.",
+      "Fixed 8-window HDBSCAN readout is auxiliary; official128 uses native prototype/class/assembly.",
+      "Baseline node11/new node13 both 8x3090; no claim of bitwise frontend determinism."
+    ]
+  }
+}

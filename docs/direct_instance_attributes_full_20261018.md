@@ -34,3 +34,11 @@ CPU预检：实际Omega/SAM资产hash、初始张量、数据清单和划分、�
 关键收据：`preflight.json`、`configuration.json`、`submission.json`、`SCHEDULING_CHECK.json`、`FIRST_UPDATE_VERIFIED.json`、`FULL_TRAINING_AUDIT.json`、`TRAINING_COMPLETE.json`、`evaluation/`、`readouts_final/`、`comparison_to_baseline_full4/`、`FULL_EXPERIMENT_COMPLETE.json`。训练失败看`JOB_FAILED.json`，评测失败看`EVALUATION_FAILED.json`。若仅评测失败，后续复用已保存checkpoint修复，不重训。
 
 提交后只进行一次有界调度核对，记录作业号/资源/依赖后停止轮询；等待用户通知完成再检查。作业号、执行SHA、提交前验证与实际状态将在提交收据及交接文档记录。
+
+## 提交与唯一调度核对
+
+已提交训练/审计 **67390**，3dimage-13、8×3090、32CPU、192G；依赖评测/辅助读出/比较 **67391**，同节点1×3090、4CPU、64G，`afterok:67390`。唯一核对为UTC 2026-10-18T09:31:39.790358+00:00：67390 RUNNING，67391 PENDING(Dependency)。执行SHA `3d06c39ad97657959052329c892bda023f07436b`。
+
+提交前21项唯一CPU检查通过（两次命令有2项重叠，不重复计数），包括全量日志/样本顺序审计与官方指标/比较流程合成端到端验证；shell/Python语法、git diff和实际CPU预检通过。全部169614个所需数据文件可访问，未发现缺失。复用67369真实CUDA门禁，未重复smoke。
+
+**RUNNING仅表示调度运行状态；本轮未读取训练/评测日志，未核实8rank首步或GPU进展。已停止轮询，等用户通知完成后再检查。** 不重复提交或重训；作业收据见同目录`direct_instance_attributes_full_submission_20261018.json`。

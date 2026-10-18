@@ -1,5 +1,15 @@
 # 新对话交接：Unified 渲染前 Gaussian 实例一致性
 
+## 最新授权与已提交：直接实例属性完整训练集4epoch（覆盖下文“不自动全量”旧边界）
+
+用户在67369完成核查后明确要求直接完整训练集训练并与已完成全量基线比较。**已提交67390训练/审计、67391正式128评测/辅助读出/比较**。唯一调度核对：67390 RUNNING，3dimage-13、8×3090、32CPU、192G；67391 PENDING(Dependency)，同节点1×3090、4CPU、64G，afterok:67390。执行SHA `3d06c39ad97657959052329c892bda023f07436b`；独立快照 `/space/mawb/ssst_direct_instance_full_code_20261018`；运行目录 `/space/mawb/ssst/group_plus/unified_query_training_v1/attempt17_direct_instance_attributes_full_node13_8gpu`。
+
+1191训练场景/8337窗口、4epoch/4172更新、batch8、LR1e-4/100步warmup/原cosine、理解权重0.05/1043步ramp；保持67369直接属性/原型/渲染Pull-Push-Cross配方，不调损失或聚类、不增加67292约束。初始化只用67369零步空Adam checkpoint，4个完全相同的零步RNG扩至8rank，306张量全保留、与原全量基线292共同张量逐值相同；绝不继承短训终点。
+
+主对照复用66432原Unified full4及其有效官方128结果（66433指标成功、66528补汇总），不重训基线；原full8为不同预算历史参考。原全量基线无渲染实例监督，因此是组合方案比较，不能声称单因素消融。每epoch探针/权重保留，终点评测固定epoch4；官方128使用原型原生输出，HDBSCAN只作相同8窗口类别无关辅助读出，非官方AP/PQ。
+
+21项唯一CPU检查、实际资产/数据/零步预检和169614个所需数据文件可访问检查通过。既有模型/训练/推理代码与67369真实CUDA执行版本未变，复用其门禁，不重复smoke；8rank正式首步由训练入口检查，**本轮未核实首步、未读训练日志、已停止轮询**。预计训练5–8小时、评测20–45分钟，排队另计，非保证。等待用户通知后检查FULL_TRAINING_AUDIT、evaluation、readouts_final、comparison_to_baseline_full4、FULL_EXPERIMENT_COMPLETE及失败收据；不重提、不轮询、不自动追加8epoch。详见 `docs/direct_instance_attributes_full_20261018.md` 与提交JSON。
+
 ## 最新完成核查：67369直接实例属性短测（覆盖下文RUNNING历史）
 
 用户通知完成后已检查：**67369 COMPLETED/0:0，43分28秒，3dimage-13、4×3090**。16真实窗口GPU门禁/四rank两步smoke通过并丢弃；正式零步空Adam且SHA与smoke零步相同，共同292张量与基线逐值相同；最终306张量有限并实际改变、Adam256、四rank各256连续日志。初末两checkpoint各8窗口双读出齐全；从缓存/原GT重算128组指标与汇总完全相同，初末各4worker参数SHA/版本不变、无grad。没有重训/重提。
