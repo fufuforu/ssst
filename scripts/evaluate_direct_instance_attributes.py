@@ -37,9 +37,11 @@ def main():
     a=parser.parse_args();root=a.output
     rank=int(os.environ.get('RANK',0));world=int(os.environ.get('WORLD_SIZE',1));local=int(os.environ.get('LOCAL_RANK',0))
     if world not in (1,2,4,8):raise ValueError('Use 1/2/4/8 inference workers for eight windows')
-    if (root/'STARTED.json').exists() or (root/'COMPLETE.json').exists():raise ValueError('Refusing overwrite; use a new output directory')
     prepare_runtime(ROOT);torch.cuda.set_device(local);device=torch.device('cuda',local)
     if world>1:dist.init_process_group('nccl')
+    refusal=[bool((root/'STARTED.json').exists() or (root/'COMPLETE.json').exists()) if rank==0 else None]
+    if world>1:dist.broadcast_object_list(refusal,src=0)
+    if refusal[0]:raise ValueError('Refusing overwrite; use a new output directory')
     torch.backends.cuda.matmul.allow_tf32=False;torch.backends.cudnn.allow_tf32=False
     if digest(a.checkpoint)!=a.checkpoint_sha256:raise ValueError('Checkpoint hash differs')
     saved=torch.load(a.checkpoint,map_location='cpu',weights_only=False,mmap=True);meta=saved['meta']
@@ -63,6 +65,10 @@ def main():
             if index%world!=rank:continue
             random.seed(42+index);np.random.seed(42+index);torch.manual_seed(42+index);torch.cuda.manual_seed_all(42+index)
             batch=build_batch(opt,window,device);p=model.generate(batch['images_input'])
+            cached_probe=a.checkpoint.parent/'probes'/'final'/f'{index:02d}.pt'
+            if cached_probe.exists():
+                cached=torch.load(cached_probe,map_location='cpu',weights_only=False)
+                if cached['scene']!=window['scene'] or not torch.equal(batch['images_input'].cpu(),cached['context_rgb']):raise ValueError('Evaluation differs from training probe input')
             if not all(torch.isfinite(p[k]).all() for k in ('gaussians','gaussian_instance_attributes','query_instance_prototypes','rendered_instance_features','region_mass')):raise ValueError('Nonfinite prediction')
             methods=('prototype','cluster') if a.readout=='both' else (a.readout,)
             outputs={name:model.infer_instances(p,method=name) for name in methods}

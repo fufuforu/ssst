@@ -1,5 +1,9 @@
 # 新对话交接：Unified 渲染前 Gaussian 实例一致性
 
+## 最新授权：直接实例属性短测（2026-10-18）
+
+用户已在实现后明确授权“短测一下”。按原16场景/256步，准备一个新架构`unified_direct_instance_attributes`的专用真实GPU门禁→丢弃smoke两步→全新seed42/空Adam短训→初末checkpoint各自prototype/HDBSCAN双读出→自动基线比较。范围与停止轮询约定见`docs/direct_instance_attributes_short_20261018.md`。独立run为`/space/mawb/ssst/group_plus/unified_query_training_v1/attempt16_direct_instance_attributes_short_node13_4gpu`，代码快照为`/space/mawb/ssst_direct_instance_short_code_20261018`。实际提交状态以该run的submission.json和后续提交记录为准，不能仅凭下文历史“未授权/未提交”重新询问或重复提交。
+
 ## 最新实现任务：直接Gaussian实例属性（2026-10-18）
 
 用户授权实现“直接预测Gaussian实例属性，同时支持Query原型归属和HDBSCAN聚类推理”。新入口`unified_direct_instance_attributes`，身份`OMEGA_UNIFIED_DIRECT_INSTANCE_ATTRIBUTES_V1`，实现说明见`docs/direct_instance_attributes_implementation_20261018.md`。最终Query直接为每个Child输出8维有符号属性，为每Query输出8维原型；单位化点积/独立sigmoid生成Membership，同一属性直接可微渲染8通道并沿用原Pull/Push/Cross。保留stuff/类别/重建/来源匹配/NMS，移除该新架构后置几何Child特征到8维的路径，不叠加67292直接Gaussian一致性项。
