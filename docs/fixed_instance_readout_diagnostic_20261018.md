@@ -51,3 +51,11 @@
 预检、针对性CPU单测及集成验证、独立干净快照均在提交前完成。提交后唯一状态核对只确认接收和调度状态；不等待GPU门禁、首窗口或聚类完成。阶段异常写`JOB_FAILED.json`，不自动重训或改聚类参数重试。
 
 关键产物：`preflight.json`、`VALIDATION_EVIDENCE.json`、`submission.json`、`SCHEDULING_CHECK.json`、`STARTED.json`、各模型`FIXED_WEIGHTS_rankXX.json`、逐窗口`*_mechanism.json`/`*_inference.pt`/`*_clustering.json`/`*_cluster_maps.npz`、`GPU_COMPLETE.json`、`SUMMARY.json`、`figures/`、`COMPLETE.json`。原始GPU缓存可复用，CPU汇总失败不重新跑训练。用户通知完成后核实最终收据、固定参数证明、有效覆盖与每场景P/R/IoU，再给机制结论。
+
+## 提交收据与当前交接
+
+已提交 **67349**，执行SHA `8803dd4e3562c4727ebe6cfd1c5969c4e9aae2bc`。唯一调度核对：北京时间2026-10-18 14:58:16，**RUNNING，3dimage-13，gres/gpu:3090:4，16CPU，128G**。该状态只表示调度运行，真实CUDA门禁、固定参数结束证明、聚类和评测结果均尚未核实；未读取提交后的日志，不继续轮询。
+
+提交前完成12项CPU测试（新聚类/计分6项、已有边界数学6项）、32张合成图完整CPU流程（16窗口、28行分方法汇总、8张配对图片）、Python编译/shell语法检查、真实源模型/资产/RGB/GT预检、独立干净快照。未重训任何模型。
+
+训练作业：无；GPU诊断、CPU聚类评测及汇总顺序包含在67349中，无额外依赖作业。GPU部分参考旧诊断应为数分钟量级，全分辨率HDBSCAN真实耗时未测，不给精确ETA；2小时为申请上限。已停止轮询，等用户通知完成后再检查。提交和唯一调度证据另归档于`docs/fixed_instance_readout_submission_20261018.json`。

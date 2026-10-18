@@ -1,0 +1,82 @@
+{
+  "submission": {
+    "code_sha": "8803dd4e3562c4727ebe6cfd1c5969c4e9aae2bc",
+    "code_root": "/space/mawb/ssst_fixed_instance_readout_code_20261018",
+    "submitted_utc": "2026-10-18T06:58:06.124193+00:00",
+    "node": "3dimage-13",
+    "gpus": "3090:4",
+    "cpus": 16,
+    "memory": "128G",
+    "walltime": "02:00:00",
+    "models": 2,
+    "windows": 16,
+    "images": 32,
+    "sources": [
+      {
+        "name": "baseline67050",
+        "checkpoint": "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt11_unified_instance_grounding_short_node13_4gpu/checkpoint_latest.pt",
+        "sha256": "558d4bdeb71e275a6b68412438e3c15123e17524b7fdf9db35172993151e428d"
+      },
+      {
+        "name": "direct67292",
+        "checkpoint": "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt15_gaussian_instance_consistency_short_node13_4gpu/checkpoint_latest.pt",
+        "sha256": "f6ad7463eaa1b123e049607d113deaa3a4155882f7e8693fc7691c407ce33eda"
+      }
+    ],
+    "stages": [
+      "fixed_gpu_export_and_mechanism",
+      "full_resolution_cpu_hdbscan_and_shared_mask_eval",
+      "paired_summary_and_figures"
+    ],
+    "cluster_recipe": {
+      "min_cluster_size": 100,
+      "min_samples": 10,
+      "metric": "euclidean",
+      "cluster_selection_method": "eom",
+      "cluster_selection_epsilon": 0.0,
+      "allow_single_cluster": false,
+      "alpha_threshold": 1e-06,
+      "normalization_epsilon": 1e-06,
+      "leaf_size": 40,
+      "n_jobs": 4
+    },
+    "parameter_updates": 0,
+    "optimizer_created": false,
+    "official128": false,
+    "cuda_verified_at_submission": false,
+    "stop_polling_after_one_scheduling_check": true,
+    "job": 67349
+  },
+  "single_scheduling_check": {
+    "job": 67349,
+    "checked_beijing": "2026-10-18T14:58:16.713286+08:00",
+    "single_bounded_scheduling_check": true,
+    "stdout": "67349|RUNNING|3dimage-13|gres/gpu:3090:4|16|128G|3dimage-13",
+    "stderr": "",
+    "cuda_verified": false,
+    "first_window_verified": false,
+    "training_updates": 0,
+    "stop_polling": true
+  },
+  "pre_submission_validation": {
+    "status": "PASSED",
+    "code_sha": "8803dd4e3562c4727ebe6cfd1c5969c4e9aae2bc",
+    "cpu_unit_tests": 12,
+    "cpu_unit_test_files": [
+      "tests/test_fixed_instance_diagnostic_math.py",
+      "tests/test_instance_boundary_diagnostic_math.py"
+    ],
+    "cpu_end_to_end": true,
+    "cpu_end_to_end_windows": 16,
+    "cpu_end_to_end_images": 32,
+    "cpu_end_to_end_summary_rows": 28,
+    "cpu_end_to_end_figures": 8,
+    "py_compile": true,
+    "bash_syntax": true,
+    "git_diff_check": true,
+    "preflight_real_assets_and_samples": true,
+    "immutable_snapshot_clean": true,
+    "cuda_verified": false,
+    "parameter_updates": 0
+  }
+}

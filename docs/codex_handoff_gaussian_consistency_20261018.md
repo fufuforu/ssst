@@ -2,6 +2,8 @@
 
 ## 新增授权：固定权重机制与8维聚类（2026-10-18）
 
+**已提交67349**，唯一调度核对为北京时间14:58:16，RUNNING，3dimage-13、4×3090、16CPU、128G。独立执行快照`/space/mawb/ssst_fixed_instance_readout_code_20261018`，SHA `8803dd4e3562c4727ebe6cfd1c5969c4e9aae2bc`。同一作业依次GPU机制/导出、CPU HDBSCAN/评测/汇总，无训练、无参数更新。12项CPU测试、32张合成图完整流程及真实模型/资产/RGB/GT预检通过；提交后未查看日志，真实GPU门禁和结果尚未核实。已停止轮询，等用户通知完成后再检查，不能再次提交本组。最新收据见`docs/fixed_instance_readout_submission_20261018.json`。
+
 用户已明确授权67050/67292固定权重机制诊断，以及渲染8维→L2 Normalize→HDBSCAN→2D Mask与原Membership Mask对照。范围与口径见`docs/fixed_instance_readout_diagnostic_20261018.md`。仅复用两组256步终点，原4train+4heldout窗口；没有训练或新增训练组。该授权覆盖新GPU诊断提交，提交记录后续以专用运行目录`/space/mawb/ssst/group_plus/fixed_instance_readout_v1/attempt01_67050_67292/submission.json`为准，不要据下文“新诊断未授权”历史句子重复询问。
 
 ## 最新完成核查（2026-10-18，覆盖下文待检查状态）
