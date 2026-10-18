@@ -1,0 +1,61 @@
+{
+  "status": "PASSED",
+  "architecture_key": "unified_direct_instance_attributes_one_to_one",
+  "architecture": "OMEGA_UNIFIED_DIRECT_INSTANCE_ATTRIBUTES_ONE_TO_ONE_V1",
+  "matching_mode": "global_hungarian",
+  "source_support_constraints": false,
+  "post_match_filter": false,
+  "cpu_unique_checks": 37,
+  "legacy_cpu_regressions": 28,
+  "new_matching_and_model_checks": 9,
+  "actual_two_rank_gloo_checks": 1,
+  "total_unique_checks": 38,
+  "runs": [
+    {
+      "command": "pytest -q tests/test_direct_instance_one_to_one.py tests/test_unified_query_v1.py tests/test_direct_instance_attributes.py",
+      "passed": 34,
+      "failed": 3,
+      "note": "Initial in-flight test module used no-object logit20, saturating FP32 softmax; strict negative-gradient fixture failed in three cases. Production matching/GT coverage checks passed. Fixture changed to logit4 without weakening assertions."
+    },
+    {
+      "command": "pytest -q tests/test_direct_instance_one_to_one.py",
+      "passed": 9,
+      "failed": 0
+    },
+    {
+      "command": "pytest -q tests/test_direct_instance_one_to_one.py::test_same_heads_initial_weights_and_forward_but_checkpoint_identity_is_distinct",
+      "passed": 1,
+      "failed": 0,
+      "note": "Strengthened existing test: valid new metadata passes, changing only architecture identity fails; already included in unique count."
+    },
+    {
+      "command": "GLOO_SOCKET_IFNAME=lo pytest -q tests/test_direct_instance_one_to_one_ddp.py",
+      "passed": 1,
+      "failed": 0,
+      "note": "Two real CPU ranks, two AdamW updates, N=K and N>K, full GT coverage, all finite gradients and all-parameter SHA synchronized."
+    }
+  ],
+  "historical_query_budget_check": {
+    "run": "attempt17_direct_instance_attributes_full_node13_8gpu",
+    "window_exposures": 33376,
+    "min_query_minus_gt": 13,
+    "insufficient_query_exposures": 0,
+    "note": "Existing historical observations, not a replacement for new-mode per-step checks."
+  },
+  "python_compile": true,
+  "git_diff_check": true,
+  "cuda_verified": false,
+  "quality_effect_verified": false,
+  "training_jobs_submitted": false,
+  "base_git_sha": "b10f3b2",
+  "source_sha256": {
+    "tokengs/models/unified_superpoints.py": "403abc469d8889d7a10f5e23340078a797a7456aec3cea9e7ce89fdcb53be38a",
+    "tokengs/models/unified_query_loss.py": "0f71eb97b0839bd3653394e1ff913fa48029fdc399f96c86d07c8c247d2c5516",
+    "tokengs/models/direct_instance_attributes.py": "2dfe500ff7d63d07a1581a48109bc5b0737e09a7eb1e7d79e813dd644783c401",
+    "tokengs/models/superpoint_structural_variants.py": "a44f9ae4b265e6cd4ea57bf2dd742d912f7c46abcbb069386b39fd5dcff29daa",
+    "scripts/train_unified_query_v1.py": "7f80a2b2ef79ca19cbff336d611cba50c6777d2e91da00b245ff05f7ae84eda1",
+    "scripts/evaluate_direct_instance_attributes.py": "0dbce3e8d6c87849ff7735499a57f68f6210838ec689f80081920eb43ab86dd6",
+    "tests/test_direct_instance_one_to_one.py": "cc125f6e477064f81566e917831cc92957ab28bd17e38aa8eca54d24d616ea17",
+    "tests/test_direct_instance_one_to_one_ddp.py": "4becedbf2f23f9da8569e3bdc65abf5a007487fefe5981227c5d69c4c8ae34a5"
+  }
+}

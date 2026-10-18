@@ -30,6 +30,10 @@ def unified_instance_loss(prediction,batch,config):
     if not valid.any():raise ValueError('No valid context supervision')
     flat=regions.permute(1,0,2,3).reshape(n+2,-1)[:,valid.flatten()]
     gt=targets['gt_pixel_masks'][0].reshape(k,-1)[:,valid.flatten()].float() if k else flat.new_empty((0,flat.shape[1]))
+    global_assignment=config.matching_mode=='global_hungarian'
+    if global_assignment:
+        if config.support_matching:raise ValueError('Global Hungarian forbids source support constraints')
+        if n<1 or n<k:raise ValueError(f'Global Hungarian requires N>=K and N>=1; queries={n}, valid_gt={k}')
     with torch.no_grad():
         allowed=support_relation(prediction,batch,targets,config.support_purity) if config.support_matching else torch.ones(n,k,dtype=torch.bool,device=logits.device)
         if k and config.matching_mode=='source_many_to_one':
@@ -41,11 +45,17 @@ def unified_instance_loss(prediction,batch,config):
             bce=-torch.log1p(-masks).mean(-1,keepdim=True)-(masks.log()-torch.log1p(-masks))@gt.T/masks.shape[1]
             dice=1-(2*masks@gt.T+1)/(masks.sum(-1,keepdim=True)+gt.sum(-1)[None]+1)
             cost=2*-logits[0].softmax(-1)[:,classes-2]+5*bce+5*dice
-            # Filter forbidden assignments after solving; no fabricated match
-            # when a GT has no sufficiently pure supporting superpoint.
-            row,col=linear_sum_assignment(cost.masked_fill(~allowed,1e6).cpu().numpy())
+            if global_assignment and not torch.isfinite(cost).all():
+                raise FloatingPointError('Nonfinite global Hungarian cost; refusing incomplete GT supervision')
+            # Global mode solves the entire finite matrix, with no source gate
+            # or post-match removal. Historical source-restricted mode stays explicit.
+            assignment_cost=cost if global_assignment else cost.masked_fill(~allowed,1e6)
+            row,col=linear_sum_assignment(assignment_cost.cpu().numpy())
+            if global_assignment and (len(row)!=k or len(set(row.tolist()))!=k or sorted(col.tolist())!=list(range(k)) or any(q<0 or q>=n for q in row)):
+                raise RuntimeError('Global Hungarian failed to assign exactly one distinct query to every valid GT')
             qi=torch.as_tensor(row,device=logits.device);ki=torch.as_tensor(col,device=logits.device)
-            keep=allowed[qi,ki];qi,ki=qi[keep],ki[keep]
+            if not global_assignment:
+                keep=allowed[qi,ki];qi,ki=qi[keep],ki[keep]
         else:qi=ki=torch.empty(0,dtype=torch.long,device=logits.device)
     labels=torch.full((1,n),18,device=logits.device,dtype=torch.long);labels[0,qi]=classes[ki]-2
     weights=logits.new_ones(19);weights[18]=.1
@@ -78,5 +88,6 @@ def unified_instance_loss(prediction,batch,config):
     loss=.1*(2*classification+5*bce+5*dice+5*sb+5*sd)
     prediction['final_pairs']=[(qi,ki)];prediction['final_targets']=targets
     return loss,dict(loss_classification=classification.detach(),loss_thing_bce=bce.detach(),loss_thing_dice=dice.detach(),loss_stuff_bce=sb.detach(),loss_stuff_dice=sd.detach(),matched_gt_count=len(ki.unique()),matched_query_count=len(qi),gt_count=k,
+        unmatched_GT_count=k-len(ki.unique()),
         mean_positive_queries_per_matched_gt=len(qi)/max(1,len(ki.unique())),
         unsupported_GT_count=int((~allowed.any(0)).sum()) if k else 0,matched_classification_accuracy=float((logits[0,qi].argmax(-1)==classes[ki]-2).float().mean()) if len(qi) else 0.)

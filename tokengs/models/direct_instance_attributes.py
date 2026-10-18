@@ -13,6 +13,7 @@ import torch.nn.functional as F
 
 from tokengs.models.unified_query_core import UnifiedQueryCore
 from tokengs.models.unified_instance_grounding import LocusGSInstanceGroundedUnified
+from tokengs.models.unified_superpoints import UnifiedQueryConfig
 
 
 @dataclass(frozen=True)
@@ -154,3 +155,27 @@ class LocusGSDirectInstanceAttributes(LocusGSInstanceGroundedUnified):
             masks.append(per_view);reports.append(per_report)
         return dict(method=method,instance_labels=labels,instance_masks=masks,cluster_reports=reports,
             class_agnostic=True,cross_view_ids_associated=False)
+
+
+class LocusGSOneToOneDirectInstanceAttributes(LocusGSDirectInstanceAttributes):
+    """Same attributes/rendering, all-GT one-to-one training responsibility."""
+    architecture_name='OMEGA_UNIFIED_DIRECT_INSTANCE_ATTRIBUTES_ONE_TO_ONE_V1'
+
+    @staticmethod
+    def default_config():
+        return UnifiedQueryConfig(matching_mode='global_hungarian',support_matching=False)
+
+    def __init__(self,opt,*,config=None,**kwargs):
+        config=config if config is not None else self.default_config()
+        if config.matching_mode!='global_hungarian' or config.support_matching:
+            raise ValueError('One-to-one direct attributes require global_hungarian and support_matching=False')
+        super().__init__(opt,config=config,**kwargs)
+
+    @property
+    def extra_checkpoint_metadata(self):
+        return dict(super().extra_checkpoint_metadata,instance_assignment_recipe=dict(
+            matching='global_hungarian',source_support_constraints=False,
+            cost_class=2.,cost_bce=5.,cost_dice=5.,require_all_valid_gt_matched=True,
+            insufficient_queries='error',post_match_filter=False,
+            unmatched_query_target='no_object',classification='per_query_weighted_cross_entropy',
+            no_object_weight=.1,mask_supervision='one_complete_mask_per_gt'))

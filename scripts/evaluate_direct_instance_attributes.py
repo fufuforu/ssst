@@ -11,7 +11,7 @@ from scripts.train_dual_stream_v1 import digest,cohorts,build_batch,MANIFEST,HEL
 from scripts.train_unified_query_v1 import restore_state
 from scripts.unified_query_validation import parameter_digest
 from scripts.fixed_instance_diagnostic_math import evaluate_masks
-from tokengs.models.direct_instance_attributes import LocusGSDirectInstanceAttributes
+from tokengs.models.direct_instance_attributes import LocusGSDirectInstanceAttributes,LocusGSOneToOneDirectInstanceAttributes
 from tokengs.models.unified_superpoints import UnifiedQueryConfig
 from tokengs.models.object_locus_v3_set_loss import build_context_instance_targets
 from tokengs.options import config_defaults
@@ -45,11 +45,12 @@ def main():
     torch.backends.cuda.matmul.allow_tf32=False;torch.backends.cudnn.allow_tf32=False
     if digest(a.checkpoint)!=a.checkpoint_sha256:raise ValueError('Checkpoint hash differs')
     saved=torch.load(a.checkpoint,map_location='cpu',weights_only=False,mmap=True);meta=saved['meta']
-    if meta['architecture']!=LocusGSDirectInstanceAttributes.architecture_name:raise ValueError('Requires direct-instance-attribute architecture')
+    constructors={cls.architecture_name:cls for cls in (LocusGSDirectInstanceAttributes,LocusGSOneToOneDirectInstanceAttributes)}
+    if meta['architecture'] not in constructors:raise ValueError('Requires direct-instance-attribute architecture')
     if meta['manifest_sha256']!=digest(MANIFEST) or meta['heldout_sha256']!=digest(HELDOUT):raise ValueError('Data differs')
     random.seed(42);np.random.seed(42);torch.manual_seed(42);torch.cuda.manual_seed_all(42)
     opt=config_defaults['train_siu3r_unified_query_v1']
-    model=LocusGSDirectInstanceAttributes(opt,config=UnifiedQueryConfig(**meta['config'])).to(device).eval()
+    model=constructors[meta['architecture']](opt,config=UnifiedQueryConfig(**meta['config'])).to(device).eval()
     if any(meta.get(k)!=v for k,v in model.extra_checkpoint_metadata.items()):raise ValueError('Checkpoint recipe differs')
     if meta['omega_identity']!=model.frozen_omega.source_identity or meta['sam_identity']!=(model.sam_proposals.source_identity if model.sam_proposals is not None else None):raise ValueError('Frozen assets differ')
     restore_state(model,saved['model']);before=parameter_digest(model);versions={n:p._version for n,p in model.named_parameters()}

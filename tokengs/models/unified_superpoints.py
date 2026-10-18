@@ -27,8 +27,9 @@ class UnifiedQueryConfig:
 
     def __post_init__(self):
         if self.superpoint_source not in ("esam_sam","geometric_voxel") or self.uncovered_clusters<1:raise ValueError("Invalid superpoint source/settings")
-        if self.matching_mode not in ("hungarian","source_many_to_one") or not 0<self.mask_nms_iou<=1:raise ValueError("Invalid assignment/NMS settings")
+        if self.matching_mode not in ("hungarian","source_many_to_one","global_hungarian") or not 0<self.mask_nms_iou<=1:raise ValueError("Invalid assignment/NMS settings")
         if self.matching_mode=="source_many_to_one" and not self.support_matching:raise ValueError("Many-to-one requires source support")
+        if self.matching_mode=="global_hungarian" and self.support_matching:raise ValueError("Global Hungarian must not constrain source support")
         if self.dim<8 or self.heads<1 or self.dim%self.heads or min(self.depth,self.point_grid,self.max_points,self.max_superpoints,self.neighbors,self.point_layers)<1:raise ValueError('Invalid unified dimensions/budgets')
         if self.max_superpoints>999:raise ValueError('Official packed instance IDs must remain below1000')
         if min(self.point_voxel,self.superpoint_voxel)<=0 or not 0<self.support_purity<=1:raise ValueError('Invalid geometry/matching settings')
