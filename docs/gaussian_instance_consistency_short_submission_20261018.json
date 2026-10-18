@@ -1,0 +1,61 @@
+{
+  "submission.json": {
+    "code_sha": "0882660021e17e51eae9471b5921d5a6db951b90",
+    "code_root": "/space/mawb/ssst_gaussian_instance_consistency_short_code_20261018",
+    "submitted_utc": "2026-10-18T05:43:54.116866+00:00",
+    "node": "3dimage-13",
+    "gpus": "3090:4",
+    "architecture": "unified_gaussian_consistency",
+    "world_size": 4,
+    "global_batch": 8,
+    "stages": [
+      "real_cuda_signed_render_and_old_gradients",
+      "all16_real_data_new_loss_gradient_isolation",
+      "two_ddp_updates_discarded",
+      "fresh_16_scene_256_update_short",
+      "automatic_baseline67050_probe_comparison"
+    ],
+    "baseline": "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt11_unified_instance_grounding_short_node13_4gpu",
+    "baseline_retrained": false,
+    "training_scenes": 16,
+    "short_updates": 256,
+    "smoke_updates": 2,
+    "source_checkpoint": null,
+    "seed": 42,
+    "initial_optimizer_states": 0,
+    "learning_rate": 0.0001,
+    "understanding_weight": 0.05,
+    "lr_warmup": 20,
+    "understanding_warmup": 20,
+    "official128": false,
+    "auto_full_training": false,
+    "cuda_smoke_passed_at_submission": false,
+    "stop_polling_after_submission": true,
+    "job": 67292
+  },
+  "SCHEDULING_CHECK.json": {
+    "job": 67292,
+    "checked_utc": "2026-10-18T05:44:06.507986+00:00",
+    "single_bounded_check": true,
+    "squeue": "67292|RUNNING|3dimage-13|3dimage-13|gres/gpu:3090:4",
+    "cuda_smoke_verified": false,
+    "stop_polling": true
+  },
+  "VALIDATION_EVIDENCE.json": {
+    "status": "PASSED",
+    "code_sha": "0882660021e17e51eae9471b5921d5a6db951b90",
+    "cpu_checks": 17,
+    "model_and_policy_tests": 16,
+    "gloo_two_rank_passed": true,
+    "shared_initial_tensors_exact": 305,
+    "new_parameters": 0,
+    "baseline_retrained": false,
+    "real_cpu_assets_and_data_passed": true,
+    "cuda_verified": false,
+    "files_sha256": {
+      "LOCAL_CHECKS.log": "e935043a7290f31376c8c06147843bc04af8e4609d79a7b728ccfa8d275924a4",
+      "GLOO_CHECK.log": "702c663b7b8ecd688968f19a47f38d0621f366e6335d971c08862e3ffadcc7fc",
+      "preflight.json": "10da90817fcb3f554032714d743e75cdfd7fd2dff4d929457d167ce58f638775"
+    }
+  }
+}
