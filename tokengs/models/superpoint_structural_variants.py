@@ -6,6 +6,7 @@ from tokengs.models.superpoint_dual_core import SuperpointDualCore
 from tokengs.models.direct_gaussian_core import DirectGaussianCore
 from tokengs.models.serial_query_core import SerialQueryCore
 from tokengs.models.serial_residual_query_core import SerialResidualQueryCore
+from tokengs.models.geometry_controlled_queries import BoundedSuperpointDualCore,GeometryBiasedUnifiedCore,feature_grid_rays
 from tokengs.models.gfm_dual_stream_components import gfm_grid
 from tokengs.models.object_locus_v3_set import alpha_normalize_membership
 
@@ -73,7 +74,27 @@ class LocusGSSerialResidualQuery(LocusGSSerialQuery):
         return output,metrics
 
 
-MODELS={'unified':LocusGSUnifiedQueryV1,'dual_superpoint':LocusGSSuperpointDual,'unified_direct':LocusGSDirectGaussian,'serial_query':LocusGSSerialQuery,'serial_residual':LocusGSSerialResidualQuery}
+class LocusGSBoundedSuperpointDual(LocusGSSuperpointDual):
+    architecture_name='OMEGA_3D_SUPERPOINT_DUAL_BOUNDED_GEOMETRY_V1'
+    core_type=BoundedSuperpointDualCore
+
+
+class LocusGSGeometryBiasedUnified(LocusGSUnifiedQueryV1):
+    architecture_name='OMEGA_3D_SUPERPOINT_UNIFIED_RAY_BIAS_V1'
+    core_type=GeometryBiasedUnifiedCore
+
+    def encode_context(self,rgb):
+        omega,cloud,features=super().encode_context(rgb)
+        return omega,cloud,dict(features=features,rays=feature_grid_rays(omega['c2w'],omega['k']))
+
+    def step_loss(self,*args,**kwargs):
+        output,metrics=super().step_loss(*args,**kwargs)
+        metrics['ray_bias_gate_mean']=F.softplus(self.core.ray_gate_raw).mean().detach()
+        return output,metrics
+
+
+MODELS={'unified':LocusGSUnifiedQueryV1,'dual_superpoint':LocusGSSuperpointDual,'unified_direct':LocusGSDirectGaussian,'serial_query':LocusGSSerialQuery,'serial_residual':LocusGSSerialResidualQuery,
+    'dual_bounded':LocusGSBoundedSuperpointDual,'unified_ray_bias':LocusGSGeometryBiasedUnified}
 
 
 def build_structural_model(architecture,opt,config,**kwargs):

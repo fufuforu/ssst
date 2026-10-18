@@ -24,6 +24,8 @@ def superpoint_scene_normalization(mu):
 
 
 class SuperpointDualCore(nn.Module):
+    anchor_decoder_type = PointSeededAnchorDecoder
+
     def __init__(self,opt,config):
         super().__init__()
         if config.dim!=256 or config.depth!=12 or opt.dec_patch_size!=8:raise ValueError('Legacy dual streams preserve widths1024/256, depth12, children64')
@@ -34,7 +36,7 @@ class SuperpointDualCore(nn.Module):
         self.reconstruction_memory=GFMReconstructionAdapter();self.semantic_memory=SemanticMemory()
         self.blocks=nn.ModuleList([DecoderBlock(1024,legacy.enc_num_heads,legacy.mlp_ratio,qkv_bias=True,ffn_bias=True,qk_norm=True,
             init_values=legacy.dec_init_values if legacy.dec_init_values is not None else 5e-3*legacy.gs_token_std) for _ in range(12)])
-        self.anchor_decoder=PointSeededAnchorDecoder(legacy,self.blocks)
+        self.anchor_decoder=self.anchor_decoder_type(legacy,self.blocks)
         self.anchor_decoder.register_parameter('mu',None);self.anchor_decoder.register_parameter('rho',None)
         self.panoptic=DynamicPanopticController();self.activation_head=LocusGSGaussianHead(legacy)
 

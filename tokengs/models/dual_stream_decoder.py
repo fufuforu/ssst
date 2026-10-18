@@ -10,6 +10,9 @@ from tokengs.models.locusgs_recon import LocusGSAnchorDecoder, anchor_ray_geomet
 from tokengs.models.object_locus_v3_set_controller import scene_normalization
 
 class PointSeededAnchorDecoder(LocusGSAnchorDecoder):
+    def update_geometry(self, h, mu, rho, head_mu, head_rho):
+        return mu + head_mu(h), rho + head_rho(h).squeeze(-1)
+
     def forward_stateful(self, tokens, latent, rays, controller, fm, qpre, mask_embedder, exposure, *, seed_mu, seed_radius, seed_c, seed_s, write_strength=0.0, reconstruction_only=False, reconstruction_states=None, normalization_fn=None):
         if reconstruction_only and reconstruction_states is not None:raise ValueError('Conflicting decoder stages')
         if (reconstruction_only or reconstruction_states is not None) and write_strength!=0.:raise ValueError('Two-stage decoding requires Write=0')
@@ -47,7 +50,8 @@ class PointSeededAnchorDecoder(LocusGSAnchorDecoder):
                 else:
                     h = h + blk.gs_self_attn_scale(blk.gs_self_attn(h+pe))
                 h = h + blk.mlp_scale(blk.mlp(h))
-                return h,m+hm(h),r+hr(h).squeeze(-1)
+                new_mu,new_rho = self.update_geometry(h,m,r,hm,hr)
+                return h,new_mu,new_rho
             previous_mu, previous_radii = mu,self.activated_radius(rho)
             args = (tokens,mu,rho,latent.keys,latent.values,moment,direction)
             if reconstruction_states is None:

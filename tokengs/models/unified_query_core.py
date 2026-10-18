@@ -23,11 +23,14 @@ class UnifiedQueryCore(nn.Module):
         self.child_feature=nn.Sequential(nn.Linear(d+19,d),nn.GELU(),nn.Linear(d,d))
         self.stuff_feature=nn.Linear(d,2*d)
 
+    def decode_query(self,block,q,memory,centers,radii,index):
+        return checkpoint(block,q,memory,use_reentrant=False) if self.config.checkpoint_blocks and self.training and torch.is_grad_enabled() else block(q,memory)
+
     def forward(self,cloud,memory,superpoint_ids=None):
         initial=self.initializer(cloud,superpoint_ids)
         q=initial['query'];centers=initial['centers'];radii=initial['radii'];states=[]
         for i,(block,head) in enumerate(zip(self.blocks,self.geometry)):
-            q=checkpoint(block,q,memory,use_reentrant=False) if self.config.checkpoint_blocks and self.training and torch.is_grad_enabled() else block(q,memory)
+            q=self.decode_query(block,q,memory,centers,radii,i)
             update=head(q)
             centers=centers+.1*radii[...,None]*update[...,:3].tanh()
             radii=radii*torch.exp(.1*update[...,3].tanh())
