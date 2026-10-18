@@ -49,7 +49,7 @@ class Task(nn.Module):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir',type=Path,required=True);parser.add_argument('--understanding-weight',type=float,required=True)
-    parser.add_argument('--architecture',choices=('unified','dual_superpoint','unified_direct','serial_query','serial_residual','dual_bounded','unified_ray_bias','unified_instance_grounding'),default='unified')
+    parser.add_argument('--architecture',choices=('unified','dual_superpoint','unified_direct','serial_query','serial_residual','dual_bounded','unified_ray_bias','unified_instance_grounding','unified_instance_lift','unified_instance_boundary','unified_instance_bidirectional'),default='unified')
     parser.add_argument('--epochs',type=int,default=4);parser.add_argument('--max-updates',type=int)
     parser.add_argument('--learning-rate',type=float,default=1e-4);parser.add_argument('--understanding-warmup',type=int,default=1043)
     parser.add_argument('--short-validation',action='store_true',help='16 fixed training scenes, 256 updates, initial/final probes')

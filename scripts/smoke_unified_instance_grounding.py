@@ -37,11 +37,12 @@ def main():
         (smoke/'STARTED.json').write_text(json.dumps(dict(world_size=world,code_sha=code_sha,optimizer_updates_discarded=2))+'\n')
     dist.barrier()
     opt=config_defaults['train_siu3r_unified_query_v1'];cfg=UnifiedQueryConfig(**preflight['config'])
-    model=build_structural_model('unified_instance_grounding',opt,cfg).to(device).train()
+    model=build_structural_model(preflight.get('architecture_key','unified_instance_grounding'),opt,cfg).to(device).train()
     if model.frozen_omega.source_identity!=preflight['omega_identity'] or model.sam_proposals.source_identity!=preflight['sam_identity']:
         raise ValueError('Smoke assets differ')
     if model.extra_checkpoint_metadata!=preflight['extra_checkpoint_metadata']:raise ValueError('Smoke recipe differs')
     initial=parameter_digest(model);head_before={k:p.detach().clone() for k,p in model.core.instance_head.named_parameters()}
+    lift_before={k:p.detach().clone() for k,p in model.core.lift_residual.named_parameters()} if hasattr(model.core,'lift_residual') else {}
     batch=build_batch(opt,preflight['training_windows'][rank],device)
     prediction=model.generate(batch['images_input'])
     # Independent read-only CUDA oracle with signed channels and mixed signs.
@@ -54,6 +55,24 @@ def main():
         mixed=model.gs.render_feature_channels(g,positive*signs,camera,intrinsics)
         torch.testing.assert_close(one['images_pred'],one['alphas_pred'].expand_as(one['images_pred']),rtol=1e-4,atol=1e-5)
         torch.testing.assert_close(mixed['images_pred'],one['images_pred']*signs[None,None,:,None,None],rtol=1e-4,atol=1e-5)
+    coupling_checks={}
+    recipe=getattr(model,'coupling_recipe',None)
+    if recipe is not None and recipe.lift:
+        lift_gradient,geometry_gradient=torch.autograd.grad(prediction['lift_residual'].square().mean(),
+            (model.gfm_projection[1].weight,prediction['gaussians']),allow_unused=True,retain_graph=True)
+        coupling_checks.update(lift_feature_gradient_norm=float(lift_gradient.norm()),lift_geometry_gradient_absent=geometry_gradient is None,
+            lift_residual_norm=float(prediction['lift_residual'].norm()),lift_visible_gaussians=int((prediction['lift_mass']>0).sum()))
+        if coupling_checks['lift_feature_gradient_norm']<=0 or not coupling_checks['lift_geometry_gradient_absent']:raise ValueError('Lift gradient contract failed')
+        del lift_gradient,geometry_gradient
+    if recipe is not None and recipe.boundary:
+        from tokengs.models.unified_instance_coupling import boundary_rgb_loss
+        boundary,weights=boundary_rgb_loss(prediction['render']['images_pred'],batch['images_input'],prediction['rendered_instance_features'],recipe)
+        rgb_gradient,instance_gradient=torch.autograd.grad(boundary,
+            (prediction['render']['images_pred'],prediction['rendered_instance_features']),allow_unused=True,retain_graph=True)
+        coupling_checks.update(boundary_rgb_gradient_norm=float(rgb_gradient.norm()),boundary_instance_gradient_absent=instance_gradient is None,
+            boundary_weights_detached=not weights.requires_grad)
+        if coupling_checks['boundary_rgb_gradient_norm']<=0 or not coupling_checks['boundary_instance_gradient_absent'] or weights.requires_grad:raise ValueError('Boundary gradient contract failed')
+        del boundary,weights,rgb_gradient,instance_gradient
     aux,_=rendered_instance_grounding_loss(prediction['rendered_instance_features'],build_context_instance_targets(batch))
     if not torch.isfinite(aux):raise FloatingPointError('Nonfinite smoke auxiliary loss')
     values=torch.autograd.grad(aux,(model.core.instance_head[1].weight,prediction['gaussians'],model.gfm_projection[1].weight),allow_unused=True)
@@ -83,14 +102,18 @@ def main():
         steps.append(dict(step=step+1,loss=numbers['loss'],auxiliary_loss=numbers['loss_instance_grounding'],grad_norm=norm,
             instance_head_grad_norm=head_norm,parameter_sha256=parameter_digest(model)))
         print(json.dumps(dict(rank=rank,smoke_step=step+1,**steps[-1])),flush=True)
-    row=dict(rank=rank,initial_parameter_sha256=initial,auxiliary_gradient_norms=norms,optimizer_updates=2,steps=steps,
+    row=dict(rank=rank,initial_parameter_sha256=initial,auxiliary_gradient_norms=norms,coupling_checks=coupling_checks,optimizer_updates=2,steps=steps,
         frozen_without_gradients=not any(p.grad is not None for module in (model.frozen_omega,model.sam_proposals) for p in module.parameters()),
         parameters_finite=all(bool(torch.isfinite(p).all()) for p in model.parameters() if p.requires_grad),
         instance_head_changed=any(not torch.equal(head_before[k],p) for k,p in model.core.instance_head.named_parameters()),
+        lift_head_changed=any(not torch.equal(lift_before[k],p) for k,p in model.core.lift_residual.named_parameters()) if lift_before else False,
         adam_steps=sorted({float(state['step']) for state in optimizer.state.values()}),signed_render_replay_verified=True,embedding_channels=8,
         peak_cuda_memory_bytes=torch.cuda.max_memory_allocated(device))
     rows=[None]*world;dist.all_gather_object(rows,row);receipt=validate_smoke(rows,world)
     receipt.update(code_sha=code_sha,preflight_sha256=digest(root/'preflight.json'),fresh_short_training_seed=42,parameter_names=preflight['trainable_parameter_names'])
+    if recipe is not None:
+        from scripts.instance_coupling_smoke_policy import validate_coupling_smoke
+        validate_coupling_smoke(receipt,preflight)
     if rank==0:(root/'SMOKE_PASSED.json').write_text(json.dumps(receipt,indent=2)+'\n')
     dist.barrier();dist.destroy_process_group()
 

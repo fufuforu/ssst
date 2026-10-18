@@ -39,6 +39,7 @@ def run_probes(model,opt,train,validation,root,label,rank,world,device,weight):
                 pred=mask[qi[ki==gt]];truth=target[gt]
                 iou=(pred&truth).sum(1)/(pred|truth).sum(1).clamp_min(1);ious.append(float(iou.max()))
             scalars={k:float(v) for k,v in metrics.items() if isinstance(v,(int,float)) or torch.is_tensor(v) and v.numel()==1}
+            if hasattr(model,'probe_diagnostics'):scalars.update(model.probe_diagnostics(p,batch))
             if not all(math.isfinite(v) for v in scalars.values()):raise FloatingPointError('Nonfinite probe')
             semantic_target=batch['semantic_label_all'][:,:2]
             semantic_valid=(semantic_target>=0)&(semantic_target<20)
@@ -51,6 +52,12 @@ def run_probes(model,opt,train,validation,root,label,rank,world,device,weight):
             folder=root/'probes'/label;folder.mkdir(parents=True,exist_ok=True)
             torch.save(dict(scene=window['scene'],context_rgb=p['generation_context_rgb'].cpu(),rgb=p['render']['images_pred'].cpu(),
                 semantic=sem.cpu(),raw_semantic=p['semantic_scores'].argmax(2).cpu(),instance=ins.cpu(),p_class=p['p_class'].cpu(),eligible=p['instance_eligible'].cpu()),folder/f'{index:02d}.pt')
+            if hasattr(model,'probe_diagnostics'):
+                from tokengs.models.unified_instance_coupling import instance_boundary_weights
+                torch.save(dict(rendered_instance_features=p['rendered_instance_features'].half().cpu(),
+                    boundary_weights=instance_boundary_weights(p['rendered_instance_features']).half().cpu(),
+                    gt_instance=batch['instance_label_all'][:,:2].cpu(),gt_semantic=semantic_target.cpu()),
+                    folder/f'{index:02d}_coupling.pt')
             del output,p,mask,target
     random.setstate(py);np.random.set_state(np_before);model.train(was_training)
     allrows=[None]*world

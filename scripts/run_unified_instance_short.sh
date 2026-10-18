@@ -9,8 +9,12 @@ trap 'code=$?; printf "{\"exit_code\":%s,\"stage\":\"%s\"}\n" "$code" "$stage" >
 stage=validate_smoke_gate
 /space/mawb/anaconda3/envs/tokengs/bin/python scripts/validate_unified_instance_smoke.py --run-root "$run_root"
 stage=fresh_short_training
-/space/mawb/anaconda3/envs/tokengs/bin/python -m torch.distributed.run --standalone --nnodes=1 --nproc_per_node=4 scripts/train_unified_query_v1.py --architecture unified_instance_grounding --output-dir "$run_root" --understanding-weight .05 --short-validation --checkpoint-every 32 --config "$run_root/model_config.json"
+/space/mawb/anaconda3/envs/tokengs/bin/python -m torch.distributed.run --standalone --nnodes=1 --nproc_per_node=4 scripts/train_unified_query_v1.py --architecture "${2:-unified_instance_grounding}" --output-dir "$run_root" --understanding-weight .05 --short-validation --checkpoint-every 32 --config "$run_root/model_config.json"
 stage=short_summary
 /space/mawb/anaconda3/envs/tokengs/bin/python scripts/summarize_unified_query_short.py --run "$run_root"
 stage=instance_feature_audit
 /space/mawb/anaconda3/envs/tokengs/bin/python scripts/summarize_unified_instance_short.py --run-root "$run_root"
+if [[ "${2:-unified_instance_grounding}" != "unified_instance_grounding" ]]; then
+    stage=coupling_audit
+    /space/mawb/anaconda3/envs/tokengs/bin/python scripts/summarize_unified_coupling_short.py --run-root "$run_root"
+fi
