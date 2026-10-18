@@ -1,5 +1,7 @@
 # Unified 实例特征：GPU smoke通过后自动短训
 
+后续更新：67050已正常完成，smoke和256步短训均通过；完整审计及对照限制见[完成结果](unified_instance_short_results_20261018.md)。下文提交时的“尚未核实/RUNNING”是历史状态。
+
 用户授权：先做smoke，通过后16场景、256步短训。只运行 `unified_instance_grounding` 一组，不自动全量训练或正式128评测，不重跑原Unified基线。
 
 ## 流程与工程门禁
