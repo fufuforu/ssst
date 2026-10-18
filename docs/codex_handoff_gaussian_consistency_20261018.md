@@ -1,5 +1,13 @@
 # 新对话交接：Unified 渲染前 Gaussian 实例一致性
 
+## 最新完成核查：67369直接实例属性短测（覆盖下文RUNNING历史）
+
+用户通知完成后已检查：**67369 COMPLETED/0:0，43分28秒，3dimage-13、4×3090**。16真实窗口GPU门禁/四rank两步smoke通过并丢弃；正式零步空Adam且SHA与smoke零步相同，共同292张量与基线逐值相同；最终306张量有限并实际改变、Adam256、四rank各256连续日志。初末两checkpoint各8窗口双读出齐全；从缓存/原GT重算128组指标与汇总完全相同，初末各4worker参数SHA/版本不变、无grad。没有重训/重提。
+
+统一全GT每图一对一IoU，基线→本组：train raw28.73%→40.19%、最终16.71%→32.74%、HDBSCAN20.49%→22.20%；heldout raw15.23%→14.35%、最终8.62%→7.89%、HDBSCAN15.00%→12.71%。本组heldout原型raw TP3/36、最终2/36、HDBSCAN0/36。PSNR train19.747→19.225、heldout10.021→10.562。旧来源匹配探针另报train40.72%、heldout8.17%，不能混用口径。
+
+当前判断：结构训练有效、训练探针收益明显，heldout尚无整体实例收益；暂以原型归属为后续主候选，聚类保留对照，不直接全量，未提交下一实验。详见`docs/direct_instance_attributes_short_results_20261018.md`及同名JSON；运行目录`COMPLETION_REVIEW.json`和`review_figures/`。下文“RUNNING/未核实/等待完成”均为提交时历史，不能据此再次训练或提交。
+
 ## 最新授权：直接实例属性短测（2026-10-18）
 
 **已提交67369，唯一调度核对：北京时间16:20:57，RUNNING，3dimage-13、4×3090、16CPU、128G。** 执行快照SHA `f9b5a5d2e68d0701a6b81ebb651d01db316142a0`。同一作业内依次专用GPU门禁、丢弃smoke两步、全新16场景256步训练、初末checkpoint各自prototype/HDBSCAN评测及自动汇总。CPU50项+真实两rank Gloo1项通过；292个共同零步张量逐值相同，旧头13张量删除/新头14张量新增；实际资产和20个窗口预检通过。真实GPU门禁/首步/结果尚未核实，提交后未读日志，已停止轮询。**等用户通知完成后再检查，不能重提或重训本组。** 收据见`docs/direct_instance_attributes_short_submission_20261018.json`；预计40–60分钟，真实耗时未测。
