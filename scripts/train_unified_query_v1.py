@@ -49,7 +49,7 @@ class Task(nn.Module):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir',type=Path,required=True);parser.add_argument('--understanding-weight',type=float,required=True)
-    parser.add_argument('--architecture',choices=('unified','dual_superpoint','unified_direct','serial_query','serial_residual','dual_bounded','unified_ray_bias'),default='unified')
+    parser.add_argument('--architecture',choices=('unified','dual_superpoint','unified_direct','serial_query','serial_residual','dual_bounded','unified_ray_bias','unified_instance_grounding'),default='unified')
     parser.add_argument('--epochs',type=int,default=4);parser.add_argument('--max-updates',type=int)
     parser.add_argument('--learning-rate',type=float,default=1e-4);parser.add_argument('--understanding-warmup',type=int,default=1043)
     parser.add_argument('--short-validation',action='store_true',help='16 fixed training scenes, 256 updates, initial/final probes')
@@ -92,6 +92,7 @@ def main():
     meta=dict(architecture=model.architecture_name,config=config.to_dict(),code_sha=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),manifest_sha256=digest(MANIFEST),heldout_sha256=digest(HELDOUT),omega_identity=model.frozen_omega.source_identity,sam_identity=model.sam_proposals.source_identity if model.sam_proposals is not None else None,
         initial_checkpoint=str(args.initial_checkpoint.resolve()) if args.initial_checkpoint else None,initial_sha256=args.initial_sha256,initial_updates=0,epoch_probes=args.epoch_probes,short_validation=args.short_validation,training_windows=windows if args.short_validation else None,world_size=world,global_batch=8,epochs=args.epochs,understanding_weight=args.understanding_weight,understanding_warmup=args.understanding_warmup,learning_rate=args.learning_rate)
     progress=dict(epoch=0,update_in_epoch=0,full_updates=0)
+    meta.update(getattr(model,'extra_checkpoint_metadata',{}))
     continuation_model_digest=None
     if args.continue_checkpoint:
         from scripts.superpoint_dual_continuation import architecture_policy,validate_source,validate_optimizer_layout

@@ -7,6 +7,7 @@ from tokengs.models.direct_gaussian_core import DirectGaussianCore
 from tokengs.models.serial_query_core import SerialQueryCore
 from tokengs.models.serial_residual_query_core import SerialResidualQueryCore
 from tokengs.models.geometry_controlled_queries import BoundedSuperpointDualCore,GeometryBiasedUnifiedCore,feature_grid_rays
+from tokengs.models.unified_instance_grounding import LocusGSInstanceGroundedUnified
 from tokengs.models.gfm_dual_stream_components import gfm_grid
 from tokengs.models.object_locus_v3_set import alpha_normalize_membership
 
@@ -94,7 +95,8 @@ class LocusGSGeometryBiasedUnified(LocusGSUnifiedQueryV1):
 
 
 MODELS={'unified':LocusGSUnifiedQueryV1,'dual_superpoint':LocusGSSuperpointDual,'unified_direct':LocusGSDirectGaussian,'serial_query':LocusGSSerialQuery,'serial_residual':LocusGSSerialResidualQuery,
-    'dual_bounded':LocusGSBoundedSuperpointDual,'unified_ray_bias':LocusGSGeometryBiasedUnified}
+    'dual_bounded':LocusGSBoundedSuperpointDual,'unified_ray_bias':LocusGSGeometryBiasedUnified,
+    'unified_instance_grounding':LocusGSInstanceGroundedUnified}
 
 
 def build_structural_model(architecture,opt,config,**kwargs):

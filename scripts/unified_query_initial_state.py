@@ -28,5 +28,6 @@ def validate_zero_initial(saved,model,*,manifest_sha256,heldout_sha256,world):
         manifest_sha256=manifest_sha256,heldout_sha256=heldout_sha256,world_size=world,
         omega_identity=model.frozen_omega.source_identity,
         sam_identity=model.sam_proposals.source_identity if model.sam_proposals is not None else None)
+    expected.update(getattr(model,'extra_checkpoint_metadata',{}))
     if any(meta.get(k)!=v for k,v in expected.items()):raise ValueError('Zero-step architecture/assets/data/world differ')
     if len(saved['rank_rng'])!=world:raise ValueError('Zero-step RNG rank coverage differs')

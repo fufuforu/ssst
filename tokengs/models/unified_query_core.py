@@ -26,6 +26,9 @@ class UnifiedQueryCore(nn.Module):
     def decode_query(self,block,q,memory,centers,radii,index):
         return checkpoint(block,q,memory,use_reentrant=False) if self.config.checkpoint_blocks and self.training and torch.is_grad_enabled() else block(q,memory)
 
+    def auxiliary_gaussian_readout(self,features):
+        return {}
+
     def forward(self,cloud,memory,superpoint_ids=None):
         initial=self.initializer(cloud,superpoint_ids)
         q=initial['query'];centers=initial['centers'];radii=initial['radii'];states=[]
@@ -47,7 +50,8 @@ class UnifiedQueryCore(nn.Module):
         states[-1]['thing_logits19']=logits
         return dict(states=states,gaussians=gaussians,gaussian_membership=membership_logits.sigmoid(),gaussian_mask_logits=membership_logits,
             thing_logits19=logits,p_class=logits.softmax(-1),q_pre=initial['query'],unified_query=q,
-            superpoints=initial,cloud=cloud,gaussian_parent_query=torch.arange(q.shape[1],device=q.device).repeat_interleave(self.child_index.num_embeddings),num_thing_queries=q.shape[1])
+            superpoints=initial,cloud=cloud,gaussian_parent_query=torch.arange(q.shape[1],device=q.device).repeat_interleave(self.child_index.num_embeddings),num_thing_queries=q.shape[1],
+            **self.auxiliary_gaussian_readout(children))
 
     def parameter_groups(self):
         """Core branch ownership; shared layers may receive both task gradients."""

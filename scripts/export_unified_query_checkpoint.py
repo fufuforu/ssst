@@ -46,6 +46,7 @@ def main():
     training,_,_=cohorts()
     if not args.smoke and saved['progress']['full_updates']!=evaluated_epoch*(len(epoch_order(len(training),0))//8):raise ValueError('Training update count differs')
     opt=config_defaults['train_siu3r_unified_query_v1'];model=constructors[meta['architecture']](opt,config=UnifiedQueryConfig(**meta['config'])).to(device)
+    if any(meta.get(k)!=v for k,v in getattr(model,'extra_checkpoint_metadata',{}).items()):raise ValueError('Instance grounding recipe differs')
     if model.frozen_omega.source_identity!=meta['omega_identity']:raise ValueError('Frozen source identity differs')
     if (model.sam_proposals.source_identity if model.sam_proposals is not None else None)!=meta['sam_identity']:raise ValueError('SAM source identity differs')
     restore_state(model,saved['model']);_,_,windows=cohorts()
