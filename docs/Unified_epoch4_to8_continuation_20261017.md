@@ -1,5 +1,7 @@
 # 原Unified单分支从epoch4续训至epoch8
 
+> 2026-10-18已完成核实，66648–66651全部成功；Unified8 PSNR18.4225、target mAP15.5542%/PQ48.2612%。恢复权重/Adam/RNG、8344累计步和正式11指标检查通过；mAP相对4轮下降。完整比较见[完成分析](continuation_and_serial_residual_results_20261018.md)。下方RUNNING为提交时历史状态，不重跑。
+
 用户授权先续训原Unified，不启动B续训或串行结构实验。独立运行：`/space/mawb/ssst/group_plus/unified_query_training_v1/attempt09_unified_query_extend8_node11_8gpu`。11节点8张3090空闲；与原Unified完整训练相同节点/卡型，也与A续训保持相同3090卡型、8rank和全局batch8。原A作业/目录/执行快照不改，不查询其训练进度。
 
 ## 起点与训练安排

@@ -1,5 +1,7 @@
 # A从epoch4继续训练至epoch8
 
+> 2026-10-18已完成核实，66640–66643全部成功；A8 PSNR19.3692、target mAP24.8446%/PQ61.5404%。恢复权重/Adam/RNG、8344累计步和正式11指标检查通过。完整比较与结论见[完成分析](continuation_and_serial_residual_results_20261018.md)。下方RUNNING为提交时历史状态，不重跑。
+
 用户授权使用13节点空卡继续A。只续训已完成A，不重跑0–4epoch、不换结构、不重新初始化或适配。源为`attempt05_legacy_dual_superpoint_full_node13_8gpu/checkpoint_epoch4.pt`，epoch4/4172更新，693张量和693份Adam状态，8rank RNG。独立run为`/space/mawb/ssst/group_plus/unified_query_training_v1/attempt08_legacy_dual_superpoint_extend8_node13_8gpu`。
 
 ## 训练方案
