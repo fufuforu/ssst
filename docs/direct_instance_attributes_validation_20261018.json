@@ -1,0 +1,40 @@
+{
+  "status": "PASSED_CPU_ONLY",
+  "architecture_key": "unified_direct_instance_attributes",
+  "architecture": "OMEGA_UNIFIED_DIRECT_INSTANCE_ATTRIBUTES_V1",
+  "base_commit": "34d24823078bafff94f2fe5bb55e49e4df9a7948",
+  "cpu_regression_tests": 45,
+  "test_files": [
+    "tests/test_direct_instance_attributes.py",
+    "tests/test_unified_instance_grounding.py",
+    "tests/test_unified_query_v1.py",
+    "tests/test_fixed_instance_diagnostic_math.py"
+  ],
+  "real_two_rank_gloo_tests": 1,
+  "gloo_optimizer_steps": 2,
+  "gloo_ragged_query_counts": true,
+  "gloo_find_unused_parameters": false,
+  "gloo_full_parameter_sha_synchronized": true,
+  "all_trainable_parameters_have_finite_gradients": true,
+  "initial_gloo_sandbox_network_blocked": true,
+  "gloo_passed_with_local_loopback": true,
+  "python_compile_passed": true,
+  "git_diff_check_passed": true,
+  "training_cli_help_passed": true,
+  "dual_readout_cli_help_passed": true,
+  "actual_cuda_verified": false,
+  "real_asset_data_preflight": false,
+  "training_jobs_submitted": [],
+  "new_training_parameter_updates": 0,
+  "uses_synthetic_cpu_renderer_for_model_tests": true,
+  "code_files_sha256": {
+    "tokengs/models/direct_instance_attributes.py": "568b5382d19cf7b1b6406dd4fc7acf206156329dc0856b51d5ddbe6512c4d747",
+    "tokengs/instance_clustering.py": "0ce661cb90b8abecce2ed98b85160f2a29d5b06a8fdef885fe9a0d5e23ab1a64",
+    "tokengs/models/superpoint_structural_variants.py": "25148e8a53616477505ba1d02a5e182b233d7d41d43f11c096af4cde2f47ba99",
+    "scripts/train_unified_query_v1.py": "e955d57e63f5b5d4f01f39bb6003c2ae855a1c3148002dcd0a46d41a5ffb1805",
+    "scripts/evaluate_direct_instance_attributes.py": "3dd9d2c9bf95af2475d20c101437514d09caf0b1f0e8b31166bdea6bcc9826c6",
+    "scripts/fixed_instance_diagnostic_math.py": "3efa113ecb6ee0ebbe0ed47996335daa0183c24e828698fc63ade656f4961c69",
+    "tests/test_direct_instance_attributes.py": "282bc6bb59968e2b337a28cedb509ee3bd7103e12f69ce3d2ebc2f89f1c80601",
+    "tests/test_direct_instance_attributes_ddp.py": "2e3fa1edbb57099e7776f4387d57ca195ad333e1bf12f5e3c6291a89fda3bded"
+  }
+}

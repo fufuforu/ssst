@@ -1,5 +1,13 @@
 # 新对话交接：Unified 渲染前 Gaussian 实例一致性
 
+## 最新实现任务：直接Gaussian实例属性（2026-10-18）
+
+用户授权实现“直接预测Gaussian实例属性，同时支持Query原型归属和HDBSCAN聚类推理”。新入口`unified_direct_instance_attributes`，身份`OMEGA_UNIFIED_DIRECT_INSTANCE_ATTRIBUTES_V1`，实现说明见`docs/direct_instance_attributes_implementation_20261018.md`。最终Query直接为每个Child输出8维有符号属性，为每Query输出8维原型；单位化点积/独立sigmoid生成Membership，同一属性直接可微渲染8通道并沿用原Pull/Push/Cross。保留stuff/类别/重建/来源匹配/NMS，移除该新架构后置几何Child特征到8维的路径，不叠加67292直接Gaussian一致性项。
+
+本轮只实现/CPU验证，**未提交GPU/训练作业**；不要把实现请求当已提交实验。旧checkpoint不兼容，不能隐式迁移；旧preflight/smoke含旧instance_head/305张量假设，不能直接拿来启动新架构。真实CUDA和实验收益尚未核实。用户之前已明确授权向指定fufuforu/ssst分支推送代码与实验记录，无需重复询问同一目的地。
+
+验证完成：45项CPU检查及1项真实两rank Gloo测试通过，包含两次更新、不同Query数量、checkpointed Decoder、全部参数梯度/全参数SHA同步；训练/双读出评测CLI和语法检查通过。新评测脚本`scripts/evaluate_direct_instance_attributes.py`支持同checkpoint `--readout prototype|cluster|both`，区分prototype raw/NMS/assembled与类别无关HDBSCAN。详见实现文档和`docs/direct_instance_attributes_validation_20261018.json`。
+
 ## 最新完成核查：67349（覆盖下文RUNNING历史）
 
 用户要求检查后确认67349 COMPLETED/0:0，6分58秒，3dimage-13、4×3090。两组16窗口/32图、8张配对图完整完成；source/before/after参数SHA一致、所有参数版本不变、无grad/optimizer、0更新，源checkpoint文件hash未变。真实缓存重算128组主要指标与汇总完全相同。详见`docs/fixed_instance_readout_results_20261018.md`及同名JSON；运行根目录`COMPLETION_REVIEW.json`。
