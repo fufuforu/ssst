@@ -79,6 +79,11 @@ def main():
     norms={name:float(value.float().norm()) if value is not None else 0. for name,value in zip(('instance_head','gaussian_geometry','shared_projection'),values)}
     if not all(math.isfinite(v) for v in norms.values()):raise FloatingPointError('Nonfinite auxiliary gradient')
     del prediction,batch,values,aux,g,positive,one,mixed;gc.collect();torch.cuda.empty_cache()
+    direct_checks=[]
+    if 'gaussian_consistency_recipe' in preflight['extra_checkpoint_metadata']:
+        from scripts.gaussian_consistency_smoke_policy import probe_direct_path
+        direct_checks=probe_direct_path(model,opt,preflight,rank,world,device)
+        if parameter_digest(model)!=initial:raise ValueError('Read-only direct probe changed parameters')
     grouped={}
     for p in model.parameters():
         if p.requires_grad:grouped.setdefault(0. if p.ndim<2 or getattr(p,'_no_weight_decay',False) else .05,[]).append(p)
@@ -101,8 +106,10 @@ def main():
         optimizer.step()
         steps.append(dict(step=step+1,loss=numbers['loss'],auxiliary_loss=numbers['loss_instance_grounding'],grad_norm=norm,
             instance_head_grad_norm=head_norm,parameter_sha256=parameter_digest(model)))
+        if direct_checks:
+            steps[-1].update({k:v for k,v in numbers.items() if k.startswith(('direct_', 'loss_gaussian_', 'gaussian_direct_'))})
         print(json.dumps(dict(rank=rank,smoke_step=step+1,**steps[-1])),flush=True)
-    row=dict(rank=rank,initial_parameter_sha256=initial,auxiliary_gradient_norms=norms,coupling_checks=coupling_checks,optimizer_updates=2,steps=steps,
+    row=dict(rank=rank,initial_parameter_sha256=initial,auxiliary_gradient_norms=norms,coupling_checks=coupling_checks,direct_checks=direct_checks,optimizer_updates=2,steps=steps,
         frozen_without_gradients=not any(p.grad is not None for module in (model.frozen_omega,model.sam_proposals) for p in module.parameters()),
         parameters_finite=all(bool(torch.isfinite(p).all()) for p in model.parameters() if p.requires_grad),
         instance_head_changed=any(not torch.equal(head_before[k],p) for k,p in model.core.instance_head.named_parameters()),
@@ -114,6 +121,9 @@ def main():
     if recipe is not None:
         from scripts.instance_coupling_smoke_policy import validate_coupling_smoke
         validate_coupling_smoke(receipt,preflight)
+    if direct_checks:
+        from scripts.gaussian_consistency_smoke_policy import validate_direct_smoke
+        receipt['direct_gaussian_validation']=validate_direct_smoke(receipt)
     if rank==0:(root/'SMOKE_PASSED.json').write_text(json.dumps(receipt,indent=2)+'\n')
     dist.barrier();dist.destroy_process_group()
 

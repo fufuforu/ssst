@@ -39,7 +39,7 @@ def main():
         auxiliary_head_change_norms=changes,ranks=ranks,official128=False,auto_full_training=False,
         loss_drop_required=False,recipe=saved['meta']['instance_grounding_recipe'],generic_summary=summary['status'])
     (root/'INSTANCE_SHORT_AUDIT.json').write_text(json.dumps(report,indent=2)+'\n')
-    if 'instance_coupling_recipe' not in preflight['extra_checkpoint_metadata']:
+    if not {'instance_coupling_recipe','gaussian_consistency_recipe'}.intersection(preflight['extra_checkpoint_metadata']):
         (root/'COMPLETE.json').write_text(json.dumps(dict(status='SMOKE_AND_INSTANCE_SHORT_COMPLETE',updates=256,official128=False,auto_full_training=False))+'\n')
     print(json.dumps(report,indent=2))
 

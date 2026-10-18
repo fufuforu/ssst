@@ -14,7 +14,10 @@ stage=short_summary
 /space/mawb/anaconda3/envs/tokengs/bin/python scripts/summarize_unified_query_short.py --run "$run_root"
 stage=instance_feature_audit
 /space/mawb/anaconda3/envs/tokengs/bin/python scripts/summarize_unified_instance_short.py --run-root "$run_root"
-if [[ "${2:-unified_instance_grounding}" != "unified_instance_grounding" ]]; then
+if [[ "${2:-unified_instance_grounding}" == "unified_gaussian_consistency" ]]; then
+    stage=direct_gaussian_audit
+    /space/mawb/anaconda3/envs/tokengs/bin/python scripts/summarize_gaussian_consistency_short.py --run-root "$run_root"
+elif [[ "${2:-unified_instance_grounding}" != "unified_instance_grounding" ]]; then
     stage=coupling_audit
     /space/mawb/anaconda3/envs/tokengs/bin/python scripts/summarize_unified_coupling_short.py --run-root "$run_root"
 fi

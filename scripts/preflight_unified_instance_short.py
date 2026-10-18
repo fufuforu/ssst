@@ -15,7 +15,7 @@ from scripts.train_dual_stream_v1 import cohorts,build_batch,MANIFEST,HELDOUT,di
 
 def main():
     parser=argparse.ArgumentParser();parser.add_argument('--run-root',type=Path,required=True)
-    parser.add_argument('--architecture',default='unified_instance_grounding',choices=('unified_instance_grounding','unified_instance_lift','unified_instance_boundary','unified_instance_bidirectional'))
+    parser.add_argument('--architecture',default='unified_instance_grounding',choices=('unified_instance_grounding','unified_instance_lift','unified_instance_boundary','unified_instance_bidirectional','unified_gaussian_consistency'))
     parser.add_argument('--baseline-run',type=Path);args=parser.parse_args()
     root=args.run_root
     if any((root/name).exists() for name in ('submission.json','STARTED.json','preflight.json')):

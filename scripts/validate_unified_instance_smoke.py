@@ -14,6 +14,9 @@ def main():
     if 'instance_coupling_recipe' in preflight['extra_checkpoint_metadata']:
         from scripts.instance_coupling_smoke_policy import validate_coupling_smoke
         validate_coupling_smoke(receipt,preflight)
+    if 'gaussian_consistency_recipe' in preflight['extra_checkpoint_metadata']:
+        from scripts.gaussian_consistency_smoke_policy import validate_direct_smoke
+        validate_direct_smoke(receipt)
     if any((root/name).exists() for name in ('STARTED.json','checkpoint_latest.pt')):raise ValueError('Short training already exists')
     print('Smoke passed; start fresh 16-scene/256-update training. Smoke parameters and Adam are discarded.')
 
