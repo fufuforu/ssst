@@ -119,9 +119,10 @@ class LocusGSInstanceBoundary(LocusGSInstanceGroundedUnified):
         # Fixed cyclic permutation of feature-to-GT correspondence; preserves
         # feature distribution and mask sizes without consuming training RNG.
         shuffled_features = pixel_features.clone()
-        if valid.any():
-            selected = pixel_features[valid]
-            shuffled_features[valid] = selected.roll(max(1, len(selected) // 3), dims=0)
+        thing_pixels = masks.any(0) & valid
+        if thing_pixels.any():
+            selected = pixel_features[thing_pixels]
+            shuffled_features[thing_pixels] = selected.roll(max(1, len(selected) // 3), dims=0)
         for mask in masks:
             mask = mask & valid
             if not mask.any():
