@@ -1,0 +1,117 @@
+{
+  "status": "READ_ONLY_SHARED_FAILURE_AUDIT_COMPLETE",
+  "run_root": "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt17_direct_instance_attributes_full_node13_8gpu",
+  "supervision_audit": {
+    "status": "COMPLETED",
+    "scope": "Last 200 updates of each of 8 ranks, 1600 training-window exposures; not 1600 independent scenes",
+    "exposures": 1600,
+    "mean_queries": 57.13375,
+    "mean_positive_queries": 25.243125,
+    "mean_positive_queries_per_matched_gt": 7.77311138572872,
+    "mean_background_classification_group_weight_share": 0.03277895321373151,
+    "background_weight_share_exposures": 1598,
+    "gt_count": 6685.0,
+    "matched_gt_count": 5931.0,
+    "relation_unsupported_gt_count": 735.0,
+    "gt_without_positive_query_fraction": 0.11278982797307402,
+    "relation_unsupported_gt_fraction": 0.1099476439790576,
+    "positive_queries_per_gt_exposure_weighted": 6.809812847749114
+  },
+  "saved_png_pq_void_audit": {
+    "status": "COMPLETED",
+    "method": "CPU decode saved official PNG; reproduce native PQ matching/FN ignore definitions only; do not overwrite official scores",
+    "results": {
+      "baseline": {
+        "context": {
+          "scenes": 128,
+          "gt_things": 492,
+          "gt_stuffs": 231,
+          "matched_things": 231,
+          "matched_stuffs": 187,
+          "void_majority_gt_things": 58,
+          "void_majority_gt_stuffs": 6,
+          "ignored_unmatched_gt_things": 53,
+          "ignored_unmatched_gt_stuffs": 6,
+          "counted_fn_things": 208,
+          "counted_fn_stuffs": 38,
+          "valid_gt_pixels": 12791939,
+          "void_on_valid_gt_pixels": 746263,
+          "void_fraction_on_valid_gt": 0.05833853647988784
+        },
+        "target": {
+          "scenes": 128,
+          "gt_things": 507,
+          "gt_stuffs": 231,
+          "matched_things": 228,
+          "matched_stuffs": 183,
+          "void_majority_gt_things": 66,
+          "void_majority_gt_stuffs": 6,
+          "ignored_unmatched_gt_things": 62,
+          "ignored_unmatched_gt_stuffs": 5,
+          "counted_fn_things": 217,
+          "counted_fn_stuffs": 43,
+          "valid_gt_pixels": 38354920,
+          "void_on_valid_gt_pixels": 2438531,
+          "void_fraction_on_valid_gt": 0.06357804943928967
+        }
+      },
+      "direct8d": {
+        "context": {
+          "scenes": 128,
+          "gt_things": 492,
+          "gt_stuffs": 231,
+          "matched_things": 251,
+          "matched_stuffs": 190,
+          "void_majority_gt_things": 53,
+          "void_majority_gt_stuffs": 4,
+          "ignored_unmatched_gt_things": 45,
+          "ignored_unmatched_gt_stuffs": 3,
+          "counted_fn_things": 196,
+          "counted_fn_stuffs": 38,
+          "valid_gt_pixels": 12791939,
+          "void_on_valid_gt_pixels": 945648,
+          "void_fraction_on_valid_gt": 0.07392530561629476
+        },
+        "target": {
+          "scenes": 128,
+          "gt_things": 507,
+          "gt_stuffs": 231,
+          "matched_things": 245,
+          "matched_stuffs": 187,
+          "void_majority_gt_things": 65,
+          "void_majority_gt_stuffs": 6,
+          "ignored_unmatched_gt_things": 58,
+          "ignored_unmatched_gt_stuffs": 5,
+          "counted_fn_things": 204,
+          "counted_fn_stuffs": 39,
+          "valid_gt_pixels": 38354920,
+          "void_on_valid_gt_pixels": 2917413,
+          "void_fraction_on_valid_gt": 0.07606359236311795
+        }
+      }
+    }
+  },
+  "source_sha256": {
+    "tokengs/models/unified_query_loss.py": "7643d47ed0cc92d149c5392a6e0fc102767c0d57b05c54cc3055b31681f4aef0",
+    "scripts/export_object_locus_v3_set_official.py": "eb8461691c0ddf5606f08a0149890f545f080d58db406dd8590d8a124604a22d",
+    "tokengs/models/unified_query_v1.py": "ebf3be6c5d9e68aba5ed46ed97f5c0e9660bc8131e5e0ce33f4f6f858e229d0c",
+    "tokengs/models/unified_query_core.py": "ced2899868a579071a8b5002033e023b2d8c34c1111f26dde68b08a934de8cde"
+  },
+  "pq_implementation": {
+    "path": "/space/mawb/SIU3R/.venv_gpu_v4/lib/python3.10/site-packages/torchmetrics/functional/detection/_panoptic_quality_common.py",
+    "sha256": "03b2dcb49fa998c309a41e2a09784d461a47e40e3eeb415c251bf720f20c22cb"
+  },
+  "confirmed": [
+    "Source-fixed many-to-one full-mask positives; competition/area filtering at inference.",
+    "All negative queries averaged before whole background group weight .1.",
+    "Current PQ ignores some unmatched GT mostly covered by prediction void, and subtracts prediction-void overlap from union."
+  ],
+  "not_proven": [
+    "No single universal implementation bug established.",
+    "Background normalization or many-to-one matching not causally isolated.",
+    "Current PQ gain not explained by MORE ignored GT: new group has fewer ignored unmatched thing GT."
+  ],
+  "new_jobs_submitted": false,
+  "model_or_official_evaluation_modified": false,
+  "gpu_inference_or_scoring_run": false
+}
