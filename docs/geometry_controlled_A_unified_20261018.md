@@ -49,6 +49,8 @@ bias_ij = softplus(gate_raw[layer]) * geo_ij
 
 ## 实验文件清理
 
+后续更新：用户授权核对引用后删除无用checkpoint，已完成13个中间epoch状态清理，释放12.15GiB；保留正式端点、初始及短测模型。详见[复核与checkpoint清理](jobs_recheck_checkpoint_cleanup_20261018.md)。以下记录对应此前仅清缓存的阶段。
+
 近期 `unified_query_training_v1` 目录实际占用约 31GB（按 du 统计，存在硬链接，不能简单累加文件大小）。本轮仅清理 12 个旧 Unified/结构/串行代码快照中未被 Git 跟踪的 Python 字节码：1087 个 `.pyc`，逻辑大小 19,500,077 字节，约 18.6MiB。文件均为单硬链接，实际释放量仍受文件系统影响。
 
 逐文件清理收据：`/space/mawb/ssst/group_plus/unified_query_training_v1/maintenance_20261018/python_cache_cleanup.json`。
