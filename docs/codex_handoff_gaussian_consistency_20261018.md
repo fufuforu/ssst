@@ -1,5 +1,15 @@
 # 新对话交接：Unified 渲染前 Gaussian 实例一致性
 
+## 最新完成核查：67390/67391全量直接实例属性（覆盖下文RUNNING/PENDING历史）
+
+用户通知完成后核实：**67390 COMPLETED/0:0，4h32m23s，13节点8×3090；67391 COMPLETED/0:0，23m55s，同节点1×3090**。4epoch/4172更新、8rank各4172连续有限日志、完整数据顺序、306张量全部有限且变化、306份Adam4172步、初始空Adam及首更新八rankSHA同步通过，已重新执行CPU训练审计。未重训/重提/重新GPU前向或评分。
+
+正式128同cohort/帧/RGB，原始官方值与11数值CSV一致：PSNR18.08546→18.04698；context mAP18.92472%→16.70285%、PQ46.73369%→47.09803%；target mAP16.51922%→15.31136%、PQ45.01139%→45.42030%；语义mIoU context43.87631%→43.01703%、target43.75185%→43.16650%。重建接近、PQ小增、mAP/语义下降，当前组合方案没有整体超过原Unified full4，不能据小样本IoU或PQ局部增益判胜。
+
+辅助4train+4heldout全GT每图IoU：本组heldout raw70.02%、NMS67.46%、最终原型54.79%、HDBSCAN49.45%；最终原型TP26/36、P86.67%、R72.22%，聚类TP18/36、P12%、R50%。比短测原型7.89%/2TP、聚类12.71%/0TP明显改善，不能再以短测否定泛化；但这些不是官方mAP/PQ，也不能替代正式等预算对照。当前固定读出优先原型。
+
+8窗口×2视图×4读出的64组指标已从真实GT重算并完全一致，固定权重SHA/版本/无grad核对通过，基线初末文件SHA未变。正式导出checkpoint收据的集群`/datapool/mawb`路径已映射到本地`/space/mawb`核实同一文件。运行目录`COMPLETION_REVIEW.json`为PASSED，`review_figures/`有两张CPU缓存对比图。详见 `docs/direct_instance_attributes_full_results_20261018.md` 及同名JSON。当前建议先固定全量checkpoint定位候选/类别分数/NMS/组装阶段的AP差异，**未提交该诊断或任何续训，不自动延长8epoch**。主对照仍原Unified full4（无渲染实例监督），是组合方案比较，不是直接属性单因素消融。下文提交时RUNNING/PENDING/未核实均为历史，不能据此重提。
+
 ## 最新授权与已提交：直接实例属性完整训练集4epoch（覆盖下文“不自动全量”旧边界）
 
 用户在67369完成核查后明确要求直接完整训练集训练并与已完成全量基线比较。**已提交67390训练/审计、67391正式128评测/辅助读出/比较**。唯一调度核对：67390 RUNNING，3dimage-13、8×3090、32CPU、192G；67391 PENDING(Dependency)，同节点1×3090、4CPU、64G，afterok:67390。执行SHA `3d06c39ad97657959052329c892bda023f07436b`；独立快照 `/space/mawb/ssst_direct_instance_full_code_20261018`；运行目录 `/space/mawb/ssst/group_plus/unified_query_training_v1/attempt17_direct_instance_attributes_full_node13_8gpu`。

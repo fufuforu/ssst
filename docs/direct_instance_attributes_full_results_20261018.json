@@ -1,0 +1,986 @@
+{
+  "run_root": "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt17_direct_instance_attributes_full_node13_8gpu",
+  "completion_review": {
+    "status": "PASSED",
+    "jobs": {
+      "67390": {
+        "state": "COMPLETED",
+        "exit": "0:0",
+        "elapsed": "04:32:23"
+      },
+      "67391": {
+        "state": "COMPLETED",
+        "exit": "0:0",
+        "elapsed": "00:23:55"
+      }
+    },
+    "training_audit_reexecuted": true,
+    "updates": 4172,
+    "ranks": 8,
+    "common_initial_tensors_exact": 292,
+    "finite_and_changed_checkpoint_tensors": 306,
+    "same_official128_inputs": true,
+    "baseline_checkpoints_unchanged": true,
+    "native_official_values_match_tables": true,
+    "official_export_checkpoint_is_final_epoch4": true,
+    "export_path_alias": {
+      "recorded": "/datapool/mawb/ssst/group_plus/unified_query_training_v1/attempt17_direct_instance_attributes_full_node13_8gpu/checkpoint_latest.pt",
+      "local": "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt17_direct_instance_attributes_full_node13_8gpu/checkpoint_latest.pt"
+    },
+    "readout_fixed_weight_sha": "177c0afbf03f44d508d8cc47d7eca97187d787eb31f9d6409b6dd4532a10144c",
+    "readout_metric_sets_recomputed": 64,
+    "inputs": [
+      {
+        "index": 0,
+        "scene": "scene0279_02",
+        "metric_sets_verified": 8
+      },
+      {
+        "index": 1,
+        "scene": "scene0570_00",
+        "metric_sets_verified": 8
+      },
+      {
+        "index": 2,
+        "scene": "scene0051_00",
+        "metric_sets_verified": 8
+      },
+      {
+        "index": 3,
+        "scene": "scene0454_00",
+        "metric_sets_verified": 8
+      },
+      {
+        "index": 4,
+        "scene": "scene0011_00",
+        "metric_sets_verified": 8
+      },
+      {
+        "index": 5,
+        "scene": "scene0019_01",
+        "metric_sets_verified": 8
+      },
+      {
+        "index": 6,
+        "scene": "scene0030_00",
+        "metric_sets_verified": 8
+      },
+      {
+        "index": 7,
+        "scene": "scene0030_01",
+        "metric_sets_verified": 8
+      }
+    ],
+    "probe_trends": [
+      {
+        "model": "baseline_full4",
+        "stage": "INITIAL",
+        "scope": "train",
+        "psnr": 10.93506383895874,
+        "source_matched_probe_iou": 0.13456571881542914
+      },
+      {
+        "model": "baseline_full4",
+        "stage": "INITIAL",
+        "scope": "heldout",
+        "psnr": 11.624874830245972,
+        "source_matched_probe_iou": 0.12017570115858689
+      },
+      {
+        "model": "baseline_full4",
+        "stage": "EPOCH1",
+        "scope": "train",
+        "psnr": 17.231080055236816,
+        "source_matched_probe_iou": 0.45160598009824754
+      },
+      {
+        "model": "baseline_full4",
+        "stage": "EPOCH1",
+        "scope": "heldout",
+        "psnr": 16.754924297332764,
+        "source_matched_probe_iou": 0.4715761268511415
+      },
+      {
+        "model": "baseline_full4",
+        "stage": "EPOCH2",
+        "scope": "train",
+        "psnr": 17.694081783294678,
+        "source_matched_probe_iou": 0.49726891741156576
+      },
+      {
+        "model": "baseline_full4",
+        "stage": "EPOCH2",
+        "scope": "heldout",
+        "psnr": 17.366812705993652,
+        "source_matched_probe_iou": 0.5633282825350762
+      },
+      {
+        "model": "baseline_full4",
+        "stage": "EPOCH3",
+        "scope": "train",
+        "psnr": 18.554859161376953,
+        "source_matched_probe_iou": 0.5267546325922012
+      },
+      {
+        "model": "baseline_full4",
+        "stage": "EPOCH3",
+        "scope": "heldout",
+        "psnr": 17.79017400741577,
+        "source_matched_probe_iou": 0.6241495959460736
+      },
+      {
+        "model": "baseline_full4",
+        "stage": "FINAL",
+        "scope": "train",
+        "psnr": 18.877222537994385,
+        "source_matched_probe_iou": 0.530804805457592
+      },
+      {
+        "model": "baseline_full4",
+        "stage": "FINAL",
+        "scope": "heldout",
+        "psnr": 17.956103324890137,
+        "source_matched_probe_iou": 0.6067436516284943
+      },
+      {
+        "model": "new_full4",
+        "stage": "INITIAL",
+        "scope": "train",
+        "psnr": 10.93506383895874,
+        "source_matched_probe_iou": 0.1318517447914928
+      },
+      {
+        "model": "new_full4",
+        "stage": "INITIAL",
+        "scope": "heldout",
+        "psnr": 11.624874830245972,
+        "source_matched_probe_iou": 0.10386974702123553
+      },
+      {
+        "model": "new_full4",
+        "stage": "EPOCH1",
+        "scope": "train",
+        "psnr": 17.36694574356079,
+        "source_matched_probe_iou": 0.4327650808147155
+      },
+      {
+        "model": "new_full4",
+        "stage": "EPOCH1",
+        "scope": "heldout",
+        "psnr": 16.720040321350098,
+        "source_matched_probe_iou": 0.5339000360108912
+      },
+      {
+        "model": "new_full4",
+        "stage": "EPOCH2",
+        "scope": "train",
+        "psnr": 17.698652982711792,
+        "source_matched_probe_iou": 0.5092899098992347
+      },
+      {
+        "model": "new_full4",
+        "stage": "EPOCH2",
+        "scope": "heldout",
+        "psnr": 17.18177318572998,
+        "source_matched_probe_iou": 0.6026351772248745
+      },
+      {
+        "model": "new_full4",
+        "stage": "EPOCH3",
+        "scope": "train",
+        "psnr": 18.60255193710327,
+        "source_matched_probe_iou": 0.5457507655024528
+      },
+      {
+        "model": "new_full4",
+        "stage": "EPOCH3",
+        "scope": "heldout",
+        "psnr": 17.59954833984375,
+        "source_matched_probe_iou": 0.643345245718956
+      },
+      {
+        "model": "new_full4",
+        "stage": "FINAL",
+        "scope": "train",
+        "psnr": 18.871871948242188,
+        "source_matched_probe_iou": 0.5398227937519551
+      },
+      {
+        "model": "new_full4",
+        "stage": "FINAL",
+        "scope": "heldout",
+        "psnr": 17.70555067062378,
+        "source_matched_probe_iou": 0.6562371030449867
+      }
+    ],
+    "ap_breakdown": {
+      "context": {
+        "map": {
+          "baseline": 0.1892472207546234,
+          "new": 0.1670285314321518
+        },
+        "map_50": {
+          "baseline": 0.33553993701934814,
+          "new": 0.3223954141139984
+        },
+        "map_75": {
+          "baseline": 0.17457982897758484,
+          "new": 0.16211113333702087
+        },
+        "mar_100": {
+          "baseline": 0.22386063635349274,
+          "new": 0.21488572657108307
+        }
+      },
+      "target": {
+        "map": {
+          "baseline": 0.16519224643707275,
+          "new": 0.15311357378959656
+        },
+        "map_50": {
+          "baseline": 0.31938987970352173,
+          "new": 0.30883654952049255
+        },
+        "map_75": {
+          "baseline": 0.15695776045322418,
+          "new": 0.13413695991039276
+        },
+        "mar_100": {
+          "baseline": 0.19634798169136047,
+          "new": 0.19348104298114777
+        }
+      }
+    },
+    "comparison": {
+      "status": "FULL4_BASELINE_COMPARISON_COMPLETE",
+      "same_128_rgb_cohort": true,
+      "baseline_run": "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt02_esam_many_full_node11_8gpu",
+      "baseline_retrained": false,
+      "parameter_updates": 0,
+      "official_fields": [
+        "AbsRel",
+        "RMSE",
+        "PSNR",
+        "SSIM",
+        "LPIPS",
+        "context_mIoU_s",
+        "context_mAP",
+        "context_PQ",
+        "context_mIoU_t",
+        "novel_mIoU_s",
+        "novel_mAP",
+        "novel_PQ",
+        "novel_mIoU_t"
+      ],
+      "baseline": [
+        "0.08883613753641839",
+        "0.21764044557736875",
+        "18.085460028300684",
+        "0.6348038284146847",
+        "0.609879330615513",
+        "0.4387630753219128",
+        "0.1892472207546234",
+        "0.467336901986289",
+        "",
+        "0.437518529035151",
+        "0.16519224643707275",
+        "0.45011391190528344",
+        ""
+      ],
+      "direct_attributes": [
+        "0.08890664656307005",
+        "0.21745010711310897",
+        "18.04697582994898",
+        "0.634097755944822",
+        "0.6115015662508085",
+        "0.4301702558994293",
+        "0.1670285314321518",
+        "0.4709802713556238",
+        "",
+        "0.4316649898886681",
+        "0.15311357378959656",
+        "0.45420303569376025",
+        ""
+      ],
+      "delta": [
+        7.050902665166336e-05,
+        -0.00019033846425978163,
+        -0.03848419835170347,
+        -0.0007060724698627618,
+        0.0016222356352955103,
+        -0.008592819422483466,
+        -0.02221868932247162,
+        0.0036433693693347924,
+        "",
+        -0.0058535391464829,
+        -0.012078672647476196,
+        0.004089123788476812,
+        ""
+      ],
+      "auxiliary_readout": [
+        {
+          "scope": "train",
+          "method": "prototype",
+          "gt_count": 38,
+          "pred_count": 22,
+          "tp50": 13,
+          "one_to_one_gt_iou": 0.33426525469689516,
+          "precision50": 0.5909090909090909,
+          "recall50": 0.34210526315789475
+        },
+        {
+          "scope": "train",
+          "method": "prototype_raw",
+          "gt_count": 38,
+          "pred_count": 441,
+          "tp50": 20,
+          "one_to_one_gt_iou": 0.544355457814884,
+          "precision50": 0.045351473922902494,
+          "recall50": 0.5263157894736842
+        },
+        {
+          "scope": "train",
+          "method": "prototype_nms",
+          "gt_count": 38,
+          "pred_count": 88,
+          "tp50": 19,
+          "one_to_one_gt_iou": 0.5168993243972078,
+          "precision50": 0.2159090909090909,
+          "recall50": 0.5
+        },
+        {
+          "scope": "train",
+          "method": "cluster",
+          "gt_count": 38,
+          "pred_count": 206,
+          "tp50": 12,
+          "one_to_one_gt_iou": 0.3163403026461638,
+          "precision50": 0.05825242718446602,
+          "recall50": 0.3157894736842105
+        },
+        {
+          "scope": "heldout",
+          "method": "prototype",
+          "gt_count": 36,
+          "pred_count": 30,
+          "tp50": 26,
+          "one_to_one_gt_iou": 0.5479296858328073,
+          "precision50": 0.8666666666666667,
+          "recall50": 0.7222222222222222
+        },
+        {
+          "scope": "heldout",
+          "method": "prototype_raw",
+          "gt_count": 36,
+          "pred_count": 629,
+          "tp50": 29,
+          "one_to_one_gt_iou": 0.7001728466089367,
+          "precision50": 0.046104928457869634,
+          "recall50": 0.8055555555555556
+        },
+        {
+          "scope": "heldout",
+          "method": "prototype_nms",
+          "gt_count": 36,
+          "pred_count": 111,
+          "tp50": 28,
+          "one_to_one_gt_iou": 0.6746237307594578,
+          "precision50": 0.25225225225225223,
+          "recall50": 0.7777777777777778
+        },
+        {
+          "scope": "heldout",
+          "method": "cluster",
+          "gt_count": 36,
+          "pred_count": 150,
+          "tp50": 18,
+          "one_to_one_gt_iou": 0.4945319919581455,
+          "precision50": 0.12,
+          "recall50": 0.5
+        }
+      ],
+      "limits": [
+        "Compared to original Unified full4, not a full-data instance_grounding run.",
+        "Direct attributes/prototypes and rendered Pull/Push/Cross are a combined change.",
+        "Fixed 8-window HDBSCAN readout is auxiliary; official128 uses native prototype/class/assembly.",
+        "Baseline node11/new node13 both 8x3090; no claim of bitwise frontend determinism."
+      ]
+    },
+    "new_training_jobs_submitted": false,
+    "gpu_inference_or_scoring_repeated": false
+  },
+  "training_audit": {
+    "status": "DIRECT_ATTRIBUTE_FULL4_TRAINING_AUDIT_PASSED",
+    "updates": 4172,
+    "epochs": 4,
+    "initial_optimizer_empty": true,
+    "transferred_zero_parameters_exact": true,
+    "initial_parameter_sha256": "c7dadeababf11a1dc7c99a7b3256371e4f589984bf1ac60e222202c0940d823f",
+    "final_parameter_sha256": "177c0afbf03f44d508d8cc47d7eca97187d787eb31f9d6409b6dd4532a10144c",
+    "parameter_change_norms": {
+      "gfm_projection.0.weight": 0.21623003482818604,
+      "gfm_projection.0.bias": 0.13204500079154968,
+      "gfm_projection.1.weight": 3.127880573272705,
+      "gfm_projection.1.bias": 0.01366689708083868,
+      "core.instance_logit_scale": 0.18541359901428223,
+      "core.instance_logit_bias": 0.09165903925895691,
+      "core.initializer.point_encoder.layers.0.0.weight": 1.8284964561462402,
+      "core.initializer.point_encoder.layers.0.0.bias": 0.03229386731982231,
+      "core.initializer.point_encoder.layers.0.1.weight": 0.03918492794036865,
+      "core.initializer.point_encoder.layers.0.1.bias": 0.036106303334236145,
+      "core.initializer.point_encoder.layers.0.3.weight": 0.853661835193634,
+      "core.initializer.point_encoder.layers.0.3.bias": 0.019888045266270638,
+      "core.initializer.point_encoder.layers.1.0.weight": 1.975529670715332,
+      "core.initializer.point_encoder.layers.1.0.bias": 0.02835499681532383,
+      "core.initializer.point_encoder.layers.1.1.weight": 0.04483610391616821,
+      "core.initializer.point_encoder.layers.1.1.bias": 0.0356883704662323,
+      "core.initializer.point_encoder.layers.1.3.weight": 0.8570225238800049,
+      "core.initializer.point_encoder.layers.1.3.bias": 0.019804446026682854,
+      "core.initializer.point_encoder.norms.0.weight": 0.04967677220702171,
+      "core.initializer.point_encoder.norms.0.bias": 0.01775035262107849,
+      "core.initializer.point_encoder.norms.1.weight": 0.047097932547330856,
+      "core.initializer.point_encoder.norms.1.bias": 0.018788114190101624,
+      "core.initializer.local_shape.0.weight": 0.1633695662021637,
+      "core.initializer.local_shape.0.bias": 0.08334200829267502,
+      "core.initializer.local_shape.1.weight": 0.0945747047662735,
+      "core.initializer.local_shape.1.bias": 0.06871648877859116,
+      "core.initializer.local_shape.3.weight": 1.2065832614898682,
+      "core.initializer.local_shape.3.bias": 0.01942448876798153,
+      "core.initializer.point_weight.0.weight": 2.1566405296325684,
+      "core.initializer.point_weight.0.bias": 0.05604556202888489,
+      "core.initializer.point_weight.2.weight": 0.10659293085336685,
+      "core.initializer.point_weight.2.bias": 0.0038460621144622564,
+      "core.initializer.projection.0.weight": 0.05273529887199402,
+      "core.initializer.projection.0.bias": 0.025630522519350052,
+      "core.initializer.projection.1.weight": 0.8363729119300842,
+      "core.initializer.projection.1.bias": 0.02397748827934265,
+      "core.initializer.position.0.weight": 0.20092350244522095,
+      "core.initializer.position.0.bias": 0.049192819744348526,
+      "core.initializer.position.2.weight": 1.0503968000411987,
+      "core.initializer.position.2.bias": 0.023977503180503845,
+      "core.initializer.norm.weight": 0.1306641399860382,
+      "core.initializer.norm.bias": 0.020689763128757477,
+      "core.blocks.0.self_attn.in_proj_weight": 2.0283243656158447,
+      "core.blocks.0.self_attn.in_proj_bias": 0.11203702539205551,
+      "core.blocks.0.self_attn.out_proj.weight": 0.7892230749130249,
+      "core.blocks.0.self_attn.out_proj.bias": 0.02019406482577324,
+      "core.blocks.0.multihead_attn.in_proj_weight": 1.9721195697784424,
+      "core.blocks.0.multihead_attn.in_proj_bias": 0.07618147134780884,
+      "core.blocks.0.multihead_attn.out_proj.weight": 0.8346987366676331,
+      "core.blocks.0.multihead_attn.out_proj.bias": 0.020137198269367218,
+      "core.blocks.0.linear1.weight": 2.2161662578582764,
+      "core.blocks.0.linear1.bias": 0.08349046111106873,
+      "core.blocks.0.linear2.weight": 1.9955668449401855,
+      "core.blocks.0.linear2.bias": 0.020811375230550766,
+      "core.blocks.0.norm1.weight": 0.05985979363322258,
+      "core.blocks.0.norm1.bias": 0.030597679316997528,
+      "core.blocks.0.norm2.weight": 0.08685024827718735,
+      "core.blocks.0.norm2.bias": 0.06633788347244263,
+      "core.blocks.0.norm3.weight": 0.07793710380792618,
+      "core.blocks.0.norm3.bias": 0.039208341389894485,
+      "core.blocks.1.self_attn.in_proj_weight": 2.0566630363464355,
+      "core.blocks.1.self_attn.in_proj_bias": 0.1152692511677742,
+      "core.blocks.1.self_attn.out_proj.weight": 0.7665829658508301,
+      "core.blocks.1.self_attn.out_proj.bias": 0.020587606355547905,
+      "core.blocks.1.multihead_attn.in_proj_weight": 2.0381460189819336,
+      "core.blocks.1.multihead_attn.in_proj_bias": 0.09520875662565231,
+      "core.blocks.1.multihead_attn.out_proj.weight": 0.8806293606758118,
+      "core.blocks.1.multihead_attn.out_proj.bias": 0.020475726574659348,
+      "core.blocks.1.linear1.weight": 2.1444666385650635,
+      "core.blocks.1.linear1.bias": 0.09095551073551178,
+      "core.blocks.1.linear2.weight": 1.8763759136199951,
+      "core.blocks.1.linear2.bias": 0.02305705100297928,
+      "core.blocks.1.norm1.weight": 0.05681472271680832,
+      "core.blocks.1.norm1.bias": 0.030376283451914787,
+      "core.blocks.1.norm2.weight": 0.08935175091028214,
+      "core.blocks.1.norm2.bias": 0.0880691334605217,
+      "core.blocks.1.norm3.weight": 0.06714165955781937,
+      "core.blocks.1.norm3.bias": 0.03766345977783203,
+      "core.blocks.2.self_attn.in_proj_weight": 1.9682064056396484,
+      "core.blocks.2.self_attn.in_proj_bias": 0.10202006995677948,
+      "core.blocks.2.self_attn.out_proj.weight": 0.7439804077148438,
+      "core.blocks.2.self_attn.out_proj.bias": 0.02495843917131424,
+      "core.blocks.2.multihead_attn.in_proj_weight": 2.058708906173706,
+      "core.blocks.2.multihead_attn.in_proj_bias": 0.09594611823558807,
+      "core.blocks.2.multihead_attn.out_proj.weight": 0.9192513823509216,
+      "core.blocks.2.multihead_attn.out_proj.bias": 0.02478569932281971,
+      "core.blocks.2.linear1.weight": 2.123802661895752,
+      "core.blocks.2.linear1.bias": 0.09361684322357178,
+      "core.blocks.2.linear2.weight": 1.8547574281692505,
+      "core.blocks.2.linear2.bias": 0.028682222589850426,
+      "core.blocks.2.norm1.weight": 0.06079569086432457,
+      "core.blocks.2.norm1.bias": 0.03062746673822403,
+      "core.blocks.2.norm2.weight": 0.10153860598802567,
+      "core.blocks.2.norm2.bias": 0.09892170876264572,
+      "core.blocks.2.norm3.weight": 0.06354112178087234,
+      "core.blocks.2.norm3.bias": 0.04278445616364479,
+      "core.blocks.3.self_attn.in_proj_weight": 1.918274998664856,
+      "core.blocks.3.self_attn.in_proj_bias": 0.10706115514039993,
+      "core.blocks.3.self_attn.out_proj.weight": 0.7212031483650208,
+      "core.blocks.3.self_attn.out_proj.bias": 0.030078580603003502,
+      "core.blocks.3.multihead_attn.in_proj_weight": 2.1577999591827393,
+      "core.blocks.3.multihead_attn.in_proj_bias": 0.1037115603685379,
+      "core.blocks.3.multihead_attn.out_proj.weight": 0.9532814621925354,
+      "core.blocks.3.multihead_attn.out_proj.bias": 0.029793262481689453,
+      "core.blocks.3.linear1.weight": 2.1030845642089844,
+      "core.blocks.3.linear1.bias": 0.10154809057712555,
+      "core.blocks.3.linear2.weight": 1.83768892288208,
+      "core.blocks.3.linear2.bias": 0.032700005918741226,
+      "core.blocks.3.norm1.weight": 0.05550423637032509,
+      "core.blocks.3.norm1.bias": 0.03611521050333977,
+      "core.blocks.3.norm2.weight": 0.10144641250371933,
+      "core.blocks.3.norm2.bias": 0.09968461096286774,
+      "core.blocks.3.norm3.weight": 0.06335596740245819,
+      "core.blocks.3.norm3.bias": 0.044429827481508255,
+      "core.blocks.4.self_attn.in_proj_weight": 1.966090202331543,
+      "core.blocks.4.self_attn.in_proj_bias": 0.0965990424156189,
+      "core.blocks.4.self_attn.out_proj.weight": 0.7179943919181824,
+      "core.blocks.4.self_attn.out_proj.bias": 0.03520682454109192,
+      "core.blocks.4.multihead_attn.in_proj_weight": 2.091756582260132,
+      "core.blocks.4.multihead_attn.in_proj_bias": 0.09304019063711166,
+      "core.blocks.4.multihead_attn.out_proj.weight": 0.9742925763130188,
+      "core.blocks.4.multihead_attn.out_proj.bias": 0.03485970199108124,
+      "core.blocks.4.linear1.weight": 2.0991051197052,
+      "core.blocks.4.linear1.bias": 0.09830497950315475,
+      "core.blocks.4.linear2.weight": 1.815206527709961,
+      "core.blocks.4.linear2.bias": 0.037950947880744934,
+      "core.blocks.4.norm1.weight": 0.05458054691553116,
+      "core.blocks.4.norm1.bias": 0.04239979758858681,
+      "core.blocks.4.norm2.weight": 0.08539515733718872,
+      "core.blocks.4.norm2.bias": 0.0785398930311203,
+      "core.blocks.4.norm3.weight": 0.06352068483829498,
+      "core.blocks.4.norm3.bias": 0.04292029142379761,
+      "core.blocks.5.self_attn.in_proj_weight": 1.9216216802597046,
+      "core.blocks.5.self_attn.in_proj_bias": 0.10793536901473999,
+      "core.blocks.5.self_attn.out_proj.weight": 0.6871843934059143,
+      "core.blocks.5.self_attn.out_proj.bias": 0.038682546466588974,
+      "core.blocks.5.multihead_attn.in_proj_weight": 2.162705421447754,
+      "core.blocks.5.multihead_attn.in_proj_bias": 0.1040329784154892,
+      "core.blocks.5.multihead_attn.out_proj.weight": 1.0423650741577148,
+      "core.blocks.5.multihead_attn.out_proj.bias": 0.03850869834423065,
+      "core.blocks.5.linear1.weight": 2.1186482906341553,
+      "core.blocks.5.linear1.bias": 0.10555902868509293,
+      "core.blocks.5.linear2.weight": 1.8146690130233765,
+      "core.blocks.5.linear2.bias": 0.040768448263406754,
+      "core.blocks.5.norm1.weight": 0.05785255506634712,
+      "core.blocks.5.norm1.bias": 0.039462316781282425,
+      "core.blocks.5.norm2.weight": 0.09891168773174286,
+      "core.blocks.5.norm2.bias": 0.10195747762918472,
+      "core.blocks.5.norm3.weight": 0.0616552010178566,
+      "core.blocks.5.norm3.bias": 0.04770822823047638,
+      "core.blocks.6.self_attn.in_proj_weight": 2.088006019592285,
+      "core.blocks.6.self_attn.in_proj_bias": 0.11823415756225586,
+      "core.blocks.6.self_attn.out_proj.weight": 0.7610148191452026,
+      "core.blocks.6.self_attn.out_proj.bias": 0.021320004016160965,
+      "core.blocks.6.multihead_attn.in_proj_weight": 2.1634163856506348,
+      "core.blocks.6.multihead_attn.in_proj_bias": 0.09651176631450653,
+      "core.blocks.6.multihead_attn.out_proj.weight": 0.9857168197631836,
+      "core.blocks.6.multihead_attn.out_proj.bias": 0.021093370392918587,
+      "core.blocks.6.linear1.weight": 2.093693494796753,
+      "core.blocks.6.linear1.bias": 0.10072323679924011,
+      "core.blocks.6.linear2.weight": 1.736472249031067,
+      "core.blocks.6.linear2.bias": 0.023410161957144737,
+      "core.blocks.6.norm1.weight": 0.058260805904865265,
+      "core.blocks.6.norm1.bias": 0.03683111444115639,
+      "core.blocks.6.norm2.weight": 0.09844183921813965,
+      "core.blocks.6.norm2.bias": 0.09530501812696457,
+      "core.blocks.6.norm3.weight": 0.06297094374895096,
+      "core.blocks.6.norm3.bias": 0.058527685701847076,
+      "core.blocks.7.self_attn.in_proj_weight": 1.925554871559143,
+      "core.blocks.7.self_attn.in_proj_bias": 0.08742700517177582,
+      "core.blocks.7.self_attn.out_proj.weight": 0.712024450302124,
+      "core.blocks.7.self_attn.out_proj.bias": 0.025416847318410873,
+      "core.blocks.7.multihead_attn.in_proj_weight": 2.1824934482574463,
+      "core.blocks.7.multihead_attn.in_proj_bias": 0.09878221154212952,
+      "core.blocks.7.multihead_attn.out_proj.weight": 1.0307121276855469,
+      "core.blocks.7.multihead_attn.out_proj.bias": 0.02512306720018387,
+      "core.blocks.7.linear1.weight": 2.1176304817199707,
+      "core.blocks.7.linear1.bias": 0.10018490254878998,
+      "core.blocks.7.linear2.weight": 1.738991379737854,
+      "core.blocks.7.linear2.bias": 0.02787684090435505,
+      "core.blocks.7.norm1.weight": 0.06180610880255699,
+      "core.blocks.7.norm1.bias": 0.0422745905816555,
+      "core.blocks.7.norm2.weight": 0.10811527073383331,
+      "core.blocks.7.norm2.bias": 0.105417899787426,
+      "core.blocks.7.norm3.weight": 0.06303921341896057,
+      "core.blocks.7.norm3.bias": 0.05323430523276329,
+      "core.blocks.8.self_attn.in_proj_weight": 1.978442907333374,
+      "core.blocks.8.self_attn.in_proj_bias": 0.09908120334148407,
+      "core.blocks.8.self_attn.out_proj.weight": 0.7441790103912354,
+      "core.blocks.8.self_attn.out_proj.bias": 0.022464752197265625,
+      "core.blocks.8.multihead_attn.in_proj_weight": 2.37813138961792,
+      "core.blocks.8.multihead_attn.in_proj_bias": 0.10742253065109253,
+      "core.blocks.8.multihead_attn.out_proj.weight": 1.0639936923980713,
+      "core.blocks.8.multihead_attn.out_proj.bias": 0.0222462210804224,
+      "core.blocks.8.linear1.weight": 2.2523322105407715,
+      "core.blocks.8.linear1.bias": 0.10205196589231491,
+      "core.blocks.8.linear2.weight": 1.8332667350769043,
+      "core.blocks.8.linear2.bias": 0.02484038844704628,
+      "core.blocks.8.norm1.weight": 0.06092634052038193,
+      "core.blocks.8.norm1.bias": 0.04128973186016083,
+      "core.blocks.8.norm2.weight": 0.12459034472703934,
+      "core.blocks.8.norm2.bias": 0.10967596620321274,
+      "core.blocks.8.norm3.weight": 0.0668065994977951,
+      "core.blocks.8.norm3.bias": 0.06059851124882698,
+      "core.blocks.9.self_attn.in_proj_weight": 2.0213568210601807,
+      "core.blocks.9.self_attn.in_proj_bias": 0.10085341334342957,
+      "core.blocks.9.self_attn.out_proj.weight": 0.7505350708961487,
+      "core.blocks.9.self_attn.out_proj.bias": 0.026089278981089592,
+      "core.blocks.9.multihead_attn.in_proj_weight": 2.196800470352173,
+      "core.blocks.9.multihead_attn.in_proj_bias": 0.08867443352937698,
+      "core.blocks.9.multihead_attn.out_proj.weight": 1.1109548807144165,
+      "core.blocks.9.multihead_attn.out_proj.bias": 0.02597416378557682,
+      "core.blocks.9.linear1.weight": 2.2443149089813232,
+      "core.blocks.9.linear1.bias": 0.1013474389910698,
+      "core.blocks.9.linear2.weight": 1.8304985761642456,
+      "core.blocks.9.linear2.bias": 0.0295926071703434,
+      "core.blocks.9.norm1.weight": 0.06192006915807724,
+      "core.blocks.9.norm1.bias": 0.04056691378355026,
+      "core.blocks.9.norm2.weight": 0.1035415455698967,
+      "core.blocks.9.norm2.bias": 0.08670029789209366,
+      "core.blocks.9.norm3.weight": 0.06798022240400314,
+      "core.blocks.9.norm3.bias": 0.06354697793722153,
+      "core.blocks.10.self_attn.in_proj_weight": 2.392674446105957,
+      "core.blocks.10.self_attn.in_proj_bias": 0.1292451024055481,
+      "core.blocks.10.self_attn.out_proj.weight": 0.9462175965309143,
+      "core.blocks.10.self_attn.out_proj.bias": 0.035361118614673615,
+      "core.blocks.10.multihead_attn.in_proj_weight": 2.916714906692505,
+      "core.blocks.10.multihead_attn.in_proj_bias": 0.14202168583869934,
+      "core.blocks.10.multihead_attn.out_proj.weight": 1.3201647996902466,
+      "core.blocks.10.multihead_attn.out_proj.bias": 0.03504914417862892,
+      "core.blocks.10.linear1.weight": 2.6532318592071533,
+      "core.blocks.10.linear1.bias": 0.0944228544831276,
+      "core.blocks.10.linear2.weight": 2.2573084831237793,
+      "core.blocks.10.linear2.bias": 0.04093170911073685,
+      "core.blocks.10.norm1.weight": 0.05857352912425995,
+      "core.blocks.10.norm1.bias": 0.040973372757434845,
+      "core.blocks.10.norm2.weight": 0.17661981284618378,
+      "core.blocks.10.norm2.bias": 0.16092592477798462,
+      "core.blocks.10.norm3.weight": 0.13050489127635956,
+      "core.blocks.10.norm3.bias": 0.06681758165359497,
+      "core.blocks.11.self_attn.in_proj_weight": 2.3842294216156006,
+      "core.blocks.11.self_attn.in_proj_bias": 0.12973560392856598,
+      "core.blocks.11.self_attn.out_proj.weight": 0.9630999565124512,
+      "core.blocks.11.self_attn.out_proj.bias": 0.04150210693478584,
+      "core.blocks.11.multihead_attn.in_proj_weight": 2.599787712097168,
+      "core.blocks.11.multihead_attn.in_proj_bias": 0.11596830189228058,
+      "core.blocks.11.multihead_attn.out_proj.weight": 1.31998872756958,
+      "core.blocks.11.multihead_attn.out_proj.bias": 0.041264668107032776,
+      "core.blocks.11.linear1.weight": 2.655139684677124,
+      "core.blocks.11.linear1.bias": 0.10417112708091736,
+      "core.blocks.11.linear2.weight": 2.2387850284576416,
+      "core.blocks.11.linear2.bias": 0.0475773848593235,
+      "core.blocks.11.norm1.weight": 0.06019013002514839,
+      "core.blocks.11.norm1.bias": 0.03961547091603279,
+      "core.blocks.11.norm2.weight": 0.13634803891181946,
+      "core.blocks.11.norm2.bias": 0.12796783447265625,
+      "core.blocks.11.norm3.weight": 0.13626667857170105,
+      "core.blocks.11.norm3.bias": 0.06609799712896347,
+      "core.geometry.0.weight": 0.17884160578250885,
+      "core.geometry.0.bias": 0.00583824934437871,
+      "core.geometry.1.weight": 0.15435782074928284,
+      "core.geometry.1.bias": 0.005135862156748772,
+      "core.geometry.2.weight": 0.1334976851940155,
+      "core.geometry.2.bias": 0.004462497308850288,
+      "core.geometry.3.weight": 0.12070151418447495,
+      "core.geometry.3.bias": 0.004043178632855415,
+      "core.geometry.4.weight": 0.11616579443216324,
+      "core.geometry.4.bias": 0.003849213710054755,
+      "core.geometry.5.weight": 0.11550575494766235,
+      "core.geometry.5.bias": 0.004764438606798649,
+      "core.geometry.6.weight": 0.08010231703519821,
+      "core.geometry.6.bias": 0.005084437318146229,
+      "core.geometry.7.weight": 0.08789106458425522,
+      "core.geometry.7.bias": 0.004585693124681711,
+      "core.geometry.8.weight": 0.06401129812002182,
+      "core.geometry.8.bias": 0.005960606504231691,
+      "core.geometry.9.weight": 0.07293961942195892,
+      "core.geometry.9.bias": 0.004053288605064154,
+      "core.geometry.10.weight": 0.07812344282865524,
+      "core.geometry.10.bias": 0.00804852694272995,
+      "core.geometry.11.weight": 0.08483373373746872,
+      "core.geometry.11.bias": 0.005757399834692478,
+      "core.reconstruction_adapter.0.weight": 0.3499448299407959,
+      "core.reconstruction_adapter.0.bias": 0.21263758838176727,
+      "core.reconstruction_adapter.1.weight": 2.1949548721313477,
+      "core.reconstruction_adapter.1.bias": 0.17016616463661194,
+      "core.activation_head.deconv.weight": 4.640623569488525,
+      "core.activation_head.deconv.bias": 0.20170505344867706,
+      "core.semantic_adapter.0.weight": 0.713540256023407,
+      "core.semantic_adapter.0.bias": 0.29245197772979736,
+      "core.semantic_adapter.1.weight": 3.763172149658203,
+      "core.semantic_adapter.1.bias": 0.22144734859466553,
+      "core.classifier.weight": 1.6997355222702026,
+      "core.classifier.bias": 0.03500078618526459,
+      "core.instance_attribute_head.0.weight": 0.18176013231277466,
+      "core.instance_attribute_head.0.bias": 0.20338387787342072,
+      "core.instance_attribute_head.1.weight": 4.699355602264404,
+      "core.instance_attribute_head.1.bias": 0.287617027759552,
+      "core.instance_prototype_head.0.weight": 0.07785028964281082,
+      "core.instance_prototype_head.0.bias": 0.10283005982637405,
+      "core.instance_prototype_head.1.weight": 0.213647723197937,
+      "core.instance_prototype_head.1.bias": 0.018150895833969116,
+      "core.stuff_attribute_head.0.weight": 1.4114917516708374,
+      "core.stuff_attribute_head.0.bias": 0.9277415871620178,
+      "core.stuff_attribute_head.1.weight": 10.344254493713379,
+      "core.stuff_attribute_head.1.bias": 0.6372604370117188
+    },
+    "ranks": [
+      {
+        "rank": 0,
+        "updates": 4172,
+        "mean_step_seconds": 3.848245635890774,
+        "peak_cuda_memory_bytes": 7945162752
+      },
+      {
+        "rank": 1,
+        "updates": 4172,
+        "mean_step_seconds": 3.8376291011471735,
+        "peak_cuda_memory_bytes": 7944245248
+      },
+      {
+        "rank": 2,
+        "updates": 4172,
+        "mean_step_seconds": 3.83775555471687,
+        "peak_cuda_memory_bytes": 7944469504
+      },
+      {
+        "rank": 3,
+        "updates": 4172,
+        "mean_step_seconds": 3.8395738909538917,
+        "peak_cuda_memory_bytes": 7945162752
+      },
+      {
+        "rank": 4,
+        "updates": 4172,
+        "mean_step_seconds": 3.8377801719191282,
+        "peak_cuda_memory_bytes": 7963815936
+      },
+      {
+        "rank": 5,
+        "updates": 4172,
+        "mean_step_seconds": 3.837770651762971,
+        "peak_cuda_memory_bytes": 7962374144
+      },
+      {
+        "rank": 6,
+        "updates": 4172,
+        "mean_step_seconds": 3.8375062758820926,
+        "peak_cuda_memory_bytes": 7962619904
+      },
+      {
+        "rank": 7,
+        "updates": 4172,
+        "mean_step_seconds": 3.8356997572561533,
+        "peak_cuda_memory_bytes": 7962759168
+      }
+    ],
+    "first_update_sync": {
+      "status": "PASSED",
+      "all_trainable_parameters": true,
+      "ranks": [
+        {
+          "rank": 0,
+          "sha256": "114e6944427820299f97a96f8b05d44771503ba1df5bf9fb854702e1dd79799b",
+          "changed": true
+        },
+        {
+          "rank": 1,
+          "sha256": "114e6944427820299f97a96f8b05d44771503ba1df5bf9fb854702e1dd79799b",
+          "changed": true
+        },
+        {
+          "rank": 2,
+          "sha256": "114e6944427820299f97a96f8b05d44771503ba1df5bf9fb854702e1dd79799b",
+          "changed": true
+        },
+        {
+          "rank": 3,
+          "sha256": "114e6944427820299f97a96f8b05d44771503ba1df5bf9fb854702e1dd79799b",
+          "changed": true
+        },
+        {
+          "rank": 4,
+          "sha256": "114e6944427820299f97a96f8b05d44771503ba1df5bf9fb854702e1dd79799b",
+          "changed": true
+        },
+        {
+          "rank": 5,
+          "sha256": "114e6944427820299f97a96f8b05d44771503ba1df5bf9fb854702e1dd79799b",
+          "changed": true
+        },
+        {
+          "rank": 6,
+          "sha256": "114e6944427820299f97a96f8b05d44771503ba1df5bf9fb854702e1dd79799b",
+          "changed": true
+        },
+        {
+          "rank": 7,
+          "sha256": "114e6944427820299f97a96f8b05d44771503ba1df5bf9fb854702e1dd79799b",
+          "changed": true
+        }
+      ]
+    },
+    "full_sample_order_verified": true,
+    "baseline_retrained": false
+  },
+  "official_comparison": {
+    "status": "FULL4_BASELINE_COMPARISON_COMPLETE",
+    "same_128_rgb_cohort": true,
+    "baseline_run": "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt02_esam_many_full_node11_8gpu",
+    "baseline_retrained": false,
+    "parameter_updates": 0,
+    "official_fields": [
+      "AbsRel",
+      "RMSE",
+      "PSNR",
+      "SSIM",
+      "LPIPS",
+      "context_mIoU_s",
+      "context_mAP",
+      "context_PQ",
+      "context_mIoU_t",
+      "novel_mIoU_s",
+      "novel_mAP",
+      "novel_PQ",
+      "novel_mIoU_t"
+    ],
+    "baseline": [
+      "0.08883613753641839",
+      "0.21764044557736875",
+      "18.085460028300684",
+      "0.6348038284146847",
+      "0.609879330615513",
+      "0.4387630753219128",
+      "0.1892472207546234",
+      "0.467336901986289",
+      "",
+      "0.437518529035151",
+      "0.16519224643707275",
+      "0.45011391190528344",
+      ""
+    ],
+    "direct_attributes": [
+      "0.08890664656307005",
+      "0.21745010711310897",
+      "18.04697582994898",
+      "0.634097755944822",
+      "0.6115015662508085",
+      "0.4301702558994293",
+      "0.1670285314321518",
+      "0.4709802713556238",
+      "",
+      "0.4316649898886681",
+      "0.15311357378959656",
+      "0.45420303569376025",
+      ""
+    ],
+    "delta": [
+      7.050902665166336e-05,
+      -0.00019033846425978163,
+      -0.03848419835170347,
+      -0.0007060724698627618,
+      0.0016222356352955103,
+      -0.008592819422483466,
+      -0.02221868932247162,
+      0.0036433693693347924,
+      "",
+      -0.0058535391464829,
+      -0.012078672647476196,
+      0.004089123788476812,
+      ""
+    ],
+    "auxiliary_readout": [
+      {
+        "scope": "train",
+        "method": "prototype",
+        "gt_count": 38,
+        "pred_count": 22,
+        "tp50": 13,
+        "one_to_one_gt_iou": 0.33426525469689516,
+        "precision50": 0.5909090909090909,
+        "recall50": 0.34210526315789475
+      },
+      {
+        "scope": "train",
+        "method": "prototype_raw",
+        "gt_count": 38,
+        "pred_count": 441,
+        "tp50": 20,
+        "one_to_one_gt_iou": 0.544355457814884,
+        "precision50": 0.045351473922902494,
+        "recall50": 0.5263157894736842
+      },
+      {
+        "scope": "train",
+        "method": "prototype_nms",
+        "gt_count": 38,
+        "pred_count": 88,
+        "tp50": 19,
+        "one_to_one_gt_iou": 0.5168993243972078,
+        "precision50": 0.2159090909090909,
+        "recall50": 0.5
+      },
+      {
+        "scope": "train",
+        "method": "cluster",
+        "gt_count": 38,
+        "pred_count": 206,
+        "tp50": 12,
+        "one_to_one_gt_iou": 0.3163403026461638,
+        "precision50": 0.05825242718446602,
+        "recall50": 0.3157894736842105
+      },
+      {
+        "scope": "heldout",
+        "method": "prototype",
+        "gt_count": 36,
+        "pred_count": 30,
+        "tp50": 26,
+        "one_to_one_gt_iou": 0.5479296858328073,
+        "precision50": 0.8666666666666667,
+        "recall50": 0.7222222222222222
+      },
+      {
+        "scope": "heldout",
+        "method": "prototype_raw",
+        "gt_count": 36,
+        "pred_count": 629,
+        "tp50": 29,
+        "one_to_one_gt_iou": 0.7001728466089367,
+        "precision50": 0.046104928457869634,
+        "recall50": 0.8055555555555556
+      },
+      {
+        "scope": "heldout",
+        "method": "prototype_nms",
+        "gt_count": 36,
+        "pred_count": 111,
+        "tp50": 28,
+        "one_to_one_gt_iou": 0.6746237307594578,
+        "precision50": 0.25225225225225223,
+        "recall50": 0.7777777777777778
+      },
+      {
+        "scope": "heldout",
+        "method": "cluster",
+        "gt_count": 36,
+        "pred_count": 150,
+        "tp50": 18,
+        "one_to_one_gt_iou": 0.4945319919581455,
+        "precision50": 0.12,
+        "recall50": 0.5
+      }
+    ],
+    "limits": [
+      "Compared to original Unified full4, not a full-data instance_grounding run.",
+      "Direct attributes/prototypes and rendered Pull/Push/Cross are a combined change.",
+      "Fixed 8-window HDBSCAN readout is auxiliary; official128 uses native prototype/class/assembly.",
+      "Baseline node11/new node13 both 8x3090; no claim of bitwise frontend determinism."
+    ]
+  },
+  "limits": [
+    "Single seed; main comparison original Unified full4, combined architecture and rendered supervision change.",
+    "Auxiliary HDBSCAN is eight fixed windows only, not official128."
+  ]
+}
