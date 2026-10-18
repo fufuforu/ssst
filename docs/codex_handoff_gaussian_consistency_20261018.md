@@ -1,5 +1,13 @@
 # 新对话交接：Unified 渲染前 Gaussian 实例一致性
 
+## 最新完成核查：67349（覆盖下文RUNNING历史）
+
+用户要求检查后确认67349 COMPLETED/0:0，6分58秒，3dimage-13、4×3090。两组16窗口/32图、8张配对图完整完成；source/before/after参数SHA一致、所有参数版本不变、无grad/optimizer、0更新，源checkpoint文件hash未变。真实缓存重算128组主要指标与汇总完全相同。详见`docs/fixed_instance_readout_results_20261018.md`及同名JSON；运行根目录`COMPLETION_REVIEW.json`。
+
+新约束heldout同GT跨父8维距离0.5304→0.3183，但异GT也0.7154→0.4038；全局AUROC0.6997→0.6666、局部0.5990→0.5940。固定HDBSCAN未稳定改善：heldout一对一IoU基线15.00%、新组10.96%，低于raw Membership15.23%/16.52%；最终原生组装8.62%→6.30%。本轮统一口径为每图、全部GT、类别无关，不是旧来源匹配两视图IoU或官方mAP/PQ。
+
+**须修正旧解释**：旧来源探针8.46%→5.50%本次精确重现，但不代表所有原始Mask全面退化。scene0030_01的GT16指定Query37/38最好IoU66.15%→2.50%，新组其他Query18仍80.99%，说明指定来源Query与实际Mask响应会脱节。不能只凭旧指标宣判原生Mask全部消失；也不能因新raw略升就忽略最终组装和8维局部分离问题。未重训/重提，未提交后续实验。
+
 ## 新增授权：固定权重机制与8维聚类（2026-10-18）
 
 **已提交67349**，唯一调度核对为北京时间14:58:16，RUNNING，3dimage-13、4×3090、16CPU、128G。独立执行快照`/space/mawb/ssst_fixed_instance_readout_code_20261018`，SHA `8803dd4e3562c4727ebe6cfd1c5969c4e9aae2bc`。同一作业依次GPU机制/导出、CPU HDBSCAN/评测/汇总，无训练、无参数更新。12项CPU测试、32张合成图完整流程及真实模型/资产/RGB/GT预检通过；提交后未查看日志，真实GPU门禁和结果尚未核实。已停止轮询，等用户通知完成后再检查，不能再次提交本组。最新收据见`docs/fixed_instance_readout_submission_20261018.json`。
