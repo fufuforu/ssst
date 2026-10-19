@@ -2,7 +2,10 @@
 import torch
 import torch.nn.functional as F
 from tokengs.models.unified_query_v1 import LocusGSUnifiedQueryV1
+from tokengs.models.concat_shared_decoder import LocusGSConcatShared
+from tokengs.models.reconstruction_then_object import LocusGSReconstructionThenObject
 from tokengs.models.superpoint_dual_core import SuperpointDualCore
+from tokengs.models.superpoint_dual_point_reconstruction import SuperpointDualPointReconstructionCore
 from tokengs.models.direct_gaussian_core import DirectGaussianCore
 from tokengs.models.serial_query_core import SerialQueryCore
 from tokengs.models.serial_residual_query_core import SerialResidualQueryCore
@@ -11,7 +14,8 @@ from tokengs.models.unified_instance_grounding import LocusGSInstanceGroundedUni
 from tokengs.models.unified_instance_coupling import LocusGSInstanceLift,LocusGSInstanceBoundary,LocusGSInstanceBidirectional
 from tokengs.models.gaussian_instance_consistency import LocusGSGaussianInstanceConsistency
 from tokengs.models.direct_instance_attributes import LocusGSDirectInstanceAttributes,LocusGSOneToOneDirectInstanceAttributes
-from tokengs.models.unified_query_gs_evidence import LocusGSGSEvidenceUnified,LocusGSGSEvidenceCoverage
+from tokengs.models.unified_query_gs_evidence import LocusGSGSEvidenceUnified,LocusGSGSEvidenceCoverage,LocusGSGSEvidenceOneToOne
+from tokengs.models.unified_superpoints_refined import LocusGSRefinedSuperpoints
 from tokengs.models.gfm_dual_stream_components import gfm_grid
 from tokengs.models.object_locus_v3_set import alpha_normalize_membership
 
@@ -23,6 +27,11 @@ class LocusGSSuperpointDual(LocusGSUnifiedQueryV1):
     def encode_context(self,rgb):
         omega,cloud,_=super().encode_context(rgb)
         return omega,cloud,self.core.prepare_memory(omega,rgb,self.gs)
+
+
+class LocusGSSuperpointDualPointReconstruction(LocusGSSuperpointDual):
+    architecture_name='OMEGA_POINT1024_RECON_SUPERPOINT_UNDERSTANDING_DUAL_V1'
+    core_type=SuperpointDualPointReconstructionCore
 
 
 class LocusGSDirectGaussian(LocusGSUnifiedQueryV1):
@@ -98,7 +107,7 @@ class LocusGSGeometryBiasedUnified(LocusGSUnifiedQueryV1):
         return output,metrics
 
 
-MODELS={'unified':LocusGSUnifiedQueryV1,'unified_gs_evidence':LocusGSGSEvidenceUnified,'unified_gs_evidence_coverage':LocusGSGSEvidenceCoverage,'dual_superpoint':LocusGSSuperpointDual,'unified_direct':LocusGSDirectGaussian,'serial_query':LocusGSSerialQuery,'serial_residual':LocusGSSerialResidualQuery,
+MODELS={'unified':LocusGSUnifiedQueryV1,'unified_superpoint_refined':LocusGSRefinedSuperpoints,'unified_gs_evidence':LocusGSGSEvidenceUnified,'unified_gs_evidence_coverage':LocusGSGSEvidenceCoverage,'unified_gs_evidence_one_to_one':LocusGSGSEvidenceOneToOne,'dual_superpoint':LocusGSSuperpointDual,'dual_point1024':LocusGSSuperpointDualPointReconstruction,'concat_shared':LocusGSConcatShared,'recon_then_object':LocusGSReconstructionThenObject,'unified_direct':LocusGSDirectGaussian,'serial_query':LocusGSSerialQuery,'serial_residual':LocusGSSerialResidualQuery,
     'dual_bounded':LocusGSBoundedSuperpointDual,'unified_ray_bias':LocusGSGeometryBiasedUnified,
     'unified_instance_grounding':LocusGSInstanceGroundedUnified,
     'unified_instance_lift':LocusGSInstanceLift,'unified_instance_boundary':LocusGSInstanceBoundary,

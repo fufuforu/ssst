@@ -6,7 +6,7 @@ import torch.nn.functional as F
 
 from tokengs.models.unified_query_core import UnifiedQueryCore
 from tokengs.models.unified_query_v1 import LocusGSUnifiedQueryV1
-from tokengs.models.unified_superpoints import SuperpointQueryInitializer
+from tokengs.models.unified_superpoints import SuperpointQueryInitializer, UnifiedQueryConfig
 from tokengs.models.locusgs_recon import LocusGSGaussianHead
 from tokengs.models.input_types import ModelInputDecoder
 from tokengs.models.object_locus_posefree_geometry import camera_vectors
@@ -85,8 +85,11 @@ class GSEvidenceUnifiedCore(UnifiedQueryCore):
         self.config = config
         d = config.dim
         assert d == EVIDENCE_DIM and opt.dec_patch_size == 8
-        assert config.matching_mode == 'source_many_to_one'
-        assert config.support_matching is True and config.support_purity == .5
+        assert config.matching_mode in ('source_many_to_one', 'global_hungarian')
+        if config.matching_mode == 'source_many_to_one':
+            assert config.support_matching is True and config.support_purity == .5
+        else:
+            assert config.support_matching is False
         self.initializer = SuperpointQueryInitializer(config)
         self.blocks = nn.ModuleList([nn.TransformerDecoderLayer(d, config.heads, 4*d, dropout=0., activation='gelu', batch_first=True, norm_first=True) for _ in range(config.depth)])
         self.geometry = nn.ModuleList([nn.Linear(d, 4) for _ in self.blocks])
@@ -154,6 +157,18 @@ class GSEvidenceUnifiedCore(UnifiedQueryCore):
 class LocusGSGSEvidenceUnified(LocusGSUnifiedQueryV1):
     architecture_name = 'OMEGA_3D_SUPERPOINT_UNIFIED_QUERY_GS_EVIDENCE_V1'
     core_type = GSEvidenceUnifiedCore
+
+    def __init__(self, opt, *, config=None, **kwargs):
+        config = config if config is not None else UnifiedQueryConfig()
+        # Only the explicit new architecture may opt into global assignment.
+        # Original A and coverage retain their historical rejection contract.
+        if config.matching_mode == 'global_hungarian':
+            assert isinstance(self, LocusGSGSEvidenceOneToOne)
+        super().__init__(opt, config=config, **kwargs)
+
+    @property
+    def extra_checkpoint_metadata(self):
+        return dict()
 
     def step_loss(self, batch, *, step=0, phase='train', understanding_weight=1.):
         output, metrics = super().step_loss(batch, step=step, phase=phase,
@@ -238,3 +253,26 @@ class LocusGSGSEvidenceCoverage(LocusGSGSEvidenceUnified):
         metrics['loss'] = (metrics['loss_recon'] + understanding_weight * metrics['loss_understanding']
                            + RECIPE_COVERAGE.loss_weight * cov)
         return output, metrics
+
+
+class LocusGSGSEvidenceOneToOne(LocusGSGSEvidenceUnified):
+    architecture_name = 'OMEGA_3D_SUPERPOINT_UNIFIED_QUERY_GS_EVIDENCE_ONE_TO_ONE_V1'
+
+    @staticmethod
+    def default_config():
+        return UnifiedQueryConfig(matching_mode='global_hungarian', support_matching=False)
+
+    def __init__(self, opt, *, config=None, **kwargs):
+        config = config if config is not None else self.default_config()
+        if config.matching_mode != 'global_hungarian' or config.support_matching:
+            raise ValueError('GS evidence one-to-one requires global_hungarian and support_matching=False')
+        super().__init__(opt, config=config, **kwargs)
+
+    @property
+    def extra_checkpoint_metadata(self):
+        return dict(super().extra_checkpoint_metadata, instance_assignment_recipe=dict(
+            matching='global_hungarian', source_support_constraints=False,
+            post_match_filter=False, require_all_valid_gt_matched=True,
+            insufficient_queries='error', unmatched_query_target='no_object',
+            no_object_weight=.1, mask_supervision='one_complete_mask_per_gt',
+            note='bundled with per-query weighted CE; not a pure matching-only change'))

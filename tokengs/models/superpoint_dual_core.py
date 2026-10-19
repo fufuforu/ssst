@@ -46,12 +46,23 @@ class SuperpointDualCore(nn.Module):
             rays=patch_plucker_rays(rays_o,rays_d,patch_size=8),renderer=renderer,
             decoder=ModelInputDecoder(cam_view=torch.linalg.inv(omega['c2w']).transpose(-1,-2),intrinsics=camera_vectors(omega['k'])))
 
+    def initialize_streams(self,cloud,memory):
+        seed=self.initializer(cloud,cloud['features'],cloud['features']);rec,under=seed['reconstruction'],seed['understanding']
+        return self.reconstruction_seed_projection(rec['query']),rec,under
+
+    def parent_metadata(self,tokens,n):
+        return dict(gaussian_parent_query=torch.arange(n,device=tokens.device).repeat_interleave(64))
+
+    def decode_streams(self,tokens,rec,under,memory):
+        radius=under['radii'][...,None].expand(-1,-1,3)
+        states,_=self.anchor_decoder.forward_stateful(tokens,memory['latent'],memory['rays'],self.panoptic,memory['fm'],under['query'],self.semantic_memory.mask_embedder,0,
+            seed_mu=rec['centers'],seed_radius=rec['radii'],seed_c=under['centers'],seed_s=radius,write_strength=0.,normalization_fn=superpoint_scene_normalization)
+        return states
+
     def forward(self,cloud,memory,superpoint_ids=None):
         if superpoint_ids is not None:cloud=dict(cloud,point_superpoint_ids=superpoint_ids)
-        seed=self.initializer(cloud,cloud['features'],cloud['features']);rec,under=seed['reconstruction'],seed['understanding']
-        tokens=self.reconstruction_seed_projection(rec['query']);fm=memory['fm'];radius=under['radii'][...,None].expand(-1,-1,3)
-        states,_=self.anchor_decoder.forward_stateful(tokens,memory['latent'],memory['rays'],self.panoptic,fm,under['query'],self.semantic_memory.mask_embedder,0,
-            seed_mu=rec['centers'],seed_radius=rec['radii'],seed_c=under['centers'],seed_s=radius,write_strength=0.,normalization_fn=superpoint_scene_normalization)
+        tokens,rec,under=self.initialize_streams(cloud,memory)
+        fm=memory['fm'];states=self.decode_streams(tokens,rec,under,memory)
         final=states[-1];q=final['q'];n=q.shape[1]-2
         gaussians=self.activation_head(final['tokens'],final['mu'],final['radii'])
         grid=F.interpolate(fm.flatten(0,1),size=self.activation_head.opt.img_size if hasattr(self.activation_head,'opt') else (256,256),mode='bilinear',align_corners=False)
@@ -63,7 +74,7 @@ class SuperpointDualCore(nn.Module):
         final.update(classification)
         return dict(states=states,gaussians=gaussians,gaussian_membership=logits.sigmoid(),gaussian_mask_logits=logits,
             thing_logits19=classification['thing_logits19'],p_class=classification['p_class'],q_pre=under['query'],unified_query=q[:,:n],
-            superpoints=under,cloud=cloud,gaussian_parent_query=torch.arange(n,device=q.device).repeat_interleave(64),num_thing_queries=n)
+            superpoints=under,cloud=cloud,**self.parent_metadata(tokens,n),num_thing_queries=n)
 
     def parameter_groups(self):
         groups=dict(shared=[],reconstruction=[],understanding=[])
