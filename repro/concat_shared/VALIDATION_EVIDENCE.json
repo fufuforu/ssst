@@ -1,0 +1,62 @@
+{
+  "status": "PASSED",
+  "targeted_cpu_tests": {
+    "passed": 13,
+    "failed": 0,
+    "seconds": 38.438,
+    "command": "OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 /space/mawb/anaconda3/envs/tokengs/bin/python -u -m unittest tests.test_concat_shared_decoder tests.test_superpoint_dual_point_reconstruction tests.test_superpoint_structural_variants -v"
+  },
+  "new_tests": 4,
+  "regressions": 9,
+  "checks": [
+    "one shared GFM adapter preserving original K/V values",
+    "one 12-layer shared decoder",
+    "unrestricted bidirectional reconstruction/understanding token gradients",
+    "understanding geometry fixed while reconstruction geometry updates",
+    "1024+N+2 token lengths observed at every layer",
+    "only first1024 tokens generate65536GS",
+    "dynamic understanding classification and memberships",
+    "complete nonduplicated parameter grouping"
+  ],
+  "actual_zero_preflight": true,
+  "shared_exact_tensors": 479,
+  "total_tensors": 489,
+  "new_tensors": 10,
+  "removed_tensors": 185,
+  "frozen_assets_hashed": true,
+  "exposures_verified": 33376,
+  "source_manifest": {
+    "base_git_sha": "58e86fa3b17ea044edbca46906546417c825102e",
+    "snapshot": "/space/mawb/ssst_concat_shared_full_code_20261019",
+    "overlay_sha256": {
+      "tokengs/models/superpoint_dual_core.py": "02d4b57cedb1f416325776bb932cf7469f4b7d36d8a8ccd986159061aa06fd90",
+      "tokengs/models/superpoint_dual_point_reconstruction.py": "5b1abb95df3f12f34d17d9e41700b0c7ecbdf78ec6298bce03a202eae72986a7",
+      "tokengs/models/concat_shared_decoder.py": "ee270edfdbb88bb62587568012773584bda6c939e8df7665d86bfadb918169fe",
+      "tokengs/models/superpoint_structural_variants.py": "8c6c080f34e74c60c953b15e8ef89300bde70c1ca67ab8dade4aedd8e765a51c",
+      "tokengs/models/unified_query_gs_evidence.py": "bfc35793e5cbd7e0c95f8d0d3b33b06f9c9d4a15a74b8b9946ec4a9df72dcbed",
+      "tokengs/models/unified_superpoints_refined.py": "f3d14795ee2e5235b029bb79ac3ca314b33857132b7cb1f73cee4ba96cadf205",
+      "scripts/train_unified_query_v1.py": "b4722f69c98d799d0befdd9b798947096ff99d46d550475b12754bf67a12b5e2",
+      "scripts/prepare_concat_shared_full.py": "dbff587c3625bd3caed5322f01ea6429d403a79ed4f1ca0d5b3e32ab1e2219dd",
+      "scripts/run_concat_shared_full.sh": "caa01d9588a835383d2583a97682e6530a1db337c2a822e9b59ed91db7347308",
+      "scripts/submit_concat_shared_full.py": "500802a5e1ecc23063b8b138331bb3cff8ba937afcbae4eebc31a73e542f61bb",
+      "tests/test_superpoint_dual_point_reconstruction.py": "fc94b235063a3f5aa366f8070f94dd2b6be7fcb2ca6880567b403a038280bc6c",
+      "tests/test_concat_shared_decoder.py": "e2f72c4fcd4411f684339a982d4f36df498d4266458c4fa428b5a7cddd89aadb",
+      "docs/concat_shared_decoder_full_20261019.md": "84543d5d12106b4697785f8a3370879ddb4cb022e64930f2831327a5536fad79"
+    },
+    "excluded_prior_changes": [
+      "scripts/export_object_locus_v3_set_official.py",
+      "scripts/sweep_panoptic_assembly.py"
+    ],
+    "historical_snapshots_modified": false
+  },
+  "python_compile": true,
+  "bash_syntax": true,
+  "diff_check": true,
+  "gpu_forward_backward_verified": false,
+  "eight_rank_first_update_verified": false,
+  "hardware": {
+    "node": "3dimage-17",
+    "gpus": "4090:8",
+    "partition": "4090"
+  }
+}

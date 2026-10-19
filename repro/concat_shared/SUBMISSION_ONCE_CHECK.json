@@ -1,0 +1,10 @@
+{
+  "stdout": "67973|PENDING||(None)",
+  "stderr": "",
+  "returncode": 0,
+  "checked_utc": "2026-10-19T03:12:02.298050+00:00",
+  "job_failed": null,
+  "gpu_first_update_verified": false,
+  "eight_rank_sync_verified": false,
+  "polling_stopped": true
+}

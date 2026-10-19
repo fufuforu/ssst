@@ -1,3 +1,5 @@
+> **实验分支：Concat共享Decoder/GFM（训练67973）。** [结构、源码与作业对应](EXPERIMENT.md)。
+
 # TokenGS
 
 ![Teaser: TokenGS results and exploration](assets/tokengs_explore.gif)
