@@ -49,22 +49,25 @@ class Task(nn.Module):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir',type=Path,required=True);parser.add_argument('--understanding-weight',type=float,required=True)
-    parser.add_argument('--architecture',choices=('unified','unified_gs_evidence','unified_gs_evidence_coverage','dual_superpoint','unified_direct','serial_query','serial_residual','dual_bounded','unified_ray_bias','unified_instance_grounding','unified_instance_lift','unified_instance_boundary','unified_instance_bidirectional','unified_gaussian_consistency','unified_direct_instance_attributes','unified_direct_instance_attributes_one_to_one'),default='unified')
+    parser.add_argument('--architecture',choices=('unified','unified_superpoint_refined','unified_gs_evidence','unified_gs_evidence_coverage','unified_gs_evidence_one_to_one','dual_superpoint','dual_point1024','unified_direct','serial_query','serial_residual','dual_bounded','unified_ray_bias','unified_instance_grounding','unified_instance_lift','unified_instance_boundary','unified_instance_bidirectional','unified_gaussian_consistency','unified_direct_instance_attributes','unified_direct_instance_attributes_one_to_one'),default='unified')
     parser.add_argument('--epochs',type=int,default=4);parser.add_argument('--max-updates',type=int)
     parser.add_argument('--learning-rate',type=float,default=1e-4);parser.add_argument('--understanding-warmup',type=int,default=1043)
     parser.add_argument('--short-validation',action='store_true',help='16 fixed training scenes, 256 updates, initial/final probes')
+    parser.add_argument('--short-full-schedule',action='store_true',help='Refined-capacity short test only: keep full4 LR horizon and requested understanding warmup')
     parser.add_argument('--epoch-probes',action='store_true',help='Fixed train/heldout probes initially and at each full epoch')
     parser.add_argument('--initial-checkpoint',type=Path);parser.add_argument('--initial-sha256')
     parser.add_argument('--continue-checkpoint',type=Path);parser.add_argument('--continue-sha256')
     parser.add_argument('--config',type=Path);parser.add_argument('--resume',action='store_true');parser.add_argument('--checkpoint-every',type=int,default=50)
     args=parser.parse_args()
+    if args.short_full_schedule and (not args.short_validation or args.architecture!='unified_superpoint_refined' or args.epochs!=4):parser.error('Full-schedule short test requires refined architecture, --short-validation, and epochs4')
     if args.understanding_weight<0 or not math.isfinite(args.understanding_weight) or args.epochs<1 or args.learning_rate<=0 or args.understanding_warmup<0 or args.checkpoint_every<1 or args.max_updates is not None and args.max_updates<1:parser.error('Invalid training settings')
-    if bool(args.initial_checkpoint)!=bool(args.initial_sha256) or args.initial_checkpoint and (args.resume or args.short_validation and args.architecture!='serial_residual'):parser.error('Zero-step initialization requires SHA; short transfer is limited to serial_residual')
+    if bool(args.initial_checkpoint)!=bool(args.initial_sha256) or args.initial_checkpoint and (args.resume or args.short_validation and args.architecture not in ('serial_residual','unified_superpoint_refined')):parser.error('Zero-step initialization requires SHA; short transfer is limited to serial_residual or unified_superpoint_refined')
     if args.architecture=='serial_residual' and (not args.short_validation or not args.initial_checkpoint):parser.error('Serial residual is authorized only as a source-initialized short test')
     if bool(args.continue_checkpoint)!=bool(args.continue_sha256) or args.continue_checkpoint and (args.initial_checkpoint or args.short_validation):parser.error('Continuation requires source SHA and full training without zero-step initialization')
     if args.short_validation:
         if args.resume or args.max_updates is not None:parser.error('Short validation uses a fresh bounded run')
-        args.epochs=128;args.max_updates=256;args.understanding_warmup=20
+        args.epochs=128;args.max_updates=256
+        if not args.short_full_schedule:args.understanding_warmup=20
     rank=int(os.environ.get('RANK',0));world=int(os.environ.get('WORLD_SIZE',1));local=int(os.environ.get('LOCAL_RANK',0))
     if world not in (1,2,4,8):raise ValueError('World size must divide fixed global batch8')
     torch.cuda.set_device(local);device=torch.device('cuda',local)
@@ -75,6 +78,7 @@ def main():
     default_config=getattr(MODELS[args.architecture],'default_config',UnifiedQueryConfig)
     config=UnifiedQueryConfig(**json.loads(args.config.read_text())) if args.config else default_config()
     opt=config_defaults['train_siu3r_unified_query_v1'];windows,chosen,validation=cohorts()
+    full_schedule_total=4*(len(epoch_order(len(windows),0))//8)
     if args.short_validation:windows=[windows[i] for i in chosen]
     from tokengs.models.superpoint_structural_variants import build_structural_model
     model=build_structural_model(args.architecture,opt,config).to(device)
@@ -95,6 +99,10 @@ def main():
         initial_checkpoint=str(args.initial_checkpoint.resolve()) if args.initial_checkpoint else None,initial_sha256=args.initial_sha256,initial_updates=0,epoch_probes=args.epoch_probes,short_validation=args.short_validation,training_windows=windows if args.short_validation else None,world_size=world,global_batch=8,epochs=args.epochs,understanding_weight=args.understanding_weight,understanding_warmup=args.understanding_warmup,learning_rate=args.learning_rate)
     progress=dict(epoch=0,update_in_epoch=0,full_updates=0)
     meta.update(getattr(model,'extra_checkpoint_metadata',{}))
+    if args.architecture=='unified_superpoint_refined':
+        from tokengs.models.unified_superpoints_refined import QUERY_VOXEL
+        meta['query_refinement']=dict(query_voxel=QUERY_VOXEL,children=64,selection_sha256=os.environ.get('SSST_REFINED_QUERY_SELECTION_SHA256'))
+    if args.short_full_schedule:meta['short_schedule']=dict(training_updates=256,lr_horizon=full_schedule_total,lr_warmup=100,understanding_warmup=args.understanding_warmup,source_full_epochs=4)
     continuation_model_digest=None
     if args.continue_checkpoint:
         from scripts.superpoint_dual_continuation import architecture_policy,validate_source,validate_optimizer_layout
@@ -158,7 +166,7 @@ def main():
             if args.continue_checkpoint:
                 from scripts.superpoint_dual_continuation import continuation_lr
                 rate=continuation_lr(step,peak=args.learning_rate)
-            else:rate=args.learning_rate*lr_factor('short' if args.short_validation else 'full',step,total)
+            else:rate=args.learning_rate*lr_factor('full' if args.short_full_schedule else ('short' if args.short_validation else 'full'),step,full_schedule_total if args.short_full_schedule else total)
             for group in optimizer.param_groups:group['lr']=rate
             indices=rank_microbatches(order,update,rank,world)
             for micro,index in enumerate(indices):
