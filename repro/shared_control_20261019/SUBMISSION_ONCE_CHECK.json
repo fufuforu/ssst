@@ -1,0 +1,14 @@
+{
+  "checked_utc": "2026-10-19T06:22:39.805221+00:00",
+  "jobs": [
+    "68049",
+    "68050",
+    "68051"
+  ],
+  "stdout": "68049|PENDING||(Dependency)|3090|gres/gpu:3090:1\n68051|PENDING||(None)|3090,4090|gres/gpu:8\n68050|PENDING||(Dependency)|4090|gres/gpu:4090:1",
+  "stderr": "",
+  "returncode": 0,
+  "polling_stopped": true,
+  "old_job_state": "CANCELLED",
+  "old_job_check_returncode": 0
+}

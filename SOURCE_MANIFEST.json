@@ -1,0 +1,22 @@
+{
+  "base_git_sha": "58e86fa3b17ea044edbca46906546417c825102e",
+  "snapshot": "/space/mawb/ssst_A_point1024_full_code_20261019",
+  "overlay_sha256": {
+    "tokengs/models/superpoint_dual_core.py": "02d4b57cedb1f416325776bb932cf7469f4b7d36d8a8ccd986159061aa06fd90",
+    "tokengs/models/superpoint_dual_point_reconstruction.py": "5b1abb95df3f12f34d17d9e41700b0c7ecbdf78ec6298bce03a202eae72986a7",
+    "tokengs/models/superpoint_structural_variants.py": "976431dcd825c16466cd8cca486bfa64ac4f75b11a2df4797020db3949235a6b",
+    "tokengs/models/unified_query_gs_evidence.py": "bfc35793e5cbd7e0c95f8d0d3b33b06f9c9d4a15a74b8b9946ec4a9df72dcbed",
+    "tokengs/models/unified_superpoints_refined.py": "f3d14795ee2e5235b029bb79ac3ca314b33857132b7cb1f73cee4ba96cadf205",
+    "scripts/train_unified_query_v1.py": "a2889af45c24f6f1ce8c14a07ed1157d6a236e20c9faad5a4f8ec20bbf39a631",
+    "scripts/prepare_dual_point1024_full.py": "53cdef7c5928e149076ef27640855dc11283c2d40ddcd41eee2ab8735f77a976",
+    "scripts/run_dual_point1024_full.sh": "bad987402590525511c9b2b39bd3a9601913015cfe4f9ae2b7de3a78d323b3c4",
+    "scripts/submit_dual_point1024_full.py": "23506e96336380d71288e2b6ad33eb695c42dd82a7fff30f94f74de2211dfa50",
+    "tests/test_superpoint_dual_point_reconstruction.py": "fc94b235063a3f5aa366f8070f94dd2b6be7fcb2ca6880567b403a038280bc6c",
+    "docs/A_dual_point1024_reconstruction_20261019.md": "9aca0b329a73018aa3b051c05bbe7aadb6957690f66ddef727f8b7e0ffc73962"
+  },
+  "excluded_prior_changes": [
+    "scripts/export_object_locus_v3_set_official.py",
+    "scripts/sweep_panoptic_assembly.py"
+  ],
+  "historical_snapshots_modified": false
+}

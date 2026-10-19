@@ -1,0 +1,121 @@
+{
+  "started_utc": "2026-10-19T06:22:39.708610+00:00",
+  "evaluations": [
+    {
+      "training_job": 67952,
+      "node": "3dimage-13",
+      "gpu": "3090:1",
+      "dependency": "afterok:67952",
+      "original_snapshot": "/space/mawb/ssst_A_point1024_full_code_20261019",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--job-name=point1024_eval_67952",
+        "--partition=3090",
+        "--nodelist=3dimage-13",
+        "--nodes=1",
+        "--gres=gpu:3090:1",
+        "--cpus-per-task=4",
+        "--mem=64G",
+        "--time=12:00:00",
+        "--kill-on-invalid-dep=yes",
+        "--dependency=afterok:67952",
+        "--chdir=/space/mawb/ssst_A_point1024_full_code_20261019",
+        "--output=/space/mawb/ssst/group_plus/unified_query_training_v1/attempt21_A_dual_point1024_full_node13_8gpu/evaluation-slurm-%j.out",
+        "/space/mawb/ssst_point1024_eval_flexible_control_20261019/scripts/run_point1024_official_eval.sh",
+        "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt21_A_dual_point1024_full_node13_8gpu",
+        "/space/mawb/ssst_A_point1024_full_code_20261019",
+        "/space/mawb/ssst_point1024_eval_flexible_control_20261019"
+      ],
+      "control_code": "/space/mawb/ssst_point1024_eval_flexible_control_20261019",
+      "submitted_utc": "2026-10-19T06:22:39.710623+00:00",
+      "job_id": 68049
+    },
+    {
+      "training_job": 67973,
+      "node": "3dimage-17",
+      "gpu": "4090:1",
+      "dependency": "afterok:67973",
+      "original_snapshot": "/space/mawb/ssst_concat_shared_full_code_20261019",
+      "command": [
+        "sbatch",
+        "--parsable",
+        "--job-name=point1024_eval_67973",
+        "--partition=4090",
+        "--nodelist=3dimage-17",
+        "--nodes=1",
+        "--gres=gpu:4090:1",
+        "--cpus-per-task=4",
+        "--mem=64G",
+        "--time=12:00:00",
+        "--kill-on-invalid-dep=yes",
+        "--dependency=afterok:67973",
+        "--chdir=/space/mawb/ssst_concat_shared_full_code_20261019",
+        "--output=/space/mawb/ssst/group_plus/unified_query_training_v1/attempt22_concat_shared_full_node17_8gpu/evaluation-slurm-%j.out",
+        "/space/mawb/ssst_point1024_eval_flexible_control_20261019/scripts/run_point1024_official_eval.sh",
+        "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt22_concat_shared_full_node17_8gpu",
+        "/space/mawb/ssst_concat_shared_full_code_20261019",
+        "/space/mawb/ssst_point1024_eval_flexible_control_20261019"
+      ],
+      "control_code": "/space/mawb/ssst_point1024_eval_flexible_control_20261019",
+      "submitted_utc": "2026-10-19T06:22:39.727586+00:00",
+      "job_id": 68050
+    }
+  ],
+  "replacement": {
+    "old_job": 67976,
+    "old_state": "PENDING",
+    "old_held_scheduler": "JobId=67976 JobName=recon_then_object_full4 UserId=mawb(3920) GroupId=mawb(3920) MCS_label=N/A Priority=0 Nice=0 Account=(null) QOS=normal JobState=PENDING Reason=JobHeldUser Dependency=(null) Requeue=1 Restarts=0 BatchFlag=1 Reboot=0 ExitCode=0:0 RunTime=00:00:00 TimeLimit=1-00:00:00 TimeMin=N/A SubmitTime=2026-10-19T11:27:14 EligibleTime=Unknown AccrueTime=2026-10-19T11:27:14 StartTime=2026-11-02T00:05:33 EndTime=2026-11-03T00:05:33 Deadline=N/A SuspendTime=None SecsPreSuspend=0 LastSchedEval=2026-10-19T14:22:27 Scheduler=Backfill:* Partition=4090 AllocNode:Sid=3dimage-cl-new:2450417 ReqNodeList=3dimage-18 ExcNodeList=(null) NodeList= NumNodes=1-1 NumCPUs=32 NumTasks=1 CPUs/Task=32 ReqB:S:C:T=0:0:*:* ReqTRES=cpu=32,mem=192G,node=1,billing=32,gres/gpu=8,gres/gpu:4090=8 AllocTRES=(null) Socks/Node=* NtasksPerN:B:S:C=0:0:*:* CoreSpec=* MinCPUsNode=32 MinMemoryNode=192G MinTmpDiskNode=0 Features=(null) DelayBoot=00:00:00 OverSubscribe=OK Contiguous=0 Licenses=(null) Network=(null) Command=/space/mawb/ssst_recon_then_object_full_code_20261019/scripts/run_recon_then_object_full.sh WorkDir=/space/mawb/ssst_recon_then_object_full_code_20261019 StdErr=/space/mawb/ssst/group_plus/unified_query_training_v1/attempt23_recon_then_object_full_node18_8gpu/slurm-67976.out StdIn=/dev/null StdOut=/space/mawb/ssst/group_plus/unified_query_training_v1/attempt23_recon_then_object_full_node18_8gpu/slurm-67976.out Power= MemPerTres=gpu:40960 TresPerNode=gres/gpu:4090:8 TresPerTask=cpu:32 \n",
+    "replacement_command": [
+      "sbatch",
+      "--parsable",
+      "--job-name=recon_then_object_flexible8",
+      "--partition=3090,4090",
+      "--nodes=1",
+      "--gres=gpu:8",
+      "--cpus-per-task=32",
+      "--mem=192G",
+      "--time=1-00:00:00",
+      "--exclude=3dimage-11,3dimage-12",
+      "--chdir=/space/mawb/ssst_recon_then_object_full_code_20261019",
+      "--output=/space/mawb/ssst/group_plus/unified_query_training_v1/attempt23_recon_then_object_full_node18_8gpu/slurm-%j.out",
+      "/space/mawb/ssst_point1024_eval_flexible_control_20261019/scripts/run_recon_then_object_flexible.sh",
+      "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt23_recon_then_object_full_node18_8gpu",
+      "/space/mawb/ssst_recon_then_object_full_code_20261019",
+      "/space/mawb/ssst_point1024_eval_flexible_control_20261019"
+    ],
+    "source_snapshot": "/space/mawb/ssst_recon_then_object_full_code_20261019",
+    "initial_sha256": "f3cb086bf7cd96293dc2e65a2942e117c7426db64bfa8633b8dd8526c7603833",
+    "run_directory_reused_without_updates": true,
+    "requested_utc": "2026-10-19T06:22:39.769053+00:00",
+    "old_cancel_request_accepted": true,
+    "job_id": 68051,
+    "status": "REPLACED_UNSTARTED_JOB",
+    "allowed_nodes": [
+      "3dimage-13",
+      "3dimage-14",
+      "3dimage-17",
+      "3dimage-18"
+    ],
+    "excluded_nodes": [
+      "3dimage-11",
+      "3dimage-12"
+    ],
+    "gpu_request": "generic_gpu:8",
+    "submitted_utc": "2026-10-19T06:22:39.790425+00:00"
+  },
+  "once_check": {
+    "checked_utc": "2026-10-19T06:22:39.805221+00:00",
+    "jobs": [
+      "68049",
+      "68050",
+      "68051"
+    ],
+    "stdout": "68049|PENDING||(Dependency)|3090|gres/gpu:3090:1\n68051|PENDING||(None)|3090,4090|gres/gpu:8\n68050|PENDING||(Dependency)|4090|gres/gpu:4090:1",
+    "stderr": "",
+    "returncode": 0,
+    "polling_stopped": true,
+    "old_job_state": "CANCELLED",
+    "old_job_check_returncode": 0
+  }
+}

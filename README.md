@@ -1,3 +1,5 @@
+> **实验分支：点云1024重建 + 超点理解双分支（训练67952）。** [结构、源码与作业对应](EXPERIMENT.md)。
+
 # TokenGS
 
 ![Teaser: TokenGS results and exploration](assets/tokengs_explore.gif)

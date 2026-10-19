@@ -1,0 +1,30 @@
+{
+  "training_job": 67952,
+  "node": "3dimage-13",
+  "gpu": "3090:1",
+  "dependency": "afterok:67952",
+  "original_snapshot": "/space/mawb/ssst_A_point1024_full_code_20261019",
+  "command": [
+    "sbatch",
+    "--parsable",
+    "--job-name=point1024_eval_67952",
+    "--partition=3090",
+    "--nodelist=3dimage-13",
+    "--nodes=1",
+    "--gres=gpu:3090:1",
+    "--cpus-per-task=4",
+    "--mem=64G",
+    "--time=12:00:00",
+    "--kill-on-invalid-dep=yes",
+    "--dependency=afterok:67952",
+    "--chdir=/space/mawb/ssst_A_point1024_full_code_20261019",
+    "--output=/space/mawb/ssst/group_plus/unified_query_training_v1/attempt21_A_dual_point1024_full_node13_8gpu/evaluation-slurm-%j.out",
+    "/space/mawb/ssst_point1024_eval_flexible_control_20261019/scripts/run_point1024_official_eval.sh",
+    "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt21_A_dual_point1024_full_node13_8gpu",
+    "/space/mawb/ssst_A_point1024_full_code_20261019",
+    "/space/mawb/ssst_point1024_eval_flexible_control_20261019"
+  ],
+  "control_code": "/space/mawb/ssst_point1024_eval_flexible_control_20261019",
+  "submitted_utc": "2026-10-19T06:22:39.710623+00:00",
+  "job_id": 68049
+}
