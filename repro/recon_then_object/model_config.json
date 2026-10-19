@@ -1,0 +1,19 @@
+{
+  "superpoint_source": "esam_sam",
+  "uncovered_clusters": 8,
+  "dim": 256,
+  "heads": 8,
+  "depth": 12,
+  "point_grid": 48,
+  "max_points": 4096,
+  "max_superpoints": 512,
+  "point_voxel": 0.01,
+  "superpoint_voxel": 0.08,
+  "neighbors": 12,
+  "point_layers": 2,
+  "checkpoint_blocks": true,
+  "matching_mode": "source_many_to_one",
+  "mask_nms_iou": 0.7,
+  "support_matching": true,
+  "support_purity": 0.5
+}

@@ -1,0 +1,40 @@
+{
+  "branch": "vggt-point1024-recon-then-object-full4-20261019",
+  "architecture_key": "recon_then_object",
+  "training_job": 68051,
+  "evaluation_job": null,
+  "original_training_job": 67976,
+  "original_snapshot": "/space/mawb/ssst_recon_then_object_full_code_20261019",
+  "original_base_git_sha": "58e86fa3b17ea044edbca46906546417c825102e",
+  "exact_code_commit": "9d0a1c2289128e2b2b78991742df13b301fb8fd1",
+  "overlay_sha256": {
+    "tokengs/models/superpoint_dual_core.py": "5f37f882d0436728f5f5a440ccf8f20f0c4c66fbf3728da9253b394034c72e2e",
+    "tokengs/models/superpoint_dual_point_reconstruction.py": "5b1abb95df3f12f34d17d9e41700b0c7ecbdf78ec6298bce03a202eae72986a7",
+    "tokengs/models/concat_shared_decoder.py": "ee270edfdbb88bb62587568012773584bda6c939e8df7665d86bfadb918169fe",
+    "tokengs/models/reconstruction_then_object.py": "1f9ac83ef41d9c21f4db8196797e33ef0b0bb629c6ce839ca1666df97e3a28fb",
+    "tokengs/models/superpoint_structural_variants.py": "bec631cca4c762d408a9bda409dcb63de9cd11f53ce36ecba28101f10ebc91e5",
+    "tokengs/models/unified_query_gs_evidence.py": "bfc35793e5cbd7e0c95f8d0d3b33b06f9c9d4a15a74b8b9946ec4a9df72dcbed",
+    "tokengs/models/unified_superpoints_refined.py": "70364ea0f28848bf4c1a72f6cddc43ebae541b0ed4cddc94cc5d206e683f367f",
+    "scripts/train_unified_query_v1.py": "114ce8f31809faba6537a96e15501191e298676b03765c5ebef00173b2280986",
+    "scripts/prepare_recon_then_object_full.py": "c8f6026fb16ef577c69bcb7861961e7844f4534ad5830cd4095f1d5fbde8adb9",
+    "scripts/run_recon_then_object_full.sh": "093b6514e4c97080f1f69b9f96168253cee8cbcc4e4f992ab6ad2fa30f3afb5f",
+    "scripts/submit_recon_then_object_full.py": "e1999e9001b11f4897c7f004caa6664655ec1082296b5b4eb0f2cf68012709d7",
+    "tests/test_superpoint_dual_point_reconstruction.py": "fc94b235063a3f5aa366f8070f94dd2b6be7fcb2ca6880567b403a038280bc6c",
+    "tests/test_reconstruction_then_object.py": "effaecdded64a661176d4317b98a05959a13514241237ec47c47b1f1bc5c33c2",
+    "docs/recon_then_object_full_20261019.md": "47fa6fa55e7767f4b07024be38dbb585860a9d49babf966f591d8b758eb6274c"
+  },
+  "selected_model_file": "tokengs/models/reconstruction_then_object.py",
+  "code_files_equal_actual_execution_snapshot": true,
+  "training_snapshot_modified": false,
+  "checkpoint_binaries_uploaded": false,
+  "datasets_uploaded": false,
+  "new_training_logs_uploaded": false,
+  "original_cpu_test_count": 13,
+  "publication_checks": [
+    "all overlay Git blobs match original SHA256",
+    "Python compilation",
+    "shell syntax",
+    "git diff --check"
+  ],
+  "note": "Original CPU validation receipts retained; publishing does not query or resubmit cluster jobs."
+}

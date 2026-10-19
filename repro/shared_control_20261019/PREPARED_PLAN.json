@@ -1,0 +1,77 @@
+{
+  "prepared_utc": "2026-10-19T06:22:39.704623+00:00",
+  "evaluations": [
+    [
+      "sbatch",
+      "--parsable",
+      "--job-name=point1024_eval_67952",
+      "--partition=3090",
+      "--nodelist=3dimage-13",
+      "--nodes=1",
+      "--gres=gpu:3090:1",
+      "--cpus-per-task=4",
+      "--mem=64G",
+      "--time=12:00:00",
+      "--kill-on-invalid-dep=yes",
+      "--dependency=afterok:67952",
+      "--chdir=/space/mawb/ssst_A_point1024_full_code_20261019",
+      "--output=/space/mawb/ssst/group_plus/unified_query_training_v1/attempt21_A_dual_point1024_full_node13_8gpu/evaluation-slurm-%j.out",
+      "/space/mawb/ssst_point1024_eval_flexible_control_20261019/scripts/run_point1024_official_eval.sh",
+      "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt21_A_dual_point1024_full_node13_8gpu",
+      "/space/mawb/ssst_A_point1024_full_code_20261019",
+      "/space/mawb/ssst_point1024_eval_flexible_control_20261019"
+    ],
+    [
+      "sbatch",
+      "--parsable",
+      "--job-name=point1024_eval_67973",
+      "--partition=4090",
+      "--nodelist=3dimage-17",
+      "--nodes=1",
+      "--gres=gpu:4090:1",
+      "--cpus-per-task=4",
+      "--mem=64G",
+      "--time=12:00:00",
+      "--kill-on-invalid-dep=yes",
+      "--dependency=afterok:67973",
+      "--chdir=/space/mawb/ssst_concat_shared_full_code_20261019",
+      "--output=/space/mawb/ssst/group_plus/unified_query_training_v1/attempt22_concat_shared_full_node17_8gpu/evaluation-slurm-%j.out",
+      "/space/mawb/ssst_point1024_eval_flexible_control_20261019/scripts/run_point1024_official_eval.sh",
+      "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt22_concat_shared_full_node17_8gpu",
+      "/space/mawb/ssst_concat_shared_full_code_20261019",
+      "/space/mawb/ssst_point1024_eval_flexible_control_20261019"
+    ]
+  ],
+  "flexible_training": [
+    "sbatch",
+    "--parsable",
+    "--job-name=recon_then_object_flexible8",
+    "--partition=3090,4090",
+    "--nodes=1",
+    "--gres=gpu:8",
+    "--cpus-per-task=32",
+    "--mem=192G",
+    "--time=1-00:00:00",
+    "--exclude=3dimage-11,3dimage-12",
+    "--chdir=/space/mawb/ssst_recon_then_object_full_code_20261019",
+    "--output=/space/mawb/ssst/group_plus/unified_query_training_v1/attempt23_recon_then_object_full_node18_8gpu/slurm-%j.out",
+    "/space/mawb/ssst_point1024_eval_flexible_control_20261019/scripts/run_recon_then_object_flexible.sh",
+    "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt23_recon_then_object_full_node18_8gpu",
+    "/space/mawb/ssst_recon_then_object_full_code_20261019",
+    "/space/mawb/ssst_point1024_eval_flexible_control_20261019"
+  ],
+  "allowed_nodes": [
+    "3dimage-13",
+    "3dimage-14",
+    "3dimage-17",
+    "3dimage-18"
+  ],
+  "excluded_nodes": [
+    "3dimage-11",
+    "3dimage-12"
+  ],
+  "source_snapshot_unchanged": true,
+  "initial_sha256": "f3cb086bf7cd96293dc2e65a2942e117c7426db64bfa8633b8dd8526c7603833",
+  "official_commit": "8ea80166be76854f938e90521f1a5b688b755c87",
+  "flexible_sbatch_test_returncode": 0
+}

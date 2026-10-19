@@ -1,0 +1,53 @@
+{
+  "requested_utc": "2026-10-19T03:27:14.866017+00:00",
+  "command": [
+    "sbatch",
+    "--parsable",
+    "--job-name=recon_then_object_full4",
+    "--partition=4090",
+    "--nodelist=3dimage-18",
+    "--nodes=1",
+    "--gres=gpu:4090:8",
+    "--cpus-per-task=32",
+    "--mem=192G",
+    "--time=1-00:00:00",
+    "--chdir=/space/mawb/ssst_recon_then_object_full_code_20261019",
+    "--output=/space/mawb/ssst/group_plus/unified_query_training_v1/attempt23_recon_then_object_full_node18_8gpu/slurm-%j.out",
+    "/space/mawb/ssst_recon_then_object_full_code_20261019/scripts/run_recon_then_object_full.sh",
+    "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt23_recon_then_object_full_node18_8gpu"
+  ],
+  "node": "3dimage-18",
+  "gpus": "4090:8",
+  "training_jobs": 1,
+  "evaluation_jobs": 0,
+  "snapshot": "/space/mawb/ssst_recon_then_object_full_code_20261019",
+  "run": "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt23_recon_then_object_full_node18_8gpu",
+  "initial_sha256": "f3cb086bf7cd96293dc2e65a2942e117c7426db64bfa8633b8dd8526c7603833",
+  "source_manifest": {
+    "base_git_sha": "58e86fa3b17ea044edbca46906546417c825102e",
+    "snapshot": "/space/mawb/ssst_recon_then_object_full_code_20261019",
+    "overlay_sha256": {
+      "tokengs/models/superpoint_dual_core.py": "5f37f882d0436728f5f5a440ccf8f20f0c4c66fbf3728da9253b394034c72e2e",
+      "tokengs/models/superpoint_dual_point_reconstruction.py": "5b1abb95df3f12f34d17d9e41700b0c7ecbdf78ec6298bce03a202eae72986a7",
+      "tokengs/models/concat_shared_decoder.py": "ee270edfdbb88bb62587568012773584bda6c939e8df7665d86bfadb918169fe",
+      "tokengs/models/reconstruction_then_object.py": "1f9ac83ef41d9c21f4db8196797e33ef0b0bb629c6ce839ca1666df97e3a28fb",
+      "tokengs/models/superpoint_structural_variants.py": "bec631cca4c762d408a9bda409dcb63de9cd11f53ce36ecba28101f10ebc91e5",
+      "tokengs/models/unified_query_gs_evidence.py": "bfc35793e5cbd7e0c95f8d0d3b33b06f9c9d4a15a74b8b9946ec4a9df72dcbed",
+      "tokengs/models/unified_superpoints_refined.py": "70364ea0f28848bf4c1a72f6cddc43ebae541b0ed4cddc94cc5d206e683f367f",
+      "scripts/train_unified_query_v1.py": "114ce8f31809faba6537a96e15501191e298676b03765c5ebef00173b2280986",
+      "scripts/prepare_recon_then_object_full.py": "c8f6026fb16ef577c69bcb7861961e7844f4534ad5830cd4095f1d5fbde8adb9",
+      "scripts/run_recon_then_object_full.sh": "093b6514e4c97080f1f69b9f96168253cee8cbcc4e4f992ab6ad2fa30f3afb5f",
+      "scripts/submit_recon_then_object_full.py": "e1999e9001b11f4897c7f004caa6664655ec1082296b5b4eb0f2cf68012709d7",
+      "tests/test_superpoint_dual_point_reconstruction.py": "fc94b235063a3f5aa366f8070f94dd2b6be7fcb2ca6880567b403a038280bc6c",
+      "tests/test_reconstruction_then_object.py": "effaecdded64a661176d4317b98a05959a13514241237ec47c47b1f1bc5c33c2",
+      "docs/recon_then_object_full_20261019.md": "47fa6fa55e7767f4b07024be38dbb585860a9d49babf966f591d8b758eb6274c"
+    },
+    "excluded_prior_changes": [
+      "scripts/export_object_locus_v3_set_official.py",
+      "scripts/sweep_panoptic_assembly.py"
+    ],
+    "historical_snapshots_modified": false
+  },
+  "monitoring_policy": "One bounded status check, then stop; no background monitoring",
+  "job_id": 67976
+}

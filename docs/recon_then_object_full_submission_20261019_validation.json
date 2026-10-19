@@ -1,0 +1,277 @@
+{
+  "status": "SUBMITTED_ONCE_CHECK_COMPLETE",
+  "preflight": {
+    "status": "PREFLIGHT_PASSED",
+    "architecture_key": "recon_then_object",
+    "architecture": "OMEGA_POINT1024_RECON_THEN_OBJECT_GEOMETRY_SEMANTIC_V1",
+    "run": "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt23_recon_then_object_full_node18_8gpu",
+    "snapshot": "/space/mawb/ssst_recon_then_object_full_code_20261019",
+    "prepared_from": "/space/mawb/ssst_vggt_overfit_diagnostics_v1",
+    "baseline": "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt21_A_dual_point1024_full_node13_8gpu",
+    "data_reference": "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt05_legacy_dual_superpoint_full_node13_8gpu",
+    "source_initial": "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt21_A_dual_point1024_full_node13_8gpu/checkpoint_untrained_initial.pt",
+    "source_initial_sha256": "0ea7d0a97743f06bf2e38595c602d6b2a6557262dbe2791db96060a1833a6e64",
+    "initial_checkpoint": "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt23_recon_then_object_full_node18_8gpu/checkpoint_untrained_initial.pt",
+    "initial_sha256": "f3cb086bf7cd96293dc2e65a2942e117c7426db64bfa8633b8dd8526c7603833",
+    "config": {
+      "superpoint_source": "esam_sam",
+      "uncovered_clusters": 8,
+      "dim": 256,
+      "heads": 8,
+      "depth": 12,
+      "point_grid": 48,
+      "max_points": 4096,
+      "max_superpoints": 512,
+      "point_voxel": 0.01,
+      "superpoint_voxel": 0.08,
+      "neighbors": 12,
+      "point_layers": 2,
+      "checkpoint_blocks": true,
+      "matching_mode": "source_many_to_one",
+      "mask_nms_iou": 0.7,
+      "support_matching": true,
+      "support_purity": 0.5
+    },
+    "config_changes": {},
+    "budget": {
+      "epochs": 4,
+      "updates": 4172,
+      "global_batch": 8,
+      "world_size": 8,
+      "learning_rate": 0.0001,
+      "lr_warmup": 100,
+      "understanding_weight": 0.05,
+      "understanding_warmup": 1043,
+      "checkpoint_every": 50,
+      "epoch_probes": true,
+      "order_seed": 31415,
+      "initial_seed": 42
+    },
+    "state_tensor_count": 664,
+    "shared_exact_tensor_count": 664,
+    "shared_value_mismatches": [],
+    "added_keys": [],
+    "removed_keys": [],
+    "initial_progress": {
+      "epoch": 0,
+      "update_in_epoch": 0,
+      "full_updates": 0
+    },
+    "optimizer_empty": true,
+    "initialization": "ALL 664 tensors exactly from point1024 ZERO state; no added or removed model parameters",
+    "rank_rng_exactly_matches_source": true,
+    "rank_rng_transfer": "verified zero-step common RNG ->1 ->8",
+    "manifest_sha256": "87e3cde298569c4e7735cf75ee596868eadf01e9a6a95438c6be51e42f55a523",
+    "heldout_sha256": "9a310d764358ebd7cdd3d1844a48685264d25d48cced5d4263ef4da68c239a44",
+    "actual_frozen_asset_hashes_verified": true,
+    "omega_identity": {
+      "path": "/datasets2/mengxl/vggt_omega/vggt_omega_1b_512.pt",
+      "sha256": "c02da418b18bb01d0392598d3f6147366bcde1bb70fd08a5e3bf7925b0667934",
+      "source": "/space/mawb/querysplat/third_party/vggt_omega"
+    },
+    "sam_identity": {
+      "path": "/space/mawb/ssst_dual_stream_assets/sam_vit_b_01ec64.pth",
+      "sha256": "ec2df62732614e57411cdcf32a23ffdf28910380d03139ee0f4fcbe91eb8c912",
+      "model": "SAM ViT-B",
+      "points_per_side": 32,
+      "crop_n_layers": 0,
+      "per_view_budget": null,
+      "generator_settings": {
+        "points_per_side": 32,
+        "points_per_batch": 64,
+        "pred_iou_thresh": 0.88,
+        "stability_score_thresh": 0.95,
+        "stability_score_offset": 1.0,
+        "box_nms_thresh": 0.7,
+        "crop_n_layers": 0,
+        "crop_nms_thresh": 0.7,
+        "crop_overlap_ratio": 0.3413333333333333,
+        "crop_n_points_downscale_factor": 1,
+        "min_mask_region_area": 0,
+        "output_mode": "binary_mask"
+      },
+      "partition": "descending_area_small_overwrites_large",
+      "pipeline": "ESAM_MV",
+      "esam_revision": "188fc6de44f7577fecec2d69b75c7adbd9992251"
+    },
+    "training_windows": 8337,
+    "training_scenes": 1191,
+    "heldout_windows": 128,
+    "exposures_verified": 33376,
+    "actual_data_samples": [
+      {
+        "scope": "train",
+        "scene": "scene0000_00"
+      },
+      {
+        "scope": "train",
+        "scene": "scene0706_00"
+      },
+      {
+        "scope": "heldout",
+        "scene": "scene0011_00"
+      }
+    ],
+    "epoch_order_sha256": [
+      "ea40e3ff2bf14dc47596651a87e8daf905f1df2d191ff4f5cee6d30b8f86f4dc",
+      "0317d4fd7af06c8e176d48883b06bd24bee8510875ae62cc68053588af3908c5",
+      "c8def278ef93fe0a8ab9f9b39963204a9a9acfa603d9d30f5098d5f14ab004a8",
+      "9098265443158453ebdaded8162a622c01a062d45287dc0a376578712581db86"
+    ],
+    "reconstruction_tokens": 1024,
+    "gaussians": 65536,
+    "children_per_anchor": 64,
+    "reconstruction_then_object": {
+      "reconstruction_tokens": 1024,
+      "reconstruction_depth": 12,
+      "object_depth": 4,
+      "reconstruction_read_layers": [
+        12,
+        12,
+        12,
+        12
+      ],
+      "object_update_order": [
+        "geometry_cross_attention",
+        "semantic_cross_attention",
+        "query_self_attention",
+        "ffn"
+      ],
+      "object_initialization": "superpoint_features",
+      "detached_reconstruction": false,
+      "write_strength": 0.0
+    },
+    "gpu_forward_backward_verified": false,
+    "eight_rank_first_update_verified": false,
+    "training_jobs_to_submit": 1,
+    "evaluation_jobs_to_submit": 0
+  },
+  "validation": {
+    "status": "PASSED",
+    "targeted_cpu_tests": {
+      "passed": 13,
+      "failed": 0,
+      "seconds": 37.553,
+      "unique_tests": 13,
+      "command": "CUDA_VISIBLE_DEVICES='' OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 /space/mawb/anaconda3/envs/tokengs/bin/python -u -m unittest tests.test_reconstruction_then_object tests.test_superpoint_dual_point_reconstruction tests.test_superpoint_structural_variants -v"
+    },
+    "new_tests": 4,
+    "regressions": 9,
+    "checks": [
+      "all12 reconstruction layers before Object updates",
+      "four Object geometry->semantic read orders",
+      "every Object layer reads final1024 reconstruction tokens",
+      "semantic changes never rewrite reconstruction states or superpoint initial query",
+      "nonzero live reconstruction/semantic/superpoint gradients after activating zero-initialized attention residual outputs",
+      "exact full664 tensor layout and complete parameter grouping",
+      "65536GS and dynamic understanding memberships"
+    ],
+    "initial_tensors_all_exact": true,
+    "shared_exact_tensors": 664,
+    "total_tensors": 664,
+    "added_tensors": 0,
+    "removed_tensors": 0,
+    "source_manifest": {
+      "base_git_sha": "58e86fa3b17ea044edbca46906546417c825102e",
+      "snapshot": "/space/mawb/ssst_recon_then_object_full_code_20261019",
+      "overlay_sha256": {
+        "tokengs/models/superpoint_dual_core.py": "5f37f882d0436728f5f5a440ccf8f20f0c4c66fbf3728da9253b394034c72e2e",
+        "tokengs/models/superpoint_dual_point_reconstruction.py": "5b1abb95df3f12f34d17d9e41700b0c7ecbdf78ec6298bce03a202eae72986a7",
+        "tokengs/models/concat_shared_decoder.py": "ee270edfdbb88bb62587568012773584bda6c939e8df7665d86bfadb918169fe",
+        "tokengs/models/reconstruction_then_object.py": "1f9ac83ef41d9c21f4db8196797e33ef0b0bb629c6ce839ca1666df97e3a28fb",
+        "tokengs/models/superpoint_structural_variants.py": "bec631cca4c762d408a9bda409dcb63de9cd11f53ce36ecba28101f10ebc91e5",
+        "tokengs/models/unified_query_gs_evidence.py": "bfc35793e5cbd7e0c95f8d0d3b33b06f9c9d4a15a74b8b9946ec4a9df72dcbed",
+        "tokengs/models/unified_superpoints_refined.py": "70364ea0f28848bf4c1a72f6cddc43ebae541b0ed4cddc94cc5d206e683f367f",
+        "scripts/train_unified_query_v1.py": "114ce8f31809faba6537a96e15501191e298676b03765c5ebef00173b2280986",
+        "scripts/prepare_recon_then_object_full.py": "c8f6026fb16ef577c69bcb7861961e7844f4534ad5830cd4095f1d5fbde8adb9",
+        "scripts/run_recon_then_object_full.sh": "093b6514e4c97080f1f69b9f96168253cee8cbcc4e4f992ab6ad2fa30f3afb5f",
+        "scripts/submit_recon_then_object_full.py": "e1999e9001b11f4897c7f004caa6664655ec1082296b5b4eb0f2cf68012709d7",
+        "tests/test_superpoint_dual_point_reconstruction.py": "fc94b235063a3f5aa366f8070f94dd2b6be7fcb2ca6880567b403a038280bc6c",
+        "tests/test_reconstruction_then_object.py": "effaecdded64a661176d4317b98a05959a13514241237ec47c47b1f1bc5c33c2",
+        "docs/recon_then_object_full_20261019.md": "47fa6fa55e7767f4b07024be38dbb585860a9d49babf966f591d8b758eb6274c"
+      },
+      "excluded_prior_changes": [
+        "scripts/export_object_locus_v3_set_official.py",
+        "scripts/sweep_panoptic_assembly.py"
+      ],
+      "historical_snapshots_modified": false
+    },
+    "frozen_assets_hashed": true,
+    "exposures_verified": 33376,
+    "python_compile": true,
+    "bash_syntax": true,
+    "diff_check": true,
+    "gpu_forward_backward_verified": false,
+    "eight_rank_first_update_verified": false,
+    "hardware": {
+      "node": "3dimage-18",
+      "gpus": "4090:8",
+      "partition": "4090"
+    }
+  },
+  "submission": {
+    "requested_utc": "2026-10-19T03:27:14.866017+00:00",
+    "command": [
+      "sbatch",
+      "--parsable",
+      "--job-name=recon_then_object_full4",
+      "--partition=4090",
+      "--nodelist=3dimage-18",
+      "--nodes=1",
+      "--gres=gpu:4090:8",
+      "--cpus-per-task=32",
+      "--mem=192G",
+      "--time=1-00:00:00",
+      "--chdir=/space/mawb/ssst_recon_then_object_full_code_20261019",
+      "--output=/space/mawb/ssst/group_plus/unified_query_training_v1/attempt23_recon_then_object_full_node18_8gpu/slurm-%j.out",
+      "/space/mawb/ssst_recon_then_object_full_code_20261019/scripts/run_recon_then_object_full.sh",
+      "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt23_recon_then_object_full_node18_8gpu"
+    ],
+    "node": "3dimage-18",
+    "gpus": "4090:8",
+    "training_jobs": 1,
+    "evaluation_jobs": 0,
+    "snapshot": "/space/mawb/ssst_recon_then_object_full_code_20261019",
+    "run": "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt23_recon_then_object_full_node18_8gpu",
+    "initial_sha256": "f3cb086bf7cd96293dc2e65a2942e117c7426db64bfa8633b8dd8526c7603833",
+    "source_manifest": {
+      "base_git_sha": "58e86fa3b17ea044edbca46906546417c825102e",
+      "snapshot": "/space/mawb/ssst_recon_then_object_full_code_20261019",
+      "overlay_sha256": {
+        "tokengs/models/superpoint_dual_core.py": "5f37f882d0436728f5f5a440ccf8f20f0c4c66fbf3728da9253b394034c72e2e",
+        "tokengs/models/superpoint_dual_point_reconstruction.py": "5b1abb95df3f12f34d17d9e41700b0c7ecbdf78ec6298bce03a202eae72986a7",
+        "tokengs/models/concat_shared_decoder.py": "ee270edfdbb88bb62587568012773584bda6c939e8df7665d86bfadb918169fe",
+        "tokengs/models/reconstruction_then_object.py": "1f9ac83ef41d9c21f4db8196797e33ef0b0bb629c6ce839ca1666df97e3a28fb",
+        "tokengs/models/superpoint_structural_variants.py": "bec631cca4c762d408a9bda409dcb63de9cd11f53ce36ecba28101f10ebc91e5",
+        "tokengs/models/unified_query_gs_evidence.py": "bfc35793e5cbd7e0c95f8d0d3b33b06f9c9d4a15a74b8b9946ec4a9df72dcbed",
+        "tokengs/models/unified_superpoints_refined.py": "70364ea0f28848bf4c1a72f6cddc43ebae541b0ed4cddc94cc5d206e683f367f",
+        "scripts/train_unified_query_v1.py": "114ce8f31809faba6537a96e15501191e298676b03765c5ebef00173b2280986",
+        "scripts/prepare_recon_then_object_full.py": "c8f6026fb16ef577c69bcb7861961e7844f4534ad5830cd4095f1d5fbde8adb9",
+        "scripts/run_recon_then_object_full.sh": "093b6514e4c97080f1f69b9f96168253cee8cbcc4e4f992ab6ad2fa30f3afb5f",
+        "scripts/submit_recon_then_object_full.py": "e1999e9001b11f4897c7f004caa6664655ec1082296b5b4eb0f2cf68012709d7",
+        "tests/test_superpoint_dual_point_reconstruction.py": "fc94b235063a3f5aa366f8070f94dd2b6be7fcb2ca6880567b403a038280bc6c",
+        "tests/test_reconstruction_then_object.py": "effaecdded64a661176d4317b98a05959a13514241237ec47c47b1f1bc5c33c2",
+        "docs/recon_then_object_full_20261019.md": "47fa6fa55e7767f4b07024be38dbb585860a9d49babf966f591d8b758eb6274c"
+      },
+      "excluded_prior_changes": [
+        "scripts/export_object_locus_v3_set_official.py",
+        "scripts/sweep_panoptic_assembly.py"
+      ],
+      "historical_snapshots_modified": false
+    },
+    "monitoring_policy": "One bounded status check, then stop; no background monitoring",
+    "job_id": 67976
+  },
+  "once_check": {
+    "stdout": "67976|PENDING||(None)",
+    "stderr": "",
+    "returncode": 0,
+    "checked_utc": "2026-10-19T03:27:14.891172+00:00",
+    "job_failed": null,
+    "gpu_first_update_verified": false,
+    "eight_rank_sync_verified": false,
+    "polling_stopped": true
+  },
+  "evaluation_jobs": 0,
+  "background_monitoring": false
+}

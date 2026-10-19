@@ -1,0 +1,6 @@
+{
+  "job_id": 68051,
+  "predecessor_cancelled": 67976,
+  "placement": "one node, eight GPUs, any of13/14/17/18",
+  "source_snapshot": "/space/mawb/ssst_recon_then_object_full_code_20261019"
+}

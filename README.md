@@ -1,3 +1,5 @@
+> **实验分支：完整重建后Object读取几何→语义（训练68051）。** [结构、源码与作业对应](EXPERIMENT.md)。
+
 # TokenGS
 
 ![Teaser: TokenGS results and exploration](assets/tokengs_explore.gif)
