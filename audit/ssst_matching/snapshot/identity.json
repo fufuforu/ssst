@@ -1,0 +1,8 @@
+{
+  "source": "/space/mawb/ssst_sem_res256_code_20261019/tokengs/models/object_locus_dual_stream_v1.py",
+  "source_file_sha256": "60073102b599cbe74027a5b73cad556565fa4de407bfded0b544b7636abe8828",
+  "class_sha256": "5eaddefc825a0cb2ea4c58fcf5e9f65fddc75eefa154c011c5c99bd0cb2ce101",
+  "base_commit": "b7a775f19e232ea2395c8611a47c81b1365fb86e",
+  "checkpoint": "/space/mawb/ssst/group_plus/semantic_resolution_v1/attempt01_A_sem256_full_node17_8gpu/checkpoint_epoch4.pt",
+  "checkpoint_sha256": "18aee68f2bc8cdb1d154c742697ccc54657f38ad02c6151bf993405a455f4560"
+}

@@ -1,0 +1,27 @@
+/space/mawb/anaconda3/envs/tokengs/lib/python3.11/site-packages/torch/cuda/__init__.py:174: UserWarning: CUDA initialization: The NVIDIA driver on your system is too old (found version 10010). Please update your GPU driver by downloading and installing a new version from the URL: http://www.nvidia.com/Download/index.aspx Alternatively, go to: https://pytorch.org to install a PyTorch version that has been compiled with your version of the CUDA driver. (Triggered internally at /pytorch/c10/cuda/CUDAFunctions.cpp:109.)
+  return torch._C._cuda_getDeviceCount() > 0
+test_all_invalid_sources (__main__.Contracts.test_all_invalid_sources) ... ok
+test_competing_gt_at_exact_half (__main__.Contracts.test_competing_gt_at_exact_half) ... ok
+test_context_view_indices_gt_class_tie (__main__.Contracts.test_context_view_indices_gt_class_tie) ... ok
+test_finite_penalty_can_miss_cardinality (__main__.Contracts.test_finite_penalty_can_miss_cardinality) ... ok
+test_gt_without_sample (__main__.Contracts.test_gt_without_sample) ... ok
+test_half_includes_stuff_denominator (__main__.Contracts.test_half_includes_stuff_denominator) ... ok
+test_many_queries_one_gt (__main__.Contracts.test_many_queries_one_gt) ... ok
+test_native_matching_no_backward (__main__.Contracts.test_native_matching_no_backward) ... ok
+test_no_thing_gt (__main__.Contracts.test_no_thing_gt) ... ok
+test_purity_tie_and_source_many_to_one_order (__main__.Contracts.test_purity_tie_and_source_many_to_one_order) ... ok
+test_queries_less_than_gt (__main__.Contracts.test_queries_less_than_gt) ... ok
+test_real_output_schema_and_summary (__main__.Contracts.test_real_output_schema_and_summary) ... ok
+test_top1_cost_tie_official_diff (__main__.Contracts.test_top1_cost_tie_official_diff) ... ok
+
+----------------------------------------------------------------------
+Ran 13 tests in 0.427s
+
+OK
+/space/mawb/anaconda3/envs/tokengs/lib/python3.11/site-packages/torch/cuda/__init__.py:789: UserWarning: Can't initialize NVML
+  warnings.warn("Can't initialize NVML")
+/space/mawb/anaconda3/envs/tokengs/lib/python3.11/site-packages/torch/cuda/__init__.py:991: UserWarning: CUDA initialization: The NVIDIA driver on your system is too old (found version 10010). Please update your GPU driver by downloading and installing a new version from the URL: http://www.nvidia.com/Download/index.aspx Alternatively, go to: https://pytorch.org to install a PyTorch version that has been compiled with your version of the CUDA driver. (Triggered internally at /pytorch/c10/cuda/CUDAFunctions.cpp:109.)
+  r = torch._C._cuda_getDeviceCount() if nvml_count < 0 else nvml_count
+[runtime] fused-ssim extension unavailable; using import stand-in /space/mawb/ssst_matching_audit_20261020/third_party/shims
+[runtime] cannot load /space/mawb/tokengs_siu3r_joint_v1/.torch_extensions_v4/gsplat_cuda/gsplat_cuda.so (/lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.34' not found (required by /space/mawb/tokengs_siu3r_joint_v1/.torch_extensions_v4/gsplat_cuda/gsplat_cuda.so)); trying the next candidate
+[runtime] preloaded precompiled gsplat extension from /space/mawb/.cache/torch_extensions_backup/gsplat_cuda_partial_1406/gsplat_cuda.so

@@ -1,0 +1,53 @@
+# Reference: https://github.com/filaPro/oneformer3d/blob/main/oneformer3d/instance_criterion.py
+# Fetched 2026-10-20; reference excerpt, never imported.
+@TASK_UTILS.register_module()
+class SparseMatcher:
+    """Match only queries to their including objects.
+
+    Args:
+        costs (List[Callable]): Cost functions.
+        topk (int): Limit topk matches per query.
+    """
+
+    def __init__(self, costs, topk):
+        self.topk = topk
+        self.costs = []
+        self.inf = 1e8
+        for cost in costs:
+            self.costs.append(TASK_UTILS.build(cost))
+
+    @torch.no_grad()
+    def __call__(self, pred_instances, gt_instances, **kwargs):
+        """Compute match cost.
+
+        Args:
+            pred_instances (:obj:`InstanceData_`): Predicted instances which
+                can contain `masks` of shape (n_queries, n_points), `scores`
+                of shape (n_queries, n_classes + 1),
+            gt_instances (:obj:`InstanceData_`): Ground truth which can contain
+                `labels` of shape (n_gts,), `masks` of shape (n_gts, n_points),
+                `query_masks` of shape (n_gts, n_queries).
+
+        Returns:
+            Tuple:
+                Tensor: Query ids of shape (n_matched,),
+                Tensor: Object ids of shape (n_matched,).
+        """
+        labels = gt_instances.labels
+        n_gts = len(labels)
+        if n_gts == 0:
+            return labels.new_empty((0,)), labels.new_empty((0,))
+
+        cost_values = []
+        for cost in self.costs:
+            cost_values.append(cost(pred_instances, gt_instances))
+        # of shape (n_queries, n_gts)
+        cost_value = torch.stack(cost_values).sum(dim=0)
+        cost_value = torch.where(
+            gt_instances.query_masks.T, cost_value, self.inf)
+
+        values = torch.topk(
+            cost_value, self.topk + 1, dim=0, sorted=True,
+            largest=False).values[-1:, :]
+        ids = torch.argwhere(cost_value < values)
+        return ids[:, 0], ids[:, 1]

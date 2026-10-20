@@ -1,0 +1,11 @@
+{
+  "status": "PASSED",
+  "tests": 13,
+  "command": "OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4 /space/mawb/anaconda3/envs/tokengs/bin/python -m audit.ssst_matching.test_contracts",
+  "log_sha256": "4e55d27fe8df40edbdffc5a5b207a6f42a48854de4ea737a331df98e4feef921",
+  "implementation_sha256": {
+    "audit/ssst_matching/core.py": "3e0165c43ce05b8055d50ffd4d8906aeaa3c4108c3da144da2922da412c51afb",
+    "audit/ssst_matching/summarize.py": "442b90442e2e797f9ddecca4416499e54b75fa006899667fc32d532864d4af87",
+    "audit/ssst_matching/test_contracts.py": "76e9273db012cc0b489061937ffce0f7e573192b2ee17502069d54b988173993"
+  }
+}

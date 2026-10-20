@@ -1,0 +1,17 @@
+{
+  "status": "PASSED",
+  "job_id": 69228,
+  "scheduler_state": "COMPLETED",
+  "exit_code": "0:0",
+  "elapsed_seconds": 110,
+  "node": "3dimage-14",
+  "gpu": "1xRTX4090",
+  "windows": 8,
+  "gt": 37,
+  "queries": 575,
+  "source_exact_parity": true,
+  "hungarian_exact_parity": true,
+  "saved_matrix_consistency": true,
+  "parameter_updates": 0,
+  "local_source_matches_smoke_hashes": true
+}
