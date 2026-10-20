@@ -1,0 +1,160 @@
+{
+  "status": "REVIEWED_PASS",
+  "reviews": [
+    {
+      "status": "REVIEWED_PASS",
+      "source_many_to_one_offline_gt": 111,
+      "source_many_to_one_positive_queries": 1061,
+      "source_many_to_one_argmax_tie_losses": [],
+      "cohort": "heldout32",
+      "windows": 32,
+      "gt": 122,
+      "queries": 2139,
+      "source_supported": 111,
+      "max_matching": 111,
+      "hungarian_matched": 111,
+      "identical_pair_windows": 32,
+      "same_selected_query": 111,
+      "top1_conflicts": [],
+      "uncovered_gt": 11,
+      "zero_source_gt": 2,
+      "below_purity_gt": 9,
+      "raw_mask_gt": 99,
+      "supported_raw_gt": 93,
+      "selected_good_gt": 91,
+      "matched_without_supported_good_raw": 18,
+      "supported_good_but_selected_bad": 2,
+      "allowed_cost_range": [
+        -1.6687736511230469,
+        38.542076110839844
+      ],
+      "implementation_hashes_match": true,
+      "saved_matrices_tables_and_thresholds_consistent": true,
+      "parity": "exact",
+      "parameter_updates": 0,
+      "backward_calls": 0,
+      "original_report_sha256": {
+        "audit_summary.md": "f1e972858953eec9f52ce94c084f9fc8142ca140883aca382ed7f6482c723a74",
+        "audit_per_scene.csv": "d61783cdd37aaa5aa6c745fa680d866200554da66129985bad2cdeb0dd93da32",
+        "audit_per_gt.csv": "229768c4a640d1fd14b5d27f088c942de23c146f01a0b6da7701921775f1a46c",
+        "audit_threshold_sweep.csv": "2bde97674b012283d77efaa34282ebd0061be271eb3e0329b1ebc97b43352aab",
+        "matching_comparison.csv": "77a8b0d2ee361779d92728ce395392e6341a8c11dbbef3fb56d8f9727875c038",
+        "audit_config.json": "c0a45f3f8de5539e6da0b2e1d164d610d17b9639301a901ef04ae40d699e204a",
+        "audit_failures.md": "d4df2b496c0e756c7d16eaf245de6a71961edadb61bcd85f595366e8e9bf6d75",
+        "AUDIT_COMPLETE.json": "fea39c51746f1e92ecc7f308304d00ce406154d64d4416701220defcc7feb8c0"
+      }
+    },
+    {
+      "status": "REVIEWED_PASS",
+      "source_many_to_one_offline_gt": 427,
+      "source_many_to_one_positive_queries": 3652,
+      "source_many_to_one_argmax_tie_losses": [],
+      "cohort": "heldout128",
+      "windows": 128,
+      "gt": 492,
+      "queries": 7844,
+      "source_supported": 427,
+      "max_matching": 427,
+      "hungarian_matched": 427,
+      "identical_pair_windows": 127,
+      "same_selected_query": 426,
+      "top1_conflicts": [
+        {
+          "window_id": "scene0500_01_context699_710",
+          "query": 41,
+          "details": [
+            {
+              "gt_index": 2,
+              "gt_id": 5,
+              "semantic_class": 4,
+              "top1_query": 41,
+              "hits": 2,
+              "valid_denominator": 4,
+              "purity": 0.5,
+              "hungarian_query": 12,
+              "top1_cost": 2.6273272037506104,
+              "hungarian_cost": 2.9261393547058105,
+              "top1_iou": 0.2912142276763916,
+              "hungarian_iou": 0.27040815353393555,
+              "candidates": [
+                {
+                  "query": 12,
+                  "cost": 2.9261393547058105,
+                  "purity": 0.875,
+                  "iou": 0.27040815353393555
+                },
+                {
+                  "query": 41,
+                  "cost": 2.6273272037506104,
+                  "purity": 0.5,
+                  "iou": 0.2912142276763916
+                }
+              ]
+            },
+            {
+              "gt_index": 14,
+              "gt_id": 36,
+              "semantic_class": 4,
+              "top1_query": 41,
+              "hits": 2,
+              "valid_denominator": 4,
+              "purity": 0.5,
+              "hungarian_query": 41,
+              "top1_cost": 3.500990390777588,
+              "hungarian_cost": 3.500990390777588,
+              "top1_iou": 0.07696491479873657,
+              "hungarian_iou": 0.07696491479873657,
+              "candidates": [
+                {
+                  "query": 17,
+                  "cost": 3.923816204071045,
+                  "purity": 1.0,
+                  "iou": 0.036938611418008804
+                },
+                {
+                  "query": 41,
+                  "cost": 3.500990390777588,
+                  "purity": 0.5,
+                  "iou": 0.07696491479873657
+                }
+              ]
+            }
+          ]
+        }
+      ],
+      "uncovered_gt": 65,
+      "zero_source_gt": 16,
+      "below_purity_gt": 49,
+      "raw_mask_gt": 369,
+      "supported_raw_gt": 353,
+      "selected_good_gt": 348,
+      "matched_without_supported_good_raw": 74,
+      "supported_good_but_selected_bad": 5,
+      "allowed_cost_range": [
+        -1.7300114631652832,
+        45.1426887512207
+      ],
+      "implementation_hashes_match": true,
+      "saved_matrices_tables_and_thresholds_consistent": true,
+      "parity": "exact",
+      "parameter_updates": 0,
+      "backward_calls": 0,
+      "original_report_sha256": {
+        "audit_summary.md": "ccc36355746f6f543b476bee607fbf928480ac9fcd9390218e8ac6e5ba0c6180",
+        "audit_per_scene.csv": "8e0ccdd3e8d1b93f954bdf773baef1910ea0db9b4d306aa9b7f8b93f103e346e",
+        "audit_per_gt.csv": "05cac6f89eb0266af2e84f350b03a63c26fb9f63456e8e00a85ea2f2d6a844f4",
+        "audit_threshold_sweep.csv": "40f961eed337fe3f32b20fef359daa4ed103653ecf0e3d71854f36a7f8545265",
+        "matching_comparison.csv": "73558f700820049ea38dc0d1e7991d1df1efabaa30745440739cb694d3e3734d",
+        "audit_config.json": "76c9db279432a38b9bb1f313e40401a106580c085225d58c089fbec0a542be6c",
+        "audit_failures.md": "0bfd6f799763b98c52a94f6ad069971c7830c78db42d1f47618e9685d3050fe1",
+        "AUDIT_COMPLETE.json": "1a423012e6dcbb6327d62ca540b2c778a4c387ee76275c02eaa2195193889b51"
+      }
+    }
+  ],
+  "overlap": {
+    "windows": 32,
+    "graphs_exact": 32,
+    "pairs_exact": 32,
+    "maximum_cost_difference": 0.00168609619140625
+  }
+}

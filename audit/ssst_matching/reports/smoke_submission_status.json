@@ -1,6 +1,6 @@
 {
   "job_id": 69228,
-  "status": "RUNNING",
+  "status": "COMPLETED",
   "partition": "4090",
   "node": "3dimage-14",
   "gpus": "1 x RTX4090",
@@ -12,9 +12,12 @@
   "change_command": "scontrol update JobId=69228 Partition=4090 ReqNodeList=3dimage-14 Gres=gpu:4090:1",
   "change_reason": "User authorized idle GPU on server14",
   "post_change_state_checks": 1,
-  "gpu_forward_verified": false,
-  "real_prediction_parity_verified": false,
-  "formal_submitted": false,
+  "gpu_forward_verified": true,
+  "real_prediction_parity_verified": true,
+  "formal_submitted": true,
   "training_submitted": false,
-  "stop_polling": true
+  "stop_polling": true,
+  "exit_code": "0:0",
+  "elapsed_seconds": 110,
+  "latest_formal_completion": "see formal_execution.json"
 }

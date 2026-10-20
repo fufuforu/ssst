@@ -1,0 +1,35 @@
+{
+  "status": "FORMAL_AUDIT_REVIEWED_COMPLETE",
+  "code_sha": "9a949c52b86ac8796f1eb1f4d2965f34347752aa",
+  "code_tag": "audit-ssst-matching-v1-20261020",
+  "branch": "audit/ssst-superpoint-gt-20261020",
+  "jobs": {
+    "heldout32": {
+      "job_id": 69237,
+      "state": "COMPLETED",
+      "exit_code": "0:0",
+      "elapsed_seconds": 158,
+      "windows": 32,
+      "gt": 122
+    },
+    "heldout128": {
+      "job_id": 69238,
+      "state": "COMPLETED",
+      "exit_code": "0:0",
+      "elapsed_seconds": 394,
+      "windows": 128,
+      "gt": 492,
+      "dependency": "afterok:69237"
+    }
+  },
+  "node": "3dimage-14",
+  "gpu_per_job": "1xRTX4090",
+  "summary_inside_inference_jobs": true,
+  "training_jobs": [],
+  "parameter_updates": 0,
+  "backward_calls": 0,
+  "original_run": "/space/mawb/ssst_matching_audit_runs_20261020/formal_v1",
+  "checkpoint_sha256": "18aee68f2bc8cdb1d154c742697ccc54657f38ad02c6151bf993405a455f4560",
+  "scope": "fixed heldout128; includes first32, not160 independent scenes",
+  "new_jobs_submitted": false
+}

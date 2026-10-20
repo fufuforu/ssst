@@ -1,0 +1,43 @@
+{
+  "status": "REVIEWED_PASS",
+  "source_many_to_one_offline_gt": 111,
+  "source_many_to_one_positive_queries": 1061,
+  "source_many_to_one_argmax_tie_losses": [],
+  "cohort": "heldout32",
+  "windows": 32,
+  "gt": 122,
+  "queries": 2139,
+  "source_supported": 111,
+  "max_matching": 111,
+  "hungarian_matched": 111,
+  "identical_pair_windows": 32,
+  "same_selected_query": 111,
+  "top1_conflicts": [],
+  "uncovered_gt": 11,
+  "zero_source_gt": 2,
+  "below_purity_gt": 9,
+  "raw_mask_gt": 99,
+  "supported_raw_gt": 93,
+  "selected_good_gt": 91,
+  "matched_without_supported_good_raw": 18,
+  "supported_good_but_selected_bad": 2,
+  "allowed_cost_range": [
+    -1.6687736511230469,
+    38.542076110839844
+  ],
+  "implementation_hashes_match": true,
+  "saved_matrices_tables_and_thresholds_consistent": true,
+  "parity": "exact",
+  "parameter_updates": 0,
+  "backward_calls": 0,
+  "original_report_sha256": {
+    "audit_summary.md": "f1e972858953eec9f52ce94c084f9fc8142ca140883aca382ed7f6482c723a74",
+    "audit_per_scene.csv": "d61783cdd37aaa5aa6c745fa680d866200554da66129985bad2cdeb0dd93da32",
+    "audit_per_gt.csv": "229768c4a640d1fd14b5d27f088c942de23c146f01a0b6da7701921775f1a46c",
+    "audit_threshold_sweep.csv": "2bde97674b012283d77efaa34282ebd0061be271eb3e0329b1ebc97b43352aab",
+    "matching_comparison.csv": "77a8b0d2ee361779d92728ce395392e6341a8c11dbbef3fb56d8f9727875c038",
+    "audit_config.json": "c0a45f3f8de5539e6da0b2e1d164d610d17b9639301a901ef04ae40d699e204a",
+    "audit_failures.md": "d4df2b496c0e756c7d16eaf245de6a71961edadb61bcd85f595366e8e9bf6d75",
+    "AUDIT_COMPLETE.json": "fea39c51746f1e92ecc7f308304d00ce406154d64d4416701220defcc7feb8c0"
+  }
+}

@@ -1,0 +1,73 @@
+# Audit diagnostics
+
+All source-score/allowed and native Hungarian parity checks passed. Compact per-window matrices are in diagnostics/*.npz (masked cost retains forbidden1e6).
+
+- scene0500_01_context699_710: eligible-unmatched=0, oracle=9, Hungarian=9, multi-GT queries=1, Top-1 conflict queries=1, official tie difference=False. Matrix: diagnostics/scene0500_01_context699_710.npz
+
+## Uncovered GT (IDs are scene-local native instance IDs)
+
+- scene0077_00_context67_134 GT 4 class 8: zero_source_hits, hits=0, max purity=0.000000, area=1, size=Small.
+- scene0081_01_context1435_1446 GT 4 class 4: below_purity, hits=15, max purity=0.428571, area=385, size=Small.
+- scene0081_01_context1435_1446 GT 15 class 4: below_purity, hits=23, max purity=0.285714, area=603, size=Small.
+- scene0084_01_context712_781 GT 36 class 15: below_purity, hits=6, max purity=0.055556, area=557, size=Small.
+- scene0086_00_context324_355 GT 27 class 7: below_purity, hits=14, max purity=0.166667, area=601, size=Small.
+- scene0131_02_context533_576 GT 12 class 4: below_purity, hits=52, max purity=0.111111, area=1700, size=Small.
+- scene0193_00_context532_568 GT 6 class 4: below_purity, hits=49, max purity=0.333333, area=1799, size=Small.
+- scene0203_02_context1030_1040 GT 2 class 6: below_purity, hits=1, max purity=0.017544, area=106, size=Small.
+- scene0207_01_context922_942 GT 21 class 18: zero_source_hits, hits=0, max purity=0.000000, area=74, size=Small.
+- scene0221_01_context663_704 GT 13 class 3: below_purity, hits=7, max purity=0.025455, area=315, size=Small.
+- scene0222_00_context100_119 GT 35 class 19: below_purity, hits=4, max purity=0.042553, area=130, size=Small.
+- scene0231_02_context2510_2543 GT 11 class 12: below_purity, hits=46, max purity=0.220000, area=1571, size=Small.
+- scene0256_00_context116_157 GT 12 class 19: zero_source_hits, hits=0, max purity=0.000000, area=2, size=Small.
+- scene0277_01_context36_108 GT 4 class 19: zero_source_hits, hits=0, max purity=0.000000, area=2, size=Small.
+- scene0329_02_context37_105 GT 64 class 7: below_purity, hits=3, max purity=0.153846, area=184, size=Small.
+- scene0357_01_context569_582 GT 23 class 2: zero_source_hits, hits=0, max purity=0.000000, area=23, size=Small.
+- scene0378_02_context1300_1340 GT 11 class 2: below_purity, hits=1, max purity=0.250000, area=30, size=Small.
+- scene0474_03_context462_480 GT 15 class 2: below_purity, hits=81, max purity=0.234127, area=2717, size=Medium.
+- scene0474_04_context101_111 GT 12 class 4: zero_source_hits, hits=0, max purity=0.000000, area=266, size=Small.
+- scene0496_00_context288_298 GT 28 class 8: below_purity, hits=1, max purity=0.333333, area=18, size=Small.
+- scene0496_00_context288_298 GT 31 class 4: below_purity, hits=1, max purity=0.003559, area=91, size=Small.
+- scene0500_01_context699_710 GT 18 class 8: below_purity, hits=1, max purity=0.018519, area=23, size=Small.
+- scene0500_01_context699_710 GT 21 class 8: zero_source_hits, hits=0, max purity=0.000000, area=7, size=Small.
+- scene0500_01_context699_710 GT 30 class 4: below_purity, hits=9, max purity=0.119048, area=429, size=Small.
+- scene0500_01_context699_710 GT 31 class 4: below_purity, hits=11, max purity=0.400000, area=578, size=Small.
+- scene0500_01_context699_710 GT 32 class 4: zero_source_hits, hits=0, max purity=0.000000, area=3, size=Small.
+- scene0500_01_context699_710 GT 33 class 4: below_purity, hits=7, max purity=0.400000, area=99, size=Small.
+- scene0500_01_context699_710 GT 34 class 4: below_purity, hits=5, max purity=0.025000, area=270, size=Small.
+- scene0500_01_context699_710 GT 45 class 4: below_purity, hits=3, max purity=0.300000, area=90, size=Small.
+- scene0500_01_context699_710 GT 46 class 4: below_purity, hits=3, max purity=0.300000, area=130, size=Small.
+- scene0500_01_context699_710 GT 47 class 4: below_purity, hits=2, max purity=0.025000, area=247, size=Small.
+- scene0500_01_context699_710 GT 48 class 4: below_purity, hits=4, max purity=0.100000, area=144, size=Small.
+- scene0500_01_context699_710 GT 49 class 4: below_purity, hits=1, max purity=0.021739, area=11, size=Small.
+- scene0500_01_context699_710 GT 50 class 4: zero_source_hits, hits=0, max purity=0.000000, area=20, size=Small.
+- scene0500_01_context699_710 GT 51 class 4: below_purity, hits=1, max purity=0.025000, area=38, size=Small.
+- scene0500_01_context699_710 GT 53 class 4: below_purity, hits=8, max purity=0.250000, area=265, size=Small.
+- scene0559_00_context243_269 GT 13 class 19: below_purity, hits=248, max purity=0.250000, area=6913, size=Medium.
+- scene0559_00_context243_269 GT 14 class 19: below_purity, hits=150, max purity=0.098660, area=5006, size=Medium.
+- scene0574_01_context40_99 GT 12 class 7: zero_source_hits, hits=0, max purity=0.000000, area=18, size=Small.
+- scene0574_01_context40_99 GT 20 class 7: below_purity, hits=34, max purity=0.333333, area=1044, size=Small.
+- scene0575_01_context945_1000 GT 6 class 4: below_purity, hits=27, max purity=0.490909, area=845, size=Small.
+- scene0575_02_context1150_1191 GT 1 class 4: below_purity, hits=3, max purity=0.095238, area=272, size=Small.
+- scene0578_01_context63_79 GT 22 class 4: below_purity, hits=8, max purity=0.166667, area=309, size=Small.
+- scene0591_02_context671_691 GT 39 class 9: below_purity, hits=45, max purity=0.450000, area=1741, size=Small.
+- scene0599_01_context63_99 GT 3 class 4: below_purity, hits=7, max purity=0.031646, area=334, size=Small.
+- scene0606_01_context99_180 GT 9 class 4: zero_source_hits, hits=0, max purity=0.000000, area=1, size=Small.
+- scene0606_01_context99_180 GT 13 class 7: zero_source_hits, hits=0, max purity=0.000000, area=4, size=Small.
+- scene0607_01_context511_539 GT 8 class 17: below_purity, hits=9, max purity=0.333333, area=278, size=Small.
+- scene0608_02_context114_192 GT 49 class 2: below_purity, hits=23, max purity=0.188235, area=688, size=Small.
+- scene0618_00_context694_714 GT 6 class 4: below_purity, hits=8, max purity=0.083333, area=236, size=Small.
+- scene0618_00_context694_714 GT 27 class 6: below_purity, hits=64, max purity=0.048991, area=2628, size=Medium.
+- scene0621_00_context1090_1106 GT 12 class 4: zero_source_hits, hits=0, max purity=0.000000, area=83, size=Small.
+- scene0645_01_context1686_1744 GT 22 class 6: below_purity, hits=1, max purity=0.002381, area=18, size=Small.
+- scene0645_01_context1686_1744 GT 42 class 6: below_purity, hits=9, max purity=0.022936, area=300, size=Small.
+- scene0651_00_context674_687 GT 10 class 4: below_purity, hits=11, max purity=0.093750, area=249, size=Small.
+- scene0651_01_context371_443 GT 12 class 17: zero_source_hits, hits=0, max purity=0.000000, area=5, size=Small.
+- scene0660_00_context240_278 GT 9 class 4: below_purity, hits=15, max purity=0.200000, area=492, size=Small.
+- scene0663_01_context601_625 GT 4 class 12: below_purity, hits=3, max purity=0.013514, area=126, size=Small.
+- scene0663_02_context477_518 GT 10 class 6: below_purity, hits=26, max purity=0.333333, area=924, size=Small.
+- scene0665_01_context927_937 GT 28 class 7: below_purity, hits=46, max purity=0.400000, area=2865, size=Medium.
+- scene0671_01_context33_63 GT 17 class 19: below_purity, hits=160, max purity=0.364549, area=4710, size=Medium.
+- scene0693_02_context395_485 GT 24 class 18: below_purity, hits=5, max purity=0.166667, area=283, size=Small.
+- scene0696_01_context555_566 GT 12 class 7: zero_source_hits, hits=0, max purity=0.000000, area=17, size=Small.
+- scene0696_01_context555_566 GT 28 class 4: below_purity, hits=88, max purity=0.147465, area=3445, size=Medium.
+- scene0696_01_context555_566 GT 29 class 4: zero_source_hits, hits=0, max purity=0.000000, area=8, size=Small.
