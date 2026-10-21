@@ -1,5 +1,5 @@
 """Explicit A4 true-zero migration: remove unused recon initializer, add adapters."""
-ARCH='OMEGA_POINT1024_SOURCE256_ISOLATED_RESIDUAL_ADAPTER_V1'
+ARCH='OMEGA_POINT1024_SOURCE256_FMQUERY_ISOLATED_RESIDUAL_ADAPTER_V2'
 REMOVED='core.initializer.reconstruction.'
 ADAPTERS='core.understanding_adapters.'
 
@@ -38,4 +38,5 @@ def initialize_point1024_isoadapter_from_legacy_zero(saved,model,*,manifest_sha2
         removed_keys=sorted(removed),new_keys=sorted(added),source_world=8,target_world=world,
         rank_rng_selection=list(range(world)),source_updates=0,empty_adam=True,
         seed_feature_source='exact_source_pixel_shared_projection_256',adapter_input_detached=True,
-        adapter_residual_output_detached=False,shared_understanding_gradient_disabled=True)
+        adapter_residual_output_detached=False,shared_understanding_gradient_disabled=True,
+        understanding_seed_feature_source='semantic_memory_fm_256')

@@ -127,7 +127,7 @@ def main():
     if args.architecture=='dual_fps1024_superpoint':
         meta.update(reconstruction_anchor_count=1024,reconstruction_initialization='fps_xyz_plus_learned_embedding_plus_superpoint',supervised_layers=list(model.supervised_layers),layer_weights=list(model.layer_weights))
     if args.architecture=='dual_point1024_isoadapter':
-        meta.update(reconstruction_anchor_count=1024,seed_feature_source='exact_source_pixel_shared_projection_256',gradient_isolation=True,adapter_hidden=64,adapter_read_layers=[6,8,10,12],supervised_layers=list(model.supervised_layers),layer_weights=list(model.layer_weights))
+        meta.update(reconstruction_anchor_count=1024,seed_feature_source='exact_source_pixel_shared_projection_256',understanding_seed_feature_source='semantic_memory_fm_256',gradient_isolation=True,adapter_hidden=64,adapter_read_layers=[6,8,10,12],supervised_layers=list(model.supervised_layers),layer_weights=list(model.layer_weights))
     progress=dict(epoch=0,update_in_epoch=0,full_updates=0)
     if args.resume:
         saved=torch.load(root/'checkpoint_latest.pt',map_location='cpu',weights_only=False,mmap=True)

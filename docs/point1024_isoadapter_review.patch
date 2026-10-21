@@ -1,6 +1,6 @@
 diff --git a/scripts/audit_point1024_isoadapter_zero.py b/scripts/audit_point1024_isoadapter_zero.py
 new file mode 100644
-index 0000000..d9dfe94
+index 0000000..f1a0c8f
 --- /dev/null
 +++ b/scripts/audit_point1024_isoadapter_zero.py
 @@ -0,0 +1,48 @@
@@ -30,7 +30,7 @@ index 0000000..d9dfe94
 +sha='3c7f1860f3897e1fba305564b30f8e4d67954e6280891bf8a33296bf42b25744';assert digest(source)==sha
 +saved=torch.load(source,map_location='cpu',weights_only=False,mmap=True)
 +cfg=UnifiedQueryConfig(**saved['meta']['config']);torch.manual_seed(42)
-+model=nn.Module();model.architecture_name='OMEGA_POINT1024_SOURCE256_ISOLATED_RESIDUAL_ADAPTER_V1';model.config=cfg
++model=nn.Module();model.architecture_name='OMEGA_POINT1024_SOURCE256_FMQUERY_ISOLATED_RESIDUAL_ADAPTER_V2';model.config=cfg
 +model.frozen_omega=SimpleNamespace(source_identity=saved['meta']['omega_identity'])
 +model.sam_proposals=SimpleNamespace(source_identity=saved['meta']['sam_identity'])
 +model.gfm_projection=nn.Sequential(nn.LayerNorm(2048),nn.Linear(2048,256))
@@ -53,20 +53,20 @@ index 0000000..d9dfe94
 +args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(json.dumps(result,indent=2)+'\n')
 +print(json.dumps(result),flush=True)
 diff --git a/scripts/export_unified_query_checkpoint.py b/scripts/export_unified_query_checkpoint.py
-index a9dd2c1..bff41d9 100644
+index a9dd2c1..78b9884 100644
 --- a/scripts/export_unified_query_checkpoint.py
 +++ b/scripts/export_unified_query_checkpoint.py
 @@ -44,0 +45,2 @@ def main():
-+    if meta['architecture']=='OMEGA_POINT1024_SOURCE256_ISOLATED_RESIDUAL_ADAPTER_V1':
-+        if meta.get('reconstruction_anchor_count')!=1024 or meta.get('seed_feature_source')!='exact_source_pixel_shared_projection_256' or meta.get('gradient_isolation') is not True or meta.get('adapter_hidden')!=64 or meta.get('adapter_read_layers')!=[6,8,10,12] or meta.get('supervised_layers')!=[6,12] or meta.get('layer_weights')!=[1/3,2/3] or meta.get('epochs')!=4 or meta.get('global_batch')!=8:raise ValueError('Isolated point1024 checkpoint identity differs')
++    if meta['architecture']=='OMEGA_POINT1024_SOURCE256_FMQUERY_ISOLATED_RESIDUAL_ADAPTER_V2':
++        if meta.get('reconstruction_anchor_count')!=1024 or meta.get('seed_feature_source')!='exact_source_pixel_shared_projection_256' or meta.get('understanding_seed_feature_source')!='semantic_memory_fm_256' or meta.get('gradient_isolation') is not True or meta.get('adapter_hidden')!=64 or meta.get('adapter_read_layers')!=[6,8,10,12] or meta.get('supervised_layers')!=[6,12] or meta.get('layer_weights')!=[1/3,2/3] or meta.get('epochs')!=4 or meta.get('global_batch')!=8:raise ValueError('Isolated point1024 checkpoint identity differs')
 diff --git a/scripts/point1024_isoadapter_initial_state.py b/scripts/point1024_isoadapter_initial_state.py
 new file mode 100644
-index 0000000..e6270d4
+index 0000000..9a98554
 --- /dev/null
 +++ b/scripts/point1024_isoadapter_initial_state.py
-@@ -0,0 +1,41 @@
+@@ -0,0 +1,42 @@
 +"""Explicit A4 true-zero migration: remove unused recon initializer, add adapters."""
-+ARCH='OMEGA_POINT1024_SOURCE256_ISOLATED_RESIDUAL_ADAPTER_V1'
++ARCH='OMEGA_POINT1024_SOURCE256_FMQUERY_ISOLATED_RESIDUAL_ADAPTER_V2'
 +REMOVED='core.initializer.reconstruction.'
 +ADAPTERS='core.understanding_adapters.'
 +
@@ -105,9 +105,10 @@ index 0000000..e6270d4
 +        removed_keys=sorted(removed),new_keys=sorted(added),source_world=8,target_world=world,
 +        rank_rng_selection=list(range(world)),source_updates=0,empty_adam=True,
 +        seed_feature_source='exact_source_pixel_shared_projection_256',adapter_input_detached=True,
-+        adapter_residual_output_detached=False,shared_understanding_gradient_disabled=True)
++        adapter_residual_output_detached=False,shared_understanding_gradient_disabled=True,
++        understanding_seed_feature_source='semantic_memory_fm_256')
 diff --git a/scripts/train_unified_query_v1.py b/scripts/train_unified_query_v1.py
-index 6cfa192..e8280bc 100644
+index 6cfa192..253a321 100644
 --- a/scripts/train_unified_query_v1.py
 +++ b/scripts/train_unified_query_v1.py
 @@ -50 +50 @@ def main():
@@ -129,7 +130,7 @@ index 6cfa192..e8280bc 100644
 +        elif args.initialize_fps_superpoint_from_legacy_zero:
 @@ -119,0 +129,2 @@ def main():
 +    if args.architecture=='dual_point1024_isoadapter':
-+        meta.update(reconstruction_anchor_count=1024,seed_feature_source='exact_source_pixel_shared_projection_256',gradient_isolation=True,adapter_hidden=64,adapter_read_layers=[6,8,10,12],supervised_layers=list(model.supervised_layers),layer_weights=list(model.layer_weights))
++        meta.update(reconstruction_anchor_count=1024,seed_feature_source='exact_source_pixel_shared_projection_256',understanding_seed_feature_source='semantic_memory_fm_256',gradient_isolation=True,adapter_hidden=64,adapter_read_layers=[6,8,10,12],supervised_layers=list(model.supervised_layers),layer_weights=list(model.layer_weights))
 @@ -171,0 +183,7 @@ def main():
 +                if hasattr(model.core,'understanding_adapters'):
 +                    gradients={}
@@ -140,10 +141,10 @@ index 6cfa192..e8280bc 100644
 +                    gradient_evidence['understanding_adapters']=gradients
 diff --git a/tests/test_point1024_isoadapter.py b/tests/test_point1024_isoadapter.py
 new file mode 100644
-index 0000000..bfa478e
+index 0000000..eb7cee9
 --- /dev/null
 +++ b/tests/test_point1024_isoadapter.py
-@@ -0,0 +1,147 @@
+@@ -0,0 +1,178 @@
 +import copy
 +import io
 +import unittest
@@ -155,7 +156,7 @@ index 0000000..bfa478e
 +from scripts.runtime_bootstrap import prepare_runtime
 +prepare_runtime(Path(__file__).resolve().parents[1],log=lambda *args:None)
 +from tokengs.models.point1024_isoadapter_core import DetachedResidualAdapter
-+from tokengs.models.point1024_isoadapter_model import LocusGSPoint1024IsolatedAdapter
++from tokengs.models.point1024_isoadapter_model import LocusGSPoint1024IsolatedAdapter,sample_understanding_fm_to_cloud
 +from tokengs.models.gfm_dual_stream_components import sample_anchor_gfm
 +from tokengs.models.unified_query_loss import unified_instance_loss
 +
@@ -186,6 +187,23 @@ index 0000000..bfa478e
 +        sampled=sample_anchor_gfm(grid,indices,image_hw=(4,4))
 +        torch.testing.assert_close(sampled[0,:,0],torch.tensor([0.,15.,16.,31.]))
 +        sampled.sum().backward();self.assertEqual(int(torch.count_nonzero(grid.grad)),4)
++
++
++class FMSamplingTests(unittest.TestCase):
++    def test_exact_source_pixels_fuse_in_existing_point_order_and_train_fm(self):
++        # Distinct views and a deliberately scrambled source/fusion order.
++        fm=torch.arange(8.).reshape(1,2,1,2,2).expand(-1,-1,256,-1,-1).clone().requires_grad_()
++        cloud=dict(points=torch.randn(3,3),source_indices=torch.tensor([4,0,7,3]),source_to_point=torch.tensor([2,0,2,1]))
++        before={k:v.clone() for k,v in cloud.items()}
++        features=sample_understanding_fm_to_cloud(fm,cloud,(2,2))
++        torch.testing.assert_close(features[:,0],torch.tensor([0.,3.,5.5]))
++        self.assertEqual(features.shape,(3,256))
++        for key in cloud:torch.testing.assert_close(cloud[key],before[key])
++        features.sum().backward()
++        expected=torch.tensor([1.,0,0,1.,.5,0,0,.5]).reshape(1,2,1,2,2).expand_as(fm)
++        torch.testing.assert_close(fm.grad,expected)
++        bad=dict(cloud,source_to_point=torch.tensor([2,0,2,3]))
++        with self.assertRaises(ValueError):sample_understanding_fm_to_cloud(fm,bad,(2,2))
 +
 +
 +class RoutingTests(unittest.TestCase):
@@ -222,10 +240,24 @@ index 0000000..bfa478e
 +            out=model.generate(rgb)
 +            self.assertEqual(out['num_reconstruction_anchors'],6)
 +            self.assertEqual(out['gaussians'].shape,(1,384,14));self.assertEqual(out['unified_query'].shape,(1,2,256))
-+            # Understanding seeds are numerically unchanged, but feature gradient
-+            # is stopped before their trainable initializer.
-+            with torch.no_grad():expected=model.core.initializer.understanding(out['cloud'])
++            # Same point/superpoint identities, but FM now supplies seed content.
++            with torch.no_grad():
++                expected=model.core.initializer.understanding(dict(out['cloud'],features=out['understanding_point_features']))
++                previous=model.core.initializer.understanding(out['cloud'])
 +            torch.testing.assert_close(out['q_pre'],expected['query'])
++            torch.testing.assert_close(out['superpoints']['source_superpoint_ids'],previous['source_superpoint_ids'])
++            torch.testing.assert_close(out['superpoints']['centers'],previous['centers'])
++            torch.testing.assert_close(out['superpoints']['radii'],previous['radii'])
++            self.assertFalse(torch.allclose(out['q_pre'],previous['query']))
++            # Isolate the initialization path from all later FM reads: q_pre must
++            # train semantic memory, while reconstruction feature projection has
++            # no path to this seed loss.
++            fm_params=list(model.core.semantic_memory.parameters())
++            shared_params=list(model.gfm_projection.parameters())
++            seed_loss=(out['q_pre']*torch.randn_like(out['q_pre'])).sum()
++            seed_grads=torch.autograd.grad(seed_loss,fm_params+shared_params,allow_unused=True,retain_graph=True)
++            self.assertGreater(sum(float(g.norm()) for g in seed_grads[:len(fm_params)] if g is not None),0)
++            self.assertTrue(all(g is None or torch.count_nonzero(g)==0 for g in seed_grads[len(fm_params):]))
 +            batch=dict(semantic_label_all=torch.full((1,2,8,8),2),instance_label_all=torch.ones(1,2,8,8,dtype=torch.long))
 +            lu,_=unified_instance_loss(out,batch,cfg)
 +            decoder=ModelInputDecoder(cam_view=torch.eye(4).expand(1,2,4,4),intrinsics=torch.tensor([4.,4.,4.,4.]).expand(1,2,4))
@@ -293,10 +325,10 @@ index 0000000..bfa478e
 +if __name__=='__main__':unittest.main()
 diff --git a/tokengs/models/point1024_isoadapter_core.py b/tokengs/models/point1024_isoadapter_core.py
 new file mode 100644
-index 0000000..8ce05ba
+index 0000000..7eb30c9
 --- /dev/null
 +++ b/tokengs/models/point1024_isoadapter_core.py
-@@ -0,0 +1,83 @@
+@@ -0,0 +1,87 @@
 +"""Point-seeded reconstruction with strictly isolated residual understanding reads."""
 +import os
 +import torch
@@ -331,8 +363,11 @@ index 0000000..8ce05ba
 +
 +    def forward(self,cloud,memory,superpoint_ids=None):
 +        if superpoint_ids is not None:cloud=dict(cloud,point_superpoint_ids=superpoint_ids)
-+        # Preserve initializer values and matching identities, isolate shared projection.
-+        under=self.initializer.understanding(dict(cloud,features=cloud['features'].detach()))
++        # Reuse geometry/SAM/fusion identities; initialize from semantic memory.
++        # Keep this gradient: LU must train FM through the query seed path.
++        under_features=memory['understanding_point_features']
++        if under_features.shape!=(len(cloud['points']),256):raise ValueError('FM features must match existing fused point order')
++        under=self.initializer.understanding(dict(cloud,features=under_features))
 +        rec=memory['point_seed'];tokens=self.reconstruction_seed_projection(rec['features'])
 +        fm=memory['fm']
 +        # Write=0 allows the reconstruction and object computations to be scheduled
@@ -376,27 +411,48 @@ index 0000000..8ce05ba
 +        return dict(states=states,gaussians=gaussians,gaussian_membership=logits.sigmoid(),gaussian_mask_logits=logits,
 +            thing_logits19=classification['thing_logits19'],p_class=classification['p_class'],q_pre=under['query'],
 +            unified_query=q[:,:n],superpoints=under,cloud=cloud,pred_iou=None,
++            understanding_point_features=under_features,
 +            gaussian_parent_anchor=torch.arange(anchors,device=tokens.device).repeat_interleave(64),
 +            num_thing_queries=n,num_superpoint_queries=n,num_object_queries=n,num_stuff_queries=2,
 +            num_reconstruction_anchors=anchors,num_gaussians=gaussians.shape[1],
 +            initial_anchor_mu=rec['centers'],initial_anchor_radius=rec['radii'],initial_anchor_source_ids=rec['source_indices'])
 diff --git a/tokengs/models/point1024_isoadapter_model.py b/tokengs/models/point1024_isoadapter_model.py
 new file mode 100644
-index 0000000..89c9f7f
+index 0000000..d33fca9
 --- /dev/null
 +++ b/tokengs/models/point1024_isoadapter_model.py
-@@ -0,0 +1,48 @@
-+"""Exact-source 256D point seeds; native object initialization, isolated losses."""
+@@ -0,0 +1,69 @@
++"""Exact-source 256D point seeds; FM-based object initialization, isolated losses."""
 +import torch
 +from tokengs.models.unified_query_v1 import LocusGSUnifiedQueryV1
 +from tokengs.models.dual_stream_initialization import seed_anchors
 +from tokengs.models.gfm_dual_stream_components import sample_anchor_gfm
 +from tokengs.models.point1024_isoadapter_core import Point1024IsolatedAdapterCore
 +from tokengs.models.canonical_recon import supervised_layer_weights
++from tokengs.models.unified_superpoints import scatter_mean
++
++
++def sample_understanding_fm_to_cloud(fm,cloud,image_hw):
++    """Sample the SAME source pixels and reuse the EXISTING point fusion IDs.
++
++    Geometry/partitions stay fixed; gradients flow through samples and means
++    back to semantic memory. Never re-lift or re-cluster the point cloud.
++    """
++    if fm.ndim!=5 or fm.shape[:3]!=(1,2,256):
++        raise ValueError('Expected [1,2,256,H,W] semantic memory')
++    source=cloud['source_indices'];ids=cloud['source_to_point'];count=len(cloud['points'])
++    if source.ndim!=1 or ids.shape!=source.shape or not len(source) or ids.dtype!=torch.long:
++        raise ValueError('Source/fusion indices must match the retained cloud')
++    if (source<0).any() or (source>=2*image_hw[0]*image_hw[1]).any() or (ids<0).any() or (ids>=count).any():
++        raise ValueError('Invalid source pixel or fused point index')
++    if torch.bincount(ids,minlength=count).eq(0).any():
++        raise ValueError('Every fused point must have a source observation')
++    sampled=sample_anchor_gfm(fm,source[None],image_hw=image_hw)[0]
++    return scatter_mean(sampled,ids,count)
 +
 +
 +class LocusGSPoint1024IsolatedAdapter(LocusGSUnifiedQueryV1):
-+    architecture_name='OMEGA_POINT1024_SOURCE256_ISOLATED_RESIDUAL_ADAPTER_V1'
++    architecture_name='OMEGA_POINT1024_SOURCE256_FMQUERY_ISOLATED_RESIDUAL_ADAPTER_V2'
 +    core_type=Point1024IsolatedAdapterCore
 +    reconstruction_count=1024
 +
@@ -418,6 +474,7 @@ index 0000000..89c9f7f
 +        hw=tuple(omega['points'].shape[2:4])
 +        features=sample_anchor_gfm(grid,source,image_hw=hw)
 +        memory['point_seed']=dict(centers=mu,radii=radius,features=features,source_indices=source)
++        memory['understanding_point_features']=sample_understanding_fm_to_cloud(memory['fm'],cloud,hw)
 +        return omega,cloud,memory
 +
 +    def _render_understanding(self,generated,decoder):

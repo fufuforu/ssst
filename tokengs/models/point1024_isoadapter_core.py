@@ -32,8 +32,11 @@ class Point1024IsolatedAdapterCore(SuperpointDualCore):
 
     def forward(self,cloud,memory,superpoint_ids=None):
         if superpoint_ids is not None:cloud=dict(cloud,point_superpoint_ids=superpoint_ids)
-        # Preserve initializer values and matching identities, isolate shared projection.
-        under=self.initializer.understanding(dict(cloud,features=cloud['features'].detach()))
+        # Reuse geometry/SAM/fusion identities; initialize from semantic memory.
+        # Keep this gradient: LU must train FM through the query seed path.
+        under_features=memory['understanding_point_features']
+        if under_features.shape!=(len(cloud['points']),256):raise ValueError('FM features must match existing fused point order')
+        under=self.initializer.understanding(dict(cloud,features=under_features))
         rec=memory['point_seed'];tokens=self.reconstruction_seed_projection(rec['features'])
         fm=memory['fm']
         # Write=0 allows the reconstruction and object computations to be scheduled
@@ -77,6 +80,7 @@ class Point1024IsolatedAdapterCore(SuperpointDualCore):
         return dict(states=states,gaussians=gaussians,gaussian_membership=logits.sigmoid(),gaussian_mask_logits=logits,
             thing_logits19=classification['thing_logits19'],p_class=classification['p_class'],q_pre=under['query'],
             unified_query=q[:,:n],superpoints=under,cloud=cloud,pred_iou=None,
+            understanding_point_features=under_features,
             gaussian_parent_anchor=torch.arange(anchors,device=tokens.device).repeat_interleave(64),
             num_thing_queries=n,num_superpoint_queries=n,num_object_queries=n,num_stuff_queries=2,
             num_reconstruction_anchors=anchors,num_gaussians=gaussians.shape[1],

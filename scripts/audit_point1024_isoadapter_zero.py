@@ -24,7 +24,7 @@ source=Path('/space/mawb/ssst/group_plus/unified_query_training_v1/attempt05_leg
 sha='3c7f1860f3897e1fba305564b30f8e4d67954e6280891bf8a33296bf42b25744';assert digest(source)==sha
 saved=torch.load(source,map_location='cpu',weights_only=False,mmap=True)
 cfg=UnifiedQueryConfig(**saved['meta']['config']);torch.manual_seed(42)
-model=nn.Module();model.architecture_name='OMEGA_POINT1024_SOURCE256_ISOLATED_RESIDUAL_ADAPTER_V1';model.config=cfg
+model=nn.Module();model.architecture_name='OMEGA_POINT1024_SOURCE256_FMQUERY_ISOLATED_RESIDUAL_ADAPTER_V2';model.config=cfg
 model.frozen_omega=SimpleNamespace(source_identity=saved['meta']['omega_identity'])
 model.sam_proposals=SimpleNamespace(source_identity=saved['meta']['sam_identity'])
 model.gfm_projection=nn.Sequential(nn.LayerNorm(2048),nn.Linear(2048,256))

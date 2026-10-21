@@ -1,14 +1,34 @@
-"""Exact-source 256D point seeds; native object initialization, isolated losses."""
+"""Exact-source 256D point seeds; FM-based object initialization, isolated losses."""
 import torch
 from tokengs.models.unified_query_v1 import LocusGSUnifiedQueryV1
 from tokengs.models.dual_stream_initialization import seed_anchors
 from tokengs.models.gfm_dual_stream_components import sample_anchor_gfm
 from tokengs.models.point1024_isoadapter_core import Point1024IsolatedAdapterCore
 from tokengs.models.canonical_recon import supervised_layer_weights
+from tokengs.models.unified_superpoints import scatter_mean
+
+
+def sample_understanding_fm_to_cloud(fm,cloud,image_hw):
+    """Sample the SAME source pixels and reuse the EXISTING point fusion IDs.
+
+    Geometry/partitions stay fixed; gradients flow through samples and means
+    back to semantic memory. Never re-lift or re-cluster the point cloud.
+    """
+    if fm.ndim!=5 or fm.shape[:3]!=(1,2,256):
+        raise ValueError('Expected [1,2,256,H,W] semantic memory')
+    source=cloud['source_indices'];ids=cloud['source_to_point'];count=len(cloud['points'])
+    if source.ndim!=1 or ids.shape!=source.shape or not len(source) or ids.dtype!=torch.long:
+        raise ValueError('Source/fusion indices must match the retained cloud')
+    if (source<0).any() or (source>=2*image_hw[0]*image_hw[1]).any() or (ids<0).any() or (ids>=count).any():
+        raise ValueError('Invalid source pixel or fused point index')
+    if torch.bincount(ids,minlength=count).eq(0).any():
+        raise ValueError('Every fused point must have a source observation')
+    sampled=sample_anchor_gfm(fm,source[None],image_hw=image_hw)[0]
+    return scatter_mean(sampled,ids,count)
 
 
 class LocusGSPoint1024IsolatedAdapter(LocusGSUnifiedQueryV1):
-    architecture_name='OMEGA_POINT1024_SOURCE256_ISOLATED_RESIDUAL_ADAPTER_V1'
+    architecture_name='OMEGA_POINT1024_SOURCE256_FMQUERY_ISOLATED_RESIDUAL_ADAPTER_V2'
     core_type=Point1024IsolatedAdapterCore
     reconstruction_count=1024
 
@@ -30,6 +50,7 @@ class LocusGSPoint1024IsolatedAdapter(LocusGSUnifiedQueryV1):
         hw=tuple(omega['points'].shape[2:4])
         features=sample_anchor_gfm(grid,source,image_hw=hw)
         memory['point_seed']=dict(centers=mu,radii=radius,features=features,source_indices=source)
+        memory['understanding_point_features']=sample_understanding_fm_to_cloud(memory['fm'],cloud,hw)
         return omega,cloud,memory
 
     def _render_understanding(self,generated,decoder):

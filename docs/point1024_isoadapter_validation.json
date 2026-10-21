@@ -1,7 +1,7 @@
 {
-  "status": "CPU_POINT1024_ISOADAPTER_VALIDATION_PASSED",
-  "cpu_tests": 4,
-  "tests_passed": 4,
+  "status": "CPU_POINT1024_FMQUERY_ISOADAPTER_VALIDATION_PASSED",
+  "cpu_tests": 5,
+  "tests_passed": 5,
   "actual_1024_seed_initialization": true,
   "synthetic_full_core_render_anchor_count": 6,
   "real_12_layer_core": true,
@@ -13,9 +13,15 @@
   "shared_projection_reconstruction_gradient_nonzero": true,
   "all_four_adapters_trainable": true,
   "zero_adapter_forward_equals_adapter_free_reads": true,
-  "understanding_seed_values_unchanged": true,
+  "understanding_seed_values_unchanged": false,
   "exact_source_pixel_feature_sampling": true,
   "strict_zero_migration_and_rejections_passed": true,
   "gpu_verified": false,
-  "jobs_submitted": false
+  "jobs_submitted": false,
+  "understanding_seed_source": "semantic_memory_fm_256",
+  "understanding_geometry_and_matching_ids_preserved": true,
+  "fm_initialization_gradient_nonzero": true,
+  "query_initialization_gradient_to_reconstruction_projection_zero": true,
+  "source_pixel_and_point_fusion_order_verified": true,
+  "no_parameter_count_change": true
 }

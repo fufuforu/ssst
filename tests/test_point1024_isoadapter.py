@@ -9,7 +9,7 @@ from torch import nn
 from scripts.runtime_bootstrap import prepare_runtime
 prepare_runtime(Path(__file__).resolve().parents[1],log=lambda *args:None)
 from tokengs.models.point1024_isoadapter_core import DetachedResidualAdapter
-from tokengs.models.point1024_isoadapter_model import LocusGSPoint1024IsolatedAdapter
+from tokengs.models.point1024_isoadapter_model import LocusGSPoint1024IsolatedAdapter,sample_understanding_fm_to_cloud
 from tokengs.models.gfm_dual_stream_components import sample_anchor_gfm
 from tokengs.models.unified_query_loss import unified_instance_loss
 
@@ -40,6 +40,23 @@ class AdapterTests(unittest.TestCase):
         sampled=sample_anchor_gfm(grid,indices,image_hw=(4,4))
         torch.testing.assert_close(sampled[0,:,0],torch.tensor([0.,15.,16.,31.]))
         sampled.sum().backward();self.assertEqual(int(torch.count_nonzero(grid.grad)),4)
+
+
+class FMSamplingTests(unittest.TestCase):
+    def test_exact_source_pixels_fuse_in_existing_point_order_and_train_fm(self):
+        # Distinct views and a deliberately scrambled source/fusion order.
+        fm=torch.arange(8.).reshape(1,2,1,2,2).expand(-1,-1,256,-1,-1).clone().requires_grad_()
+        cloud=dict(points=torch.randn(3,3),source_indices=torch.tensor([4,0,7,3]),source_to_point=torch.tensor([2,0,2,1]))
+        before={k:v.clone() for k,v in cloud.items()}
+        features=sample_understanding_fm_to_cloud(fm,cloud,(2,2))
+        torch.testing.assert_close(features[:,0],torch.tensor([0.,3.,5.5]))
+        self.assertEqual(features.shape,(3,256))
+        for key in cloud:torch.testing.assert_close(cloud[key],before[key])
+        features.sum().backward()
+        expected=torch.tensor([1.,0,0,1.,.5,0,0,.5]).reshape(1,2,1,2,2).expand_as(fm)
+        torch.testing.assert_close(fm.grad,expected)
+        bad=dict(cloud,source_to_point=torch.tensor([2,0,2,3]))
+        with self.assertRaises(ValueError):sample_understanding_fm_to_cloud(fm,bad,(2,2))
 
 
 class RoutingTests(unittest.TestCase):
@@ -76,10 +93,24 @@ class RoutingTests(unittest.TestCase):
             out=model.generate(rgb)
             self.assertEqual(out['num_reconstruction_anchors'],6)
             self.assertEqual(out['gaussians'].shape,(1,384,14));self.assertEqual(out['unified_query'].shape,(1,2,256))
-            # Understanding seeds are numerically unchanged, but feature gradient
-            # is stopped before their trainable initializer.
-            with torch.no_grad():expected=model.core.initializer.understanding(out['cloud'])
+            # Same point/superpoint identities, but FM now supplies seed content.
+            with torch.no_grad():
+                expected=model.core.initializer.understanding(dict(out['cloud'],features=out['understanding_point_features']))
+                previous=model.core.initializer.understanding(out['cloud'])
             torch.testing.assert_close(out['q_pre'],expected['query'])
+            torch.testing.assert_close(out['superpoints']['source_superpoint_ids'],previous['source_superpoint_ids'])
+            torch.testing.assert_close(out['superpoints']['centers'],previous['centers'])
+            torch.testing.assert_close(out['superpoints']['radii'],previous['radii'])
+            self.assertFalse(torch.allclose(out['q_pre'],previous['query']))
+            # Isolate the initialization path from all later FM reads: q_pre must
+            # train semantic memory, while reconstruction feature projection has
+            # no path to this seed loss.
+            fm_params=list(model.core.semantic_memory.parameters())
+            shared_params=list(model.gfm_projection.parameters())
+            seed_loss=(out['q_pre']*torch.randn_like(out['q_pre'])).sum()
+            seed_grads=torch.autograd.grad(seed_loss,fm_params+shared_params,allow_unused=True,retain_graph=True)
+            self.assertGreater(sum(float(g.norm()) for g in seed_grads[:len(fm_params)] if g is not None),0)
+            self.assertTrue(all(g is None or torch.count_nonzero(g)==0 for g in seed_grads[len(fm_params):]))
             batch=dict(semantic_label_all=torch.full((1,2,8,8),2),instance_label_all=torch.ones(1,2,8,8,dtype=torch.long))
             lu,_=unified_instance_loss(out,batch,cfg)
             decoder=ModelInputDecoder(cam_view=torch.eye(4).expand(1,2,4,4),intrinsics=torch.tensor([4.,4.,4.,4.]).expand(1,2,4))

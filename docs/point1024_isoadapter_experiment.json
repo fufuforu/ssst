@@ -1,6 +1,6 @@
 {
   "architecture": "dual_point1024_isoadapter",
-  "architecture_identity": "OMEGA_POINT1024_SOURCE256_ISOLATED_RESIDUAL_ADAPTER_V1",
+  "architecture_identity": "OMEGA_POINT1024_SOURCE256_FMQUERY_ISOLATED_RESIDUAL_ADAPTER_V2",
   "training_windows": 8337,
   "training_scenes": 1191,
   "epochs": 4,
@@ -46,7 +46,7 @@
     12
   ],
   "semantic_memory_resolution": 256,
-  "semantic_feature_initialization": false,
+  "semantic_feature_initialization": true,
   "gradient_isolation": true,
   "write_strength": 0.0,
   "adapter_hidden": 64,
@@ -57,5 +57,8 @@
   "initial_checkpoint": "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt05_legacy_dual_superpoint_full_node13_8gpu/checkpoint_untrained_initial.pt",
   "initial_sha256": "3c7f1860f3897e1fba305564b30f8e4d67954e6280891bf8a33296bf42b25744",
   "jobs_submitted": false,
-  "gpu_smoke_performed": false
+  "gpu_smoke_performed": false,
+  "understanding_seed_feature_source": "semantic_memory_fm_256",
+  "understanding_point_sampling": "same_source_indices_and_source_to_point_mean_fusion",
+  "understanding_seed_fm_detached": false
 }
