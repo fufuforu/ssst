@@ -1,0 +1,32 @@
+{
+  "recipe": "point1024_fmquery_isolated_adapter_2ctx4novel_full4_official1860",
+  "architecture": "OMEGA_POINT1024_SOURCE256_FMQUERY_ISOLATED_RESIDUAL_ADAPTER_V2",
+  "training_job": 70026,
+  "training_root": "/space/mawb/ssst/group_plus/semantic_resolution_v1/point1024_fmquery_2ctx4novel_full4_20261021_v2_iofix_node13_8gpu",
+  "checkpoint_source": "/space/mawb/ssst/group_plus/semantic_resolution_v1/point1024_fmquery_2ctx4novel_full4_20261021_v2_iofix_node13_8gpu/checkpoint_latest.pt",
+  "checkpoint_epoch": 4,
+  "full_updates": 4172,
+  "mask_resolution": 256,
+  "supervised_layers": [
+    6,
+    12
+  ],
+  "layer_weights": [
+    0.3333333333333333,
+    0.6666666666666666
+  ],
+  "iou_head": false,
+  "gradient_isolation": true,
+  "training_view_protocol": "point1024_2context_4novel_v1",
+  "training_window_manifest_sha256": "8fe72589a2b8f1b52fa517cde39a0fce37d104adc2ee3a28585d1747292313f1",
+  "cohort": "/space/mawb/ssst/group_plus/vggt_understanding_bottleneck_v1/official1860_cohort_20261020.json",
+  "cohort_sha256": "0e4cec01a6fd17dd5a89ba0c89128af85f18017a1509dd4050c2315546dab951",
+  "official_commit": "8ea80166be76854f938e90521f1a5b688b755c87",
+  "code_snapshot": "/space/mawb/ssst_point1024_fmquery_2ctx4novel_full4_code_20261021_v2_iofix_node13",
+  "code_sha": "21a85947388b41ccc22f09b52ff43adb0caf2573",
+  "evaluation_gpus": 8,
+  "node": "3dimage-13",
+  "dependency": "afterok:70026",
+  "no_training_submitted": true,
+  "checkpoint_sha256": "b8d65a659d4296ef9aeb8172cf3026c08a16b38bf1f88ae5010cbf89c0577909"
+}

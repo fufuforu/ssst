@@ -1,0 +1,12 @@
+{
+  "status": "PASSED",
+  "training_job": 70026,
+  "training_progress": {
+    "epoch": 4,
+    "update_in_epoch": 0,
+    "full_updates": 4172
+  },
+  "source": "/space/mawb/ssst/group_plus/semantic_resolution_v1/point1024_fmquery_2ctx4novel_full4_20261021_v2_iofix_node13_8gpu/checkpoint_latest.pt",
+  "sha256": "b8d65a659d4296ef9aeb8172cf3026c08a16b38bf1f88ae5010cbf89c0577909",
+  "hardlink": true
+}

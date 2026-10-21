@@ -1,0 +1,16 @@
+{
+  "execution_commit": "3ac6b4f1878168929dfb3b773710acc193eb4676",
+  "results_checked_date_beijing": "2026-10-22",
+  "selected_fixed_windows": [
+    0,
+    1,
+    2,
+    3
+  ],
+  "sixpanel_examples": 16,
+  "continuous_maps_npz": 16,
+  "local_full_sixpanels": 512,
+  "local_full_continuous_maps": 512,
+  "weights_uploaded": false,
+  "new_slurm_jobs_submitted": false
+}

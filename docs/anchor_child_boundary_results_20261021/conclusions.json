@@ -1,0 +1,22 @@
+{
+  "discrimination": "证据不足以认定跨实例区分度一致改善；请结合各阶段与覆盖率读表",
+  "boundary": {
+    "A4": {
+      "mean_f1_2px": 0.32274342476930884,
+      "f1_lower95": 0.2980362474833296,
+      "mean_ap_2px": 0.3078745000797884,
+      "mean_interior_response_fraction": 0.44923516152994125,
+      "mean_interior_threshold_fraction": 0.059216174208316895,
+      "ready_for_small_boundary_loss_pilot": false
+    },
+    "A4plus4": {
+      "mean_f1_2px": 0.40206020888099503,
+      "f1_lower95": 0.37373561893782964,
+      "mean_ap_2px": 0.3407572533376718,
+      "mean_interior_response_fraction": 0.4406026593824208,
+      "mean_interior_threshold_fraction": 0.08447063001810788,
+      "ready_for_small_boundary_loss_pilot": false
+    }
+  },
+  "causal_limit": "Fixed checkpoint comparison is observational; shared-anchor suppression is not established by cosine alone."
+}

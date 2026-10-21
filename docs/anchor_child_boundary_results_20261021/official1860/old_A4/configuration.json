@@ -1,0 +1,25 @@
+{
+  "recipe": "old_A4_official1860_epoch4_v1",
+  "architecture": "OMEGA_3D_SUPERPOINT_LEGACY_DUAL_V1",
+  "checkpoint_source": "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt05_legacy_dual_superpoint_full_node13_8gpu/checkpoint_epoch4.pt",
+  "checkpoint_sha256": "9d3f3f788de59927073cf6d93335623ff37653025258e8e53a0a232f2e01a534",
+  "checkpoint_epoch": 4,
+  "full_updates": 4172,
+  "mask_resolution": 128,
+  "supervised_layers": [
+    6,
+    8,
+    10,
+    12
+  ],
+  "iou_head": false,
+  "gradient_isolation": false,
+  "cohort": "/space/mawb/ssst/group_plus/vggt_understanding_bottleneck_v1/official1860_cohort_20261020.json",
+  "cohort_sha256": "0e4cec01a6fd17dd5a89ba0c89128af85f18017a1509dd4050c2315546dab951",
+  "official_commit": "8ea80166be76854f938e90521f1a5b688b755c87",
+  "evaluation_gpus": 8,
+  "node": "3dimage-12",
+  "code_snapshot": "/space/mawb/ssst_A4_official1860_code_20261021_node12_8gpu",
+  "evaluation_only": true,
+  "code_sha": "ddf4cd6f5b75d39d18e8b9636b7da0e69dfee161"
+}

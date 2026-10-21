@@ -1,0 +1,89 @@
+{
+  "status": "PASSED",
+  "windows": 1860,
+  "scenes": 312,
+  "matched_inputs_and_GT": true,
+  "model_forward_calls": 0,
+  "backward_calls": 0,
+  "parameter_updates": 0,
+  "pq_class_order_semantic_ids": [
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    1,
+    2
+  ],
+  "rounding": "official per-instance IoU float32; SQ float64, RQ float32, PQ=SQ*RQ",
+  "parity": {
+    "old_A4.context": {
+      "max_abs_pq_error": 0.0,
+      "TP": 7234,
+      "FP": 1237,
+      "FN": 2205,
+      "GT_segments": 10588,
+      "ignored_GT_segments": 1149,
+      "pred_segments": 10090
+    },
+    "old_A4.target": {
+      "max_abs_pq_error": 0.0,
+      "TP": 7118,
+      "FP": 1458,
+      "FN": 2395,
+      "GT_segments": 10726,
+      "ignored_GT_segments": 1213,
+      "pred_segments": 10306
+    },
+    "P1024iso.context": {
+      "max_abs_pq_error": 0.0,
+      "TP": 6885,
+      "FP": 1377,
+      "FN": 2407,
+      "GT_segments": 10588,
+      "ignored_GT_segments": 1296,
+      "pred_segments": 9820
+    },
+    "P1024iso.target": {
+      "max_abs_pq_error": 0.0,
+      "TP": 6703,
+      "FP": 1672,
+      "FN": 2691,
+      "GT_segments": 10726,
+      "ignored_GT_segments": 1332,
+      "pred_segments": 10055
+    },
+    "P1024iso_NoCA.context": {
+      "max_abs_pq_error": 0.0,
+      "TP": 6975,
+      "FP": 1316,
+      "FN": 2360,
+      "GT_segments": 10588,
+      "ignored_GT_segments": 1253,
+      "pred_segments": 9837
+    },
+    "P1024iso_NoCA.target": {
+      "max_abs_pq_error": 0.0,
+      "TP": 6835,
+      "FP": 1552,
+      "FN": 2598,
+      "GT_segments": 10726,
+      "ignored_GT_segments": 1293,
+      "pred_segments": 10053
+    }
+  },
+  "seconds": 215.36768580414355
+}

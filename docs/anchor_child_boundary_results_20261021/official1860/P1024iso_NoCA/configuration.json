@@ -1,0 +1,40 @@
+{
+  "recipe": "point1024_isolated_noca_geometric_routing_full4_official1860",
+  "architecture": "OMEGA_POINT1024_FMQUERY_ISOLATED_NO_ANCHOR_CA_GEOMETRIC_ROUTING_V1",
+  "training_job": 70162,
+  "training_root": "/space/mawb/ssst/group_plus/semantic_resolution_v1/point1024_isoadapter_noca_full4_20261021_v1_8gpu",
+  "checkpoint_source": "/space/mawb/ssst/group_plus/semantic_resolution_v1/point1024_isoadapter_noca_full4_20261021_v1_8gpu/checkpoint_latest.pt",
+  "checkpoint_epoch": 4,
+  "full_updates": 4172,
+  "mask_resolution": 256,
+  "supervised_layers": [
+    6,
+    12
+  ],
+  "layer_weights": [
+    0.3333333333333333,
+    0.6666666666666666
+  ],
+  "iou_head": false,
+  "gradient_isolation": true,
+  "object_anchor_attention": "none",
+  "geometry_routing": "normalized_geometric_distance_softmax_v1",
+  "training_view_protocol": "point1024_2context_4novel_v1",
+  "training_window_manifest_sha256": "8fe72589a2b8f1b52fa517cde39a0fce37d104adc2ee3a28585d1747292313f1",
+  "cohort": "/space/mawb/ssst/group_plus/vggt_understanding_bottleneck_v1/official1860_cohort_20261020.json",
+  "cohort_sha256": "0e4cec01a6fd17dd5a89ba0c89128af85f18017a1509dd4050c2315546dab951",
+  "official_commit": "8ea80166be76854f938e90521f1a5b688b755c87",
+  "code_snapshot": "/space/mawb/ssst_point1024_isoadapter_noca_code_20261021_v1",
+  "code_sha": "046d08d54705d1a697edcc3495ce818a8726d014",
+  "evaluation_gpus": 8,
+  "eligible_nodes": [
+    12,
+    13,
+    14,
+    17,
+    18
+  ],
+  "dependency": "afterok:70162",
+  "no_training_submitted": true,
+  "checkpoint_sha256": "afe21b135c46315586cbb8331c46c26edd9a9128f261fde2e93210bf6b6bee36"
+}

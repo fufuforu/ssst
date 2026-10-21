@@ -1,0 +1,12 @@
+{
+  "status": "PASSED",
+  "training_job": 70162,
+  "training_progress": {
+    "epoch": 4,
+    "update_in_epoch": 0,
+    "full_updates": 4172
+  },
+  "source": "/space/mawb/ssst/group_plus/semantic_resolution_v1/point1024_isoadapter_noca_full4_20261021_v1_8gpu/checkpoint_latest.pt",
+  "sha256": "afe21b135c46315586cbb8331c46c26edd9a9128f261fde2e93210bf6b6bee36",
+  "hardlink": true
+}

@@ -90,3 +90,9 @@ GT boundary 为相邻有效像素 GT thing instance 组合 ID 不同、且至少
 - 全部六图与紧凑 raw/soft NPZ 本地保留；仅前四个预定窗口的16幅六图及表格/收据/报告用于 GitHub，避免上传大量中间张量。无模型权重或数据集上传。
 - 代码/协议先 push 新分支；GPU 结果完成后，用户通知再核对并 push 实际报告与示例。不在计算节点依赖代理凭证，不轮询等待。
 - 提交后仅一次有界调度核对，随后停止；RUNNING 不代表 GPU smoke 已通过。
+
+## 2026-10-22 实际完成记录
+
+70234 单卡 smoke 4分57秒、70235 八卡128窗诊断11分27秒均通过；原先单卡耗时预估偏保守，实际记录取代预估。
+[完整结果与固定样例](anchor_child_boundary_results_20261021/REPORT.md)包含正式1860训练对比、128窗配对统计、连续响应及数值等价/权重不变证据。
+A4→A4+4 未显示同Anchor最终特征/membership区分度的一致显著改善；当前提取的Boundary不足以直接进入Boundary-Aware RGB Loss。

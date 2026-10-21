@@ -1,0 +1,38 @@
+{
+  "status": "PASSED",
+  "tests": 4,
+  "seconds": 0.066,
+  "command": "python -m unittest tests.test_audit_point1024_pq_counts_20261022",
+  "checks": [
+    "perfect masks",
+    "class mismatch FP/FN",
+    "official majority-void GT exclusion",
+    "float32 per-instance IoU"
+  ],
+  "official_torchmetrics_common_sha256": "03b2dcb49fa998c309a41e2a09784d461a47e40e3eeb415c251bf720f20c22cb",
+  "official_pq_class_order": [
+    3,
+    4,
+    5,
+    6,
+    7,
+    8,
+    9,
+    10,
+    11,
+    12,
+    13,
+    14,
+    15,
+    16,
+    17,
+    18,
+    19,
+    20,
+    1,
+    2
+  ],
+  "model_forward_calls": 0,
+  "backward_calls": 0,
+  "parameter_updates": 0
+}

@@ -1,0 +1,18 @@
+{
+  "status": "PASSED",
+  "windows": 1860,
+  "scenes": 312,
+  "matched_inputs": true,
+  "matched_gt": true,
+  "parameter_updates": 0,
+  "compared": [
+    "Point1024_isolated_NoCA_full4",
+    "old_A4_plus4_A8",
+    "single16_epoch8_L6L12",
+    "old_A4",
+    "Point1024_isolated_CA_full4"
+  ],
+  "old_A4_included": true,
+  "CA_control_included": true,
+  "CA_control_deferred": false
+}
