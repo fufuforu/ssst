@@ -1,0 +1,15 @@
+{
+  "status": "CPU_PIPELINE_PREPARATION_PASSED",
+  "gate_tests": 2,
+  "gate_tests_passed": 2,
+  "failed_or_missing_smoke_cannot_submit": true,
+  "passed_smoke_submits_once": true,
+  "full_requires_afterok": true,
+  "child_submission_acceptance_check_bounded_once": true,
+  "shell_syntax_passed": true,
+  "python_compilation_passed": true,
+  "training_windows": 8337,
+  "training_scenes": 1191,
+  "schedule_updates": 16688,
+  "gpu_smoke_passed": false
+}

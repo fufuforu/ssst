@@ -86,6 +86,8 @@ class LocusGSSuperpointDualFPSSuperpoint(LocusGSSuperpointDual):
     def step_loss(self,*args,**kwargs):
         output,metrics=super().step_loss(*args,**kwargs)
         pred=output['prediction']
+        metrics['understanding_query_dim']=pred['unified_query'].shape[-1]
+        metrics['anchor_token_dim']=pred['states'][-1]['tokens'].shape[-1]
         for key in ('num_superpoint_queries','num_reconstruction_anchors','num_object_queries','num_stuff_queries','num_gaussians','num_sampled_superpoints','sampled_superpoint_coverage'):
             metrics[key]=pred[key]
         return output,metrics
