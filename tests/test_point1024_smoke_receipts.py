@@ -1,15 +1,17 @@
 import copy,json,tempfile,unittest
+from types import SimpleNamespace
+from scripts.smoke_point1024_fmquery_isoadapter import validate_batch_contract
 from pathlib import Path
 from scripts.verify_point1024_fmquery_smoke import verify
 
 class ReceiptTests(unittest.TestCase):
     def fixture(self):
-        budget=dict(architecture='OMEGA_POINT1024_SOURCE256_FMQUERY_ISOLATED_RESIDUAL_ADAPTER_V2',world_size=1,global_batch=8,accumulation_steps=8,unique_windows=1,epochs=4,schedule_total_updates=4172,max_updates=2,supervised_layers=[6,12],image_hw=[256,256])
+        budget=dict(architecture='OMEGA_POINT1024_SOURCE256_FMQUERY_ISOLATED_RESIDUAL_ADAPTER_V2',world_size=1,global_batch=8,accumulation_steps=8,unique_windows=1,epochs=4,schedule_total_updates=4172,max_updates=2,supervised_layers=[6,12],image_hw=[256,256],window=dict(context=[122,174],novel=[142,156]))
         steps=[dict(update=i,microbatches=8,unique_windows=1,learning_rate=1e-4*i/100,understanding_weight=.05*i/1043,
             shapes=dict(gaussians=[1,65536,14],gaussian_parent_anchor=[65536],gaussian_parent_query=[65536],parent_alias_equal=True),
             gradient_norms_before_clip=dict(reconstruction=1.,shared=1.,understanding=1.,understanding_adapters=1.),
             adapter_gradient_norms_before_clip=dict(L6=0.,L8=0.,L10=0.,L12=1.),seconds=1.,peak_allocated_bytes=100,peak_reserved_bytes=200) for i in (1,2)]
-        return {'BUDGET.json':budget,'STEP_RESULTS.json':steps,'POINT1024_ISO_INITIALIZATION.json':dict(copied_tensor_count=657),
+        return {'BATCH_SHAPES.json':dict(status='PASSED',shapes=dict(images_input=[1,2,3,256,256],images_all=[1,4,3,256,256],images_output=[1,2,3,256,256],frame_ids=[1,4]),frame_ids=[122,174,142,156],supervised_views=4),'BUDGET.json':budget,'STEP_RESULTS.json':steps,'POINT1024_ISO_INITIALIZATION.json':dict(copied_tensor_count=657),
             'DIRECTIONAL_GRADIENTS.json':dict(status='PASSED',LU_to_reconstruction_including_shared=dict(nonzero_gradient_elements=0),LR_to_understanding_including_adapters=dict(nonzero_gradient_elements=0)),
             'FIRST_UPDATE_VERIFIED.json':dict(status='PASSED',ranks=[dict(rank=0,changed=True,sha256='b'*64)],before_sha256='a'*64)}
     def run_receipts(self,data):
@@ -30,3 +32,22 @@ class ReceiptTests(unittest.TestCase):
             if case=='L12':d['STEP_RESULTS.json'][0]['adapter_gradient_norms_before_clip']['L12']=0.
             with self.subTest(case=case):
                 with self.assertRaises(ValueError):self.run_receipts(d)
+
+
+class BatchContractTests(unittest.TestCase):
+    def batch(self,views=4,frames=None):
+        frames=frames or [122,174,142,156]
+        return dict(images_input=SimpleNamespace(shape=(1,2,3,256,256)),images_all=SimpleNamespace(shape=(1,views,3,256,256)),
+            images_output=SimpleNamespace(shape=(1,2,3,256,256)),frame_ids=[SimpleNamespace(tolist=lambda:frames)])
+    def test_real_replayed_four_view_contract_accepted(self):
+        b=self.batch();b['frame_ids']=FakeFrameTensor([122,174,142,156])
+        self.assertEqual(validate_batch_contract(b,dict(context=[122,174],novel=[142,156]))['supervised_views'],4)
+    def test_six_views_or_wrong_order_rejected(self):
+        for views,frames in [(6,[122,174,142,156]),(4,[122,174,156,142])]:
+            b=self.batch(views);b['frame_ids']=FakeFrameTensor(frames)
+            with self.assertRaises(ValueError):validate_batch_contract(b,dict(context=[122,174],novel=[142,156]))
+
+class FakeFrameTensor:
+    shape=(1,4)
+    def __init__(self,frames):self.frames=frames
+    def __getitem__(self,index):return SimpleNamespace(tolist=lambda:self.frames)

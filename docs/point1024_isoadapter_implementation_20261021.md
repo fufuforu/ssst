@@ -96,3 +96,27 @@ CPU渲染集成用6个anchor、合成冻结骨干与8×8 renderer；1024实际�
 证据文件：SUBMITTED.json、STATUS_AFTER_SUBMIT.txt、BUDGET.json、POINT1024_ISO_INITIALIZATION.json、DIRECTIONAL_GRADIENTS.json、STEP_RESULTS.json、FIRST_UPDATE_VERIFIED.json、SMOKE_PASSED.json或JOB_FAILED.json、slurm-<jobid>.out。
 
 本次CPU验证：6项模型/采样/隔离/签名/污染保护测试通过（`point1024_isoadapter_review_fixes_cpu_final.log`）；2项收据通过/拒绝规则测试通过（tests/test_point1024_smoke_receipts.py）。这些是提交前CPU证据，不能作为GPU通过结论。提交后只做一次状态核对就停止，不等待GPU结果；若结果未就绪，6项实际数值均标注待核实，用户通知后再读取。
+
+## 用户通知后检查69945：失败于smoke形状断言（2026-10-21）
+
+Slurm终态FAILED，ExitCode1:0，3dimage-11单张3090，耗时00:05:54。JOB_FAILED.json标记stage=batch_load、completed_updates=0，错误Real window image shapes differ。没有SMOKE_PASSED/STEP_RESULTS/DIRECTIONAL_GRADIENTS/FIRST_UPDATE_VERIFIED；因此没有GPU前向/反向/更新或六项验收数值。
+
+根因是新增smoke launcher第83行把images_all硬编码为[1,6,3,256,256]。原A4数据未改变：build_batch固定window.context+window.novel，均各2帧；_full_supervision明确2context+2novel监督，共4张图。所选scene0683_00，context[122,174]，novel[142,156]，target[122,174,142,156]。旧文档“2context+4target”应解释为2输入/4总监督视图（其中含2context），不是6张不同帧。这里是launcher断言错误，不是已确认的模型/显存/梯度失败。
+
+成功完成源权重校验、真实GPU模型构建和零步迁移：657旧张量保留，36删除，16adapter张量新增；GPU型号RTX3090，总容量25430786048bytes（容量不等于峰值显存）。原始大权重仍硬链接。
+
+下一步应只修smoke视图验证为原context+novel契约，并记录实际tensor shapes后再考虑重跑；不改数据、配方或模型。本次检查没有代码修复、没有自动重提、没有全量训练或评测。失败证据见run/JOB_FAILED.json和slurm-69945.out，结果汇总RESULT_REVIEW.json；CPU同窗数据回放已确认：images_input=[1,2,3,256,256]、images_all=[1,4,3,256,256]、images_output=[1,2,3,256,256]；证据FAILURE_DATA_SHAPE_DIAGNOSIS.json。
+
+证据run目录：`/space/mawb/ssst/group_plus/semantic_resolution_v1/point1024_fmquery_isoadapter_gpu_smoke_20261021_v1`。
+
+## 69945失败后的授权修正与node14重跑准备（2026-10-21）
+
+用户检查失败后明确授权修改并重新提交单卡smoke到14。本次只修launcher数据形状契约，不改数据/模型/损失/预算：按原窗口2context+2novel验证images_all=[1,4,3,256,256]，images_input=[1,2,3,256,256]、images_output=[1,2,3,256,256]，并严格核frame_ids=context+novel。不能通过额外加载两张图来满足旧六帧断言。
+
+新增BATCH_SHAPES.json：验证前先保存实际shape，验证成功保存实际frame_ids及context/novel/总监督视图数；BUDGET中同步记录该契约，最终verifier检查它。这样即使未来再次尺寸不符，失败记录也有观测值。
+
+4项标准库测试通过，覆盖真实CPU回放对应的四帧契约、六帧拒绝、帧序拒绝，以及原收据接受/拒绝。模型文件相对cc72e05无变化，无需重复完整模型CPU测试。
+
+此次新run：`/space/mawb/ssst/group_plus/semantic_resolution_v1/point1024_fmquery_isoadapter_gpu_smoke_20261021_v2_node14`；独立执行快照：`/space/mawb/ssst_point1024_fmquery_smoke_code_20261021_v2_node14`。旧69945目录/快照保留。提交资源明确3dimage-14/4090分区/1卡；仍单窗、global8按8次累积、2optimizer更新、4epoch4172步轨迹。没有全量训练或1860评测依赖。
+
+作业号与唯一一次提交后状态核对见新run/SUBMITTED.json和STATUS_AFTER_SUBMIT.txt；GPU六项数值仍必须等实际SMOKE_PASSED或JOB_FAILED与STEP_RESULTS等收据，不能由本次CPU契约测试替代。提交后停止轮询。

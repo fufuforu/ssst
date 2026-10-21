@@ -14,6 +14,22 @@ def write(root,name,value):
     tmp.write_text(json.dumps(value,indent=2,allow_nan=False)+'\n');tmp.replace(target)
 
 
+
+def batch_shapes(batch):
+    return {key:list(batch[key].shape) for key in ('images_input','images_all','images_output','frame_ids') if key in batch}
+
+
+def validate_batch_contract(batch,window):
+    context=list(window['context']);novel=list(window['novel']);frames=context+novel
+    actual=batch_shapes(batch)
+    expected=dict(images_input=[1,2,3,256,256],images_all=[1,4,3,256,256],images_output=[1,2,3,256,256],frame_ids=[1,4])
+    if len(context)!=2 or len(novel)!=2 or len(set(frames))!=4 or actual!=expected:
+        raise ValueError(f'Original A4 four-view contract differs: actual={actual}, expected={expected}, frames={frames}')
+    actual_frames=batch['frame_ids'][0].tolist()
+    if actual_frames!=frames:raise ValueError(f'Batch frame order differs: actual={actual_frames}, expected={frames}')
+    return dict(status='PASSED',shapes=actual,frame_ids=actual_frames,context_views=2,novel_views=2,supervised_views=4)
+
+
 def main(root):
     stage='runtime_import';completed=[]
     try:
@@ -80,7 +96,11 @@ def main(root):
             color_prior=False,write_strength=0.,full_training_submitted=False)
         write(root,'BUDGET.json',budget)
         stage='batch_load';batch=build_batch(opt,window,device)
-        if tuple(batch['images_input'].shape)!=(1,2,3,256,256) or tuple(batch['images_all'].shape)!=(1,6,3,256,256):raise ValueError('Real window image shapes differ')
+        write(root,'BATCH_SHAPES.json',dict(status='OBSERVED',shapes=batch_shapes(batch)))
+        contract=validate_batch_contract(batch,window)
+        write(root,'BATCH_SHAPES.json',contract);print(json.dumps(contract),flush=True)
+        budget.update(context_views=2,novel_views=2,supervised_views=4,batch_contract=contract)
+        write(root,'BUDGET.json',budget)
         model.train()
         for update in range(2):
             stage=f'update_{update+1}';optimizer.zero_grad(set_to_none=True)
