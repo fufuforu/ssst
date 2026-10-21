@@ -1,0 +1,17 @@
+/space/mawb/anaconda3/envs/tokengs/lib/python3.11/site-packages/torch/cuda/__init__.py:174: UserWarning: CUDA initialization: The NVIDIA driver on your system is too old (found version 10010). Please update your GPU driver by downloading and installing a new version from the URL: http://www.nvidia.com/Download/index.aspx Alternatively, go to: https://pytorch.org to install a PyTorch version that has been compiled with your version of the CUDA driver. (Triggered internally at /pytorch/c10/cuda/CUDAFunctions.cpp:109.)
+  return torch._C._cuda_getDeviceCount() > 0
+test_identity_input_isolation_learning_and_checkpoint (tests.test_point1024_isoadapter.AdapterTests.test_identity_input_isolation_learning_and_checkpoint) ... ok
+test_missing_source_index_signature_fails_before_use (tests.test_point1024_isoadapter.AdapterTests.test_missing_source_index_signature_fails_before_use) ... ok
+test_source_pixel_sampling_preserves_view_and_pixel_identity (tests.test_point1024_isoadapter.AdapterTests.test_source_pixel_sampling_preserves_view_and_pixel_identity) ... ok
+test_exact_source_pixels_fuse_in_existing_point_order_and_train_fm (tests.test_point1024_isoadapter.FMSamplingTests.test_exact_source_pixels_fuse_in_existing_point_order_and_train_fm) ... ok
+test_exact_migration_and_rejection_rules (tests.test_point1024_isoadapter.MigrationTests.test_exact_migration_and_rejection_rules) ... ok
+test_real_core_both_actual_losses_respect_parameter_boundaries (tests.test_point1024_isoadapter.RoutingTests.test_real_core_both_actual_losses_respect_parameter_boundaries) ... ok
+
+----------------------------------------------------------------------
+Ran 6 tests in 10.386s
+
+OK
+/space/mawb/anaconda3/envs/tokengs/lib/python3.11/site-packages/torch/cuda/__init__.py:789: UserWarning: Can't initialize NVML
+  warnings.warn("Can't initialize NVML")
+/space/mawb/anaconda3/envs/tokengs/lib/python3.11/site-packages/torch/cuda/__init__.py:991: UserWarning: CUDA initialization: The NVIDIA driver on your system is too old (found version 10010). Please update your GPU driver by downloading and installing a new version from the URL: http://www.nvidia.com/Download/index.aspx Alternatively, go to: https://pytorch.org to install a PyTorch version that has been compiled with your version of the CUDA driver. (Triggered internally at /pytorch/c10/cuda/CUDAFunctions.cpp:109.)
+  r = torch._C._cuda_getDeviceCount() if nvml_count < 0 else nvml_count

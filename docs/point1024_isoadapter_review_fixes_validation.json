@@ -1,0 +1,13 @@
+{
+  "status": "CPU_PREFLIGHT_PASSED",
+  "model_tests": 6,
+  "receipt_tests": 2,
+  "P0_1": "a_whitelist_and_explicit_under_state",
+  "P1_1": "parent_key_audit_and_actual_loss_gradient_regression",
+  "P1_2": "fm_image_hw_assertions",
+  "P1_3": "explicit_signature_check",
+  "P1_4": "parent_query_anchor_alias",
+  "P1_5": "object_identity_and_version_guard",
+  "gpu_verified": false,
+  "full_training_submitted": false
+}

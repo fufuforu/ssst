@@ -58,3 +58,41 @@ CPU渲染集成用6个anchor、合成冻结骨干与8×8 renderer；1024实际�
 ## FM输入改版范围
 
 只增加无参数的fm采样/融合与输入接线，不增减参数，不改变657个保留旧张量和528640个adapter参数的布局。当前测试额外覆盖来源视图、来源像素、融合点顺序和反向均值权重，以及仅对q_pre施加损失时fm梯度非零/重建投影梯度为零。当前5项CPU测试全部通过，包括完整两loss隔离回归，见 `point1024_isoadapter_fmquery_cpu_tests.log`。GPU smoke与真实65536GS渲染仍未做，本轮不提交作业。
+
+## 2026-10-21 独立审查修复与专用单卡 GPU smoke（最新）
+
+本节替代上文“尚未准备GPU入口/本轮不提交”的历史状态；用户本轮仅授权修复和一次smoke，不授权全量训练或1860评测。
+
+### P0-1：采用方案 a，明确两种证据的键与来源
+
+`state.update(result)` 改为白名单 q/c/s/route/joint_delta/anchor_mask_logits/anchor_membership/ell。每层独立 `state['under_state']` 保存完整理解读出，其anchor_embedding/f_anchor由adapter后的h编码，供child语义特征**显式读取**。
+
+顶层state.anchor_embedding/f_anchor由第一阶段**原始重建token**经原controller编码得到，不经过adapter，并在no_grad中作为只读诊断快照保存。它们不用于额外的LR/LU回传。child继续使用理解adapter证据，行为来源现在显式标明，避免理解结果污染重建字段；不是把child偷偷切换为未适配特征。
+
+读出前保存第一阶段mu/radii对象及version；每次理解层完成检查对象身份及version，拒绝替换或原地修改。CPU回归主动注入对象层额外mu/radii键及原地修改，分别验证白名单保护和错误退出。
+
+### P1核对
+
+- P1-1：父类 `_render_understanding` 读取 `reconstruction` 做RGB/depth展示，读取gaussians+gaussian_membership重新feature render；region_mass/pixel_membership/semantic_scores都从这个feature render和p_class重新计算，没有复用generated中的同名结果。states只是返回引用，没有参与这些概率的计算。实际LU在unified_instance_loss中只用thing_logits、region_mass和无梯度source matching；RGB/depth展示与返回states不进入LU。因而只替换传给feature renderer的全部GS属性已隔离该路径，不对理解membership/fm再detach。完整CPU实际双loss逐参数检查继续通过；真实GPU定向检查由smoke执行。
+- P1-2：采样入口要求 image_hw==fm.shape[-2:]，core也要求fm空间尺寸等于GS头配置图像尺寸；不一致ValueError。
+- P1-3：构造时inspect.signature显式检查seed_anchors含return_source_indices，无静默fallback。
+- P1-4：gaussian_parent_query与gaussian_parent_anchor返回同一张量，均表示GS→anchor；附带语义说明字符串，不表示GS→动态object query。不能用该别名去索引N个理解query。
+- P1-5：如上，mu/radii对象身份与version保护，不只是检查数值是否近似相等。
+
+### 本架构专用 GPU smoke 入口（不复用FPS脚本）
+
+- `scripts/smoke_point1024_fmquery_isoadapter.py`：真实单窗/256×256/1024anchor/65536GS，单卡单rank，累积8次同窗保持global8，恰好2个optimizer更新。LR仍按4epoch/4172更新、warmup100轨迹；理解权重仍.05×min(1,(update+1)/1043)；同一AdamW/decay/clip1.0。只限制smoke更新数，不执行4epoch。
+- `scripts/run_point1024_fmquery_smoke.sh`：离线资产环境、固定L6/L12、关闭旧额外实验开关、失败收据兜底。
+- `scripts/verify_point1024_fmquery_smoke.py`：专用收据校验器；只有全部成功才SMOKE_PASSED。
+- `scripts/submit_point1024_fmquery_smoke.py`：只提交一次单卡作业，然后一次15秒内有界状态核对；没有全量训练/评测/重试逻辑。
+
+第一步首个microbatch单独LU.backward(retain_graph=True)，检查重建+shared参数.grad全部None/0；清空后单独LR.backward(retain_graph=True)，检查理解+adapter.grad全部None/0；再清空并按原总loss做累积训练。诊断反传不执行optimizer.step，不污染实际更新。每步记录reconstruction/shared/understanding/understanding_adapters梯度范数及L6/L8/L10/L12逐adapter范数，L12必须非零，早期层和隐藏层允许正常的首步零梯度。第一步时间包含定向诊断开销，不能拿它直接估算稳定吞吐。
+
+首步哈希只验证1rank参数确实更新，不声称8rank同步；预算收据明确world1/global8/accumulation8/unique_window1/2updates/16microbatches。不写大模型权重，不做单窗导出或正式指标评测。本轮验收范围是用户指定的真实GPU训练与6项检查。
+
+独立run（实际作业号/状态以其中收据为准）：
+`/space/mawb/ssst/group_plus/semantic_resolution_v1/point1024_fmquery_isoadapter_gpu_smoke_20261021_v1`
+
+证据文件：SUBMITTED.json、STATUS_AFTER_SUBMIT.txt、BUDGET.json、POINT1024_ISO_INITIALIZATION.json、DIRECTIONAL_GRADIENTS.json、STEP_RESULTS.json、FIRST_UPDATE_VERIFIED.json、SMOKE_PASSED.json或JOB_FAILED.json、slurm-<jobid>.out。
+
+本次CPU验证：6项模型/采样/隔离/签名/污染保护测试通过（`point1024_isoadapter_review_fixes_cpu_final.log`）；2项收据通过/拒绝规则测试通过（tests/test_point1024_smoke_receipts.py）。这些是提交前CPU证据，不能作为GPU通过结论。提交后只做一次状态核对就停止，不等待GPU结果；若结果未就绪，6项实际数值均标注待核实，用户通知后再读取。

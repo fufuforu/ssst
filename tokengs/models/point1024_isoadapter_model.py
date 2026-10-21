@@ -1,5 +1,6 @@
 """Exact-source 256D point seeds; FM-based object initialization, isolated losses."""
 import torch
+import inspect
 from tokengs.models.unified_query_v1 import LocusGSUnifiedQueryV1
 from tokengs.models.dual_stream_initialization import seed_anchors
 from tokengs.models.gfm_dual_stream_components import sample_anchor_gfm
@@ -16,6 +17,8 @@ def sample_understanding_fm_to_cloud(fm,cloud,image_hw):
     """
     if fm.ndim!=5 or fm.shape[:3]!=(1,2,256):
         raise ValueError('Expected [1,2,256,H,W] semantic memory')
+    if tuple(image_hw)!=tuple(fm.shape[-2:]):
+        raise ValueError('image_hw must equal semantic FM spatial resolution')
     source=cloud['source_indices'];ids=cloud['source_to_point'];count=len(cloud['points'])
     if source.ndim!=1 or ids.shape!=source.shape or not len(source) or ids.dtype!=torch.long:
         raise ValueError('Source/fusion indices must match the retained cloud')
@@ -37,6 +40,8 @@ class LocusGSPoint1024IsolatedAdapter(LocusGSUnifiedQueryV1):
         import os
         if os.environ.get('RG_SUPERVISED') not in (None,'','6,12'):
             raise ValueError('This control explicitly requires L6/L12 supervision')
+        if 'return_source_indices' not in inspect.signature(seed_anchors).parameters:
+            raise ValueError('seed_anchors must explicitly support return_source_indices')
         self.supervised_layers=(6,12)
         self.layer_weights=supervised_layer_weights(self.supervised_layers)
 

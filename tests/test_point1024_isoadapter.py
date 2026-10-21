@@ -15,6 +15,14 @@ from tokengs.models.unified_query_loss import unified_instance_loss
 
 
 class AdapterTests(unittest.TestCase):
+    def test_missing_source_index_signature_fails_before_use(self):
+        from tests.test_unified_query_v1 import config,opt,FakeOmega,FakeSAM,FakeRenderer
+        cfg=replace(config(),dim=256,heads=8,depth=12,superpoint_source='esam_sam',matching_mode='source_many_to_one')
+        # Mock base construction to avoid a second large model for this contract.
+        with patch('tokengs.models.point1024_isoadapter_model.LocusGSUnifiedQueryV1.__init__',return_value=None),patch('tokengs.models.point1024_isoadapter_model.seed_anchors',lambda points:None):
+            with self.assertRaisesRegex(ValueError,'return_source_indices'):
+                LocusGSPoint1024IsolatedAdapter(opt(),config=cfg)
+
     def test_identity_input_isolation_learning_and_checkpoint(self):
         torch.manual_seed(1);adapter=DetachedResidualAdapter(dim=8,hidden=3)
         x=torch.randn(1,5,8,requires_grad=True)
@@ -55,6 +63,7 @@ class FMSamplingTests(unittest.TestCase):
         features.sum().backward()
         expected=torch.tensor([1.,0,0,1.,.5,0,0,.5]).reshape(1,2,1,2,2).expand_as(fm)
         torch.testing.assert_close(fm.grad,expected)
+        with self.assertRaises(ValueError):sample_understanding_fm_to_cloud(fm,cloud,(4,4))
         bad=dict(cloud,source_to_point=torch.tensor([2,0,2,3]))
         with self.assertRaises(ValueError):sample_understanding_fm_to_cloud(fm,bad,(2,2))
 
@@ -92,6 +101,12 @@ class RoutingTests(unittest.TestCase):
             model.reconstruction_count=6  # Only the full CPU integration render is reduced.
             out=model.generate(rgb)
             self.assertEqual(out['num_reconstruction_anchors'],6)
+            self.assertIs(out['gaussian_parent_query'],out['gaussian_parent_anchor'])
+            for layer in (6,8,10,12):
+                st=out['states'][layer-1]
+                with torch.no_grad():rec_a=model.core.panoptic.encode_token(st['tokens'],st['mu'],st['radii'],st['ell'])
+                torch.testing.assert_close(st['anchor_embedding'],rec_a)
+                self.assertIsNot(st['anchor_embedding'],st['under_state']['anchor_embedding'])
             self.assertEqual(out['gaussians'].shape,(1,384,14));self.assertEqual(out['unified_query'].shape,(1,2,256))
             # Same point/superpoint identities, but FM now supplies seed content.
             with torch.no_grad():
@@ -142,6 +157,23 @@ class RoutingTests(unittest.TestCase):
                 with patch.object(DetachedResidualAdapter,'forward',lambda self,x:x.detach()):control=model.generate(rgb)
             for key in ('gaussians','p_class','gaussian_membership','semantic_scores'):
                 torch.testing.assert_close(out[key],control[key],rtol=1e-6,atol=1e-7)
+            # An extra key returned by a future object layer cannot overwrite
+            # reconstruction tensors through state.update.
+            layer=model.core.panoptic.layers['L6'];forward=layer.forward
+            def extras(*args,**kwargs):
+                result=forward(*args,**kwargs)
+                result.update(mu=torch.zeros_like(args[2]),radii=torch.zeros_like(args[2][...,0]))
+                return result
+            with patch.object(layer,'forward',side_effect=extras),torch.no_grad():
+                protected=model.generate(rgb)
+            torch.testing.assert_close(protected['gaussians'],control['gaussians'])
+            def mutation(*args,**kwargs):
+                args[2].add_(.001)  # detached alias must still be guarded against in-place mutation
+                return forward(*args,**kwargs)
+            with patch.object(layer,'forward',side_effect=mutation),torch.no_grad():
+                with self.assertRaisesRegex(RuntimeError,'polluted reconstruction geometry'):
+                    model.generate(rgb)
+
 
 
 
