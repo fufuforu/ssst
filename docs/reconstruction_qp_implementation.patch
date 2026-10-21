@@ -1,0 +1,531 @@
+--- a/tokengs/models/reconstruction_qp.py
++++ b/tokengs/models/reconstruction_qp.py
+@@ -0,0 +1,30 @@
++"""Persistent learned Q + scene-dependent reconstruction P, Cartesian expansion.
++
++Ordering is superpoint-major: (P0,Q0), ..., (P0,QK-1), (P1,Q0), ... .
++Only reconstruction anchors expand. No truncation, pooling, extra normalization,
++learned geometry offset, or expansion of the 256-D understanding query set.
++"""
++import torch
++from torch import nn
++
++class LearnedReconstructionAnchorExpansion(nn.Module):
++    def __init__(self,num_slots=20,dim=1024,init_std=.02):
++        super().__init__()
++        if isinstance(num_slots,bool) or not isinstance(num_slots,int) or num_slots<1:
++            raise ValueError('num_slots must be a positive integer')
++        if dim<1 or init_std<=0:raise ValueError('Positive feature dimension and Q initialization std required')
++        self.num_slots=num_slots;self.dim=dim
++        self.learned_q=nn.Parameter(torch.empty(num_slots,dim))
++        nn.init.normal_(self.learned_q,std=init_std)
++    def forward(self,p,centers,radii):
++        if p.ndim!=3 or p.shape[-1]!=self.dim or p.shape[1]<1:
++            raise ValueError('Expected nonempty [batch,superpoints,dim] reconstruction P')
++        b,n,d=p.shape
++        if centers.shape!=(b,n,3) or radii.shape!=(b,n):raise ValueError('Seed geometry does not match P')
++        # Q is an nn.Parameter shared across every scene and optimizer update.
++        tokens=(p[:,:,None,:]+self.learned_q[None,None,:,:]).reshape(b,n*self.num_slots,d)
++        parent=torch.arange(n,device=p.device).repeat_interleave(self.num_slots)
++        slots=torch.arange(self.num_slots,device=p.device).repeat(n)
++        return dict(tokens=tokens,centers=centers.repeat_interleave(self.num_slots,dim=1),
++            radii=radii.repeat_interleave(self.num_slots,dim=1),
++            anchor_to_superpoint=parent,anchor_slot_ids=slots)
+--- a/tokengs/models/reconstruction_qp_core.py
++++ b/tokengs/models/reconstruction_qp_core.py
+@@ -0,0 +1,19 @@
++"""Reconstruction-only Q+P control on the native 1024/256 dual architecture."""
++import os
++from tokengs.models.superpoint_dual_core import SuperpointDualCore
++from tokengs.models.reconstruction_qp import LearnedReconstructionAnchorExpansion
++
++class ReconstructionQPSuperpointDualCore(SuperpointDualCore):
++    def __init__(self,opt,config):
++        if os.environ.get('RG_IOUHEAD') not in (None,'','0'):
++            raise ValueError('Reconstruction Q+P control uses the baseline understanding branch without an IoU-head change')
++        super().__init__(opt,config)
++        self.reconstruction_qp=LearnedReconstructionAnchorExpansion(num_slots=20,dim=1024)
++    def configure_qp_slots(self,num_slots):
++        if isinstance(num_slots,bool) or not isinstance(num_slots,int) or num_slots<1:raise ValueError('Positive integer Q bank size required')
++        if num_slots!=self.reconstruction_qp.num_slots:
++            reference=self.reconstruction_qp.learned_q
++            self.reconstruction_qp=LearnedReconstructionAnchorExpansion(num_slots=num_slots,dim=1024).to(device=reference.device,dtype=reference.dtype)
++    def initialize_reconstruction_anchors(self,reconstruction_seed):
++        p=self.reconstruction_seed_projection(reconstruction_seed['query'])
++        return self.reconstruction_qp(p,reconstruction_seed['centers'],reconstruction_seed['radii'])
+--- a/tokengs/models/superpoint_dual_core.py
++++ b/tokengs/models/superpoint_dual_core.py
+@@ -50,13 +50,23 @@
+             rays=patch_plucker_rays(rays_o,rays_d,patch_size=8),renderer=renderer,
+             decoder=ModelInputDecoder(cam_view=torch.linalg.inv(omega['c2w']).transpose(-1,-2),intrinsics=camera_vectors(omega['k'])))
+ 
++    def initialize_reconstruction_anchors(self,reconstruction_seed):
++        tokens=self.reconstruction_seed_projection(reconstruction_seed['query'])
++        n=tokens.shape[1]
++        return dict(tokens=tokens,centers=reconstruction_seed['centers'],radii=reconstruction_seed['radii'],
++            anchor_to_superpoint=torch.arange(n,device=tokens.device),
++            anchor_slot_ids=torch.zeros(n,dtype=torch.long,device=tokens.device))
++
+     def forward(self,cloud,memory,superpoint_ids=None):
+         if superpoint_ids is not None:cloud=dict(cloud,point_superpoint_ids=superpoint_ids)
+         seed=self.initializer(cloud,cloud['features'],cloud['features']);rec,under=seed['reconstruction'],seed['understanding']
+-        tokens=self.reconstruction_seed_projection(rec['query']);fm=memory['fm'];radius=under['radii'][...,None].expand(-1,-1,3)
++        rec_anchors=self.initialize_reconstruction_anchors(rec)
++        tokens=rec_anchors['tokens'];fm=memory['fm'];radius=under['radii'][...,None].expand(-1,-1,3)
+         states,_=self.anchor_decoder.forward_stateful(tokens,memory['latent'],memory['rays'],self.panoptic,fm,under['query'],self.semantic_memory.mask_embedder,0,
+-            seed_mu=rec['centers'],seed_radius=rec['radii'],seed_c=under['centers'],seed_s=radius,write_strength=0.,normalization_fn=superpoint_scene_normalization)
++            seed_mu=rec_anchors['centers'],seed_radius=rec_anchors['radii'],seed_c=under['centers'],seed_s=radius,write_strength=0.,normalization_fn=superpoint_scene_normalization)
+         final=states[-1];q=final['q'];n=q.shape[1]-2
++        num_anchors=final['tokens'].shape[1]
++        if under['query'].shape[-1]!=256 or n!=under['query'].shape[1]:raise ValueError('Understanding queries must retain native count and 256D width')
+         gaussians=self.activation_head(final['tokens'],final['mu'],final['radii'])
+         grid=F.interpolate(fm.flatten(0,1),size=self.activation_head.opt.img_size if hasattr(self.activation_head,'opt') else (256,256),mode='bilinear',align_corners=False)
+         grid=grid.reshape(1,2,256,*grid.shape[-2:])
+@@ -68,10 +78,17 @@
+         pred_iou=(torch.sigmoid(self.iou_head(q[:, :n])).squeeze(-1) if self.iou_head is not None else None)
+         return dict(states=states,gaussians=gaussians,gaussian_membership=logits.sigmoid(),gaussian_mask_logits=logits,
+             thing_logits19=classification['thing_logits19'],p_class=classification['p_class'],q_pre=under['query'],unified_query=q[:,:n],
+-            superpoints=under,cloud=cloud,gaussian_parent_query=torch.arange(n,device=q.device).repeat_interleave(64),num_thing_queries=n,pred_iou=pred_iou)
++            superpoints=under,cloud=cloud,
++            anchor_to_superpoint=rec_anchors['anchor_to_superpoint'],anchor_slot_ids=rec_anchors['anchor_slot_ids'],
++            gaussian_parent_anchor=torch.arange(num_anchors,device=q.device).repeat_interleave(64),
++            gaussian_parent_query=rec_anchors['anchor_to_superpoint'].repeat_interleave(64),
++            num_superpoint_queries=under['query'].shape[1],num_reconstruction_anchors=num_anchors,
++            num_object_queries=n,num_stuff_queries=2,num_gaussians=gaussians.shape[1],
++            recon_qp_slots=getattr(getattr(self,'reconstruction_qp',None),'num_slots',1),
++            num_thing_queries=n,pred_iou=pred_iou)
+ 
+     def parameter_groups(self):
+         groups=dict(shared=[],reconstruction=[],understanding=[])
+-        prefixes=('initializer.reconstruction.','reconstruction_seed_projection.','reconstruction_memory.','blocks.','anchor_decoder.','activation_head.')
++        prefixes=('reconstruction_qp.','initializer.reconstruction.','reconstruction_seed_projection.','reconstruction_memory.','blocks.','anchor_decoder.','activation_head.')
+         for name,p in self.named_parameters():groups['reconstruction' if name.startswith(prefixes) else 'understanding'].append(p)
+         return groups
+--- a/tokengs/models/superpoint_structural_variants.py
++++ b/tokengs/models/superpoint_structural_variants.py
+@@ -43,3 +43,27 @@
+ 
+ def build_structural_model(architecture,opt,config,**kwargs):
+     return MODELS[architecture](opt,config=config,**kwargs)
++
++from tokengs.models.reconstruction_qp_core import ReconstructionQPSuperpointDualCore
++
++class LocusGSSuperpointDualReconQP(LocusGSSuperpointDual):
++    architecture_name='OMEGA_3D_SUPERPOINT_RECON_QP_V1'
++    core_type=ReconstructionQPSuperpointDualCore
++    def __init__(self,opt,*,recon_qp_slots=20,**kwargs):
++        if isinstance(recon_qp_slots,bool) or not isinstance(recon_qp_slots,int) or recon_qp_slots<1:
++            raise ValueError('Positive integer reconstruction Q bank size required')
++        super().__init__(opt,**kwargs)
++        self.core.configure_qp_slots(recon_qp_slots)
++        import os
++        if not os.environ.get('RG_SUPERVISED'):
++            from tokengs.models.canonical_recon import supervised_layer_weights
++            self.supervised_layers=(6,12)
++            self.layer_weights=supervised_layer_weights(self.supervised_layers)
++    def step_loss(self,*args,**kwargs):
++        output,metrics=super().step_loss(*args,**kwargs)
++        pred=output['prediction']
++        for key in ('num_superpoint_queries','num_reconstruction_anchors','num_object_queries','num_stuff_queries','num_gaussians','recon_qp_slots'):
++            metrics[key]=pred[key]
++        return output,metrics
++
++MODELS['dual_superpoint_recon_qp']=LocusGSSuperpointDualReconQP
+--- a/scripts/recon_qp_initial_state.py
++++ b/scripts/recon_qp_initial_state.py
+@@ -0,0 +1,24 @@
++"""Explicit zero-only legacy -> Q+P migration; only the learned Q bank is new."""
++BANK_KEY='core.reconstruction_qp.learned_q'
++
++def initialize_recon_qp_from_legacy_zero(saved,model,*,manifest_sha256,heldout_sha256,world):
++    import torch
++    if model.architecture_name!='OMEGA_3D_SUPERPOINT_RECON_QP_V1':raise ValueError('Wrong target Q+P architecture')
++    meta=saved['meta']
++    if saved['progress']!=dict(epoch=0,update_in_epoch=0,full_updates=0) or saved['optimizer']['state']:
++        raise ValueError('Q+P initialization requires true zero updates and empty Adam')
++    expected=dict(architecture='OMEGA_3D_SUPERPOINT_LEGACY_DUAL_V1',config=model.config.to_dict(),
++        manifest_sha256=manifest_sha256,heldout_sha256=heldout_sha256,global_batch=8,
++        omega_identity=model.frozen_omega.source_identity,
++        sam_identity=model.sam_proposals.source_identity if model.sam_proposals is not None else None)
++    if any(meta.get(k)!=v for k,v in expected.items()):raise ValueError('Legacy Q+P source assets/data/config/architecture differ')
++    if meta['world_size']!=8 or len(saved['rank_rng'])!=8 or world not in (1,2,4,8):raise ValueError('Expected original eight-rank zero and a divisor rank count')
++    target={k:v for k,v in model.state_dict().items() if not k.startswith(('frozen_omega.','sam_proposals.'))}
++    source=saved['model']
++    if BANK_KEY not in target or set(source)!=(set(target)-{BANK_KEY}):raise ValueError('Only the new reconstruction Q bank may differ')
++    if any(target[k].shape!=source[k].shape for k in source):raise ValueError('Legacy tensor shape mismatch')
++    with torch.no_grad():
++        for k,v in source.items():target[k].copy_(v)
++    return dict(status='LEGACY_ZERO_PLUS_LEARNED_RECON_Q',copied_tensor_count=len(source),copied_keys=sorted(source),new_parameter=BANK_KEY,
++        learned_q_shape=list(target[BANK_KEY].shape),source_world=8,target_world=world,rank_rng_selection=list(range(world)),
++        understanding_parameters_preserved=True,source_updates=0,empty_adam=True)
+--- a/scripts/train_unified_query_v1.py
++++ b/scripts/train_unified_query_v1.py
+@@ -47,17 +47,21 @@
+ def main():
+     parser=argparse.ArgumentParser(description=__doc__)
+     parser.add_argument('--output-dir',type=Path,required=True);parser.add_argument('--understanding-weight',type=float,required=True)
+-    parser.add_argument('--architecture',choices=('unified','dual_superpoint','unified_direct'),default='unified')
++    parser.add_argument('--architecture',choices=('unified','dual_superpoint','unified_direct','dual_superpoint_recon_qp'),default='unified')
+     parser.add_argument('--epochs',type=int,default=4);parser.add_argument('--max-updates',type=int)
+     parser.add_argument('--learning-rate',type=float,default=1e-4);parser.add_argument('--understanding-warmup',type=int,default=1043)
+     parser.add_argument('--short-validation',action='store_true',help='16 fixed training scenes, 256 updates, initial/final probes')
+     parser.add_argument('--epoch-probes',action='store_true',help='Fixed train/heldout probes initially and at each full epoch')
+     parser.add_argument('--no-epoch-checkpoints',action='store_true',help='Keep probes and latest checkpoint without retaining every epoch weight file')
+     parser.add_argument('--initial-checkpoint',type=Path);parser.add_argument('--initial-sha256')
++    parser.add_argument('--recon-qp-slots',type=int,default=20,help='Persistent reconstruction Q vectors per scene-dependent P; only for dual_superpoint_recon_qp')
++    parser.add_argument('--initialize-recon-qp-from-legacy-zero',action='store_true',help='Explicit zero-only migration preserving every baseline tensor and adding only reconstruction Q')
+     parser.add_argument('--config',type=Path);parser.add_argument('--resume',action='store_true');parser.add_argument('--checkpoint-every',type=int,default=50)
+     args=parser.parse_args()
+     if args.understanding_weight<0 or not math.isfinite(args.understanding_weight) or args.epochs<1 or args.learning_rate<=0 or args.understanding_warmup<0 or args.checkpoint_every<1 or args.max_updates is not None and args.max_updates<1:parser.error('Invalid training settings')
+     if bool(args.initial_checkpoint)!=bool(args.initial_sha256) or args.initial_checkpoint and (args.resume or args.short_validation):parser.error('Zero-step initialization requires SHA and fresh full training')
++    if args.recon_qp_slots<1 or (args.architecture!='dual_superpoint_recon_qp' and args.recon_qp_slots!=20):parser.error('Invalid reconstruction Q+P slot setting')
++    if args.initialize_recon_qp_from_legacy_zero and (args.architecture!='dual_superpoint_recon_qp' or not args.initial_checkpoint or args.resume):parser.error('Legacy Q+P migration requires fresh Q+P with an explicit zero source')
+     if args.short_validation:
+         if args.resume or args.max_updates is not None:parser.error('Short validation uses a fresh bounded run')
+         args.epochs=128;args.max_updates=256;args.understanding_warmup=20
+@@ -71,13 +75,22 @@
+     opt=config_defaults['train_siu3r_unified_query_v1'];windows,chosen,validation=cohorts()
+     if args.short_validation:windows=[windows[i] for i in chosen]
+     from tokengs.models.superpoint_structural_variants import build_structural_model
+-    model=build_structural_model(args.architecture,opt,config).to(device)
++    model_kwargs=dict(recon_qp_slots=args.recon_qp_slots) if args.architecture=='dual_superpoint_recon_qp' else {}
++    model=build_structural_model(args.architecture,opt,config,**model_kwargs).to(device)
+     if args.initial_checkpoint:
+         if digest(args.initial_checkpoint)!=args.initial_sha256:raise ValueError('Zero-step checkpoint SHA differs')
+         from scripts.unified_query_initial_state import validate_zero_initial
+         initial=torch.load(args.initial_checkpoint,map_location='cpu',weights_only=False,mmap=True)
+-        validate_zero_initial(initial,model,manifest_sha256=digest(MANIFEST),heldout_sha256=digest(HELDOUT),world=world)
+-        restore_state(model,initial['model'],allow_new_iou_head=True);restore_rng(initial['rank_rng'][rank]);del initial
++        if args.initialize_recon_qp_from_legacy_zero:
++            from scripts.recon_qp_initial_state import initialize_recon_qp_from_legacy_zero
++            evidence=initialize_recon_qp_from_legacy_zero(initial,model,manifest_sha256=digest(MANIFEST),heldout_sha256=digest(HELDOUT),world=world)
++            if rank==0:
++                args.output_dir.mkdir(parents=True,exist_ok=True)
++                (args.output_dir/'RECON_QP_INITIALIZATION.json').write_text(json.dumps(evidence,indent=2)+'\n')
++        else:
++            validate_zero_initial(initial,model,manifest_sha256=digest(MANIFEST),heldout_sha256=digest(HELDOUT),world=world)
++            restore_state(model,initial['model'],allow_new_iou_head=True)
++        restore_rng(initial['rank_rng'][rank]);del initial
+     grouped={}
+     for name,p in model.named_parameters():
+         if p.requires_grad:grouped.setdefault(0. if p.ndim<2 or getattr(p,'_no_weight_decay',False) else .05,[]).append(p)
+@@ -92,6 +105,8 @@
+             print('[tb] disabled:',_e,flush=True)
+     meta=dict(architecture=model.architecture_name,config=config.to_dict(),code_sha=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip(),manifest_sha256=digest(MANIFEST),heldout_sha256=digest(HELDOUT),omega_identity=model.frozen_omega.source_identity,sam_identity=model.sam_proposals.source_identity if model.sam_proposals is not None else None,
+         initial_checkpoint=str(args.initial_checkpoint.resolve()) if args.initial_checkpoint else None,initial_sha256=args.initial_sha256,initial_updates=0,epoch_probes=args.epoch_probes,short_validation=args.short_validation,training_windows=windows if args.short_validation else None,world_size=world,global_batch=8,epochs=args.epochs,understanding_weight=args.understanding_weight,understanding_warmup=args.understanding_warmup,learning_rate=args.learning_rate)
++    if args.architecture=='dual_superpoint_recon_qp':
++        meta.update(recon_qp_slots=args.recon_qp_slots,supervised_layers=list(model.supervised_layers),layer_weights=list(model.layer_weights))
+     progress=dict(epoch=0,update_in_epoch=0,full_updates=0)
+     if args.resume:
+         saved=torch.load(root/'checkpoint_latest.pt',map_location='cpu',weights_only=False,mmap=True)
+@@ -144,6 +159,11 @@
+                     value=float(torch.stack([p.grad.detach().float().square().sum() for p in parameters if p.grad is not None]).sum().sqrt())
+                     if not math.isfinite(value) or value<=0:raise ValueError('Missing/nonfinite first gradient: '+name)
+                     gradient_evidence[name]=value
++                if hasattr(model.core,'reconstruction_qp'):
++                    grad=model.core.reconstruction_qp.learned_q.grad
++                    value=float(grad.detach().float().norm()) if grad is not None else 0.
++                    if not math.isfinite(value) or value<=0:raise ValueError('Missing/nonfinite learned reconstruction Q gradient')
++                    gradient_evidence['learned_reconstruction_q']=value
+                 if getattr(model.core,'iou_head',None) is not None:
+                     grads=[p.grad.detach().float().square().sum() for p in model.core.iou_head.parameters() if p.grad is not None]
+                     value=float(torch.stack(grads).sum().sqrt()) if grads else 0.
+@@ -156,12 +176,16 @@
+             if step==0:synchronized_first_update(model,initial_digest,root,rank,world)
+             progress.update(epoch=epoch+int(update+1==updates_per_epoch),update_in_epoch=0 if update+1==updates_per_epoch else update+1,full_updates=step+1)
+             row={k:sum(r[k] for r in rows)/len(rows) for k in rows[0]};row.update(update=step+1,epoch=epoch,grad_norm=float(norm),understanding_weight=args.understanding_weight*beta,local_indices=indices,seconds=time.monotonic()-started,peak_cuda_memory_bytes=torch.cuda.max_memory_allocated(device))
++            row['microbatch_query_counts']=[dict(local_index=index,num_superpoints=r['num_thing_queries'],
++                num_reconstruction_anchors=r.get('num_reconstruction_anchors',r['num_thing_queries']),
++                num_object_queries=r['num_thing_queries'],num_stuff_queries=2,
++                num_gaussians=r.get('num_gaussians',r['num_thing_queries']*64)) for index,r in zip(indices,rows)]
+             with (root/f'train_rank{rank:02}.jsonl').open('a') as stream:stream.write(json.dumps(row,allow_nan=False)+'\n')
+             if writer is not None:
+                 for _k in ('loss','loss_recon','loss_understanding','psnr','psnr_layer6','psnr_layer8','psnr_layer10','psnr_layer12',
+                            'loss_rgb_layer12','loss_ssim_layer12','loss_gaussian_visibility_layer12','loss_extra','loss_extra_depth','loss_extra_tsem',
+                            'loss_iou','pred_iou_min','pred_iou_max','grad_norm','understanding_weight','matched_gt_count','matched_query_count','unsupported_GT_count',
+-                           'num_thing_queries','peak_cuda_memory_bytes'):
++                           'num_thing_queries','num_superpoint_queries','num_reconstruction_anchors','num_object_queries','num_gaussians','recon_qp_slots','peak_cuda_memory_bytes'):
+                     if _k in row:writer.add_scalar('train/'+_k,row[_k],step+1)
+                 for _gi,_g in enumerate(optimizer.param_groups):writer.add_scalar('lr/group%d'%_gi,_g['lr'],step+1)
+                 if (step+1)%50==0:writer.flush()
+--- a/scripts/export_unified_query_checkpoint.py
++++ b/scripts/export_unified_query_checkpoint.py
+@@ -40,7 +40,11 @@
+     if not args.smoke and saved['progress']['epoch']!=meta['epochs']:raise ValueError('Incomplete training; only --smoke export allowed')
+     training,_,_=cohorts()
+     if not args.smoke and saved['progress']['full_updates']!=meta['epochs']*(len(epoch_order(len(training),0))//8):raise ValueError('Training update count differs')
+-    opt=config_defaults['train_siu3r_unified_query_v1'];model=constructors[meta['architecture']](opt,config=UnifiedQueryConfig(**meta['config'])).to(device)
++    constructor_kwargs={}
++    if meta['architecture']=='OMEGA_3D_SUPERPOINT_RECON_QP_V1':
++        if 'recon_qp_slots' not in meta or meta['recon_qp_slots']<1:raise ValueError('Missing reconstruction Q bank identity')
++        constructor_kwargs['recon_qp_slots']=meta['recon_qp_slots']
++    opt=config_defaults['train_siu3r_unified_query_v1'];model=constructors[meta['architecture']](opt,config=UnifiedQueryConfig(**meta['config']),**constructor_kwargs).to(device)
+     if model.frozen_omega.source_identity!=meta['omega_identity']:raise ValueError('Frozen source identity differs')
+     if (model.sam_proposals.source_identity if model.sam_proposals is not None else None)!=meta['sam_identity']:raise ValueError('SAM source identity differs')
+     restore_state(model,saved['model']);_,_,windows=cohorts()
+--- a/scripts/summarize_query_counts.py
++++ b/scripts/summarize_query_counts.py
+@@ -0,0 +1,58 @@
++"""Bounded read of existing JSONL prefixes; never waits for a training job."""
++import argparse,csv,json,math,statistics
++from collections import Counter
++from datetime import datetime,timezone,timedelta
++from pathlib import Path
++
++def percentile(values,p):
++    x=sorted(values);at=(len(x)-1)*p;lo=math.floor(at);hi=math.ceil(at)
++    return x[lo]+(x[hi]-x[lo])*(at-lo)
++
++def summarize(run,output):
++    meta=json.loads((run/'STARTED.json').read_text());world=meta['world_size'];batch=meta['global_batch']
++    if world<1 or batch%world:raise ValueError('Rank count must divide global batch')
++    microbatches=batch//world
++    paths=[run/f'train_rank{rank:02d}.jsonl' for rank in range(world)]
++    sizes=[p.stat().st_size for p in paths];ranks=[]
++    for p,size in zip(paths,sizes):
++        data={}
++        with p.open('rb') as f:lines=f.read(size).splitlines()
++        for line in lines:
++            try:row=json.loads(line)
++            except json.JSONDecodeError:continue
++            if 'num_thing_queries' not in row:continue
++            if 'microbatch_query_counts' in row:
++                counts=[x['num_superpoints'] for x in row['microbatch_query_counts']]
++                if len(counts)!=microbatches:raise ValueError('Missing per-scene microbatch counts')
++            elif microbatches==1:counts=[row['num_thing_queries']]
++            else:raise ValueError('Historical scalar microbatch mean cannot recover per-scene distribution')
++            if any(not math.isfinite(n) or n<1 or n!=int(n) for n in counts):raise ValueError('Not individual integer query counts')
++            counts=tuple(int(n) for n in counts);step=row['update']
++            if step in data and data[step]!=counts:raise ValueError('Conflicting duplicate step')
++            data[step]=counts
++        ranks.append(data)
++    common=sorted(set.intersection(*(set(x) for x in ranks)))
++    if not common:raise ValueError('No complete global iterations')
++    values=[n for step in common for rank in ranks for n in rank[step]]
++    totals=[sum(n for rank in ranks for n in rank[step]) for step in common]
++    histogram=Counter(values)
++    result=dict(run=str(run),world_size=world,global_batch=batch,log_prefix_bytes=sizes,first_update=common[0],last_complete_update=common[-1],complete_iterations=len(common),scene_samples=len(values),
++        per_scene_superpoint_count=dict(mean=sum(values)/len(values),median=statistics.median(values),p05=percentile(values,.05),p95=percentile(values,.95),minimum=min(values),maximum=max(values)),
++        per_global_iteration_sum=dict(mean=sum(totals)/len(totals),minimum=min(totals),maximum=max(totals)),
++        histogram={str(k):histogram[k] for k in sorted(histogram)},count_definition='Initial superpoints / thing queries, excluding two stuff queries per scene. Reconstruction Q+P expands anchors separately; counts here retain each individual scene.')
++    output.mkdir(parents=True,exist_ok=True)
++    with (output/'per_iteration_counts.csv').open('w',newline='') as f:
++        w=csv.writer(f);w.writerow(['update']+[f'rank{r:02d}_micro{m:02d}_scene_superpoints' for r in range(world) for m in range(microbatches)]+['global_sum','scene_mean'])
++        for step in common:
++            counts=[n for rank in ranks for n in rank[step]];w.writerow([step]+counts+[sum(counts),sum(counts)/len(counts)])
++    (output/'summary.json').write_text(json.dumps(result,indent=2)+'\n')
++    return result
++
++def main():
++    p=argparse.ArgumentParser();p.add_argument('--output',type=Path,required=True);p.add_argument('runs',type=Path,nargs='+');a=p.parse_args()
++    results=[]
++    for i,run in enumerate(a.runs):
++        result=summarize(run,a.output/f'run{i:02d}_{run.name}');results.append(result)
++        print(json.dumps({k:result[k] for k in ('run','complete_iterations','scene_samples','per_scene_superpoint_count','per_global_iteration_sum')}),flush=True)
++    (a.output/'all_runs.json').write_text(json.dumps(dict(read_at=datetime.now(timezone(timedelta(hours=8))).isoformat(),bounded_prefix_read=True,runs=results),indent=2)+'\n')
++if __name__=='__main__':main()
+--- a/scripts/audit_recon_qp_zero.py
++++ b/scripts/audit_recon_qp_zero.py
+@@ -0,0 +1,48 @@
++"""CPU state-layout/zero-migration audit; does not run or submit GPU work."""
++from pathlib import Path
++import sys
++ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
++from scripts.runtime_bootstrap import prepare_runtime
++prepare_runtime(ROOT)
++import argparse,hashlib,json
++from types import SimpleNamespace
++import torch
++from torch import nn
++from tokengs.options import config_defaults
++from tokengs.models.unified_superpoints import UnifiedQueryConfig
++from tokengs.models.reconstruction_qp_core import ReconstructionQPSuperpointDualCore
++from scripts.recon_qp_initial_state import BANK_KEY,initialize_recon_qp_from_legacy_zero
++
++def digest(p):
++    h=hashlib.sha256()
++    with p.open('rb') as f:
++        for b in iter(lambda:f.read(8*1024*1024),b''):h.update(b)
++    return h.hexdigest()
++
++p=argparse.ArgumentParser();p.add_argument('--output',type=Path,required=True);args=p.parse_args()
++source=Path('/space/mawb/ssst/group_plus/unified_query_training_v1/attempt05_legacy_dual_superpoint_full_node13_8gpu/checkpoint_untrained_initial.pt')
++sha='3c7f1860f3897e1fba305564b30f8e4d67954e6280891bf8a33296bf42b25744';assert digest(source)==sha
++saved=torch.load(source,map_location='cpu',weights_only=False,mmap=True)
++cfg=UnifiedQueryConfig(**saved['meta']['config']);torch.manual_seed(42)
++model=nn.Module();model.architecture_name='OMEGA_3D_SUPERPOINT_RECON_QP_V1';model.config=cfg
++model.frozen_omega=SimpleNamespace(source_identity=saved['meta']['omega_identity'])
++model.sam_proposals=SimpleNamespace(source_identity=saved['meta']['sam_identity'])
++model.gfm_projection=nn.Sequential(nn.LayerNorm(2048),nn.Linear(2048,256))
++model.core=ReconstructionQPSuperpointDualCore(config_defaults['train_siu3r_unified_query_v1'],cfg)
++q_before=model.core.reconstruction_qp.learned_q.detach().clone()
++evidence=initialize_recon_qp_from_legacy_zero(saved,model,
++    manifest_sha256=digest(Path('/space/mawb/ssst/group_plus/object_locus_panoptic_full1201_8gpu/manifest.json')),
++    heldout_sha256=digest(Path('/space/mawb/ssst/group_plus/vggt_understanding_bottleneck_v1/representative128_cohort_20261014.json')),world=8)
++state=model.state_dict()
++for key in evidence['copied_keys']:assert torch.equal(state[key],saved['model'][key]),key
++assert torch.equal(state[BANK_KEY],q_before)
++parent=Path('/space/mawb/ssst_iouhead_code_20261020_v1')
++for name in ['dynamic_panoptic_controller.py','object_locus_panoptic_v1_controller.py','dual_stream_decoder.py','unified_query_loss.py','unified_query_v1.py','dual_superpoint_initialization.py','unified_superpoints.py']:
++    assert (ROOT/'tokengs/models'/name).read_bytes()==(parent/'tokengs/models'/name).read_bytes(),name
++result=dict(status='CPU_RECON_QP_ZERO_AUDIT_PASSED',source_sha256=sha,baseline_tensors_copied=len(evidence['copied_keys']),
++    baseline_tensors_bitwise_equal=True,understanding_code_and_initial_tensors_preserved=True,
++    only_new_parameter=BANK_KEY,new_parameter_shape=list(q_before.shape),new_parameter_count=q_before.numel(),
++    total_trainable_parameters=sum(p.numel() for p in model.parameters()),frozen_backbones_used_identity_stubs=True,
++    gpu_verified=False,jobs_submitted=False)
++args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(json.dumps(result,indent=2)+'\n')
++print(json.dumps(result),flush=True)
+--- a/tests/test_reconstruction_qp.py
++++ b/tests/test_reconstruction_qp.py
+@@ -0,0 +1,128 @@
++import io
++import unittest
++from pathlib import Path
++from dataclasses import replace
++from unittest.mock import patch
++import torch
++from torch import nn
++from scripts.runtime_bootstrap import prepare_runtime
++prepare_runtime(Path(__file__).resolve().parents[1],log=lambda *args:None)
++from tokengs.models.reconstruction_qp import LearnedReconstructionAnchorExpansion
++from tokengs.models.superpoint_structural_variants import LocusGSSuperpointDualReconQP
++from tokengs.models.unified_query_loss import unified_instance_loss
++from scripts.recon_qp_initial_state import BANK_KEY,initialize_recon_qp_from_legacy_zero
++
++class ExpansionTests(unittest.TestCase):
++    def test_cartesian_sum_geometry_order_and_no_truncation(self):
++        e=LearnedReconstructionAnchorExpansion(20,1024)
++        p=torch.randn(1,50,1024);c=torch.randn(1,50,3);r=torch.rand(1,50)+.1
++        x=e(p,c,r);self.assertEqual(x['tokens'].shape,(1,1000,1024))
++        for i,j in [(0,0),(0,19),(1,0),(49,19)]:
++            k=i*20+j
++            torch.testing.assert_close(x['tokens'][:,k],p[:,i]+e.learned_q[j])
++            torch.testing.assert_close(x['centers'][:,k],c[:,i]);torch.testing.assert_close(x['radii'][:,k],r[:,i])
++            self.assertEqual(int(x['anchor_to_superpoint'][k]),i);self.assertEqual(int(x['anchor_slot_ids'][k]),j)
++        small=LearnedReconstructionAnchorExpansion(20,8)
++        self.assertEqual(small(torch.randn(1,251,8),torch.randn(1,251,3),torch.ones(1,251))['tokens'].shape[1],5020)
++    def test_persistent_q_gets_gradient_updates_and_checkpoint_roundtrip(self):
++        e=LearnedReconstructionAnchorExpansion(3,8);p=torch.randn(1,2,8,requires_grad=True)
++        before=e.learned_q.detach().clone();parameter_id=id(e.learned_q)
++        opt=torch.optim.SGD(e.parameters(),lr=.1)
++        out=e(p,torch.zeros(1,2,3),torch.ones(1,2))
++        target=torch.randn_like(out['tokens']);(out['tokens']-target).square().mean().backward()
++        self.assertGreater(float(p.grad.norm()),0);self.assertTrue((e.learned_q.grad.norm(dim=-1)>0).all())
++        opt.step();self.assertFalse(torch.equal(before,e.learned_q));self.assertEqual(id(e.learned_q),parameter_id)
++        next_p=torch.randn(1,1,8);next_out=e(next_p,torch.zeros(1,1,3),torch.ones(1,1))
++        torch.testing.assert_close(next_out['tokens'][0,2],next_p[0,0]+e.learned_q[2])
++        stream=io.BytesIO();torch.save(e.state_dict(),stream);stream.seek(0)
++        restored=LearnedReconstructionAnchorExpansion(3,8);restored.load_state_dict(torch.load(stream,weights_only=True))
++        torch.testing.assert_close(restored.learned_q,e.learned_q)
++    def test_one_zero_q_reproduces_original_seed_and_invalid_shapes_fail(self):
++        e=LearnedReconstructionAnchorExpansion(1,8);nn.init.zeros_(e.learned_q)
++        p=torch.randn(2,3,8);c=torch.randn(2,3,3);r=torch.rand(2,3)
++        x=e(p,c,r)
++        torch.testing.assert_close(x['tokens'],p);torch.testing.assert_close(x['centers'],c);torch.testing.assert_close(x['radii'],r)
++        for k in (0,-1,True,1.5):
++            with self.assertRaises(ValueError):LearnedReconstructionAnchorExpansion(k)
++        with self.assertRaises(ValueError):e(p,c[:,:2],r)
++
++class QPModelTests(unittest.TestCase):
++    def test_full_native_core_decouples_anchor_and_object_counts_and_backpropagates(self):
++        from tests.test_unified_query_v1 import config,opt,FakeOmega,FakeSAM,FakeRenderer
++        cfg=replace(config(),dim=256,heads=8,depth=12,superpoint_source='esam_sam',matching_mode='source_many_to_one')
++        model=LocusGSSuperpointDualReconQP(opt().evolve(dec_patch_size=8,img_size=(8,8)),config=cfg,
++            omega=FakeOmega(),sam=FakeSAM(),renderer=FakeRenderer(),recon_qp_slots=3)
++        def small_memory(layers,rgb):
++            module=model.core.semantic_memory;b,v=rgb.shape[:2]
++            patches=sum(w*proj(x.float().mean(-2)) for w,proj,x in zip(module.layer_logits.softmax(0),module.projections,layers))
++            grid=patches.reshape(b*v,256,1,1).expand(-1,-1,8,8)
++            local=module.local(torch.nn.functional.interpolate(rgb.flatten(0,1),size=(8,8),mode='bilinear',align_corners=False))
++            return module.refine(grid+local).reshape(b,v,256,8,8)
++        self.assertEqual(model.supervised_layers,(6,12))
++        with patch.object(model.core.semantic_memory,'forward',side_effect=small_memory):
++            out=model.generate(torch.rand(1,2,3,256,256))
++            n=out['num_thing_queries'];a=n*3;g=a*64
++            self.assertEqual(n,2);self.assertEqual(out['num_reconstruction_anchors'],6)
++            self.assertEqual(out['states'][-1]['tokens'].shape,(1,a,1024))
++            self.assertEqual(out['unified_query'].shape,(1,n,256))
++            self.assertEqual(out['gaussians'].shape,(1,g,14));self.assertEqual(out['gaussian_membership'].shape,(1,g,n+2))
++            self.assertEqual(out['p_class'].shape,(1,n,19));self.assertEqual(out['num_gaussians'],g)
++            self.assertEqual(out['anchor_to_superpoint'].tolist(),[0,0,0,1,1,1])
++            self.assertEqual(out['gaussian_parent_query'].tolist(),[0]*(3*64)+[1]*(3*64))
++            self.assertEqual(out['gaussian_parent_anchor'].tolist(),torch.arange(a).repeat_interleave(64).tolist())
++            batch=dict(semantic_label_all=torch.full((1,2,8,8),2),instance_label_all=torch.ones(1,2,8,8,dtype=torch.long))
++            semloss,metrics=unified_instance_loss(out,batch,cfg)
++            self.assertEqual(metrics['matched_query_count'],n)
++            loss=out['gaussians'].square().mean()+.05*semloss
++            loss.backward();self.assertGreater(float(model.core.reconstruction_qp.learned_q.grad.norm()),0.)
++            self.assertGreater(float(model.core.initializer.understanding.point_encoder.layers[0][0].weight.grad.norm()),0.)
++            groups=model.parameter_groups();q=model.core.reconstruction_qp.learned_q
++            self.assertIn(id(q),{id(p) for p in groups['reconstruction']});self.assertNotIn(id(q),{id(p) for p in groups['understanding']})
++            all_ids=[id(p) for ps in groups.values() for p in ps]
++            self.assertEqual(len(all_ids),len(set(all_ids)));self.assertEqual(set(all_ids),{id(p) for p in model.parameters() if p.requires_grad})
++            # K=1,Q=0 must reproduce the actual original core's forward on the
++            # same model weights. No second large model or checkpoint is written.
++            import importlib.util
++            spec=importlib.util.spec_from_file_location('original_qp_control_core','/space/mawb/ssst_iouhead_code_20261020_v1/tokengs/models/superpoint_dual_core.py')
++            original=importlib.util.module_from_spec(spec);spec.loader.exec_module(original)
++            model.core.configure_qp_slots(1);nn.init.zeros_(model.core.reconstruction_qp.learned_q)
++            rgb=out['generation_context_rgb']
++            with torch.no_grad():
++                candidate=model.generate(rgb)
++                with patch.object(model.core,'forward',side_effect=lambda *a,**kw:original.SuperpointDualCore.forward(model.core,*a,**kw)):
++                    control=model.generate(rgb)
++            for key in ('gaussians','gaussian_membership','p_class','semantic_scores','region_mass'):
++                torch.testing.assert_close(candidate[key],control[key],rtol=1e-6,atol=1e-7)
++
++
++class FakeQP(nn.Module):
++    architecture_name='OMEGA_3D_SUPERPOINT_RECON_QP_V1'
++    def __init__(self):
++        super().__init__()
++        from types import SimpleNamespace
++        self.core=nn.Module();self.core.baseline=nn.Linear(3,3);self.core.reconstruction_qp=LearnedReconstructionAnchorExpansion(2,1024)
++        self.config=SimpleNamespace(to_dict=lambda:{'dim':256});self.frozen_omega=SimpleNamespace(source_identity={'sha':'omega'});self.sam_proposals=None
++
++class InitializationTests(unittest.TestCase):
++    def test_exactly_one_new_bank_and_no_other_relaxation(self):
++        import copy
++        model=FakeQP();state={k:torch.full_like(v,.3) for k,v in model.state_dict().items() if k!=BANK_KEY}
++        saved=dict(model=state,meta=dict(architecture='OMEGA_3D_SUPERPOINT_LEGACY_DUAL_V1',config={'dim':256},global_batch=8,world_size=8,manifest_sha256='train',heldout_sha256='val',omega_identity={'sha':'omega'},sam_identity=None),progress=dict(epoch=0,update_in_epoch=0,full_updates=0),optimizer=dict(state={}),rank_rng=[{}]*8)
++        before=model.core.reconstruction_qp.learned_q.detach().clone()
++        def apply(s):return initialize_recon_qp_from_legacy_zero(s,model,manifest_sha256='train',heldout_sha256='val',world=4)
++        result=apply(saved);self.assertEqual(result['new_parameter'],BANK_KEY)
++        torch.testing.assert_close(before,model.core.reconstruction_qp.learned_q)
++        for k in state:torch.testing.assert_close(model.state_dict()[k],state[k])
++        for case in ('data','trained','adam','missing','extra','shape','bank_in_source','rng'):
++            s=copy.deepcopy(saved)
++            if case=='data':s['meta']['heldout_sha256']='wrong'
++            if case=='trained':s['progress']['full_updates']=1
++            if case=='adam':s['optimizer']['state'][0]={'step':1}
++            if case=='missing':del s['model']['core.baseline.bias']
++            if case=='extra':s['model']['extra']=torch.zeros(1)
++            if case=='shape':s['model']['core.baseline.weight']=torch.zeros(1)
++            if case=='bank_in_source':s['model'][BANK_KEY]=before
++            if case=='rng':s['rank_rng']=[{}]
++            with self.subTest(case=case):
++                with self.assertRaises(ValueError):apply(s)
++if __name__=='__main__':unittest.main()
+--- a/tests/test_query_count_statistics.py
++++ b/tests/test_query_count_statistics.py
+@@ -0,0 +1,20 @@
++import json,tempfile,unittest
++from pathlib import Path
++from scripts.summarize_query_counts import summarize
++class QueryStatisticsTests(unittest.TestCase):
++    def test_four_rank_microbatch_means_are_not_treated_as_individual_scenes(self):
++        with tempfile.TemporaryDirectory() as temp:
++            root=Path(temp);run=root/'run';run.mkdir()
++            (run/'STARTED.json').write_text(json.dumps(dict(world_size=4,global_batch=8)))
++            for rank in range(4):
++                ns=[rank*20+10,rank*20+20]
++                row=dict(update=1,num_thing_queries=sum(ns)/2,microbatch_query_counts=[dict(num_superpoints=n) for n in ns])
++                (run/('train_rank%02d.jsonl'%rank)).write_text(json.dumps(row)+'\n')
++            result=summarize(run,root/'summary')
++            self.assertEqual(result['scene_samples'],8);self.assertEqual(result['per_scene_superpoint_count']['minimum'],10)
++            self.assertEqual(result['per_scene_superpoint_count']['maximum'],80);self.assertEqual(result['per_global_iteration_sum']['mean'],360)
++            for rank in range(4):
++                row=dict(update=1,num_thing_queries=rank*20+15)
++                (run/('train_rank%02d.jsonl'%rank)).write_text(json.dumps(row)+'\n')
++            with self.assertRaises(ValueError):summarize(run,root/'bad')
++if __name__=='__main__':unittest.main()

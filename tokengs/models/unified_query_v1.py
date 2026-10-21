@@ -1,0 +1,171 @@
+"""Pose-free unified superpoint queries for reconstruction and instance understanding.
+
+Independent architecture: no old Anchor/Object decoder, no random query table,
+no MASt3R weights and no implicit checkpoint migration. SAM supplies partitions only.
+"""
+import os as _os3
+import torch
+from torch import nn
+from tokengs.models.dual_stream_frozen_backbones import FrozenOmega,FrozenESAMSAM
+from tokengs.models.gfm_dual_stream_components import gfm_grid
+from tokengs.models.unified_superpoints import UnifiedQueryConfig,lift_context_cloud
+from tokengs.models.unified_query_core import UnifiedQueryCore
+from tokengs.models.input_types import ModelInputDecoder
+from tokengs.models.object_locus_posefree_geometry import camera_vectors,pixel_rays
+from tokengs.models.object_locus_v3_set import alpha_normalize_membership
+from tokengs.models.canonical_recon_models import LocusGSRecon,_full_supervision
+from tokengs.models.canonical_recon import supervised_layer_weights
+from tokengs.models.tokengs import TokenGS
+
+
+class LocusGSUnifiedQueryV1(nn.Module):
+    architecture_name='OMEGA_3D_SUPERPOINT_UNIFIED_QUERY_V1'
+    reconstruction_only=False
+    core_type=UnifiedQueryCore
+
+    def __init__(self,opt,*,config=None,omega=None,sam=None,renderer=None,omega_checkpoint='/datasets2/mengxl/vggt_omega/vggt_omega_1b_512.pt'):
+        super().__init__();self.config=config or UnifiedQueryConfig();self.opt=opt
+        self.img_size=tuple(opt.img_size)
+        self.frozen_omega=omega if omega is not None else FrozenOmega(omega_checkpoint)
+        self.frozen_omega.requires_grad_(False).eval()
+        self.sam_proposals=(sam if sam is not None else FrozenESAMSAM()) if self.config.superpoint_source=='esam_sam' else None
+        if self.sam_proposals is not None:self.sam_proposals.requires_grad_(False).eval()
+        self.gfm_projection=nn.Sequential(nn.LayerNorm(2048),nn.Linear(2048,self.config.dim))
+        self.core=self.core_type(opt,self.config)
+        if renderer is None:
+            from tokengs.rendering.gs import GaussianRenderer
+            renderer=GaussianRenderer(opt)
+        self.gs=renderer
+        _sup=_os3.environ.get('RG_SUPERVISED')
+        self.supervised_layers=(tuple(int(x) for x in _sup.split(',') if int(x)<=self.config.depth)
+            if _sup else tuple(x for x in (6,8,10,12) if x<=self.config.depth))
+        if not self.supervised_layers or self.supervised_layers[-1]!=self.config.depth:self.supervised_layers=tuple(sorted(set(self.supervised_layers+(self.config.depth,))))
+        self.layer_weights=supervised_layer_weights(self.supervised_layers);self.understanding_step=0
+
+    @property
+    def activation_head(self):return self.core.activation_head
+    _background_color=TokenGS._background_color
+    _reconstruction_from_gaussians=TokenGS._reconstruction_from_gaussians
+    render_reconstruction=TokenGS.render_reconstruction
+    _layer_objective=LocusGSRecon._layer_objective
+
+    def train(self,mode=True):
+        super().train(mode);self.frozen_omega.eval()
+        if self.sam_proposals is not None:self.sam_proposals.eval()
+        return self
+
+    def _render_understanding(self,generated,decoder):
+        render=self.render_reconstruction(generated['reconstruction'],decoder)
+        rendered=self.gs.render_feature_channels(generated['gaussians'],generated['gaussian_membership'],decoder.cam_view,decoder.intrinsics)
+        alpha=rendered['alphas_pred'];regions=alpha_normalize_membership(rendered['images_pred'],alpha)
+        n=generated['num_thing_queries'];p=generated['p_class']
+        semantic=regions.new_zeros((1,regions.shape[1],20,*regions.shape[-2:]))
+        semantic[:,:,:2]=regions[:,:,n:n+2]
+        semantic[:,:,2:]=torch.einsum('bvqhw,bqc->bvchw',regions[:,:,:n],p[...,:18])
+        semantic=semantic/(semantic.sum(2,keepdim=True)+1e-6)
+        return dict(**({'instance_eligible':generated['instance_eligible']} if 'instance_eligible' in generated else {}),**render,region_mass=regions,pixel_membership=regions,alpha=alpha,semantic_scores=semantic,p_class=p,
+            states=generated['states'],gaussians=generated['gaussians'],gaussian_membership=generated['gaussian_membership'],num_thing_queries=n,pred_iou=generated.get('pred_iou'))
+
+    def encode_context(self,context_rgb):
+        if context_rgb.shape!=(1,2,3,256,256):raise ValueError('Expected one two-view 256 scene')
+        if not torch.isfinite(context_rgb).all() or context_rgb.min()<0 or context_rgb.max()>1:raise ValueError('Finite RGB in[0,1] required')
+        omega=self.frozen_omega(context_rgb)
+        raw=gfm_grid(omega['patch_layers']);grid=self.gfm_projection(raw.permute(0,1,3,4,2)).permute(0,1,4,2,3).contiguous()
+        proposals=self.sam_proposals(context_rgb)[0] if self.sam_proposals is not None else None
+        cloud=lift_context_cloud(omega,grid,context_rgb,self.config,proposals)
+        memory=grid.permute(0,1,3,4,2).reshape(1,-1,self.config.dim)
+        return omega,cloud,memory
+
+    def generate(self,context_rgb,*,superpoint_ids=None):
+        if context_rgb.shape!=(1,2,3,256,256):raise ValueError('Unified v1 uses one scene per rank: [1,2,3,256,256]')
+        if not torch.isfinite(context_rgb).all() or context_rgb.min()<0 or context_rgb.max()>1:raise ValueError('Finite RGB in[0,1] required')
+        omega,cloud,memory=self.encode_context(context_rgb)
+        output=self.core(cloud,memory,superpoint_ids)
+        decoder=ModelInputDecoder(cam_view=torch.linalg.inv(omega['c2w']).transpose(-1,-2),intrinsics=camera_vectors(omega['k']))
+        output.update(reconstruction=self._reconstruction_from_gaussians(output['gaussians']),predicted_context_c2w=omega['c2w'],
+            predicted_context_intrinsics=decoder.intrinsics,predicted_context_intrinsics_matrix=omega['k'],predicted_points=omega['points'],
+            depth=omega['depth'],confidence=omega['confidence'],generation_context_rgb=context_rgb.detach(),omega_source_identity=self.frozen_omega.source_identity,
+            sam_source_identity=self.sam_proposals.source_identity if self.sam_proposals is not None else None)
+        rendered=self._render_understanding(output,decoder)
+        output.update(render={k:rendered[k] for k in ('images_pred','depths_pred','alphas_pred')},
+            **{k:rendered[k] for k in ('region_mass','pixel_membership','alpha','semantic_scores')})
+        from tokengs.models.unified_query_nms import context_mask_nms
+        output['instance_eligible'],output['instance_ranking_scores']=context_mask_nms(
+            output['p_class'],output['region_mass'],output['alpha'],self.config.mask_nms_iou)
+        return output
+
+    @torch.no_grad()
+    def calibrate_targets(self,context_and_target_rgb,generated):
+        if not torch.equal(context_and_target_rgb[:,:2],generated['generation_context_rgb']):raise ValueError('Calibration context mismatch')
+        from tokengs.models.dual_stream_calibration import align_omega_targets
+        return align_omega_targets(self.frozen_omega(context_and_target_rgb),generated)
+
+    def render_generated_at(self,generated,cam_view,intrinsics):
+        return self._render_understanding(generated,ModelInputDecoder(cam_view=cam_view,intrinsics=intrinsics))
+
+    def step_loss(self,batch,*,step=0,phase='train',understanding_weight=1.):
+        from tokengs.models.unified_query_loss import unified_instance_loss
+        if understanding_weight<0:raise ValueError('Negative understanding loss weight')
+        self.understanding_step=int(step);prediction=self.generate(batch['images_input'])
+        calibration=self.calibrate_targets(batch['images_all'],prediction)
+        decoder=ModelInputDecoder(cam_view=torch.linalg.inv(calibration['c2w']).transpose(-1,-2),intrinsics=calibration['intrinsics'])
+        rays_o,rays_d=pixel_rays(calibration['c2w'],calibration['intrinsics_matrix'],256,256)
+        loss_batch=dict(batch,rays_os=rays_o,rays_ds=rays_d)
+        reconstruction,metrics,*_=self._layer_objective(prediction['states'],decoder,_full_supervision(loss_batch))
+        understanding,under_metrics=unified_instance_loss(prediction,batch,self.config)
+        metrics.update(under_metrics,loss_recon=reconstruction,loss_understanding=understanding,loss=reconstruction+understanding_weight*understanding,
+            psnr=metrics[f'psnr_layer{self.supervised_layers[-1]}'],num_thing_queries=prediction['num_thing_queries'])
+        prediction['target_camera_calibration']=calibration
+
+        import os as _os
+        if _os.environ.get('RG_EXTRA') not in (None, '', '0'):
+            _extra = torch.zeros((), device=prediction['states'][-1]['tokens'].device)
+            if _os.environ.get('RG_DEPTH'):
+                _st = prediction['states'][-1]
+                _g = self.activation_head(_st['tokens'], _st['mu'], _st['radii'])
+                _rec = self._reconstruction_from_gaussians(_g)
+                _r = self.render_reconstruction(_rec, decoder)
+                _dp = _r.get('depths_pred', _r.get('depth'))
+                if _dp is None:
+                    raise RuntimeError('depth render key missing')
+                _dg = batch['depth_gt_m_all'].reshape(_dp.shape)
+                _dv = batch['depth_gt_valid_all'].reshape(_dp.shape)
+                _dl = torch.zeros((), device=_dp.device)
+                _n = 0
+                for _v in range(_dp.shape[1]):
+                    _p = _dp[0, _v, 0]; _t = _dg[0, _v, 0]; _m = _dv[0, _v, 0]
+                    if int(_m.sum()) < 16:
+                        continue
+                    _x = _p[_m]; _y = _t[_m]
+                    _a = (_x * _y).mean() - _x.mean() * _y.mean()
+                    _b = (_x * _x).mean() - _x.mean() ** 2 + 1e-8
+                    _s = _a / _b
+                    _o = _y.mean() - _s * _x.mean()
+                    _dl = _dl + (_s * _x + _o - _y).abs().mean()
+                    _n += 1
+                _extra = _extra + (1.0 * _dl / max(_n, 1))
+                metrics['loss_extra_depth'] = float(_extra.detach())
+            if _os.environ.get('RG_TSEM'):
+                _cal = prediction['target_camera_calibration']
+                _d6 = ModelInputDecoder(cam_view=torch.linalg.inv(_cal['c2w']).transpose(-1, -2),
+                                        intrinsics=_cal['intrinsics'])
+                _out = self._render_understanding(prediction, _d6)
+                _sc = _out['semantic_scores']
+                _lab = batch['semantic_label_all']
+                _v = (_lab >= 0) & (_lab < 20)
+                _ce = torch.nn.functional.cross_entropy(_sc[:, 2:].permute(0, 1, 3, 4, 2).reshape(-1, 20)[_v[:, 2:].reshape(-1)],
+                                                        _lab[:, 2:].reshape(-1)[_v[:, 2:].reshape(-1)])
+                _extra = _extra + 0.1 * _ce
+                metrics['loss_extra_tsem'] = float(_ce.detach())
+            metrics['loss_extra'] = float(_extra.detach())
+            metrics['loss_total_with_extra'] = float((metrics['loss'] + _extra).detach())
+            metrics['loss'] = metrics['loss'] + _extra
+        return dict(prediction=prediction),metrics
+
+    def forward(self,context_rgb,skip_loss=False):
+        if isinstance(context_rgb,dict):return self.step_loss(context_rgb,step=self.understanding_step)[0]
+        return self.generate(context_rgb)
+
+    def parameter_groups(self):
+        result=self.core.parameter_groups();result['shared']=list(self.gfm_projection.parameters())+result['shared']
+        return result

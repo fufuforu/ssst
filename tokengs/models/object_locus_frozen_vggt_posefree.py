@@ -1,0 +1,278 @@
+"""VGGT-assisted pose-free migration path; historical Object-Locus is unchanged."""
+from __future__ import annotations
+
+import torch
+from torch import nn
+import torch.nn.functional as F
+
+from tokengs.models.frozen_vggt_posefree import FrozenVGGT
+from tokengs.models.object_locus_panoptic_v1 import LocusGSObjectLocusPanopticV1Recon
+from tokengs.models.object_locus_posefree_geometry import (
+    align_cameras_by_shared_context, camera_vectors, intrinsics518_to_256,
+    align_cameras_by_shared_context_depth_v2, old_shared_context_alignment_diagnostics,
+    pixel_rays, posefree_scene, rays_to_patch_plucker,
+)
+from tokengs.models.input_types import EncoderLatent, ModelInput, ModelInputDecoder, ModelInputEncoder
+from tokengs.models.canonical_recon_models import _full_supervision
+
+
+class VGGTMemoryAdapter(nn.Module):
+    """Four-scale patch adapter and 1024->16x64 K/V projection."""
+    def __init__(self):
+        super().__init__()
+        self.layer_norms = nn.ModuleList([nn.LayerNorm(2048, eps=1e-5) for _ in range(4)])
+        self.layer_logits = nn.Parameter(torch.zeros(4))
+        self.projection = nn.Linear(2048, 1024)
+        self.output_norm = nn.LayerNorm(1024)
+        self.kv = nn.Linear(1024, 2048)
+        self.key_norm = nn.LayerNorm(64)
+
+    def forward(self, patch_layers):
+        if len(patch_layers) != 4:
+            raise ValueError("exactly four official VGGT layers are required")
+        reference = patch_layers[0]
+        if reference.ndim != 4 or reference.shape[1:] != (2,1369,2048):
+            raise ValueError(f"expected each patch layer [B,2,1369,2048], got {tuple(reference.shape)}")
+        normalized=[]
+        for norm, layer in zip(self.layer_norms, patch_layers):
+            if layer.shape != reference.shape:
+                raise ValueError("VGGT patch layer shape mismatch")
+            normalized.append(norm(layer.float()))
+        weights=self.layer_logits.softmax(0)
+        mixed=sum(weight*layer for weight,layer in zip(weights,normalized))
+        # reshape preserves view-major then row-major spatial order
+        memory=self.output_norm(self.projection(mixed.reshape(reference.shape[0],2738,2048)))
+        keys,values=self.kv(memory).chunk(2,dim=-1)
+        b=memory.shape[0]
+        keys=keys.reshape(b,2738,16,64).transpose(1,2).contiguous()
+        values=values.reshape(b,2738,16,64).transpose(1,2).contiguous()
+        return memory, self.key_norm(keys), values
+
+
+def initialize_memory_adapter(adapter: nn.Module, seed: int = 31415):
+    """Initialize only newly introduced adapter parameters in an isolated RNG fork."""
+    with torch.random.fork_rng(devices=[]):
+        torch.manual_seed(seed)
+        for module in adapter.modules():
+            if isinstance(module, nn.Linear):
+                nn.init.xavier_uniform_(module.weight)
+                if module.bias is not None: nn.init.zeros_(module.bias)
+            elif isinstance(module, nn.LayerNorm):
+                nn.init.ones_(module.weight); nn.init.zeros_(module.bias)
+        nn.init.zeros_(adapter.layer_logits)
+
+
+class LocusGSObjectLocusFrozenVGGT(LocusGSObjectLocusPanopticV1Recon):
+    architecture_name = "LOCUSGS_OBJECT_LOCUS_FROZEN_VGGT_POSEFREE_V1"
+    calibration_protocol = "shared_context_depth_sim3_v2"
+    geometry_quality_policy = "monitor_v1"
+
+    def __init__(self, opt, *, vggt: FrozenVGGT | None = None,
+                 test_only_vggt: bool=False):
+        if getattr(opt,"geometry_quality_policy","monitor_v1") != "monitor_v1":
+            raise ValueError("pose-free train/smoke/eval requires monitor_v1")
+        super().__init__(opt)
+        if vggt is not None and not (vggt.source_identity.get('verification_status')=='VERIFIED' or test_only_vggt):
+            raise ValueError("VGGT injection is test-only unless loaded through the verified official artifact loader")
+        self.frozen_vggt = vggt if vggt is not None else FrozenVGGT()
+        with torch.random.fork_rng(devices=[]):
+            torch.manual_seed(31415)
+            self.vggt_memory_adapter = VGGTMemoryAdapter()
+            initialize_memory_adapter(self.vggt_memory_adapter)
+        # Retain only the shared LocusGS decoder/reference graph from EncDecBackbone.
+        # The old pixel embedding, reconstruction encoder and old K/V are dead in
+        # this architecture and must not be registered or optimized.
+        self.patch_embed = nn.Identity()
+        self.patch_plucker_embed = nn.Identity()
+        backbone=self.enc_dec_backbone
+        backbone.encoder=nn.Identity()
+        for name in ("encoder_norm","kv_proj","k_proj_norm","multiscale_norms",
+                     "latent_feature_kv_proj","latent_feature_k_norm","latent_blocks",
+                     "latent_kv_proj"):
+            if hasattr(backbone,name): setattr(backbone,name,nn.Identity())
+        if hasattr(backbone,"latents"):
+            backbone.register_parameter("latents",None)
+        if any(p.requires_grad for p in self.frozen_vggt.parameters()):
+            raise RuntimeError("VGGT parameters must be frozen")
+        self.frozen_vggt.eval()
+
+    def train(self, mode=True):
+        super().train(mode)
+        self.frozen_vggt.train(mode)
+        return self
+
+    def _latent_from_vggt(self, result):
+        _,keys,values=self.vggt_memory_adapter(result.patch_layers)
+        return EncoderLatent(keys=keys,values=values)
+
+    def _predicted_input(self, context_rgb, result, c2w_scene, k256):
+        b=context_rgb.shape[0]
+        ro256,rd256=pixel_rays(c2w_scene,k256,256,256)
+        plucker256=torch.cat((torch.cross(ro256,rd256,dim=2),rd256),dim=2)
+        encoder=ModelInputEncoder(images_rgb=context_rgb.mul(2).sub(1),plucker=plucker256,
+            rays_os=ro256,rays_ds=rd256,intrinsics_input=camera_vectors(k256),
+            cam_to_world_input=c2w_scene,images_rgb_unnormalized=context_rgb)
+        decoder=ModelInputDecoder(cam_view=torch.linalg.inv(c2w_scene).transpose(-1,-2),
+                                  intrinsics=camera_vectors(k256))
+        return ModelInput(encoder,decoder), (ro256,rd256)
+
+    def generate(self, context_rgb: torch.Tensor, runtime_config: dict | None = None):
+        """Generate from two RGB contexts and runtime config only; no target data accepted."""
+        del runtime_config
+        if context_rgb.ndim!=5 or context_rgb.shape[1:]!=(2,3,256,256):
+            raise ValueError(f"generate expects [B,2,3,256,256], got {tuple(context_rgb.shape)}")
+        if getattr(self, 'reconstruction_adaptation', False):
+            return self._generate_reconstruction_adaptation(context_rgb)
+        vggt_result=self.frozen_vggt(context_rgb)
+        c2w_scene,k256,depth_scaled,points,coordinate_record=posefree_scene(
+            vggt_result.c2w_cv,vggt_result.intrinsics518,vggt_result.depth518)
+        model_input,_=self._predicted_input(context_rgb,vggt_result,c2w_scene,k256)
+        latent=self._latent_from_vggt(vggt_result)
+        patch_rays=rays_to_patch_plucker(c2w_scene,vggt_result.intrinsics518,patch_size=14)
+        fm,qpre=self.understanding(context_rgb)
+        if hasattr(self.panoptic, 'reading_control'):
+            self.panoptic.reading_control.prepare(fm, c2w_scene, k256, points, vggt_result.confidence518)
+        states,ray_stats=self.anchor_decoder.forward_stateful(
+            self.get_gs_tokens(batch_size=context_rgb.shape[0]),latent,patch_rays,
+            self.panoptic,fm,qpre,self.understanding.mask_embedder,self.understanding_step)
+        final=states[-1]
+        gaussians=self.activation_head(final['tokens'],final['mu'],final['radii'])
+        reconstruction=self._reconstruction_from_gaussians(gaussians)
+        render_decoder=model_input.decoder
+        output_decoder=model_input.decoder
+        render=self.render_reconstruction(reconstruction,render_decoder)
+        output=dict(states=states,gaussians=gaussians,reconstruction=reconstruction,render=render,
+                    ray_stats=ray_stats,beta=final['beta'],F_m=fm,q_pre=qpre,
+                    predicted_context_c2w=c2w_scene,predicted_context_intrinsics=camera_vectors(k256),
+                    predicted_context_intrinsics_matrix=k256,depth=depth_scaled,
+                    predicted_context_intrinsics518=vggt_result.intrinsics518.detach(),
+                    confidence518=vggt_result.confidence518.detach(),
+                    predicted_points=points,coordinates=coordinate_record,
+                    generation_context_rgb=context_rgb.detach(),
+                    vggt_source_identity=vggt_result.source_identity)
+        output.update(self._readout(final,gaussians,fm,render_decoder,output_decoder))
+        return output
+
+    def _generate_reconstruction_adaptation(self, context_rgb):
+        """Original Gaussian decoder, with object feedback disabled in pretraining."""
+        from torch.utils.checkpoint import checkpoint
+        result = self.frozen_vggt(context_rgb)
+        c2w,k256,depth,points,coordinates = posefree_scene(result.c2w_cv,result.intrinsics518,result.depth518)
+        latent = self._latent_from_vggt(result)
+        rays = rays_to_patch_plucker(c2w,result.intrinsics518,patch_size=14)
+        args = (self.get_gs_tokens(batch_size=context_rgb.shape[0]),latent,rays)
+        states,stats = checkpoint(self.anchor_decoder,*args,use_reentrant=False,preserve_rng_state=True) if self.training else self.anchor_decoder(*args)
+        return dict(states=states,ray_stats=stats,beta=0.,predicted_context_c2w=c2w,
+                    predicted_context_intrinsics_matrix=k256,predicted_context_intrinsics=camera_vectors(k256),
+                    predicted_context_intrinsics518=result.intrinsics518.detach(),confidence518=result.confidence518,
+                    depth=depth,predicted_points=points,coordinates=coordinates,
+                    generation_context_rgb=context_rgb.detach(),vggt_source_identity=result.source_identity)
+
+    def calibrate_targets(self, context_and_target_rgb: torch.Tensor, generated: dict):
+        """Independent full-window pass aligned by shared context depth point maps."""
+        if not torch.equal(context_and_target_rgb[:,:2],generated['generation_context_rgb']):
+            raise ValueError("calibration context RGB must exactly match context-only generate inputs")
+        result=self.frozen_vggt.calibration_with_context_depth(context_and_target_rgb)
+        return self._calibrate_result(generated,result)
+
+    def _calibrate_result(self, generated: dict, result: dict):
+        """Apply v2 alignment to a completed calibration pass (also used by evidence capture)."""
+        raw=result['c2w_cv']
+        context_raw=generated['coordinates']['raw_c2w_cv']
+        old=old_shared_context_alignment_diagnostics(raw[:,:3],context_raw)
+        aligned,diagnostics,point_records=align_cameras_by_shared_context_depth_v2(
+            c2w_all=raw,k518_all=result['intrinsics518'],depth_all=result['depth518'],
+            confidence_all=result['confidence518'],predicted_points=generated['predicted_points'],
+            confidence_context=generated['confidence518'],c2w_context=generated['predicted_context_c2w'],
+            k256_context=generated['predicted_context_intrinsics_matrix'],
+            a_scale=generated['coordinates']['a_scale'],median_depth=generated['coordinates']['median_depth'])
+        k256,A=intrinsics518_to_256(result['intrinsics518'])
+        k256=k256.clone(); k256[:,:2]=generated['predicted_context_intrinsics_matrix']
+        aligned=aligned.clone(); aligned[:,:2]=generated['predicted_context_c2w']
+        sim3=[{key:row[key] for key in ('R','s','t','det_R','source_rms','target_rms')}
+              for row in diagnostics]
+        return {"c2w":aligned,"intrinsics_matrix":k256,"intrinsics":camera_vectors(k256),
+                "sim3":sim3,"diagnostics":diagnostics,"point_records":point_records,
+                "old_alignment_diagnostics":old,"calibration_protocol":self.calibration_protocol,
+                "geometry_quality_policy":self.geometry_quality_policy,
+                "A_518_to_256":A.detach(),"source_identity":result['source_identity'],
+                "depth_context_from_full_window_aggregator":True}
+
+    def render_generated_at(self, generated: dict, cam_view: torch.Tensor, intrinsics: torch.Tensor):
+        """Render reconstruction and fixed panoptic state at a supplied camera.
+
+        This deliberately reuses the generated Gaussian membership and p_class;
+        no VGGT pass, query generation, feature lifting, or _readout is repeated.
+        """
+        decoder=ModelInputDecoder(cam_view=cam_view,intrinsics=intrinsics)
+        render=self.render_reconstruction(generated['reconstruction'],decoder)
+        final=generated['states'][-1]
+        b=generated['gaussians'].shape[0]
+        rendered=self.gs.render_feature_channels(generated['gaussians'],
+            generated['gaussian_membership'],decoder.cam_view,decoder.intrinsics)
+        alpha=rendered['alphas_pred']
+        from tokengs.models.object_locus_panoptic_v1 import alpha_normalize_membership
+        region=alpha_normalize_membership(rendered['images_pred'],alpha)
+        p_class=generated['p_class']
+        semantic=region.new_zeros((b,region.shape[1],20,*region.shape[-2:]))
+        semantic[:,:,0:2]=region[:,:,100:102]
+        semantic[:,:,2:20]=torch.einsum('bvqhw,bqc->bvchw',region[:,:,:100],p_class[...,:18])
+        semantic=semantic/(semantic.sum(2,keepdim=True)+1e-6)
+        return {**render,'states':generated['states'],'gaussians':generated['gaussians'],
+            'gaussian_membership':generated['gaussian_membership'],'p_class':p_class,
+            'assignment':generated['gaussian_membership'],'membership_mass':rendered['images_pred'],
+            'region_mass':region,'pixel_membership':region,'semantic_scores':semantic,
+            'pixel_void_mass':1-alpha,'alpha':alpha,'panoptic_state':final}
+
+    @staticmethod
+    def _reject_legacy_forward(*args,**kwargs):
+        del args,kwargs
+        raise TypeError("legacy ModelInput/GT-camera forward is unsupported; use generate(context_rgb) and render_generated_at")
+
+    forward_object_locus=_reject_legacy_forward
+    forward_instance_state=_reject_legacy_forward
+    forward_reconstruction_only=_reject_legacy_forward
+
+    def step_loss(self,batch,*,step,phase="train",understanding_weight=1.0):
+        del phase
+        self.understanding_step=int(step)
+        context=batch['images_input']
+        prediction=self.generate(context)
+        calibration=self.calibrate_targets(batch['images_all'],prediction)
+        c2w=calibration['c2w']
+        cam_view=torch.linalg.inv(c2w).transpose(-1,-2)
+        all_rays_o,all_rays_d=pixel_rays(c2w,calibration['intrinsics_matrix'],256,256)
+        # Clone only the loss view of the provider batch. RGB and semantic masks stay
+        # exactly as supplied; provider storage and source dictionary are untouched.
+        loss_batch=dict(batch)
+        loss_batch['cam_view_all']=cam_view
+        loss_batch['intrinsics_all']=calibration['intrinsics']
+        loss_batch['rays_os']=all_rays_o
+        loss_batch['rays_ds']=all_rays_d
+        loss_batch['cam_to_world_input']=c2w[:,:2]
+        loss_batch['intrinsics_input']=calibration['intrinsics'][:,:2]
+        decoder=ModelInputDecoder(cam_view=cam_view,intrinsics=calibration['intrinsics'])
+        recon,metrics,*_=self._layer_objective(prediction['states'],decoder,_full_supervision(loss_batch))
+        if getattr(self, 'reconstruction_adaptation', False):
+            under,under_metrics = recon.new_zeros(()), {}
+        else:
+            from tokengs.models.object_locus_v3_set_loss import object_locus_v3_set_losses
+            under,under_metrics=object_locus_v3_set_losses(prediction,loss_batch,self.opt)
+        metrics.update(under_metrics)
+        metrics.update(loss_recon=recon,loss_understanding=under,
+                       understanding_weight=float(understanding_weight),
+                       loss=recon+float(understanding_weight)*under,
+                       loss_total=recon+float(understanding_weight)*under)
+        metrics['psnr']=metrics[f"psnr_layer{self.supervised_layers[-1]}"]
+        prediction['target_camera_calibration']=calibration
+        return {'prediction':prediction},metrics
+
+    def forward(self,data,skip_loss=False):
+        del skip_loss
+        if isinstance(data,torch.Tensor):
+            return self.generate(data)
+        if isinstance(data,ModelInput):
+            raise TypeError("legacy ModelInput/GT-camera forward is unsupported; use generate(context_rgb)")
+        if isinstance(data,dict):
+            return self.step_loss(data,step=self.understanding_step)[0]
+        raise TypeError("pose-free forward accepts context RGB or the new loss batch; legacy ModelInput/GT-camera input is unsupported")

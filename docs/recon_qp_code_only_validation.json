@@ -1,0 +1,26 @@
+{
+  "status": "CPU_VALIDATED_CODE_ONLY",
+  "model_tests": 5,
+  "statistics_tests": 1,
+  "k1_zero_q_matches_original_core": true,
+  "zero_audit": {
+    "status": "CPU_RECON_QP_ZERO_AUDIT_PASSED",
+    "source_sha256": "3c7f1860f3897e1fba305564b30f8e4d67954e6280891bf8a33296bf42b25744",
+    "baseline_tensors_copied": 693,
+    "baseline_tensors_bitwise_equal": true,
+    "understanding_code_and_initial_tensors_preserved": true,
+    "only_new_parameter": "core.reconstruction_qp.learned_q",
+    "new_parameter_shape": [
+      20,
+      1024
+    ],
+    "new_parameter_count": 20480,
+    "total_trainable_parameters": 193819761,
+    "frozen_backbones_used_identity_stubs": true,
+    "gpu_verified": false,
+    "jobs_submitted": false
+  },
+  "gpu_verified": false,
+  "slurm_actions_this_task": 0,
+  "source_snapshot": "/space/mawb/ssst_iouhead_code_20261020_v1"
+}

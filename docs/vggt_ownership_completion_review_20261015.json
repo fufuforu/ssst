@@ -1,0 +1,123 @@
+{
+  "status": "OWNERSHIP_DIAGNOSTICS_COMPLETE",
+  "checked_at": "2026-10-15T13:13:02.112460+08:00",
+  "evidence_root": "/space/mawb/ssst/group_plus/vggt_ownership_diagnostics_v1/attempts/attempt01",
+  "scenes_per_model": 128,
+  "GT_instances_per_model": 492,
+  "new_optimizer_updates": 0,
+  "models_and_buffers_unchanged": true,
+  "recovery_job": {
+    "job_id": 64963,
+    "state": "COMPLETED",
+    "exit_code": "0:0",
+    "elapsed": "00:27:50",
+    "node": "3dimage-11"
+  },
+  "original_job": {
+    "job_id": 64911,
+    "state": "FAILED",
+    "reason": "strict original prediction PNG reproduction: one target pixel; preserved, not suppressed"
+  },
+  "extraction_execution_sha_window_counts": {
+    "9cbc2b0b0e98c58d5762f282cb95e8442b9141b9": 36,
+    "6d716520a65f6c7e997e1b22088d26de32486a19": 220
+  },
+  "inference_windows_reused": 220,
+  "inference_windows_added_by_recovery": 36,
+  "observer_problem_window_witness": {
+    "gaussians": {
+      "native_repeat": 0.0,
+      "observed_difference": 0.0
+    },
+    "gaussian_membership": {
+      "native_repeat": 3.874301910400391e-06,
+      "observed_difference": 3.814697265625e-06
+    },
+    "p_class": {
+      "native_repeat": 1.1920928955078125e-07,
+      "observed_difference": 1.7881393432617188e-07
+    },
+    "query12": {
+      "native_repeat": 0.0,
+      "observed_difference": 0.0
+    },
+    "anchor12": {
+      "native_repeat": 0.0,
+      "observed_difference": 0.0
+    },
+    "native_repeat_panoptic_pixels": 0,
+    "observed_vs_native_panoptic_pixels": [
+      0,
+      0
+    ]
+  },
+  "source_comparability_sha256": "b837c785da6e2ba9dcdeb71cb80c0abbaebf9f3bb91066f83126d5a5ced428ca",
+  "artifact_sha256": {
+    "results.json": "cdf2a002d33ec0d303fcc64062b0c19d5c7f03cf0fefcedae7859b5479f908ad",
+    "completion_audit_and_sensitivity.json": "a36f5285b8913864040a90b11b2262684ea5699e3b4598b689fcff6ade784373",
+    "paired_full_frame_PSNR.json": "6124bb36537972daf17dfd8a69da874d4f89bd91f75fb846e49319d33e7cabbb",
+    "partial_rank_covariate_sensitivity.json": "06fa196716a7a2424d999e6de59515a559d73eec13ba38e35bc09aeeee006780",
+    "diagnostic_overview.png": "25d6e3568dee9b1917737afaed6bc25cad6f8afded57a2a6cf521cb6d2122b78",
+    "diagnostic_overview.pdf": "51298743c9524e03e282a77b3c6057b17718f774bad4e203835815d2c56657ed",
+    "reviewed_gallery_v2/cases.json": "f9037defea510fe17baf287b2a91fd820e61fc5b6f43953d611f7060d84049aa",
+    "reviewed_gallery_v2/gallery.md": "31a5f8bacbcb14480dc2f7b6cc4cbd770c0e8da3cb6019d6fd0b5781b840ef3d"
+  },
+  "CPU_analysis_code_sha256": {
+    "scripts/analyze_vggt_ownership_v1.py": "6b018b809a29af13a5f9068f4ee29a3877098aed1bad5afa1be40a1a4f119a0b",
+    "scripts/audit_vggt_ownership_results_v1.py": "34e7d75205f93e6a9a821e81a4b9b7dcd654e9866e6b18dc2ca2b25099ae9505",
+    "scripts/review_vggt_ownership_cases_v1.py": "24a2ee9f7516bf6177aa155910193ea665700bfd90b6d944ff4fcb240fd49cd4",
+    "scripts/supplement_vggt_ownership_v1.py": "e0fe109f8b2308aa72001cb2fc265041d29680a4eeb649cb73ae3f3d839a8685"
+  },
+  "tests": "5 ownership math/GT-label negative-control tests passed; actual complete analysis, full coverage audit, case review and sensitivity run passed",
+  "official_13_columns": {
+    "C": [
+      0.08729938251053677,
+      0.2132145272965621,
+      22.596582341939204,
+      0.7807598649136098,
+      0.36804656529178204,
+      0.5602371290326118,
+      0.3079909682273865,
+      0.6455165719984879,
+      null,
+      0.5526466384530068,
+      0.2737559676170349,
+      0.6097899885846274,
+      null
+    ],
+    "baseline300": [
+      0.08868274042470149,
+      0.215562614655937,
+      22.280146834750976,
+      0.7746944469011702,
+      0.3722320764597193,
+      0.5569018118083477,
+      0.31259918212890625,
+      0.6279528537599135,
+      null,
+      0.5507132545113563,
+      0.2786490023136139,
+      0.6031079898661686,
+      null
+    ]
+  },
+  "paired_PSNR": {
+    "n": 128,
+    "mean": -0.31643550718824065,
+    "ci95": [
+      -0.41568737734730044,
+      -0.21368477984021095
+    ],
+    "protocol": "Paired original official per-window render_scores.json; fixed-range regional SSE independently reproduces each paired difference within 1e-5 dB."
+  },
+  "conclusions": {
+    "confirmed_post_raw_bottleneck": "class/no-object eligibility; pixel competition smaller",
+    "unresolved_pre_raw_bottleneck": "134/492 C GT have no raw mask IoU >= .5; small objects dominate",
+    "ownership_causal_claim": "not established: shuffled null gains exist, but size-adjusted associations vanish or reverse and counterexamples exist",
+    "joint_training": "broad RGB degradation with nearly stable best-query mask IoU and higher AP/lower PQ",
+    "next_single_structure_to_review": "competition-aware Gaussian object classification readback; proposal only"
+  },
+  "model_structure_modified": false,
+  "new_training_submitted": false,
+  "polling_policy": "after job submission stop polling and wait for user completion notice"
+}

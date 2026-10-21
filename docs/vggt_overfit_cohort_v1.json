@@ -1,0 +1,150 @@
+{
+  "selection": "First four train windows from the seed42, score-independent 16-scene paired diagnostic cohort. No heldout data used.",
+  "source_identity": "/space/mawb/ssst/group_plus/vggt_reconstruction_diagnostics_v1/attempt02/identity.json",
+  "windows": [
+    {
+      "scene": "scene0286_01",
+      "context": [
+        1899,
+        1911
+      ],
+      "novel": [
+        1904,
+        1906
+      ],
+      "pair_iou": 0.6600726246833801,
+      "semantic_classes_context": [
+        4,
+        7,
+        19
+      ],
+      "thing_instance_count": 2,
+      "thing_gt_area": {
+        "7": 17165,
+        "30": 1332
+      },
+      "sampling_seed": 42521,
+      "attempt": 2,
+      "window_index": 1,
+      "target": [
+        1899,
+        1911,
+        1904,
+        1906
+      ],
+      "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider",
+      "split": "train",
+      "source_index": 3620
+    },
+    {
+      "scene": "scene0057_01",
+      "context": [
+        791,
+        813
+      ],
+      "novel": [
+        793,
+        799
+      ],
+      "pair_iou": 0.4682714641094208,
+      "semantic_classes_context": [
+        2,
+        7,
+        19
+      ],
+      "thing_instance_count": 3,
+      "thing_gt_area": {
+        "5": 169,
+        "13": 2034,
+        "22": 5844
+      },
+      "sampling_seed": 42106,
+      "attempt": 2,
+      "scene_index": 104,
+      "piece": 0,
+      "index": 832,
+      "window_index": 832,
+      "target": [
+        791,
+        813,
+        793,
+        799
+      ],
+      "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider",
+      "split": "train",
+      "source_index": 728
+    },
+    {
+      "scene": "scene0060_01",
+      "context": [
+        143,
+        222
+      ],
+      "novel": [
+        199,
+        200
+      ],
+      "pair_iou": 0.31435543298721313,
+      "semantic_classes_context": [
+        2,
+        7
+      ],
+      "thing_instance_count": 2,
+      "thing_gt_area": {
+        "10": 31215,
+        "19": 3479
+      },
+      "sampling_seed": 42113,
+      "attempt": 8,
+      "scene_index": 111,
+      "piece": 3,
+      "index": 891,
+      "window_index": 891,
+      "target": [
+        143,
+        222,
+        199,
+        200
+      ],
+      "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider",
+      "split": "train",
+      "source_index": 780
+    },
+    {
+      "scene": "scene0493_00",
+      "context": [
+        1259,
+        1276
+      ],
+      "novel": [
+        1273,
+        1274
+      ],
+      "pair_iou": 0.6511338353157043,
+      "semantic_classes_context": [
+        4,
+        6
+      ],
+      "thing_instance_count": 5,
+      "thing_gt_area": {
+        "3": 1333,
+        "4": 1036,
+        "5": 10036,
+        "9": 514,
+        "10": 13918
+      },
+      "sampling_seed": 42881,
+      "attempt": 8,
+      "window_index": 7,
+      "target": [
+        1259,
+        1276,
+        1273,
+        1274
+      ],
+      "camera_source": "SIU3R processed ScanNet GT pose/intrinsics; unchanged provider",
+      "split": "train",
+      "source_index": 6124
+    }
+  ]
+}

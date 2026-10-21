@@ -1,0 +1,130 @@
+{
+ "task": "A - cleanup of the finished full-data pure-reconstruction experiment",
+ "date": "2026-09-26",
+ "jobs": {
+  "crashed_full_run": 55247,
+  "lr_capped_branch": 55275,
+  "queue_after": "empty (all jobs finished)"
+ },
+ "main_model": {
+  "path": "workspace_recon_diag/full_train/run_lrcap2e5/best_monitor",
+  "step": 47500,
+  "model_sha256": "5fcf71b969b01c2603194a85521f95e5e48eafa3f3759ce7839d339caaa9634f",
+  "sha256_matches_required_value": true,
+  "strict_load": true,
+  "parameters": 220002620,
+  "decode_radius_min": 0.15,
+  "decode_radius_max": 0.15,
+  "alpha_mean": 0.9842,
+  "independent_file": "yes (own inode, hardlink count 1; not a link to ckpt_step47500)",
+  "config_snapshot_added": [
+   "config.yaml",
+   "training_record.json"
+  ],
+  "verification_script": "scripts/verify_full_train_checkpoint.py",
+  "verification_command": "python scripts/verify_full_train_checkpoint.py --checkpoint workspace_recon_diag/full_train/run_lrcap2e5/best_monitor --expect-sha256 5fcf71b9... --forward-check"
+ },
+ "free_space_gb": {
+  "before": 10.87,
+  "after": 30.24,
+  "freed": 19.364
+ },
+ "deleted": [
+  {
+   "path": "/space/mawb/ssst/workspace_recon_diag/full_train/run/best_monitor",
+   "bytes": 880165764,
+   "gb": 0.88,
+   "reason": "checkpoint/best_monitor of the crashed full-data run (job 55247)"
+  },
+  {
+   "path": "/space/mawb/ssst/workspace_recon_diag/full_train/run/ckpt_step12500",
+   "bytes": 2640585451,
+   "gb": 2.641,
+   "reason": "checkpoint/best_monitor of the crashed full-data run (job 55247)"
+  },
+  {
+   "path": "/space/mawb/ssst/workspace_recon_diag/full_train/run/ckpt_step2500",
+   "bytes": 2640581610,
+   "gb": 2.641,
+   "reason": "checkpoint/best_monitor of the crashed full-data run (job 55247)"
+  },
+  {
+   "path": "/space/mawb/ssst/workspace_recon_diag/full_train/run/ckpt_step32500",
+   "bytes": 2640585515,
+   "gb": 2.641,
+   "reason": "checkpoint/best_monitor of the crashed full-data run (job 55247)"
+  },
+  {
+   "path": "/space/mawb/ssst/workspace_recon_diag/full_train/run_lrcap2e5/ckpt_step5000",
+   "bytes": 2640585066,
+   "gb": 2.641,
+   "reason": "full-data training intermediate checkpoint; replaced by the kept, self-contained best_monitor of run_lrcap2e5"
+  },
+  {
+   "path": "/space/mawb/ssst/workspace_recon_diag/full_train/run_lrcap2e5/ckpt_step25000",
+   "bytes": 2640585515,
+   "gb": 2.641,
+   "reason": "full-data training intermediate checkpoint; replaced by the kept, self-contained best_monitor of run_lrcap2e5"
+  },
+  {
+   "path": "/space/mawb/ssst/workspace_recon_diag/full_train/run_lrcap2e5/ckpt_step47500",
+   "bytes": 2640585515,
+   "gb": 2.641,
+   "reason": "full-data training intermediate checkpoint; replaced by the kept, self-contained best_monitor of run_lrcap2e5"
+  },
+  {
+   "path": "/space/mawb/ssst/workspace_recon_diag/full_train/run_lrcap2e5/ckpt_step50000",
+   "bytes": 2640585515,
+   "gb": 2.641,
+   "reason": "full-data training intermediate checkpoint; replaced by the kept, self-contained best_monitor of run_lrcap2e5"
+  }
+ ],
+ "kept": {
+  "run_lrcap2e5/best_monitor": 880172001,
+  "run_lrcap2e5/history.json": 453894,
+  "run_lrcap2e5/manifest.json": 24837,
+  "run_lrcap2e5/slurm-55275.out": 125059,
+  "run_lrcap2e5/images": 1051763,
+  "run/history.json": 336892,
+  "run/manifest.json": 24832,
+  "run/config_diff.json": 2674,
+  "run/code_state.json": 3326,
+  "run/slurm-55247.out": 88311,
+  "run/images": 915839,
+  "eval_official_valpair/official_evaluator_result.json": 442,
+  "eval_official_valpair/per_scene_metrics.json": 58634,
+  "eval_official_valpair/per_record_metrics.csv": 256593,
+  "eval_official_valpair/summary.json": 2412,
+  "eval_official_valpair/config_locusgs_best47500.yaml": 4059,
+  "eval_official_valpair/full_run.log": 0,
+  "eval_official_valpair/figures": 1357957,
+  "eval_official_valpair/predictions/official_predictions": 2442700741,
+  "eval_official_valpair/predictions/raw_predictions": 0,
+  "eval_official_valpair/smoke2": 2863439,
+  "collapse_audit": 5671650,
+  "smoke": 1234733,
+  "timing": 601662,
+  "branch_smoke": 5649,
+  "submit_full.sh": 1940,
+  "submit_branch_lrcap.sh": 1989,
+  "timing.log": 3224
+ },
+ "kept_official_evaluation": {
+  "dir": "workspace_recon_diag/full_train/eval_official_valpair",
+  "official_evaluator_result": "psnr 24.81 / ssim 0.7795 / lpips 0.3826 / abs_rel 0.1770 (SIU3R commit 8ea80166be76854f938e90521f1a5b688b755c87)",
+  "official_predictions_gb": 2.443,
+  "raw_predictions_kb": 0.0,
+  "action": "kept (official re-check material, default policy); no deletion candidate found - raw_predictions is 4 KB, official_predictions is the only full copy"
+ },
+ "note_on_deleted_branch_point": "run/ckpt_step2500 was the documented resume point of the lr-capped branch; it is recorded in run_lrcap2e5/manifest.json, the branch script and the kept training_record.json, but the checkpoint itself was deleted as instructed. The branch's own model (best_monitor) and records are preserved.",
+ "references": [
+  "docs/locusgs_full_train.md",
+  "docs/locusgs_full_train_collapse.md",
+  "docs/locusgs_full_valpair_recon_eval.md",
+  "submit_full.sh",
+  "submit_branch_lrcap.sh",
+  "scripts/slurm_full_locusgs.sh",
+  "scripts/slurm_branch_lrcap.sh",
+  "collapse_audit/collapse_audit.json"
+ ]
+}
