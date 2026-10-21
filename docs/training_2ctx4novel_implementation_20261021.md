@@ -55,3 +55,15 @@
 已取消旧 2+2 pending 作业69969（sacct确认CANCELLED）。本次新增专用提交器，固定3090分区3dimage-13单卡，独立run为`/space/mawb/ssst/group_plus/semantic_resolution_v1/point1024_fmquery_2ctx4novel_gpu_smoke_20261021_v1_node13`，源码另做冻结snapshot。提交前重跑7项数据/收据测试通过、Python编译及shell语法检查通过，实际manifest SHA与冻结值一致。模型、初始化、优化器、clip与训练配方未改。
 
 仅1窗、真实1024 anchor/65536 GS、256²，2 context+4 novel；每step累积8次、只跑2 optimizer step，定向梯度隔离检查及首步哈希照旧。显存/耗时/两步GPU完成均待收据确认，不提交全量训练或评测。提交器仅调用一次有界squeue；实际job与状态记于独立run的SUBMITTED.json、STATUS_AFTER_SUBMIT.txt。
+
+## 69992 GPU smoke 完成复核（2026-10-21）
+
+用户通知完成后检查：69992 COMPLETED exit0，3dimage-13单卡3090，总时长3:54；完成收据与标准库verify重新计算结果逐项相同，无JOB_FAILED。实际2context+4novel，256²；GS[1,65536,14]，两个parent别名均[65536]且相等。657零步张量迁移；实际manifest SHA及code.sha一致。
+
+完成2 optimizer updates、每步8microbatch、1个固定窗口index8205，累计16microbatch。step1/2用时65.026/34.869秒（首步含定向梯度诊断）；峰值allocated9.609/11.047GiB，reserved9.939/12.242GiB。LR1e-6/2e-6，LU权重4.793864e-5/9.587728e-5，配方warmup未变。
+
+梯度范数（clip前，step1/step2）：reconstruction0.1451965/0.1297517；shared0.01524843/0.01458349；understanding0.000891779/0.001734707；adapters5.359240e-6/1.057836e-5。四adapter（L6,L8,L10,L12）首步0/0/0/5.359240e-6，第二步1.309368e-8/1.474310e-8/1.497169e-8/1.057833e-5；保持末层零初始化，未为首步全非零改变初始化。
+
+定向LU反传到reconstruction+shared共402个参数张量：非零梯度元素0、范数0；定向LR反传到understanding+adapters共271张量：非零梯度元素0、范数0。LU单独反传adapter范数0.11179374。首步权重SHA由e85924c4a5df7370cf5d293d3cace443adc78e48fe10962803b6f11baf5fb38a变为9da2b3fddb70f542085805fe944b636519375eede43c48cd785431e274ddc5de，rank0更新已核实。
+
+证据目录：`/space/mawb/ssst/group_plus/semantic_resolution_v1/point1024_fmquery_2ctx4novel_gpu_smoke_20261021_v1_node13`（SMOKE_PASSED、STEP_RESULTS、DIRECTIONAL_GRADIENTS、FIRST_UPDATE_VERIFIED、BATCH_SHAPES、slurm-69992.out）。仅证明单窗单卡两步可运行和梯度路由正确，不代表正式指标、多卡同步或全量场景显存通过。本次没有提交新作业。
