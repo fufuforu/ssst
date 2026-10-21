@@ -1,0 +1,11 @@
+{
+  "submitted_utc": "2026-10-21T12:22:25.644172+00:00",
+  "code_commit": "3ac6b4f1878168929dfb3b773710acc193eb4676",
+  "code_root": "/space/mawb/ssst_anchor_child_boundary_diagnostics_code_20261021_v1",
+  "training": false,
+  "stop_polling_after_single_check": true,
+  "jobs": {
+    "smoke": 70234,
+    "full128": 70235
+  }
+}

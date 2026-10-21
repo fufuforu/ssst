@@ -1,0 +1,10 @@
+{
+  "checked_utc": "2026-10-21T12:22:38.197408+00:00",
+  "single_bounded_check": true,
+  "returncode": 0,
+  "stdout": "70234|PENDING|3090,4090||gres/gpu:1|(Resources)\n70235|PENDING|3090,4090||gres/gpu:8|(Dependency)\n",
+  "stderr": "",
+  "gpu_forward_verified": false,
+  "gpu_equivalence_verified": false,
+  "polling_stopped": true
+}
