@@ -49,3 +49,9 @@
 ## 已完成验证
 
 7项标准库测试通过。真实数据CPU回放两窗（parent index0与原smoke index8205）通过：六帧shape/帧序正确，两个context的RGB、语义/实例标签、相机、深度均与父2+2 batch逐值一致；原两张novel的RGB也逐值保留。日志与JSON：training_2ctx4novel_cpu_data_audit.log/json。模型/数据provider源码相对154cd70无diff，未新增参数，未做GPU验证或新提交。
+
+## 2026-10-21 用户授权的 13 节点 GPU smoke
+
+已取消旧 2+2 pending 作业69969（sacct确认CANCELLED）。本次新增专用提交器，固定3090分区3dimage-13单卡，独立run为`/space/mawb/ssst/group_plus/semantic_resolution_v1/point1024_fmquery_2ctx4novel_gpu_smoke_20261021_v1_node13`，源码另做冻结snapshot。提交前重跑7项数据/收据测试通过、Python编译及shell语法检查通过，实际manifest SHA与冻结值一致。模型、初始化、优化器、clip与训练配方未改。
+
+仅1窗、真实1024 anchor/65536 GS、256²，2 context+4 novel；每step累积8次、只跑2 optimizer step，定向梯度隔离检查及首步哈希照旧。显存/耗时/两步GPU完成均待收据确认，不提交全量训练或评测。提交器仅调用一次有界squeue；实际job与状态记于独立run的SUBMITTED.json、STATUS_AFTER_SUBMIT.txt。
