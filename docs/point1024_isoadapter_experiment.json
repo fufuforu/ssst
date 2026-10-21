@@ -1,0 +1,61 @@
+{
+  "architecture": "dual_point1024_isoadapter",
+  "architecture_identity": "OMEGA_POINT1024_SOURCE256_ISOLATED_RESIDUAL_ADAPTER_V1",
+  "training_windows": 8337,
+  "training_scenes": 1191,
+  "epochs": 4,
+  "full_updates": 4172,
+  "global_batch": 8,
+  "world_size": 8,
+  "microbatch_per_rank": 1,
+  "learning_rate": 0.0001,
+  "lr_warmup": 100,
+  "lr_schedule": "single_cosine_over_4172_updates",
+  "lr_floor": 1e-05,
+  "understanding_weight": 0.05,
+  "understanding_warmup": 1043,
+  "context_views": 2,
+  "target_views": 4,
+  "image_hw": [
+    256,
+    256
+  ],
+  "reconstruction_anchors": 1024,
+  "anchor_dim": 1024,
+  "gaussians_per_anchor": 64,
+  "gaussians": 65536,
+  "seed_geometry": "legacy_seed_anchors_48grid_conf80_fps1024_knn6_radius",
+  "extra_cross_view_3d_dedup": false,
+  "seed_features": "exact_source_pixel_shared_projection_256_then_linear_1024",
+  "explicit_rgb_seed_content": false,
+  "learned_base_embedding": false,
+  "reconstruction_supervised_layers": [
+    6,
+    12
+  ],
+  "reconstruction_layer_weights": [
+    0.3333333333333333,
+    0.6666666666666666
+  ],
+  "understanding_dim": 256,
+  "understanding_query_count": "dynamic_superpoints_plus_two_stuff",
+  "understanding_read_layers": [
+    6,
+    8,
+    10,
+    12
+  ],
+  "semantic_memory_resolution": 256,
+  "semantic_feature_initialization": false,
+  "gradient_isolation": true,
+  "write_strength": 0.0,
+  "adapter_hidden": 64,
+  "adapter_parameter_count": 528640,
+  "adapter_formula": "x=tokens.detach(); tok_u=x+adapter(x)",
+  "adapter_last_layer_zero_init": true,
+  "shared_projection_gradient_source": "reconstruction_only",
+  "initial_checkpoint": "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt05_legacy_dual_superpoint_full_node13_8gpu/checkpoint_untrained_initial.pt",
+  "initial_sha256": "3c7f1860f3897e1fba305564b30f8e4d67954e6280891bf8a33296bf42b25744",
+  "jobs_submitted": false,
+  "gpu_smoke_performed": false
+}

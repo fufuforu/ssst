@@ -1,0 +1,21 @@
+{
+  "status": "CPU_POINT1024_ISOADAPTER_VALIDATION_PASSED",
+  "cpu_tests": 4,
+  "tests_passed": 4,
+  "actual_1024_seed_initialization": true,
+  "synthetic_full_core_render_anchor_count": 6,
+  "real_12_layer_core": true,
+  "canonical_reconstruction_loss_used": true,
+  "actual_understanding_loss_used": true,
+  "all_trainable_parameters_checked": true,
+  "understanding_loss_gradient_to_reconstruction_and_shared_zero": true,
+  "reconstruction_loss_gradient_to_understanding_and_adapters_zero": true,
+  "shared_projection_reconstruction_gradient_nonzero": true,
+  "all_four_adapters_trainable": true,
+  "zero_adapter_forward_equals_adapter_free_reads": true,
+  "understanding_seed_values_unchanged": true,
+  "exact_source_pixel_feature_sampling": true,
+  "strict_zero_migration_and_rejections_passed": true,
+  "gpu_verified": false,
+  "jobs_submitted": false
+}

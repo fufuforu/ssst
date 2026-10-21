@@ -42,6 +42,8 @@ def main():
     if not args.smoke and saved['progress']['full_updates']!=meta['epochs']*(len(epoch_order(len(training),0))//8):raise ValueError('Training update count differs')
     if meta['architecture']=='OMEGA_3D_FPS1024_SUPERPOINT_RECON_V1':
         if meta.get('reconstruction_anchor_count')!=1024 or meta.get('reconstruction_initialization')!='fps_xyz_plus_learned_embedding_plus_superpoint':raise ValueError('FPS initialization identity differs')
+    if meta['architecture']=='OMEGA_POINT1024_SOURCE256_ISOLATED_RESIDUAL_ADAPTER_V1':
+        if meta.get('reconstruction_anchor_count')!=1024 or meta.get('seed_feature_source')!='exact_source_pixel_shared_projection_256' or meta.get('gradient_isolation') is not True or meta.get('adapter_hidden')!=64 or meta.get('adapter_read_layers')!=[6,8,10,12] or meta.get('supervised_layers')!=[6,12] or meta.get('layer_weights')!=[1/3,2/3] or meta.get('epochs')!=4 or meta.get('global_batch')!=8:raise ValueError('Isolated point1024 checkpoint identity differs')
     constructor_kwargs={}
     if meta['architecture']=='OMEGA_3D_SUPERPOINT_RECON_QP_V1':
         if 'recon_qp_slots' not in meta or meta['recon_qp_slots']<1:raise ValueError('Missing reconstruction Q bank identity')
