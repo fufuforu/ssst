@@ -1,0 +1,75 @@
+{
+  "sources": {
+    "A4": {
+      "checkpoint": "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt05_legacy_dual_superpoint_full_node13_8gpu/checkpoint_epoch4.pt",
+      "sha256": "9d3f3f788de59927073cf6d93335623ff37653025258e8e53a0a232f2e01a534",
+      "epoch": 4,
+      "updates": 4172
+    },
+    "A4plus4": {
+      "checkpoint": "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt08_legacy_dual_superpoint_extend8_node13_8gpu/checkpoint_latest.pt",
+      "sha256": "0ed6cd8f4fb740698c01ca345a0bbad9a2b1b96302acdbf106864874e5e282c9",
+      "epoch": 8,
+      "updates": 8344
+    }
+  },
+  "cohort": "/space/mawb/ssst/group_plus/vggt_understanding_bottleneck_v1/representative128_cohort_20261014.json",
+  "cohort_sha256": "9a310d764358ebd7cdd3d1844a48685264d25d48cced5d4263ef4da68c239a44",
+  "manifest_sha256": "87e3cde298569c4e7735cf75ee596868eadf01e9a6a95438c6be51e42f55a523",
+  "code_root": "/space/mawb/ssst_anchor_child_boundary_diagnostics_code_20261021_v1",
+  "mask_resolution": 128,
+  "output_resolution": 256,
+  "supervised_layers": [
+    6,
+    8,
+    10,
+    12
+  ],
+  "contribution_chunk": 64,
+  "context_views": 2,
+  "training": false,
+  "backward_calls": 0,
+  "parameter_updates": 0,
+  "ownership": "full-scene occlusion-aware alpha contributions \u00d7 GT masks; no center projection",
+  "attribution": {
+    "min_visible_alpha_pixels": 1.0,
+    "min_thing_coverage": 0.5,
+    "purity": [
+      0.5,
+      0.7,
+      0.9
+    ],
+    "multi_instance_min_fraction": 0.1,
+    "multi_instance_min_alpha_pixels": 1.0
+  },
+  "boundary": {
+    "raw": "L2 query-space forward differences / sqrt(2), eligible thing queries after existing NMS",
+    "soft": "1-exp(-GaussianBlur(raw,sigma=1)/0.1)",
+    "threshold": 0.5,
+    "tolerances_pixels": [
+      1,
+      2,
+      3
+    ],
+    "interior_exclusion_pixels": 3,
+    "pilot_gate": {
+      "f1_2px": 0.7,
+      "f1_lower95": 0.65,
+      "ap_2px": 0.5,
+      "max_interior_response_fraction": 0.2,
+      "max_interior_activation": 0.1
+    }
+  },
+  "smoke_windows": [
+    0,
+    1
+  ],
+  "full_windows": 128,
+  "bootstrap_scene_resamples": 4000,
+  "preview_windows": [
+    0,
+    1,
+    2,
+    3
+  ]
+}

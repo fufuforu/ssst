@@ -1,0 +1,23 @@
+{
+  "status": "PASSED",
+  "tests": 8,
+  "command": "/space/mawb/anaconda3/envs/tokengs/bin/python -m unittest diagnostics.anchor_child_boundary.test_metrics diagnostics.anchor_child_boundary.test_forward_lift diagnostics.anchor_child_boundary.test_summary",
+  "last_runtime_seconds": 7.565,
+  "python_compile": "PASSED",
+  "shell_syntax": "PASSED",
+  "slurm_resource_test_only": "PASSED for 1 and 8 GPU (not submitted jobs)",
+  "gpu_smoke": "NOT_YET_SUBMITTED",
+  "tokengs_model_files_modified": false,
+  "files_sha256": {
+    "diagnostics/anchor_child_boundary/forward_lift.py": "511fcf904afd77b4caedc64a82dc288f8aaf03b8f589b8878312abcf59d17d20",
+    "diagnostics/anchor_child_boundary/metrics.py": "757cece58c7138482e3f2b3e58b9a52168fcb49ce684a6a688048863e02890ba",
+    "diagnostics/anchor_child_boundary/test_forward_lift.py": "a98b5edb2d306740f63fc3ebec2d9a245585fae419b73a59e4b83980128c00f6",
+    "diagnostics/anchor_child_boundary/test_metrics.py": "feb71038fcb1b33a32b4bc51a26e0966ae0e7282ace1751d2cf69dab4b14e2ae",
+    "diagnostics/anchor_child_boundary/test_summary.py": "11f8029940f898a224b0981a256d46db56c62d8d177ce44eb628ba61e6a48849",
+    "scripts/diagnose_anchor_child_boundary.py": "0925920d4779c751d0c971dcdf5ced40e9204c3a30354a05a0e4746d48c019a7",
+    "scripts/prepare_anchor_child_boundary.py": "b5a842449c337e023dcb5f7175821d7b70f8d292d40382c4a7cc032e68a2c9f9",
+    "scripts/submit_anchor_child_boundary.py": "437ba8022aaede160aa5d579211f08c59e9a798c146d6843abbc36cf32b2ae12",
+    "scripts/summarize_anchor_child_boundary.py": "67324215cc2f144b13dc2f0e9ba34bf438b7aa0ad85586ed435a77838d4b6b21",
+    "scripts/run_anchor_child_boundary.sh": "0bcbc729998f3fa84346d39f9f3ab1a04681ae57bd96e96caea50084cfb80348"
+  }
+}
