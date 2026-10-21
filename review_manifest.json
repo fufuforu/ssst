@@ -1,0 +1,211 @@
+{
+  "status": "GEOMETRY_BLOCKED",
+  "repository": "https://github.com/fufuforu/ssst",
+  "worktree": "/space/mawb/ssst_object_locus_frozen_vggt_posefree_v1",
+  "branch": "object-locus-frozen-vggt-posefree-v1",
+  "review_base_sha": "bd3329a110803e3750aaeef573650237e536f9e2",
+  "science_baseline_sha": "9ce7b18b68bae9c4c7c519b670ad1fa79a66f9a0",
+  "official_vggt": {
+    "repository": "https://github.com/facebookresearch/vggt",
+    "source_commit": "a288dd0f14786c93483e45524328726ab7b1b4ce",
+    "model_id": "facebook/VGGT-1B",
+    "hf_revision": "860abec7937da0a4c03c41d3c269c366e82abdf9",
+    "config": {
+      "relative_path": "models--facebook--VGGT-1B/snapshots/860abec7937da0a4c03c41d3c269c366e82abdf9/config.json",
+      "size_bytes": 62,
+      "sha256": "a73e929a168b900546a84fe88cd70dfaaf2f8e39cf77355b12984eaa686f3855"
+    },
+    "weights": {
+      "relative_path": "models--facebook--VGGT-1B/snapshots/860abec7937da0a4c03c41d3c269c366e82abdf9/model.safetensors",
+      "size_bytes": 5026367224,
+      "sha256": "f164acf60724910d8fe1578bb499d800850c7bb0948db7555c413f9fbe60467e"
+    },
+    "external_asset_root": "/space/mawb/ssst_object_locus_frozen_vggt_posefree_v1_assets",
+    "network_proxy_used": true,
+    "cpu_strict_load": {
+      "status": "PASS",
+      "loaded_keys": 1341,
+      "excluded_keys": 456,
+      "excluded_point_head_keys": 62,
+      "excluded_track_head_keys": 394,
+      "missing_keys": 0,
+      "unexpected_keys": 0,
+      "shape_mismatches": 0,
+      "loaded_subtrees": [
+        "aggregator",
+        "camera_head",
+        "depth_head"
+      ],
+      "aggregator_dtype": "bfloat16",
+      "camera_depth_head_dtype": "float32",
+      "frozen_eval": true,
+      "real_forward_executed": false
+    }
+  },
+  "initialization_checkpoint": {
+    "path": "/space/mawb/ssst/workspace_group_plus/object_locus_panoptic_full1201_8gpu/checkpoint_epoch_06.pt",
+    "sha256": "68de912a60340f65d675a521c514641845c43822657f07d5851770c96cbf912a",
+    "source_epoch": 6,
+    "source_completed_updates": 6258,
+    "source_completed_exposures": 50064,
+    "cpu_migration": {
+      "loaded": 1377,
+      "explicitly_excluded": 68,
+      "new_memory_adapter_parameters": 17,
+      "missing": 0,
+      "shape_mismatch": 0,
+      "unknown": 0
+    }
+  },
+  "training_manifest": {
+    "path": "/space/mawb/ssst/group_plus/object_locus_panoptic_full1201_8gpu/manifest.json",
+    "sha256": "87e3cde298569c4e7735cf75ee596868eadf01e9a6a95438c6be51e42f55a523",
+    "train_scenes": 1191,
+    "fixed_windows": 8337,
+    "contexts_per_window": 2,
+    "resampling": false
+  },
+  "evaluation_cohort": {
+    "name": "full_validation",
+    "sha256": "59cf5594ec2f3223a41d27d7af4da49d348ce9b00c1d151020378c9a8f4b4b3b",
+    "windows": 1860,
+    "unique_scenes": 312
+  },
+  "cpu_checks": {
+    "contract_command": "CUDA_VISIBLE_DEVICES= TORCHINDUCTOR_COMPILE_THREADS=1 /space/mawb/anaconda3/envs/tokengs/bin/python -u scripts/smoke_object_locus_frozen_vggt_posefree_v1.py --cpu-contracts",
+    "contracts_passed": 24,
+    "contracts_failed": 0,
+    "contract_result": "PASS",
+    "coverage": [
+      "real generate patch-ray parameter wiring and independent reference directions/moments",
+      "corresponding continuous 518/256 pixel ray equality and wrong-K failure",
+      "multi-view nonconstant raster/view-major memory and ray ordering",
+      "orientation-constrained Sim(3), nontrivial first camera, zero and valid small baseline",
+      "context-only generate and target render membership/p_class reuse",
+      "strict migration, frozen optimizer exclusion, GC gradient reference and resume RNG/clock",
+      "fixed manifest and eval CLI contracts",
+      "eight rank shard covers each consecutive padded epoch-order group of eight exactly once",
+      "one-sample-per-rank GC gradient average and smoke exposure clocks",
+      "eight-rank RNG checkpoint structure and launcher resource/config agreement",
+      "pose-free evaluation caches per-view RGB/depth and summarizes context, target-all and true-novel with SIU3R fits",
+      "shared-context depth point weighted Umeyama with fixed five-step Huber IRLS, geometry gates, and output immutability",
+      "shared-context depth point weighted Umeyama with current-residual five-step Huber IRLS, geometry gates, old-scale evidence, and generated-state immutability"
+    ],
+    "real_weight_cpu_audit_command": "CUDA_VISIBLE_DEVICES= /space/mawb/anaconda3/envs/tokengs/bin/python scripts/audit_frozen_vggt_artifact_cpu.py --manifest vggt_artifact_manifest.json",
+    "real_weight_cpu_audit": "PASS; strict 1341 loaded, 456 explicitly excluded, 0 missing/unexpected/shape mismatch; no forward",
+    "python_compile": "PASS",
+    "bash_syntax": "PASS",
+    "entry_help": {
+      "eval": "PASS",
+      "smoke": "PASS",
+      "train": "PASS (runtime import deferred until prepare/train execution)"
+    },
+    "status": "PASS"
+  },
+  "not_run": {
+    "formal_training": true,
+    "evaluation": true
+  },
+  "unverified_next_phase": [
+    "RTX3090 BF16/FP32 operator compatibility",
+    "single/eight GPU smoke memory and runtime",
+    "formal training startup and loss/gradient stability",
+    "official full validation reconstruction and panoptic metrics"
+  ],
+  "review_documents": [
+    "docs/object_locus_frozen_vggt_posefree_v1.md",
+    "docs/object_locus_frozen_vggt_posefree_v1_review_fix.md",
+    "docs/object_locus_frozen_vggt_posefree_v1_cpu_checks.md",
+    "docs/object_locus_frozen_vggt_posefree_weight_mapping.json",
+    "vggt_artifact_manifest.json",
+    "scripts/submit_object_locus_frozen_vggt_posefree_v1.sh",
+    "scripts/run_object_locus_frozen_vggt_posefree_v1_job.sh",
+    "scripts/eval_object_locus_frozen_vggt_posefree_v1.py"
+  ],
+  "launcher": "scripts/submit_object_locus_frozen_vggt_posefree_v1.sh",
+  "scientific_deviations": [],
+  "weights_committed_to_git": false,
+  "resource_adaptation": {
+    "approved_after_review_sha": "66de6f52654eebd669c93c78e1fd7e34bf1c2648",
+    "target_node": "3dimage-13",
+    "gpu_model": "RTX3090",
+    "gpu_count": 8,
+    "observed_node_state": "IDLE at code adaptation check",
+    "observed_node_gres": "gpu:3090:8",
+    "world_size": 8,
+    "microbatch_per_rank": 1,
+    "accumulation": 1,
+    "global_batch": 8,
+    "epochs": 8,
+    "updates_per_epoch": 1043,
+    "total_updates": 8344,
+    "total_exposures": 66752,
+    "slurm_cpus": 32,
+    "slurm_host_memory": "128G",
+    "slurm_walltime": "48:00:00",
+    "single_smoke_exposures": 2,
+    "eight_smoke_exposures": 16,
+    "submit_entry": "scripts/submit_object_locus_frozen_vggt_posefree_v1.sh",
+    "ordered_job_entry": "scripts/run_object_locus_frozen_vggt_posefree_v1_job.sh",
+    "cpu_contracts": "PASS: 20/20; eight-rank sample order and gradients match global-batch reference",
+    "node_memory_observed_mb": 512000,
+    "formal_run_root": "/space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1",
+    "formal_run_root_prelaunch_state": "absent; no duplicate formal run detected",
+    "startup_confirmation_path": "/space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1/startup_confirmation.json",
+    "gpu_job": "ordered single smoke -> eight-rank smoke -> fresh full training; Slurm job not yet submitted in this manifest snapshot"
+  },
+  "previous_review_commit_sha": "6e27010adb83f8fd7db9336f0200d6174e2add0f",
+  "calibration_protocol": "shared_context_depth_sim3_v2",
+  "v2_gpu_validation": "window 4253 and single-card pass; eight-card smoke stopped by fixed geometry acceptance at scene0563_00",
+  "execution": {
+    "slurm_job_id": "59658",
+    "execution_git_sha": "d4107c881b0c5ce4e0bb187f620d0607e9e41454",
+    "node": "3dimage-13",
+    "allocated_gpus": 8,
+    "calibration_protocol": "shared_context_depth_sim3_v2",
+    "window4253": "PASS",
+    "window4253_old_signed_scale": 1.1510381972999872,
+    "window4253_v2_scale": 0.25734600363107785,
+    "window4253_reprojection_median_px": [
+      1.3320113689798505,
+      1.3794367738011355
+    ],
+    "window4253_reprojection_p90_px": [
+      2.894427130351441,
+      5.975093226302229
+    ],
+    "single_card_smoke": {
+      "status": "GPU_SMOKE_COMPLETED",
+      "updates": 2,
+      "exposures": 2
+    },
+    "eight_card_smoke": {
+      "status": "GEOMETRY_BLOCKED",
+      "update_zero_based": 1,
+      "rank": 5,
+      "manifest_index": 6923,
+      "scene": "scene0563_00",
+      "context": [
+        145,
+        197
+      ],
+      "novel": [
+        151,
+        185
+      ],
+      "view0_reprojection_median_p90_px": [
+        4.836568398348592,
+        21.18293121426183
+      ],
+      "view1_reprojection_median_p90_px": [
+        4.6023185046943285,
+        11.443502569360495
+      ]
+    },
+    "formal_training": "NOT_STARTED",
+    "formal_updates": 0,
+    "formal_exposures": 0,
+    "slurm_exit_code": "1:0",
+    "evidence_root": "/space/mawb/ssst/group_plus/object_locus_frozen_vggt_posefree_v1/calibration_v2/attempts/59658"
+  }
+}

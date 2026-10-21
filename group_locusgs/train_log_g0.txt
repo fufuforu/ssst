@@ -1,0 +1,88 @@
+[runtime] fused-ssim extension unavailable; using import stand-in /space/mawb/ssst/third_party/shims
+[runtime] cannot load /space/mawb/tokengs_siu3r_joint_v1/.torch_extensions_v4/gsplat_cuda/gsplat_cuda.so (/lib/x86_64-linux-gnu/libc.so.6: version `GLIBC_2.34' not found (required by /space/mawb/tokengs_siu3r_joint_v1/.torch_extensions_v4/gsplat_cuda/gsplat_cuda.so)); trying the next candidate
+[runtime] preloaded precompiled gsplat extension from /space/mawb/.cache/torch_extensions_backup/gsplat_cuda_partial_1406/gsplat_cuda.so
+[g] arm=g0 model=siu3r_group_locusgs_recon out=workspace_group_locusgs/arm_g0
+[g] random init hashes: reconstruction 64c4d09c5b15d2ce attributes c92ef647efa9f029 groups c877aa84413cf69c feedback 8617fa23ddb91fc4
+[g] feedback enabled=False gate=0.000e+00 layer=10 | group queries=100 + 1 background
+[g] plan object_locusgs/plan_6000.json sha256=a2a65c1382da0307a68fb6d27e5c1345aa78b46331acb2927e88b47a3c3d08bb steps=6000
+[g] loss: L_recon + lambda(step) * [0.05 L_instance + 0.05 L_semantic] with lambda=min(1, step/2000)
+[g] group decay: 229,673,984 params lr 1.0e-04 wd 0.05
+[g] group nodecay: 1,243,730 params lr 1.0e-04 wd 0.0
+[g] VAL step 0: ctx 10.81 novel 10.70 ssim 0.479/0.477 mIoU 0.013 | AP50 ctx 0.000 novel 0.000 TP/FP/FN 0/0/55 | obj>=thr 0.516 maskerr 1.17e-06
+[g] checkpoint ckpt_step0 (random initialisation) written
+[g] step     1 arm=g0 scene=scene0000_02 loss 0.2178 (recon 0.2175 inst 11.520 sem 2.996 lambda 0.00050 w_inst 2.500e-05 w_sem 2.500e-05) psnr 13.74 grad 4.70 obj 0.770 maskerr 1.1e-06 gate 0.00e+00 | 22.31s/step peak 6.8G eta 37.2h
+[g] step   100 arm=g0 scene=scene0001_01 loss 0.2807 (recon 0.2540 inst 7.709 sem 2.996 lambda 0.05000 w_inst 2.500e-03 w_sem 2.500e-03) psnr 10.41 grad 4.82 obj 0.994 maskerr 1.6e-06 gate 0.00e+00 | 0.78s/step peak 6.9G eta 1.3h
+[g] step   200 arm=g0 scene=scene0016_01 loss 0.3394 (recon 0.2886 inst 7.166 sem 2.995 lambda 0.10000 w_inst 5.000e-03 w_sem 5.000e-03) psnr 9.43 grad 3.82 obj 0.997 maskerr 2.5e-06 gate 0.00e+00 | 0.65s/step peak 6.9G eta 1.0h
+[g] step   300 arm=g0 scene=scene0000_00 loss 0.2354 (recon 0.1446 inst 9.159 sem 2.944 lambda 0.15000 w_inst 7.500e-03 w_sem 7.500e-03) psnr 11.78 grad 1.77 obj 0.999 maskerr 1.5e-06 gate 0.00e+00 | 0.62s/step peak 6.9G eta 1.0h
+[g] step   400 arm=g0 scene=scene0003_02 loss 0.1894 (recon 0.1077 inst 5.309 sem 2.861 lambda 0.20000 w_inst 1.000e-02 w_sem 1.000e-02) psnr 11.92 grad 1.52 obj 0.999 maskerr 1.4e-06 gate 0.00e+00 | 0.60s/step peak 6.9G eta 0.9h
+[g] step   500 arm=g0 scene=scene0006_00 loss 0.2286 (recon 0.1152 inst 6.644 sem 2.428 lambda 0.25000 w_inst 1.250e-02 w_sem 1.250e-02) psnr 12.76 grad 1.84 obj 0.999 maskerr 1.3e-06 gate 0.00e+00 | 0.58s/step peak 6.9G eta 0.9h
+[g] VAL step 500: ctx 12.72 novel 12.70 ssim 0.518/0.516 mIoU 0.062 | AP50 ctx 0.000 novel 0.000 TP/FP/FN 0/14/55 | obj>=thr 1.000 maskerr 1.28e-06
+[g] step   600 arm=g0 scene=scene0009_02 loss 0.2055 (recon 0.0630 inst 7.103 sem 2.398 lambda 0.30000 w_inst 1.500e-02 w_sem 1.500e-02) psnr 16.94 grad 1.02 obj 0.998 maskerr 1.3e-06 gate 0.00e+00 | 0.57s/step peak 6.9G eta 0.9h
+[g] step   700 arm=g0 scene=scene0001_00 loss 0.2349 (recon 0.0616 inst 7.908 sem 1.995 lambda 0.35000 w_inst 1.750e-02 w_sem 1.750e-02) psnr 16.74 grad 1.80 obj 0.999 maskerr 1.2e-06 gate 0.00e+00 | 0.56s/step peak 6.9G eta 0.8h
+[g] step   800 arm=g0 scene=scene0006_01 loss 0.3374 (recon 0.1271 inst 7.680 sem 2.836 lambda 0.40000 w_inst 2.000e-02 w_sem 2.000e-02) psnr 12.51 grad 2.21 obj 1.000 maskerr 1.4e-06 gate 0.00e+00 | 0.56s/step peak 6.9G eta 0.8h
+[g] step   900 arm=g0 scene=scene0009_01 loss 0.2980 (recon 0.0821 inst 7.288 sem 2.307 lambda 0.45000 w_inst 2.250e-02 w_sem 2.250e-02) psnr 14.87 grad 1.60 obj 1.000 maskerr 1.4e-06 gate 0.00e+00 | 0.55s/step peak 6.9G eta 0.8h
+[g] step  1000 arm=g0 scene=scene0007_00 loss 0.3540 (recon 0.0859 inst 8.146 sem 2.577 lambda 0.50000 w_inst 2.500e-02 w_sem 2.500e-02) psnr 15.40 grad 3.29 obj 1.000 maskerr 1.5e-06 gate 0.00e+00 | 0.54s/step peak 6.9G eta 0.8h
+[g] VAL step 1000: ctx 16.72 novel 16.83 ssim 0.615/0.616 mIoU 0.141 | AP50 ctx 0.073 novel 0.062 TP/FP/FN 2/30/53 | obj>=thr 1.000 maskerr 1.51e-06
+[g] step  1100 arm=g0 scene=scene0006_00 loss 0.3486 (recon 0.0572 inst 8.462 sem 2.134 lambda 0.55000 w_inst 2.750e-02 w_sem 2.750e-02) psnr 16.11 grad 1.26 obj 0.999 maskerr 1.4e-06 gate 0.00e+00 | 0.54s/step peak 6.9G eta 0.7h
+[g] step  1200 arm=g0 scene=scene0009_01 loss 0.3882 (recon 0.1194 inst 6.958 sem 2.001 lambda 0.60000 w_inst 3.000e-02 w_sem 3.000e-02) psnr 12.65 grad 3.84 obj 1.000 maskerr 1.6e-06 gate 0.00e+00 | 0.53s/step peak 6.9G eta 0.7h
+[g] step  1300 arm=g0 scene=scene0000_00 loss 0.3621 (recon 0.0525 inst 7.587 sem 1.938 lambda 0.65000 w_inst 3.250e-02 w_sem 3.250e-02) psnr 17.82 grad 1.12 obj 1.000 maskerr 1.4e-06 gate 0.00e+00 | 0.53s/step peak 6.9G eta 0.7h
+[g] step  1400 arm=g0 scene=scene0003_02 loss 0.3978 (recon 0.0828 inst 6.969 sem 2.032 lambda 0.70000 w_inst 3.500e-02 w_sem 3.500e-02) psnr 13.49 grad 2.39 obj 0.999 maskerr 1.8e-06 gate 0.00e+00 | 0.53s/step peak 6.9G eta 0.7h
+[g] step  1500 arm=g0 scene=scene0013_01 loss 0.3233 (recon 0.0458 inst 6.122 sem 1.278 lambda 0.75000 w_inst 3.750e-02 w_sem 3.750e-02) psnr 19.75 grad 6.18 obj 0.999 maskerr 1.3e-06 gate 0.00e+00 | 0.53s/step peak 6.9G eta 0.7h
+[g] VAL step 1500: ctx 17.09 novel 17.04 ssim 0.626/0.624 mIoU 0.141 | AP50 ctx 0.062 novel 0.078 TP/FP/FN 2/68/53 | obj>=thr 1.000 maskerr 1.42e-06
+[g] step  1600 arm=g0 scene=scene0010_01 loss 0.4911 (recon 0.0918 inst 7.537 sem 2.445 lambda 0.80000 w_inst 4.000e-02 w_sem 4.000e-02) psnr 12.77 grad 4.04 obj 1.000 maskerr 1.3e-06 gate 0.00e+00 | 0.53s/step peak 6.9G eta 0.6h
+[g] step  1700 arm=g0 scene=scene0016_01 loss 0.5024 (recon 0.0861 inst 7.771 sem 2.025 lambda 0.85000 w_inst 4.250e-02 w_sem 4.250e-02) psnr 14.65 grad 3.32 obj 1.000 maskerr 1.6e-06 gate 0.00e+00 | 0.52s/step peak 6.9G eta 0.6h
+[g] step  1800 arm=g0 scene=scene0007_00 loss 0.4513 (recon 0.0833 inst 5.775 sem 2.401 lambda 0.90000 w_inst 4.500e-02 w_sem 4.500e-02) psnr 15.64 grad 7.17 obj 0.995 maskerr 1.3e-06 gate 0.00e+00 | 0.52s/step peak 6.9G eta 0.6h
+[g] step  1900 arm=g0 scene=scene0004_00 loss 0.5405 (recon 0.0857 inst 7.462 sem 2.113 lambda 0.95000 w_inst 4.750e-02 w_sem 4.750e-02) psnr 14.72 grad 1.87 obj 1.000 maskerr 1.3e-06 gate 0.00e+00 | 0.52s/step peak 6.9G eta 0.6h
+[g] step  2000 arm=g0 scene=scene0003_01 loss 0.4597 (recon 0.1191 inst 5.206 sem 1.608 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 9.51 grad 8.83 obj 1.000 maskerr 1.8e-06 gate 0.00e+00 | 0.52s/step peak 6.9G eta 0.6h
+[g] VAL step 2000: ctx 17.75 novel 17.57 ssim 0.635/0.633 mIoU 0.155 | AP50 ctx 0.008 novel 0.010 TP/FP/FN 1/55/54 | obj>=thr 0.981 maskerr 1.42e-06
+[g] step  2100 arm=g0 scene=scene0003_00 loss 0.6136 (recon 0.0867 inst 7.423 sem 3.115 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 13.11 grad 2.78 obj 0.999 maskerr 1.3e-06 gate 0.00e+00 | 0.51s/step peak 6.9G eta 0.6h
+[g] step  2200 arm=g0 scene=scene0002_00 loss 0.5021 (recon 0.0696 inst 6.527 sem 2.124 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 14.58 grad 5.01 obj 1.000 maskerr 1.3e-06 gate 0.00e+00 | 0.51s/step peak 6.9G eta 0.5h
+[g] step  2300 arm=g0 scene=scene0014_00 loss 0.6727 (recon 0.0692 inst 8.859 sem 3.213 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 15.20 grad 1.82 obj 0.996 maskerr 9.5e-07 gate 0.00e+00 | 0.51s/step peak 6.9G eta 0.5h
+[g] step  2400 arm=g0 scene=scene0012_00 loss 0.5286 (recon 0.0619 inst 7.849 sem 1.485 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 16.84 grad 4.50 obj 1.000 maskerr 1.3e-06 gate 0.00e+00 | 0.51s/step peak 6.9G eta 0.5h
+[g] step  2500 arm=g0 scene=scene0016_00 loss 0.4590 (recon 0.0673 inst 5.878 sem 1.956 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 16.48 grad 25.58 obj 1.000 maskerr 1.4e-06 gate 0.00e+00 | 0.51s/step peak 6.9G eta 0.5h
+[g] VAL step 2500: ctx 17.74 novel 17.63 ssim 0.631/0.629 mIoU 0.165 | AP50 ctx 0.013 novel 0.013 TP/FP/FN 1/51/54 | obj>=thr 0.979 maskerr 1.41e-06
+[g] step  2600 arm=g0 scene=scene0005_01 loss 0.5073 (recon 0.0744 inst 6.916 sem 1.741 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 15.71 grad 2.23 obj 1.000 maskerr 1.2e-06 gate 0.00e+00 | 0.51s/step peak 6.9G eta 0.5h
+[g] step  2700 arm=g0 scene=scene0001_00 loss 0.4749 (recon 0.0485 inst 7.007 sem 1.521 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 17.18 grad 3.44 obj 1.000 maskerr 1.4e-06 gate 0.00e+00 | 0.51s/step peak 6.9G eta 0.5h
+[g] step  2800 arm=g0 scene=scene0005_01 loss 0.3674 (recon 0.0858 inst 4.581 sem 1.051 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 14.15 grad 8.19 obj 1.000 maskerr 1.5e-06 gate 0.00e+00 | 0.50s/step peak 6.9G eta 0.4h
+[g] step  2900 arm=g0 scene=scene0002_01 loss 0.4838 (recon 0.0921 inst 6.514 sem 1.319 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 14.08 grad 4.93 obj 0.991 maskerr 1.2e-06 gate 0.00e+00 | 0.50s/step peak 6.9G eta 0.4h
+[g] step  3000 arm=g0 scene=scene0010_00 loss 0.5181 (recon 0.1094 inst 5.859 sem 2.315 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 12.82 grad 4.24 obj 1.000 maskerr 1.5e-06 gate 0.00e+00 | 0.50s/step peak 6.9G eta 0.4h
+[g] VAL step 3000: ctx 17.82 novel 17.56 ssim 0.628/0.625 mIoU 0.161 | AP50 ctx 0.022 novel 0.012 TP/FP/FN 3/68/52 | obj>=thr 0.970 maskerr 1.53e-06
+[g] checkpoint ckpt_step3000 written
+[g] step  3100 arm=g0 scene=scene0003_01 loss 0.5349 (recon 0.0864 inst 7.073 sem 1.897 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 13.27 grad 6.88 obj 1.000 maskerr 1.4e-06 gate 0.00e+00 | 0.50s/step peak 6.9G eta 0.4h
+[g] step  3200 arm=g0 scene=scene0003_01 loss 0.4331 (recon 0.0710 inst 5.606 sem 1.635 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 13.86 grad 3.92 obj 1.000 maskerr 1.1e-06 gate 0.00e+00 | 0.50s/step peak 6.9G eta 0.4h
+[g] step  3300 arm=g0 scene=scene0012_02 loss 0.3791 (recon 0.0627 inst 5.101 sem 1.227 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 17.95 grad 2.52 obj 0.997 maskerr 1.4e-06 gate 0.00e+00 | 0.50s/step peak 6.9G eta 0.4h
+[g] step  3400 arm=g0 scene=scene0012_00 loss 0.4198 (recon 0.0458 inst 5.701 sem 1.779 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 18.61 grad 3.49 obj 1.000 maskerr 1.3e-06 gate 0.00e+00 | 0.50s/step peak 6.9G eta 0.4h
+[g] step  3500 arm=g0 scene=scene0006_01 loss 0.4691 (recon 0.0617 inst 6.176 sem 1.972 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 14.04 grad 7.29 obj 1.000 maskerr 1.4e-06 gate 0.00e+00 | 0.50s/step peak 6.9G eta 0.3h
+[g] VAL step 3500: ctx 17.55 novel 17.15 ssim 0.629/0.624 mIoU 0.173 | AP50 ctx 0.000 novel 0.000 TP/FP/FN 0/54/55 | obj>=thr 0.946 maskerr 1.45e-06
+[g] step  3600 arm=g0 scene=scene0009_01 loss 0.4348 (recon 0.0706 inst 5.819 sem 1.463 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 16.28 grad 3.00 obj 1.000 maskerr 1.3e-06 gate 0.00e+00 | 0.50s/step peak 6.9G eta 0.3h
+[g] step  3700 arm=g0 scene=scene0012_01 loss 0.4356 (recon 0.0450 inst 5.851 sem 1.962 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 18.95 grad 3.41 obj 0.998 maskerr 1.3e-06 gate 0.00e+00 | 0.50s/step peak 6.9G eta 0.3h
+[g] step  3800 arm=g0 scene=scene0000_01 loss 0.5158 (recon 0.0703 inst 7.399 sem 1.512 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 15.34 grad 1.77 obj 0.999 maskerr 1.4e-06 gate 0.00e+00 | 0.50s/step peak 6.9G eta 0.3h
+[g] step  3900 arm=g0 scene=scene0016_00 loss 0.6026 (recon 0.0964 inst 7.896 sem 2.227 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 13.34 grad 11.66 obj 1.000 maskerr 1.3e-06 gate 0.00e+00 | 0.50s/step peak 6.9G eta 0.3h
+[g] step  4000 arm=g0 scene=scene0007_00 loss 0.3969 (recon 0.0605 inst 5.149 sem 1.580 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 17.94 grad 6.06 obj 1.000 maskerr 1.2e-06 gate 0.00e+00 | 0.50s/step peak 6.9G eta 0.3h
+[g] VAL step 4000: ctx 18.43 novel 18.28 ssim 0.645/0.642 mIoU 0.151 | AP50 ctx 0.000 novel 0.000 TP/FP/FN 0/15/55 | obj>=thr 0.916 maskerr 1.37e-06
+[g] step  4100 arm=g0 scene=scene0004_00 loss 0.3520 (recon 0.0473 inst 4.620 sem 1.476 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 18.93 grad 3.61 obj 1.000 maskerr 1.4e-06 gate 0.00e+00 | 0.50s/step peak 6.9G eta 0.3h
+[g] step  4200 arm=g0 scene=scene0003_00 loss 0.3367 (recon 0.0387 inst 4.622 sem 1.337 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 17.13 grad 4.79 obj 1.000 maskerr 1.3e-06 gate 0.00e+00 | 0.50s/step peak 6.9G eta 0.2h
+[g] step  4300 arm=g0 scene=scene0000_02 loss 0.4838 (recon 0.0620 inst 6.428 sem 2.009 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 17.45 grad 1.81 obj 1.000 maskerr 1.4e-06 gate 0.00e+00 | 0.50s/step peak 6.9G eta 0.2h
+[g] step  4400 arm=g0 scene=scene0010_00 loss 0.4028 (recon 0.0688 inst 4.914 sem 1.767 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 16.11 grad 3.40 obj 1.000 maskerr 1.3e-06 gate 0.00e+00 | 0.50s/step peak 6.9G eta 0.2h
+[g] step  4500 arm=g0 scene=scene0005_00 loss 0.5257 (recon 0.0614 inst 7.181 sem 2.106 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 15.52 grad 2.48 obj 1.000 maskerr 1.3e-06 gate 0.00e+00 | 0.50s/step peak 6.9G eta 0.2h
+[g] VAL step 4500: ctx 18.89 novel 18.92 ssim 0.652/0.651 mIoU 0.162 | AP50 ctx 0.000 novel 0.000 TP/FP/FN 0/20/55 | obj>=thr 0.874 maskerr 1.32e-06
+[g] step  4600 arm=g0 scene=scene0012_00 loss 0.4361 (recon 0.0425 inst 5.608 sem 2.263 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 18.43 grad 3.88 obj 1.000 maskerr 1.2e-06 gate 0.00e+00 | 0.50s/step peak 6.9G eta 0.2h
+[g] step  4700 arm=g0 scene=scene0000_00 loss 0.5286 (recon 0.0478 inst 6.139 sem 3.477 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 18.02 grad 1.98 obj 1.000 maskerr 1.3e-06 gate 0.00e+00 | 0.50s/step peak 6.9G eta 0.2h
+[g] step  4800 arm=g0 scene=scene0008_00 loss 0.5177 (recon 0.0841 inst 6.426 sem 2.248 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 14.02 grad 2.48 obj 1.000 maskerr 1.4e-06 gate 0.00e+00 | 0.50s/step peak 6.9G eta 0.2h
+[g] step  4900 arm=g0 scene=scene0009_00 loss 0.2970 (recon 0.0496 inst 4.301 sem 0.646 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 19.64 grad 1.11 obj 1.000 maskerr 1.2e-06 gate 0.00e+00 | 0.50s/step peak 6.9G eta 0.2h
+[g] step  5000 arm=g0 scene=scene0006_02 loss 0.4670 (recon 0.0671 inst 6.276 sem 1.724 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 15.68 grad 8.47 obj 1.000 maskerr 1.3e-06 gate 0.00e+00 | 0.50s/step peak 6.9G eta 0.1h
+[g] VAL step 5000: ctx 19.25 novel 19.18 ssim 0.658/0.655 mIoU 0.170 | AP50 ctx 0.000 novel 0.000 TP/FP/FN 0/16/55 | obj>=thr 0.888 maskerr 1.36e-06
+[g] step  5100 arm=g0 scene=scene0003_02 loss 0.3339 (recon 0.0348 inst 4.116 sem 1.867 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 16.88 grad 3.17 obj 1.000 maskerr 9.5e-07 gate 0.00e+00 | 0.50s/step peak 6.9G eta 0.1h
+[g] step  5200 arm=g0 scene=scene0016_01 loss 0.4849 (recon 0.0719 inst 6.408 sem 1.852 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 16.09 grad 4.53 obj 1.000 maskerr 1.3e-06 gate 0.00e+00 | 0.49s/step peak 6.9G eta 0.1h
+[g] step  5300 arm=g0 scene=scene0013_02 loss 0.3939 (recon 0.0577 inst 5.345 sem 1.379 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 18.86 grad 4.00 obj 1.000 maskerr 1.3e-06 gate 0.00e+00 | 0.49s/step peak 6.9G eta 0.1h
+[g] step  5400 arm=g0 scene=scene0013_02 loss 0.3617 (recon 0.0555 inst 5.048 sem 1.076 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 18.75 grad 3.19 obj 1.000 maskerr 1.3e-06 gate 0.00e+00 | 0.49s/step peak 6.9G eta 0.1h
+[g] step  5500 arm=g0 scene=scene0000_01 loss 0.4200 (recon 0.0605 inst 5.588 sem 1.603 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 17.87 grad 3.24 obj 1.000 maskerr 1.4e-06 gate 0.00e+00 | 0.49s/step peak 6.9G eta 0.1h
+[g] VAL step 5500: ctx 19.33 novel 19.11 ssim 0.657/0.654 mIoU 0.174 | AP50 ctx 0.000 novel 0.000 TP/FP/FN 0/15/55 | obj>=thr 0.881 maskerr 1.34e-06
+[g] step  5600 arm=g0 scene=scene0012_01 loss 0.3438 (recon 0.0535 inst 4.341 sem 1.466 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 19.32 grad 2.83 obj 1.000 maskerr 1.3e-06 gate 0.00e+00 | 0.49s/step peak 6.9G eta 0.1h
+[g] step  5700 arm=g0 scene=scene0005_01 loss 0.3901 (recon 0.0469 inst 5.400 sem 1.464 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 19.04 grad 2.05 obj 1.000 maskerr 1.3e-06 gate 0.00e+00 | 0.49s/step peak 6.9G eta 0.0h
+[g] step  5800 arm=g0 scene=scene0006_00 loss 0.3884 (recon 0.0549 inst 5.015 sem 1.655 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 16.02 grad 5.47 obj 1.000 maskerr 1.3e-06 gate 0.00e+00 | 0.49s/step peak 6.9G eta 0.0h
+[g] step  5900 arm=g0 scene=scene0014_00 loss 0.4836 (recon 0.0642 inst 6.095 sem 2.294 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 16.35 grad 1.73 obj 1.000 maskerr 1.3e-06 gate 0.00e+00 | 0.49s/step peak 6.9G eta 0.0h
+[g] step  6000 arm=g0 scene=scene0001_00 loss 0.4511 (recon 0.0392 inst 6.611 sem 1.626 lambda 1.00000 w_inst 5.000e-02 w_sem 5.000e-02) psnr 19.67 grad 1.84 obj 1.000 maskerr 1.5e-06 gate 0.00e+00 | 0.49s/step peak 6.9G eta 0.0h
+[g] VAL step 6000: ctx 19.42 novel 19.29 ssim 0.657/0.654 mIoU 0.173 | AP50 ctx 0.000 novel 0.000 TP/FP/FN 0/14/55 | obj>=thr 0.875 maskerr 1.38e-06
+[g] checkpoint ckpt_step6000 written
+[g] done: 6000 steps in 2978s final_state_sha256=9d6ae3025dbace08fb05a1e2c928261e7f872a261328bf392381ffedab2423e3

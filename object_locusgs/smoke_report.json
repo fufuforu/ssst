@@ -1,0 +1,447 @@
+{
+ "00_source_checkpoint": {
+  "path": "workspace_recon_diag/cross_scene/lgs_lr1e4/ckpt_step2000",
+  "sha256": "f0e791b8bb9d49deeba160f0a5fcf75594e4a0638d79ed79b9021ccd6da31c6d",
+  "expected_sha256": "f0e791b8bb9d49deeba160f0a5fcf75594e4a0638d79ed79b9021ccd6da31c6d",
+  "status": "PASS",
+  "complete_marker": "complete",
+  "model_only": [
+   "model",
+   "step"
+  ],
+  "git_commit": "c69c3ada70cb9c9908fdea4d5c2863a9a336fba6"
+ },
+ "00b_plan": {
+  "path": "object_locusgs/plan_6000.json",
+  "sha256": "a2a65c1382da0307a68fb6d27e5c1345aa78b46331acb2927e88b47a3c3d08bb",
+  "steps": 6000,
+  "train_scenes": 32,
+  "val_scenes": 8,
+  "val_scenes_in_plan": []
+ },
+ "01_reconstruction_parity": {
+  "a_vs_b_rgb": 0.0,
+  "a_vs_source_rgb": 0.0,
+  "a_vs_b_depth": 0.0,
+  "a_vs_source_depth": 0.0,
+  "a_vs_b_alpha": 0.0,
+  "a_vs_source_alpha": 0.0,
+  "a_vs_b_gaussians": 0.0,
+  "a_vs_source_gaussians": 0.0,
+  "a_vs_b_anchor": 0.0,
+  "a_vs_source_anchor": 0.0,
+  "a_vs_b_radius": 0.0,
+  "b_token_update_norm": 0.0,
+  "status": "PASS"
+ },
+ "02_attribute_order": {
+  "semantic_shape": [
+   1,
+   65536,
+   20
+  ],
+  "instance_shape": [
+   1,
+   65536,
+   16
+  ],
+  "reshape_matches_linear_output": true,
+  "slot_std_mean": 0.029569268226623535,
+  "slots_are_not_shared": true,
+  "instance_unit_norm_max_error": 1.7881393432617188e-07,
+  "gaussian_head_order_reproduced": true,
+  "gaussian_centre_gap": 0.0,
+  "status": "PASS"
+ },
+ "03_labels": {
+  "semantic_values": {
+   "0": 99024,
+   "1": 21891,
+   "7": 1635,
+   "255": 139594
+  },
+  "class0_pixels": 99024,
+  "class0_is_supervised": 99024,
+  "void_pixels": 139594,
+  "void_is_supervised": 0,
+  "thing_pixels": 1635,
+  "stuff_pixels_selected_as_thing": 0,
+  "thing_keys_per_view": [
+   1,
+   1,
+   1,
+   1
+  ],
+  "context_shared_keys": 1,
+  "max_instance_id": 59,
+  "key_formula_example": [
+   {
+    "semantic": 7,
+    "instance": 59,
+    "key": 8059
+   },
+   {
+    "semantic": 7,
+    "instance": 59,
+    "key": 8059
+   },
+   {
+    "semantic": 7,
+    "instance": 59,
+    "key": 8059
+   },
+   {
+    "semantic": 7,
+    "instance": 59,
+    "key": 8059
+   }
+  ],
+  "status": "PASS"
+ },
+ "04_render_and_losses": {
+  "status": "PASS",
+  "rgb_vs_semantic_alpha_max_abs": 0.0,
+  "semantic_vs_instance_alpha_max_abs": 0.0,
+  "covered_fraction": 0.9779090881347656,
+  "semantic_prob_sum_error": 2.384185791015625e-07,
+  "instance_embedding_norm_error": 1.7881393432617188e-07,
+  "uncovered_semantic_prob_max": 0.0543309822678566,
+  "loss_a": 0.05563351884484291,
+  "loss_b": 0.05562864989042282,
+  "loss_sem": 2.9902217388153076,
+  "loss_inst": 0.10076528787612915,
+  "ramp_at_step0": 0.0,
+  "sem_coverage": 0.9681088328361511,
+  "instances_present_used": [
+   1.0,
+   1.0
+  ],
+  "all_finite": true,
+  "unused_alpha_gap": 0.0
+ },
+ "05_gradient_routing": {
+  "arm_a": {
+   "loss_sem": 2.9902217388153076,
+   "loss_inst": 0.10076528787612915,
+   "loss": 0.15958760678768158,
+   "grad_norms": {
+    "gs_tokens": 0.1368025690317154,
+    "enc_dec_backbone.decoder_blocks.10": 0.3385775301389533,
+    "enc_dec_backbone.decoder_blocks.11": 0.45601006384718146,
+    "activation_head.deconv": 0.12104286601418411,
+    "anchor_decoder.mu": 0.14805853366851807,
+    "anchor_decoder.rho": 0.0074048419483006,
+    "anchor_decoder.refine_mu.10": 0.1861337917453017,
+    "anchor_decoder.refine_mu.11": 0.2722771655594057,
+    "attributes.semantic": 0.02047934079779884,
+    "attributes.instance": 0.6354185341091592
+   },
+   "gate_grad": null,
+   "instances": {
+    "instances_present": 1,
+    "instances_used": 1,
+    "pixels": 256,
+    "push": 0.0
+   }
+  },
+  "arm_b_gate0": {
+   "loss_sem": 2.9902217388153076,
+   "loss_inst": 0.10076528787612915,
+   "loss": 0.15958760678768158,
+   "grad_norms": {
+    "gs_tokens": 0.1368025690317154,
+    "enc_dec_backbone.decoder_blocks.10": 0.3385775561978268,
+    "enc_dec_backbone.decoder_blocks.11": 0.45601006247460935,
+    "activation_head.deconv": 0.12104286453865862,
+    "anchor_decoder.mu": 0.14805854856967926,
+    "anchor_decoder.rho": 0.0074048410169780254,
+    "anchor_decoder.refine_mu.10": 0.18613379518362555,
+    "anchor_decoder.refine_mu.11": 0.2722771655594057,
+    "attributes.semantic": 0.02047934079779884,
+    "attributes.instance": 0.6354185341091592,
+    "relation.gate": 0.007288025692105293,
+    "relation.norm": 0.0,
+    "relation.key": 0.0,
+    "relation.value": 0.0,
+    "relation.out": 0.0
+   },
+   "gate_grad": -0.007288025692105293,
+   "instances": {
+    "instances_present": 1,
+    "instances_used": 1,
+    "pixels": 256,
+    "push": 0.0
+   }
+  },
+  "arm_b_gate0.1": {
+   "loss_sem": 2.990328311920166,
+   "loss_inst": 0.09239514172077179,
+   "loss": 0.15875592827796936,
+   "grad_norms": {
+    "gs_tokens": 0.12962810695171356,
+    "enc_dec_backbone.decoder_blocks.10": 0.3189358503208011,
+    "enc_dec_backbone.decoder_blocks.11": 0.4213277959642348,
+    "activation_head.deconv": 0.10647608414872763,
+    "anchor_decoder.mu": 0.14683318138122559,
+    "anchor_decoder.rho": 0.006404235493391752,
+    "anchor_decoder.refine_mu.10": 0.19106280991178112,
+    "anchor_decoder.refine_mu.11": 0.27167746001338516,
+    "attributes.semantic": 0.020628510248268304,
+    "attributes.instance": 0.5938737051695112,
+    "relation.gate": 0.008879739791154861,
+    "relation.norm": 0.001023936158168654,
+    "relation.key": 0.004149169195443392,
+    "relation.value": 0.06728079915046692,
+    "relation.out": 0.06919410882796416
+   },
+   "gate_grad": -0.008879739791154861,
+   "instances": {
+    "instances_present": 1,
+    "instances_used": 1,
+    "pixels": 256,
+    "push": 0.0
+   }
+  },
+  "arm_a_status": "PASS",
+  "arm_b_status": "PASS"
+ },
+ "06_short_run_stability": {
+  "steps": [
+   {
+    "arm": "a",
+    "rows": [
+     {
+      "step": 0,
+      "loss": 0.05562792345881462,
+      "recon": 0.05562792345881462,
+      "sem": 2.9902217388153076,
+      "inst": 0.10076528787612915,
+      "grad_norm": 0.8127609491348267,
+      "alpha_mean": 0.876063346862793,
+      "anchor_max": 1.5135910511016846,
+      "radius_min": 0.13734480738639832,
+      "radius_max": 0.1716679483652115,
+      "decode_radius": [
+       0.15000000596046448,
+       0.15000000596046448
+      ],
+      "token_update_norm": null
+     },
+     {
+      "step": 1,
+      "loss": 0.05577705055475235,
+      "recon": 0.05561741814017296,
+      "sem": 2.9902219772338867,
+      "inst": 0.10122214257717133,
+      "grad_norm": 0.8124824166297913,
+      "alpha_mean": 0.8761165142059326,
+      "anchor_max": 1.5136090517044067,
+      "radius_min": 0.13734431564807892,
+      "radius_max": 0.17166714370250702,
+      "decode_radius": [
+       0.15000000596046448,
+       0.15000000596046448
+      ],
+      "token_update_norm": null
+     },
+     {
+      "step": 2,
+      "loss": 0.05591876432299614,
+      "recon": 0.05560001730918884,
+      "sem": 2.9901843070983887,
+      "inst": 0.098636195063591,
+      "grad_norm": 0.8117431402206421,
+      "alpha_mean": 0.8762227296829224,
+      "anchor_max": 1.5136449337005615,
+      "radius_min": 0.13734331727027893,
+      "radius_max": 0.1716654896736145,
+      "decode_radius": [
+       0.15000000596046448,
+       0.15000000596046448
+      ],
+      "token_update_norm": null
+     }
+    ],
+    "finite": true,
+    "parameters_finite": true,
+    "decode_radius_is_0.15": true,
+    "alpha_jump_max": 0.0001062154769897461,
+    "anchor_jump_max": 3.5881996154785156e-05,
+    "status": "PASS"
+   },
+   {
+    "arm": "b",
+    "rows": [
+     {
+      "step": 0,
+      "loss": 0.05562792345881462,
+      "recon": 0.05562792345881462,
+      "sem": 2.9902217388153076,
+      "inst": 0.10076528787612915,
+      "grad_norm": 0.8127609491348267,
+      "alpha_mean": 0.876063346862793,
+      "anchor_max": 1.5135910511016846,
+      "radius_min": 0.13734480738639832,
+      "radius_max": 0.1716679483652115,
+      "decode_radius": [
+       0.15000000596046448,
+       0.15000000596046448
+      ],
+      "token_update_norm": 0.0
+     },
+     {
+      "step": 1,
+      "loss": 0.05577704682946205,
+      "recon": 0.05561741441488266,
+      "sem": 2.9902219772338867,
+      "inst": 0.1012219488620758,
+      "grad_norm": 0.8124816417694092,
+      "alpha_mean": 0.8761165142059326,
+      "anchor_max": 1.5136090517044067,
+      "radius_min": 0.13734431564807892,
+      "radius_max": 0.17166714370250702,
+      "decode_radius": [
+       0.15000000596046448,
+       0.15000000596046448
+      ],
+      "token_update_norm": 1.6192450402741088e-06
+     },
+     {
+      "step": 2,
+      "loss": 0.05591876432299614,
+      "recon": 0.05560001730918884,
+      "sem": 2.9901843070983887,
+      "inst": 0.09863612055778503,
+      "grad_norm": 0.8117445707321167,
+      "alpha_mean": 0.8762227892875671,
+      "anchor_max": 1.5136449337005615,
+      "radius_min": 0.13734331727027893,
+      "radius_max": 0.17166553437709808,
+      "decode_radius": [
+       0.15000000596046448,
+       0.15000000596046448
+      ],
+      "token_update_norm": 4.856604391534347e-06
+     }
+    ],
+    "finite": true,
+    "parameters_finite": true,
+    "decode_radius_is_0.15": true,
+    "alpha_jump_max": 0.00010627508163452148,
+    "anchor_jump_max": 3.5881996154785156e-05,
+    "status": "PASS"
+   }
+  ],
+  "status": "PASS"
+ },
+ "07_reproducibility": {
+  "runs": [
+   {
+    "index": 1,
+    "returncode": 0,
+    "tail": [
+     "[ab]   updates {'existing_decay': 0.0006405603631069834, 'existing_nodecay': 5.334613790098711e-05, 'new_decay': 0.000724924814227447, 'new_nodecay': 2.3963595769249947e-05} lr {'existing_decay': 5.0000000000000004e-08, 'existing_nodecay': 5.0000000000000004e-08, 'new_decay': 5e-07, 'new_nodecay': 5e-07} alpha 0.876 r 0.1373-0.1717 anchor 1.514 gate 0.00e+00",
+     "[ab] step     2 arm=a scene=scene0012_01 loss 0.2533 (recon 0.0479 sem 2.993 inst 0.558 ramp 1.00) psnr 18.63 grad 1.70 | 3.04s/step peak 6.1G eta 0.0h",
+     "[ab]   updates {'existing_decay': 0.0009344574994038465, 'existing_nodecay': 7.790772007425009e-05, 'new_decay': 0.0010999051419753436, 'new_nodecay': 4.0708416511366017e-05} lr {'existing_decay': 1.0000000000000001e-07, 'existing_nodecay': 1.0000000000000001e-07, 'new_decay': 1e-06, 'new_nodecay': 1e-06} alpha 0.973 r 0.1424-0.1668 anchor 1.474 gate 0.00e+00",
+     "[ab] step     3 arm=a scene=scene0009_02 loss 0.2348 (recon 0.0468 sem 2.994 inst 0.383 ramp 1.00) psnr 20.26 grad 1.32 | 2.22s/step peak 6.1G eta 0.0h",
+     "[ab]   updates {'existing_decay': 0.0011962232786176586, 'existing_nodecay': 0.00010084936809308316, 'new_decay': 0.0015120389746027668, 'new_nodecay': 5.727474534622354e-05} lr {'existing_decay': 1.5000000000000002e-07, 'existing_nodecay': 1.5000000000000002e-07, 'new_decay': 1.5e-06, 'new_nodecay': 1.5e-06} alpha 0.971 r 0.1369-0.1645 anchor 1.540 gate 0.00e+00",
+     "[ab] done: 3 steps in 7s final_state_sha256=b855dbb1a56b1b48deb66358c4757e9326b62362d9990ef1a9f80e769dac2b36"
+    ],
+    "stderr_tail": []
+   },
+   {
+    "index": 2,
+    "returncode": 0,
+    "tail": [
+     "[ab]   updates {'existing_decay': 0.000640560362162183, 'existing_nodecay': 5.334613525346948e-05, 'new_decay': 0.0007249248338306587, 'new_nodecay': 2.3963595769249947e-05} lr {'existing_decay': 5.0000000000000004e-08, 'existing_nodecay': 5.0000000000000004e-08, 'new_decay': 5e-07, 'new_nodecay': 5e-07} alpha 0.876 r 0.1373-0.1717 anchor 1.514 gate 0.00e+00",
+     "[ab] step     2 arm=a scene=scene0012_01 loss 0.2533 (recon 0.0479 sem 2.993 inst 0.558 ramp 1.00) psnr 18.63 grad 1.70 | 2.63s/step peak 6.1G eta 0.0h",
+     "[ab]   updates {'existing_decay': 0.0009344563643715761, 'existing_nodecay': 7.790763960790143e-05, 'new_decay': 0.0010999047802132402, 'new_nodecay': 4.070840901140935e-05} lr {'existing_decay': 1.0000000000000001e-07, 'existing_nodecay': 1.0000000000000001e-07, 'new_decay': 1e-06, 'new_nodecay': 1e-06} alpha 0.973 r 0.1424-0.1668 anchor 1.474 gate 0.00e+00",
+     "[ab] step     3 arm=a scene=scene0009_02 loss 0.2348 (recon 0.0468 sem 2.994 inst 0.383 ramp 1.00) psnr 20.26 grad 1.32 | 1.91s/step peak 6.1G eta 0.0h",
+     "[ab]   updates {'existing_decay': 0.0011962214432062737, 'existing_nodecay': 0.00010084929790657048, 'new_decay': 0.0015120392753538144, 'new_nodecay': 5.7274757945928386e-05} lr {'existing_decay': 1.5000000000000002e-07, 'existing_nodecay': 1.5000000000000002e-07, 'new_decay': 1.5e-06, 'new_nodecay': 1.5e-06} alpha 0.971 r 0.1369-0.1645 anchor 1.540 gate 0.00e+00",
+     "[ab] done: 3 steps in 7s final_state_sha256=f26ddeef36a20fd29ff3380c6a0e64ce1f3727ea525cd5ff1a79ff617de7796f"
+    ],
+    "stderr_tail": []
+   }
+  ],
+  "identical_frame_ids": true,
+  "max_abs_loss_gap": 1.1920928955078125e-07,
+  "max_abs_update_gap": 1.835411384942115e-09,
+  "initial_model_sha256": [
+   "e3eed24718f0925cda20452ec21171aa9dbdb0375bf24181f74c15b6e47513ad",
+   "e3eed24718f0925cda20452ec21171aa9dbdb0375bf24181f74c15b6e47513ad"
+  ],
+  "initial_model_identical": true,
+  "final_model_sha256": [
+   "b855dbb1a56b1b48deb66358c4757e9326b62362d9990ef1a9f80e769dac2b36",
+   "f26ddeef36a20fd29ff3380c6a0e64ce1f3727ea525cd5ff1a79ff617de7796f"
+  ],
+  "final_model_identical": false,
+  "determinism_note": "deterministic_algorithms=True (warn_only) and gsplat's rasterizer cannot be used with the CUDA deterministic setting (its means2d output becomes NaN, see 06b), so both subprocesses run the default kernel and CUBLAS_WORKSPACE_CONFIG=:4096:8; any residual randomness is reported verbatim above",
+  "status": "PASS"
+ },
+ "08_checkpoint": {
+  "path": "workspace_object_locusgs/smoke/ckpt_store/ckpt_step1",
+  "files": [
+   "COMPLETE",
+   "model.pt",
+   "train_state.pt"
+  ],
+  "train_state_keys": [
+   "cuda_rng",
+   "meta",
+   "numpy_rng",
+   "optimizer",
+   "plan_step",
+   "step",
+   "torch_rng"
+  ],
+  "has_optimizer_state": true,
+  "optimizer_state_entries": 459,
+  "meta": {
+   "arm": "b",
+   "smoke": true
+  },
+  "step_field": 1,
+  "has_torch_rng": true,
+  "has_cuda_rng": true,
+  "has_numpy_rng": true,
+  "model_restored_identical": true,
+  "optimizer_restored_identical": true,
+  "continuation_loss_gap": 2.8498470783233643e-06,
+  "continuation_losses": [
+   0.05577942356467247,
+   0.05577657371759415
+  ],
+  "continuation_note": "both continuations are finite; the residual gap is the rasterizer's run-to-run randomness measured in 06b, not a restore error (model and optimizer states are compared exactly above)",
+  "status": "PASS"
+ },
+ "06b_rasterizer_determinism": {
+  "default": {
+   "loss": 0.05562792345881462,
+   "loss_gaussian_visibility_layer12": 0.0008499575196765363,
+   "finite": true,
+   "finite_without_grad": true
+  },
+  "deterministic": {
+   "loss": NaN,
+   "loss_gaussian_visibility_layer12": NaN,
+   "finite": false,
+   "finite_without_grad": false
+  },
+  "identical_step_repeat": {
+   "losses": [
+    0.05562792345881462,
+    0.055742017924785614
+   ],
+   "loss_bitwise_identical": false,
+   "max_abs_loss_gap": 0.00011409446597099304,
+   "grad_norms": [
+    0.8127609450559858,
+    0.8192869771676432
+   ],
+   "max_abs_grad_gap": 0.006526032111657365
+  },
+  "status": "NOTE",
+  "conclusion": "torch.use_deterministic_algorithms(True) also enables torch.utils.deterministic.fill_uninitialized_memory, so gsplat's partially written per-Gaussian `means2d` output becomes NaN and the canonical Gaussian-visibility term (part of the reconstruction objective) turns the total loss into NaN.  The deterministic setting is therefore unusable with this differentiable rasterizer; the runs stay in the default kernel mode and report their residual randomness empirically (see identical_step_repeat and 07_reproducibility)."
+ }
+}

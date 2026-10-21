@@ -1,0 +1,1042 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+"""Tyro CLI options and named presets (`AllConfigs` subcommands)."""
+
+from __future__ import annotations
+
+import copy
+from dataclasses import dataclass
+from typing import Any, Literal
+
+import tyro
+
+
+@dataclass
+class Options:
+    # --- general
+    evaluating: bool = False
+    workspace: str = "./workspace"
+    resume: str | None = None
+    model_type: str = "tokengs"
+    geometry_quality_policy: str = "monitor_v1"
+    seed: int = 42
+
+    # --- wandb / logging
+    use_wandb: bool = False
+    experiment_name: str = "tokengs"
+    out_dir: str = "outputs"
+    project_name: str = "TokenGS"
+
+    # --- model architecture
+    img_size: tuple[int, int] = (256, 256)
+    patch_size: int = 8
+    dec_patch_size: int | None = None
+    enc_depth: int = 3
+    dec_depth: int = 12
+    enc_embed_dim: int = 1024
+    enc_num_heads: int = 16
+    mlp_ratio: int = 4
+    clip_head_readout_std: float = 0.002
+    clip_head_z_init: float | None = None
+    dec_init_values: float | None = None
+
+    # --- gaussian splatting
+    bg_color: Literal["white", "black", "grey"] = "grey"
+    gaussian_scale_cap: float = 0.075
+    opacity_bias: float = 2.0
+    gaussian_z_offset: float = 1.0
+    num_gs_tokens: int = 1024
+    token_dim: int = 1024
+    gs_token_std: float = 1e-2
+    num_dynamic_gs_tokens: int = 0
+    init_dynamic_tokens_from_static: bool = False
+    init_tokens_from_existing: bool = False
+    init_latents_from_existing: bool = False
+
+    # --- dataset
+    data_mode: tuple[tuple[str, int], ...] = (("dl3dv_scaled_0.15", 6),)
+    num_views: int = 8
+    num_input_views: int = 4
+    znear: float = 0.025
+    zfar: float = 125.0
+    camera_normalization_method: Literal["mean_cam", "first_cam"] = "first_cam"
+    camera_scale_method: Literal["constant", "distance", "bound", "pointmap"] = "constant"
+    pointmap_trim_lo: float = 0.0
+    pointmap_trim_hi: float = 1.0
+    num_workers: int = 16
+    dataset_kwargs: dict[str, str] | None = None
+
+    # --- training
+    batch_size: int = 8
+    gradient_accumulation_steps: int = 1
+    num_epochs: int = 30
+    max_iters_per_epoch: int = 1_000_000
+    lr: float = 4e-4
+    pct_start_steps: int = 1000
+    final_div_factor: float = 1000.0
+    gradient_clip: float = 1.0
+    mixed_precision: str = "bf16"
+    deferred_bp: bool = False
+    use_input_supervision: bool = False
+    mean_of_grads: Literal["none", "per-scene", "per-view"] = "none"
+    mean_of_grads_scene_chunk_size: int = 1
+    mean_of_grads_view_chunk_size: int | None = None
+
+    # --- loss weights
+    rgb_loss_type: Literal["l1", "l2"] = "l2"
+    lambda_rgb: float = 1.0
+    lambda_lpips: float = 0.0
+    lambda_mask: float = 0.0
+    lambda_ssim: float = 0.2
+    lambda_visibility: float = 1.0
+    visibility_distance_threshold: float = 1.0
+    lambda_opacity: float = 0.0
+    lambda_dyn_aux: float = 0.0
+    lambda_dyn_aux_warmup_steps: int = 0
+    lambda_dyn_aux_decay_steps: int = 0
+    lambda_dyn_aux_min: float = 0.0
+
+    # --- logging frequency
+    print_freq: int = 10
+    log_image_freq: int = 100
+
+    # --- evaluation
+    eval_n_media_dumps: int = 0
+    strict_checkpoint_loading: bool = True
+
+    # --- test-time training (eval)
+    use_ttt_for_eval: bool = False
+    ttt_mode: Literal["token-tuning", "scene-latent-tuning", "tokens", "latents"] = "token-tuning"
+    ttt_n_steps: int = 50
+    ttt_lr: float = 1e-4
+
+    # --- dynamic scenes
+    time_embedding: bool = False
+    time_embedding_dim: int = 2
+    use_interp_target: bool = False
+
+    # --- latent bottleneck release architecture
+    use_multiscale_encoder: bool = False
+    multiscale_encoder_layers: tuple[int, ...] = (5, 7, 9, 11)
+    use_latent_bottleneck: bool = False
+    num_latents: int = 4096
+    latent_cross_attn_depth: int = 12
+
+    # --- augmentation
+    random_reflect: bool = True
+
+    # --- SSST: spatially grounded shared tokens + unified object queries ---
+    # Anchor prior in the TokenGS normalized world frame (first context camera
+    # at the origin, dataset scene scale applied to camera translations). The
+    # defaults follow the measured SIU3R processed-ScanNet scale: the visible
+    # surface sits around z ~ 0.1..0.5 with p95 |x| ~ 0.2.
+    anchor_center_z: float = 0.25
+    anchor_extent: float = 0.3
+    anchor_init_radius: float = 0.05
+    anchor_num_freqs: int = 4
+    anchor_refine_step: float = 0.25
+    anchor_radius_min: float = 0.005
+    anchor_radius_max: float = 1.0
+    anchor_radius_soft_min: float = 0.01
+    anchor_radius_soft_max: float = 0.25
+    anchor_local_offset_bound: float = 1.0
+    # LocusGS-style anchor-to-ray geometric attention bias (SSST decoder only).
+    anchor_ray_bias: bool = True
+    anchor_ray_sigma0: float = 0.1
+    anchor_ray_bias_clamp: float = -20.0
+    # Raw parameter of softplus(raw) = gamma; -6 keeps the bias a small
+    # perturbation at initialization so a warm start stays meaningful.
+    anchor_ray_bias_init: float = -6.0
+    num_object_queries: int = 100
+    semantic_class_count: int = 20
+    num_object_query_layers: int = 2
+    query_seed_std: float = 0.02
+    query_block_init_values: float = 0.01
+    query_spatial_pe_std: float = 0.02
+    assignment_temperature_init: float = 5.0
+    use_instance_labels: bool = False
+    # Experiment 1: train only the spatial reconstruction path.  The unified
+    # object-query branch is frozen and never executed (no query forward, no
+    # mask rendering, no Hungarian matching, no understanding loss).
+    reconstruction_only: bool = False
+    # --- LocusGS-faithful reconstruction (arXiv:2608.12825), ScanNet adaptation ---
+    # Values the paper does not specify are marked "unspecified" with our choice.
+    locusgs_sigma0: float = 0.1                      # paper App. A.3: sigma_0 = 0.1
+    locusgs_bandwidth_floor: float = 1e-6            # paper: "squared bandwidth is lower-bounded"
+    locusgs_bias_clamp: float = -20.0                # paper App. A.5: clamp [-20, 0]
+    locusgs_ray_bias_scale: float = 1.0              # 0 disables the geometric bias (ablation)
+    locusgs_pe_num_freqs: int = 4                    # sinusoidal PE bands (unspecified)
+    locusgs_pe_hidden_dim: int = 1024                # PE MLP hidden dim (unspecified)
+    # Both are unspecified by the paper; they are the two switches audited in the
+    # stability matrix (gamma init and how the anchor embedding enters the layer).
+    locusgs_gamma_raw_init: float = 0.0               # 0 -> gamma = softplus(0) = 0.693
+    # Eq. 2 is written as a single `q_tilde = q + p` before self-attention.  The
+    # stability audit showed the "persistent" reading (adding the anchor PE to the
+    # residual stream every layer) inflates ||tokens|| 4.2 -> 50 and destabilizes
+    # anchors, so the formal default is the non-persistent "injected" reading:
+    # `tokens = tokens + self_attn(tokens + p)`.
+    locusgs_pe_mode: Literal["persistent", "injected"] = "injected"
+    # Which LocusGS anchor-decoder reading to instantiate.  The paper states
+    # PE(mu) -> MLP (Eq. 2) and the residual heads f_mu / f_rho (Eq. 6) but never
+    # says whether they are shared across decoder layers or how wide they are, so
+    # both readings are inferences.  "legacy_v1" is the first-guess (shared PE
+    # MLP, single-Linear refinement); "inferred_v2" is the parameter-budget-
+    # consistent inference (per-layer PE MLP + per-layer bottleneck refinement
+    # MLPs) that reproduces the paper's +19.5M LocusGS parameter delta.
+    locusgs_impl: Literal["legacy_v1", "inferred_v2"] = "legacy_v1"
+    locusgs_refine_hidden: int = 256                # inferred_v2 refinement bottleneck width
+    # "Predefined initial support radius" (unspecified by the paper).  Chosen so
+    # sigma_0 * r0 is commensurate with the measured ScanNet anchor-to-ray
+    # distances (median 0.030, p95 0.050): r0 = 0.15 keeps the geometric bias
+    # informative instead of fully clamped.
+    locusgs_radius_init: float = 0.15
+    locusgs_radius_epsilon: float = 1e-4
+    # Random anchor init box (unspecified by the paper); we use the measured
+    # ScanNet normalized surface extent (|x|,|y| p99 ~ 0.2).
+    locusgs_anchor_init_extent: float = 0.2
+    locusgs_anchor_init_center_z: float = 0.25
+    locusgs_supervised_layers: tuple[int, ...] = (6, 12)   # paper Table 5: {6, 12} is best
+    # Eq. 8-9 read the other way: the paper's "local offset" only bounds the
+    # Gaussians to the anchor's support radius if delta is bounded.  The default
+    # (False) keeps the existing unbounded reading; True is the single-variable
+    # locality experiment (delta = tanh(delta_hat) -> ||r*delta|| <= r).
+    locusgs_bound_delta: bool = False
+    # Single-variable follow-up on the bounded-delta variant: freeze the radius
+    # used by the Gaussian decoder at `locusgs_radius_init`.  The learned radii
+    # keep flowing into the anchor-to-ray bias, so only the decoding radius moves.
+    locusgs_freeze_decode_radius: bool = False
+    canonical_gaussian_visibility_weight: float = 1.0      # paper: lambda_G = 1.0
+    canonical_anchor_visibility_weight: float = 0.1        # paper: lambda_A = 0.1
+    # --- object-aware LocusGS (shared GS semantic/instance attributes + an
+    # optional, predicted-instance-relation token update before layer 11) ---
+    # The attribute heads decode 20 semantic logits and a 16-d instance
+    # embedding per Gaussian (64 per token), mirroring the Gaussian head's
+    # token -> 64-GS ordering.
+    object_semantic_classes: int = 20
+    object_instance_dim: int = 16
+    # Arm switch: "a" keeps the relation module instantiated (identical init)
+    # but never applies it; "b" applies it once, after decoder layer 10.
+    object_arm: Literal["a", "b"] = "a"
+    object_relation_layer: int = 10
+    object_relation_neighbours: int = 16
+    object_relation_temperature: float = 0.2
+    # Understanding loss weights and the shared 0..1000-step ramp.
+    object_sem_loss_weight: float = 0.05
+    object_inst_loss_weight: float = 0.10
+    object_loss_ramp_steps: int = 1000
+    object_min_alpha: float = 0.05
+    object_instance_pixels: int = 64
+    object_instance_budget: int = 16
+    # --- instance-state-driven LocusGS (LOCUSGS_INSTANCE_STATE_V1) ---
+    # 100 thing states + 2 fixed stuff states + 1 pixel-void channel; the state
+    # bank is a forward-time tensor, never a scene-specific parameter.
+    instance_state_layers: tuple[int, ...] = (6, 8, 10, 12)
+    instance_state_init_seed: int = 31415
+    # C arm = readout only (coupled=False); E arm = coupled token interaction.
+    instance_state_coupled: bool = False
+    # S1 single structural variable: layer-6 thing-state evidence = fixed
+    # distance-weighted pooling over the k nearest layer-6 anchors around each FPS
+    # seed (S0 = False keeps the single-anchor feature).  No new learnable parameter.
+    instance_state_local3d: bool = False
+    instance_state_local_k: int = 8
+    # Anchor-Group V1 has an independent controller and ignores legacy local3d.
+    anchor_group_init_seed: int = 31415
+    # --- from-scratch group G0/G1 experiment: 100 instance groups + background
+    # slot, 101-way token->slot softmax, optional gated write-back into the
+    # reconstruction tokens between decoder layers 10 and 11 ---
+    group_arm: Literal["g0", "g1"] = "g0"
+    group_feedback_layer: int = 10
+    group_num_heads: int = 4
+    group_mlp_ratio: float = 2.0
+    group_sem_loss_weight: float = 0.05
+    group_inst_loss_weight: float = 0.05
+    group_loss_ramp_steps: int = 2000
+    # Single training change of the G0+ round: direct pixel supervision of the
+    # rendered background slot on the two context views (stuff -> 1, thing -> 0).
+    group_bg_supervision: bool = False
+    group_bg_loss_weight: float = 1.0
+    # --- recipe v1 (default off): four modifications applied together --------
+    # (1) four-layer group decoder, (2) segmentation outer weight with its own
+    # 1..1500 ramp, (3) fixed zero void logit instead of the learnable shared
+    # background_bias (and no background pixel supervision), (4) token-assignment
+    # auxiliary CE with a mechanically chosen inner coefficient / frequency.
+    group_recipe: bool = False
+    group_recipe_seg_weight: float = 0.1
+    group_recipe_seg_ramp_steps: int = 1500
+    group_recipe_assign_coef: float = 0.02
+    group_recipe_assign_every: int = 1
+    # How the recipe forward builds the group query features.
+    #   legacy_prefix -- the historical (recipe_v1/v2) path: the old
+    #                    cross-attention + query_norm + MLP runs first and the
+    #                    four-layer deep decoder is stacked on top of its output;
+    #   pure4         -- the specification-correct path: the four-layer deep
+    #                    decoder consumes the learned queries directly and the
+    #                    old cross_attn/query_norm/mlp are not called at all.
+    # Every historical checkpoint keeps ``legacy_prefix`` so its forward is
+    # bit-identical to what was published.
+    group_recipe_head_mode: Literal["legacy_prefix", "pure4"] = "legacy_prefix"
+    # B2 single variable: route the token-assignment auxiliary CE through a
+    # *separate* group-head forward whose shared inputs (tokens/anchor/radii) are
+    # detached, so the auxiliary term cannot push gradients into the shared
+    # token/anchor/encoder while still training the group head itself.
+    group_recipe_assign_stop_shared_grad: bool = False
+    # --- joint one-stage loss curriculum and spatial regularization ---
+    understanding_warmup_steps: int = 2000
+    understanding_start_weight: float = 0.1
+    understanding_final_weight: float = 1.0
+    spatial_compactness_weight: float = 1e-3
+    spatial_radius_weight: float = 1e-3
+    gradient_diagnostic_freq: int = 200
+    init_checkpoint: str | None = None
+
+    def __post_init__(self) -> None:
+        if self.dec_patch_size is None:
+            self.dec_patch_size = self.patch_size
+        self.validate()
+
+    def validate(self) -> None:
+        if self.evaluating:
+            assert not self.use_input_supervision, "use_input_supervision must be False when evaluating"
+        if self.mean_of_grads not in ("none", "per-scene", "per-view"):
+            raise ValueError("mean_of_grads must be one of: none, per-scene, per-view")
+        if self.deferred_bp and self.mean_of_grads != "none":
+            raise ValueError("deferred_bp and mean_of_grads are mutually exclusive backprop strategies")
+        if self.mean_of_grads_scene_chunk_size <= 0:
+            raise ValueError("mean_of_grads_scene_chunk_size must be positive")
+        if self.mean_of_grads_view_chunk_size is not None and self.mean_of_grads_view_chunk_size <= 0:
+            raise ValueError("mean_of_grads_view_chunk_size must be positive")
+
+    def evolve(self, **changes: Any) -> Options:
+        """Return a deep copy with the given fields replaced."""
+        new_instance = copy.deepcopy(self)
+        for key, value in changes.items():
+            if not hasattr(new_instance, key):
+                raise AttributeError(f"Options has no attribute '{key}'")
+            setattr(new_instance, key, value)
+        new_instance.validate()
+        return new_instance
+
+
+config_defaults: dict[str, Options] = {}
+config_doc: dict[str, str] = {}
+
+config_doc["train_dl3dv_base"] = "DL3DV training defaults (long schedule, capped iters/epoch)."
+config_defaults["train_dl3dv_base"] = Options(
+    num_epochs=300,
+    max_iters_per_epoch=500,
+    pct_start_steps=2000,
+)
+
+config_doc["finetune_dl3dv_2view"] = "Short finetune from existing tokens, 2 input views, wide images."
+config_defaults["finetune_dl3dv_2view"] = config_defaults["train_dl3dv_base"].evolve(
+    num_epochs=20,
+    pct_start_steps=400,
+    lr=4e-5,
+    num_gs_tokens=4096,
+    init_tokens_from_existing=True,
+    num_input_views=2,
+    img_size=(256, 448),
+)
+
+config_doc["finetune_dl3dv_4view"] = "Like finetune_dl3dv_2view with 4 input views."
+config_defaults["finetune_dl3dv_4view"] = config_defaults["finetune_dl3dv_2view"].evolve(
+    num_input_views=4,
+)
+
+config_doc["finetune_dl3dv_6view"] = "Like finetune_dl3dv_2view with 6 input views and 10 total views."
+config_defaults["finetune_dl3dv_6view"] = config_defaults["finetune_dl3dv_2view"].evolve(
+    num_input_views=6,
+    num_views=10,
+)
+
+config_doc["eval_dl3dv_2view"] = "DL3DV eval preset: 2 views, eval JSON, single batch."
+config_defaults["eval_dl3dv_2view"] = Options(
+    data_mode=(("dl3dv_eval_scaled_0.15", 1),),
+    dataset_kwargs={"evaluation_json": "assets/evaluation_idx_dl3dv_depthsplat_2v.json"},
+    num_input_views=2,
+    img_size=(256, 448),
+    evaluating=True,
+    num_gs_tokens=4096,
+    use_input_supervision=False,
+    batch_size=1,
+)
+
+config_doc["eval_dl3dv_4view"] = "DL3DV eval preset: 4 input views."
+config_defaults["eval_dl3dv_4view"] = config_defaults["eval_dl3dv_2view"].evolve(
+    num_input_views=4,
+    dataset_kwargs={"evaluation_json": "assets/evaluation_idx_dl3dv_depthsplat_4v.json"},
+)
+config_doc["eval_dl3dv_6view"] = "DL3DV eval preset: 6 input views."
+config_defaults["eval_dl3dv_6view"] = config_defaults["eval_dl3dv_2view"].evolve(
+    num_input_views=6,
+    dataset_kwargs={"evaluation_json": "assets/evaluation_idx_dl3dv_depthsplat_6v.json"},
+)
+
+
+# ----- DL3DV latent-bottleneck release presets -----
+_LATENT_D12_ARCH = {
+    "enc_depth": 12,
+    "dec_depth": 1,
+    "dec_patch_size": 8,
+    "clip_head_readout_std": 0.002,
+    "clip_head_z_init": 0.1,
+    "dec_init_values": 0.01,
+    "gaussian_z_offset": 0.0,
+    "opacity_bias": 2.0,
+    "gs_token_std": 0.02,
+    "use_multiscale_encoder": True,
+    "multiscale_encoder_layers": (5, 7, 9, 11),
+    "use_latent_bottleneck": True,
+    "num_latents": 4096,
+    "latent_cross_attn_depth": 12,
+    "camera_normalization_method": "mean_cam",
+    "camera_scale_method": "constant",
+}
+
+_SSIM_LOSS = {
+    "rgb_loss_type": "l1",
+    "lambda_rgb": 0.8,
+    "lambda_ssim": 0.2,
+    "lambda_lpips": 0.0,
+}
+
+_LPIPS_LOSS = {
+    "rgb_loss_type": "l2",
+    "lambda_rgb": 1.0,
+    "lambda_ssim": 0.0,
+    "lambda_lpips": 0.5,
+}
+
+
+def _latent_dl3dv_train_preset(num_input_views: int, num_views: int) -> Options:
+    return config_defaults["train_dl3dv_base"].evolve(
+        data_mode=(("dl3dv_scaled_0.15", 6),),
+        num_epochs=20,
+        pct_start_steps=400,
+        lr=4e-5,
+        num_gs_tokens=4096,
+        init_tokens_from_existing=True,
+        init_latents_from_existing=True,
+        num_input_views=num_input_views,
+        num_views=num_views,
+        img_size=(256, 448),
+        **_LATENT_D12_ARCH,
+    )
+
+
+config_doc["train_dl3dv_latent_base"] = (
+    "Scratch DL3DV latent-bottleneck training base. Uses pointmap scene "
+    "rescaling, the 12-layer encoder latent architecture, and no checkpoint "
+    "initialization."
+)
+config_defaults["train_dl3dv_latent_base"] = Options(
+    data_mode=(("dl3dv_scaled_1.0", 6),),
+    num_epochs=178,
+    pct_start_steps=2000,
+    use_input_supervision=True,
+    rgb_loss_type="l1",
+    lambda_rgb=0.8,
+    **{**_LATENT_D12_ARCH, "camera_scale_method": "pointmap"},
+)
+
+
+def _latent_dl3dv_eval_preset(num_input_views: int, evaluation_json: str) -> Options:
+    return Options(
+        data_mode=(("dl3dv_eval_scaled_0.15", 1),),
+        dataset_kwargs={"evaluation_json": evaluation_json},
+        num_input_views=num_input_views,
+        img_size=(256, 448),
+        evaluating=True,
+        num_gs_tokens=4096,
+        use_input_supervision=False,
+        ttt_mode="scene-latent-tuning",
+        ttt_lr=1e-2,
+        batch_size=1,
+        **_LATENT_D12_ARCH,
+    )
+
+
+for _num_input_views, _num_views in ((2, 8), (4, 8), (6, 10)):
+    _name = f"finetune_dl3dv_latent_{_num_input_views}view_ssim"
+    config_doc[_name] = (
+        f"Finetune the released SA d12 latent-bottleneck DL3DV {_num_input_views}-view SSIM model."
+    )
+    config_defaults[_name] = _latent_dl3dv_train_preset(
+        _num_input_views, _num_views
+    ).evolve(**_SSIM_LOSS)
+
+    _name = f"finetune_dl3dv_latent_{_num_input_views}view_lpips"
+    config_doc[_name] = (
+        f"Finetune the released SA d12 latent-bottleneck DL3DV {_num_input_views}-view LPIPS model."
+    )
+    config_defaults[_name] = _latent_dl3dv_train_preset(
+        _num_input_views, _num_views
+    ).evolve(**_LPIPS_LOSS)
+
+for _num_input_views in (2, 4, 6):
+    _eval_json = f"assets/evaluation_idx_dl3dv_depthsplat_{_num_input_views}v.json"
+
+    _name = f"eval_dl3dv_latent_{_num_input_views}view_ssim"
+    config_doc[_name] = (
+        f"Evaluate the released SA d12 latent-bottleneck DL3DV {_num_input_views}-view SSIM checkpoint."
+    )
+    config_defaults[_name] = _latent_dl3dv_eval_preset(
+        _num_input_views, _eval_json
+    ).evolve(**_SSIM_LOSS)
+
+    _name = f"eval_dl3dv_latent_{_num_input_views}view_lpips"
+    config_doc[_name] = (
+        f"Evaluate the released SA d12 latent-bottleneck DL3DV {_num_input_views}-view LPIPS checkpoint."
+    )
+    config_defaults[_name] = _latent_dl3dv_eval_preset(
+        _num_input_views, _eval_json
+    ).evolve(**_LPIPS_LOSS)
+
+
+# ----- Kubric 4D dynamic finetune -----
+config_doc["finetune_dl3dv_kubric_dyn"] = (
+    "Dynamic finetune of the DL3DV base on Kubric4D. Adds dynamic GS tokens "
+    "warm-started from the static tokens, sinusoidal time embeddings, "
+    "interpolated target-frame sampling, and pointmap camera scaling."
+)
+config_defaults["finetune_dl3dv_kubric_dyn"] = config_defaults["train_dl3dv_base"].evolve(
+    use_input_supervision=False,
+    data_mode=(("kubric_scaled_1.0", 100),),
+    dataset_kwargs={},
+    num_input_views=4,
+    num_views=8,
+    img_size=(256, 256),
+    num_epochs=100,
+    max_iters_per_epoch=500,
+    pct_start_steps=2500,
+    lr=4e-5,
+    init_tokens_from_existing=True,
+    num_gs_tokens=1024,
+    num_dynamic_gs_tokens=256,
+    init_dynamic_tokens_from_static=True,
+    time_embedding=True,
+    time_embedding_dim=2,
+    use_interp_target=True,
+    camera_normalization_method="mean_cam",
+    camera_scale_method="pointmap",
+    enc_depth=12,
+    dec_depth=1,
+    dec_patch_size=8,
+    clip_head_readout_std=0.002,
+    clip_head_z_init=0.1,
+    dec_init_values=0.01,
+    gaussian_z_offset=0.0,
+    opacity_bias=2.0,
+    gs_token_std=0.02,
+    use_multiscale_encoder=True,
+    multiscale_encoder_layers=(5, 7, 9, 11),
+    use_latent_bottleneck=True,
+    num_latents=4096,
+    latent_cross_attn_depth=12,
+    rgb_loss_type="l1",
+    lambda_rgb=0.8,
+    lambda_ssim=0.2,
+    lambda_visibility=1.0,
+    lambda_opacity=0.0,
+    project_name="TokenGS-Kubric",
+)
+
+config_doc["finetune_dl3dv_kubric_static"] = (
+    "Stage-1 Kubric domain finetune without dynamic tokens or time embeddings. "
+    "Use this when reproducing the two-stage warm-start variant."
+)
+config_defaults["finetune_dl3dv_kubric_static"] = config_defaults["finetune_dl3dv_kubric_dyn"].evolve(
+    num_dynamic_gs_tokens=0,
+    init_dynamic_tokens_from_static=False,
+    time_embedding=False,
+)
+
+config_doc["finetune_dl3dv_kubric_dyn_v2"] = (
+    "Kubric dynamic finetune with an auxiliary dynamic-only render loss."
+)
+config_defaults["finetune_dl3dv_kubric_dyn_v2"] = config_defaults["finetune_dl3dv_kubric_dyn"].evolve(
+    lambda_dyn_aux=0.3,
+)
+
+_kubric_dyn_release = config_defaults["finetune_dl3dv_kubric_dyn_v2"].evolve(
+    lambda_dyn_aux=0.3,
+    lambda_dyn_aux_warmup_steps=5000,
+    lambda_dyn_aux_decay_steps=10000,
+    lambda_dyn_aux_min=0.0,
+)
+config_doc["finetune_dl3dv_kubric_dyn_release"] = (
+    "Released Kubric dynamic finetune schedule: hold lambda_dyn_aux=0.3 for "
+    "5K steps, then linearly decay it to 0 over 10K steps."
+)
+config_defaults["finetune_dl3dv_kubric_dyn_release"] = _kubric_dyn_release
+config_doc["finetune_dl3dv_kubric_dyn_v3"] = (
+    "Backward-compatible alias for finetune_dl3dv_kubric_dyn_release."
+)
+config_defaults["finetune_dl3dv_kubric_dyn_v3"] = _kubric_dyn_release
+
+# ----- SSST: spatially grounded shared tokens (local reconstruction unit +
+# local understanding unit) with unified object queries -----
+_SSST_ARCH = {
+    "img_size": (256, 256),
+    "patch_size": 8,
+    "dec_patch_size": 8,
+    "enc_depth": 3,
+    "dec_depth": 12,
+    "enc_embed_dim": 1024,
+    "enc_num_heads": 16,
+    "num_gs_tokens": 1024,
+    "token_dim": 1024,
+    "gs_token_std": 0.01,
+    # The anchors already sit where the normalized SIU3R scene is, so the
+    # legacy random-initialization z offset is not applied.
+    "gaussian_z_offset": 0.0,
+    "random_reflect": False,
+    "camera_normalization_method": "first_cam",
+    "camera_scale_method": "constant",
+    "use_instance_labels": True,
+    "num_input_views": 2,
+    "num_views": 4,
+}
+
+_SSST_LOSS = {
+    "rgb_loss_type": "l2",
+    "lambda_rgb": 1.0,
+    "lambda_ssim": 0.0,
+    "lambda_lpips": 0.5,
+    "lambda_visibility": 0.0,
+    "lambda_mask": 0.0,
+    "lambda_opacity": 0.0,
+}
+
+_SSST_DATA = {
+    "data_mode": (("siu3r_processed_scannet", 1),),
+    "dataset_kwargs": {"data_root": "/space/mawb/SIU3R/data/scannet"},
+}
+
+config_doc["train_siu3r_ssst"] = (
+    "One-stage SIU3R joint training with spatially grounded shared tokens "
+    "(2 context views, 4 supervised records) and 100 unified object queries. "
+    "Curriculum: the understanding loss ramps from 0.1 to 1.0 over 2000 steps."
+)
+config_defaults["train_siu3r_ssst"] = Options(
+    model_type="siu3r_joint_ssst",
+    workspace="/space/mawb/ssst/workspace/siu3r_ssst_joint_v1",
+    experiment_name="siu3r_ssst_joint_v1",
+    project_name="TokenGS-SSST",
+    num_epochs=20,
+    max_iters_per_epoch=1_000_000,
+    batch_size=1,
+    gradient_accumulation_steps=3,
+    lr=1e-4,
+    pct_start_steps=1000,
+    gradient_clip=1.0,
+    mixed_precision="bf16",
+    # In-process loading keeps the pair-order audit active and avoids many
+    # readers on the shared filesystem; raise it for throughput if needed.
+    num_workers=0,
+    seed=42,
+    **_SSST_ARCH,
+    **_SSST_LOSS,
+    **_SSST_DATA,
+)
+
+config_doc["train_siu3r_ssst_re10k"] = (
+    "Same as train_siu3r_ssst but warm-started from the released RE10K "
+    "reconstruction checkpoint. Only name/shape-compatible tokens are loaded; "
+    "anchors, refinement, queries and the understanding head stay fresh."
+)
+config_defaults["train_siu3r_ssst_re10k"] = config_defaults["train_siu3r_ssst"].evolve(
+    workspace="/space/mawb/ssst/workspace/siu3r_ssst_joint_re10k_init_v1",
+    experiment_name="siu3r_ssst_joint_re10k_init_v1",
+    init_checkpoint=(
+        "/space/mawb/tokengs_siu3r_joint_v1/workspace/"
+        "siu3r_joint_re10k_init_context_order_fixed_v1_v3/checkpoints/step_00001000"
+    ),
+)
+
+config_doc["eval_siu3r_ssst"] = (
+    "SSST validation configuration (2 context + 4 novel records) used when a "
+    "checkpoint directory does not ship its own config.yaml."
+)
+config_defaults["eval_siu3r_ssst"] = config_defaults["train_siu3r_ssst"].evolve(
+    evaluating=True,
+    num_views=6,
+    batch_size=1,
+    mixed_precision="no",
+    random_reflect=False,
+)
+
+# ----- LocusGS-faithful ScanNet reconstruction + plain TokenGS control -----
+# Canonical reconstruction objective (arXiv:2608.12825 Eq. 26-30): MSE +
+# 0.2*(1-SSIM)/2 + 1.0*L_vis(Gaussians) + 0.1*L_vis(anchors), no LPIPS, no GT
+# depth, no spatial hinge/compactness terms.  Optimizer kept identical to the
+# previous ScanNet runs (lr 1e-4, warmup 1000, wd 0.05) so the only change is
+# architecture + objective (Variant B of the audit).
+_CANONICAL_RECON = {
+    "rgb_loss_type": "l2",
+    "lambda_rgb": 1.0,
+    "lambda_ssim": 0.2,
+    "lambda_lpips": 0.0,
+    "lambda_visibility": 0.0,   # visibility is added explicitly (Gaussians + anchors)
+    "lambda_mask": 0.0,
+    "lambda_opacity": 0.0,
+    # The paper adopts "the visibility regularization used in TokenGS", whose
+    # implementation clips the per-point penalty at this threshold.  Without the
+    # clip, anchors that project behind the camera give an unbounded phi.
+    "visibility_distance_threshold": 1.0,
+    "spatial_compactness_weight": 0.0,      # our own terms are removed for faithfulness
+    "spatial_radius_weight": 0.0,
+    "reconstruction_only": True,
+    # TokenGS's canonical z offset: the free-XYZ head predicts positions near the
+    # origin at initialization, so without it nothing renders (alpha = 0) and the
+    # RGB objective has no gradient.  LocusGS keeps 0.0 because its randomly
+    # initialized anchors already lie in the normalized scene box.
+    "gaussian_z_offset": 1.0,
+}
+
+config_doc["train_siu3r_locusgs_recon"] = (
+    "LocusGS-faithful ScanNet reconstruction (2 context + 2 novel): learnable "
+    "anchor centers + softplus radii, anchor PE injected as the self-attention "
+    "input only (pe_mode=injected, not accumulated into the residual stream), "
+    "anchor-to-ray bias (sigma0=0.1, clamp [-20,0], learnable gamma), raw "
+    "residual anchor refinement, anchor-centered Gaussian decoding, and "
+    "multi-layer supervision at decoder layers {6,12} with weights {1/3, 2/3}."
+)
+config_defaults["train_siu3r_locusgs_recon"] = config_defaults["train_siu3r_ssst"].evolve(
+    model_type="siu3r_locusgs_recon",
+    workspace="/space/mawb/ssst/workspace/siu3r_locusgs_faithful_recon_v1",
+    experiment_name="siu3r_locusgs_faithful_recon_v1",
+    project_name="TokenGS-LocusGS",
+    # Paper-reported optimisation scale (Sec. 4 / App.: AdamW, base lr 4e-4, 2000-step
+    # warmup then cosine).  The ScanNet adaptation keeps the same scale; the
+    # effective batch differs from the paper, so this is a recipe adaptation.
+    lr=4e-4,
+    pct_start_steps=2000,
+    **{**_CANONICAL_RECON, "gaussian_z_offset": 0.0, "locusgs_pe_mode": "injected"},
+)
+
+config_doc["train_siu3r_locusgs_recon_bounded_delta"] = (
+    "Single-variable locality experiment: identical to train_siu3r_locusgs_recon "
+    "except the anchor-centred Gaussian offsets are bounded, delta = tanh(f_delta), "
+    "so every Gaussian lies inside its token's support radius (||r*delta|| <= r). "
+    "No other structural, supervision, optimisation or loss change."
+)
+config_defaults["train_siu3r_locusgs_recon_bounded_delta"] = config_defaults[
+    "train_siu3r_locusgs_recon"
+].evolve(
+    workspace="/space/mawb/ssst/workspace/siu3r_locusgs_bounded_delta_recon_v1",
+    experiment_name="siu3r_locusgs_bounded_delta_recon_v1",
+    locusgs_bound_delta=True,
+)
+
+config_doc["train_siu3r_locusgs_recon_bounded_delta_frozen_radius"] = (
+    "Single-variable follow-up: identical to train_siu3r_locusgs_recon_bounded_delta "
+    "(delta = tanh(f_delta)) with the only additional change that the radius used by "
+    "the Gaussian decoder is frozen at locusgs_radius_init=0.15, i.e. every Gaussian "
+    "satisfies ||centre - anchor|| <= 0.15.  The learned radii still feed the "
+    "anchor-to-ray bias.  No spread penalty, no anchor-refinement change."
+)
+config_defaults["train_siu3r_locusgs_recon_bounded_delta_frozen_radius"] = config_defaults[
+    "train_siu3r_locusgs_recon_bounded_delta"
+].evolve(
+    workspace="/space/mawb/ssst/workspace/siu3r_locusgs_bounded_delta_frozen_r_recon_v1",
+    experiment_name="siu3r_locusgs_bounded_delta_frozen_r_recon_v1",
+    locusgs_freeze_decode_radius=True,
+)
+
+config_doc["train_siu3r_object_locusgs_ab"] = (
+    "Object-aware LocusGS development run (32 train / 8 unseen scenes).  "
+    "Identical to train_siu3r_locusgs_recon_bounded_delta_frozen_radius except "
+    "that every Gaussian additionally carries 20-d semantic logits and a 16-d "
+    "unit instance embedding decoded from the layer-12 tokens, and the "
+    "understanding losses (0.05 * L_sem + 0.10 * L_inst) are ramped in over "
+    "1000 experiment-local steps while the whole LocusGS path stays trainable.  "
+    "object_arm='a' disables the predicted-instance-relation token update; "
+    "object_arm='b' applies it once, between decoder layers 10 and 11.  The two "
+    "arms are strictly paired: same source checkpoint, same batch plan, same "
+    "loss, same schedule.  Development only - not an SIU3R official evaluation."
+)
+config_defaults["train_siu3r_object_locusgs_ab"] = config_defaults[
+    "train_siu3r_locusgs_recon_bounded_delta_frozen_radius"
+].evolve(
+    model_type="siu3r_object_locusgs_recon",
+    workspace="/space/mawb/ssst/workspace_object_locusgs",
+    experiment_name="siu3r_object_locusgs_ab_v1",
+    project_name="TokenGS-LocusGS-lite",
+)
+
+config_doc["train_siu3r_group_locusgs_ab"] = (
+    "From-scratch object-aware LocusGS G0/G1 (32 train / 8 unseen development "
+    "split): 100 learnable instance group queries + 1 background slot read the "
+    "layer-10 LocusGS tokens/anchors, produce a 101-way token->slot distribution "
+    "and per-group objectness plus 20-class semantics; per-GS semantic logits are "
+    "decoded separately and the pixel semantic loss is the object_locusgs one.  "
+    "group_arm='g0' never writes back; 'g1' adds a gated (tanh(g), g=0) bounded "
+    "LayerNorm+Linear residual of the group-aggregated information between decoder "
+    "layers 10 and 11.  Both arms train the reconstruction and understanding "
+    "branches jointly from random initialisation with "
+    "L = L_recon + lambda(step) * [0.05 L_instance + 0.05 L_semantic], "
+    "lambda = min(1, step/2000), peak lr 1e-4, 2000-step warm-up, cosine to 2% "
+    "over 6000 steps.  Development only - not an SIU3R official evaluation."
+)
+config_defaults["train_siu3r_group_locusgs_ab"] = config_defaults[
+    "train_siu3r_locusgs_recon_bounded_delta_frozen_radius"
+].evolve(
+    model_type="siu3r_group_locusgs_recon",
+    workspace="/space/mawb/ssst/workspace_group_locusgs",
+    experiment_name="siu3r_group_locusgs_g0g1_v1",
+    project_name="TokenGS-LocusGS-group",
+    # from-scratch joint recipe: no warm start anywhere
+    init_checkpoint=None,
+    lr=1e-4,
+    pct_start_steps=2000,
+)
+
+config_doc["train_siu3r_locusgs_inferred_v2"] = (
+    "LocusGS parameter-budget-consistent inferred implementation V2: identical "
+    "to train_siu3r_locusgs_recon except for the anchor-decoder reading, which "
+    "uses per-layer anchor positional-embedding MLPs and per-layer bottleneck "
+    "refinement MLPs (f_mu / f_rho) so that the LocusGS-specific parameter delta "
+    "matches the paper's reported TokenGS->LocusGS increase of +19.5M "
+    "(222.0M -> 241.5M).  Not an exact reproduction: the dataset, view protocol "
+    "and several unpublished initialization details differ."
+)
+config_defaults["train_siu3r_locusgs_inferred_v2"] = config_defaults[
+    "train_siu3r_locusgs_recon"
+].evolve(
+    workspace="/space/mawb/ssst/workspace/siu3r_locusgs_inferred_v2_diag1000",
+    experiment_name="siu3r_locusgs_inferred_v2_diag1000",
+    locusgs_impl="inferred_v2",
+    locusgs_refine_hidden=256,
+)
+
+config_doc["train_siu3r_locusgs_inferred_v2_gamma_calibrated"] = (
+    "LocusGS parameter-budget-consistent inferred V2 with a ScanNet-scale "
+    "calibrated geometric-bias initialization.  Identical to "
+    "train_siu3r_locusgs_inferred_v2 in every field except "
+    "locusgs_gamma_raw_init, which the step-0 same-tensor ray-bias audit sets to "
+    "-2.0 (gamma = 0.1269) so that std(gamma * b) / std(content logits) ~= 0.59 "
+    "instead of 3.23.  NOT a paper-reported initialization: the paper specifies "
+    "only gamma = softplus(gamma_raw)."
+)
+config_defaults["train_siu3r_locusgs_inferred_v2_gamma_calibrated"] = config_defaults[
+    "train_siu3r_locusgs_inferred_v2"
+].evolve(
+    workspace="/space/mawb/ssst/workspace/siu3r_locusgs_inferred_v2_gamma_calibrated_diag1000",
+    experiment_name="siu3r_locusgs_inferred_v2_gamma_calibrated_diag1000",
+    locusgs_gamma_raw_init=-2.0,
+)
+
+config_doc["train_siu3r_plain_tokengs_canonical_recon"] = (
+    "Plain TokenGS (free-XYZ ClipActivationHead, no anchors/radius/refinement/"
+    "ray-bias, final layer only) under the same canonical reconstruction "
+    "objective and the same ScanNet 2+2 protocol: the controlled baseline."
+)
+config_defaults["train_siu3r_plain_tokengs_canonical_recon"] = config_defaults[
+    "train_siu3r_ssst"
+].evolve(
+    model_type="siu3r_plain_tokengs_canonical_recon",
+    workspace="/space/mawb/ssst/workspace/siu3r_plain_tokengs_canonical_recon_v1",
+    experiment_name="siu3r_plain_tokengs_canonical_recon_v1",
+    project_name="TokenGS-LocusGS",
+    **_CANONICAL_RECON,
+)
+
+config_doc["train_siu3r_instance_state_locusgs"] = (
+    "Instance-state-driven LocusGS v1 (LOCUSGS_INSTANCE_STATE_V1), C arm: 100 thing "
+    "states + 2 fixed stuff states + 1 pixel-void channel are updated after decoder "
+    "layers 6/8/10/12 and read out as semantic/instance/panoptic evidence, but "
+    "coupled=False keeps them out of the token interaction, anchor update and "
+    "Gaussian residual path (beta=0).  Derived from "
+    "train_siu3r_locusgs_recon_bounded_delta_frozen_radius; the reconstruction path "
+    "stays exactly the pretrained LocusGS one when zero-initialised projections are "
+    "used.  Initialised from the completed full-data reconstruction checkpoint "
+    "(step 47500)."
+)
+config_defaults["train_siu3r_instance_state_locusgs"] = config_defaults[
+    "train_siu3r_locusgs_recon_bounded_delta_frozen_radius"
+].evolve(
+    model_type="siu3r_instance_state_locusgs",
+    workspace="/space/mawb/ssst/workspace_group_plus/instance_state_v1/arm_C",
+    experiment_name="siu3r_instance_state_locusgs_C",
+    project_name="TokenGS-LocusGS",
+    instance_state_coupled=False,
+)
+
+config_doc["train_siu3r_instance_state_locusgs_coupled"] = (
+    "Instance-state-driven LocusGS v1, E arm: identical to "
+    "train_siu3r_instance_state_locusgs except instance_state_coupled=True, so "
+    "beta = min(step/200, 1) enables the state-driven token message, anchor update, "
+    "learned-radius update, self-attention compactness bias and Gaussian residual.  "
+    "C/E is the single-variable contrast of this round."
+)
+config_defaults["train_siu3r_instance_state_locusgs_coupled"] = config_defaults[
+    "train_siu3r_instance_state_locusgs"
+].evolve(
+    workspace="/space/mawb/ssst/workspace_group_plus/instance_state_v1/arm_E",
+    experiment_name="siu3r_instance_state_locusgs_E",
+    instance_state_coupled=True,
+)
+
+config_doc["train_siu3r_instance_state_locusgs_local3d"] = (
+    "instance_state_v2-S1: identical to train_siu3r_instance_state_locusgs (frozen-C, "
+    "coupled=False) except the layer-6 thing-state evidence, which becomes a fixed "
+    "distance-weighted pooling over the k=8 nearest layer-6 anchors around each FPS seed "
+    "(instance_state_local3d=True).  FPS, centres c, support s, assignment, GRU, "
+    "classifier, losses and schedule are unchanged and no parameter is added."
+)
+config_defaults["train_siu3r_instance_state_locusgs_local3d"] = config_defaults[
+    "train_siu3r_instance_state_locusgs"
+].evolve(
+    workspace="/space/mawb/ssst/workspace_group_plus/instance_state_v2_s1_local3d/arm_C",
+    experiment_name="siu3r_instance_state_locusgs_local3d",
+    instance_state_local3d=True,
+    instance_state_local_k=8,
+)
+
+config_doc["train_siu3r_anchor_group_v1"] = (
+    "LOCUSGS_ANCHOR_GROUP_V1: all 1024 reconstruction anchors interact with 100 thing + "
+    "2 stuff queries and one non-query void channel; beta is fixed at zero."
+)
+config_defaults["train_siu3r_anchor_group_v1"] = config_defaults[
+    "train_siu3r_locusgs_recon_bounded_delta_frozen_radius"
+].evolve(
+    model_type="siu3r_anchor_group_locusgs",
+    workspace="/space/mawb/ssst/workspace_group_plus/anchor_group_v1",
+    experiment_name="siu3r_anchor_group_v1",
+    project_name="TokenGS-LocusGS",
+    instance_state_coupled=False,
+    instance_state_local3d=False,
+)
+
+config_doc["train_siu3r_object_locus_v1"] = (
+    "LOCUSGS_OBJECT_LOCUS_V1: scene-conditioned 100 thing + 2 stuff states, "
+    "independent spatially guided evidence and ownership heads, residual object "
+    "decoder, and no object-to-anchor feedback."
+)
+config_defaults["train_siu3r_object_locus_v1"] = config_defaults[
+    "train_siu3r_anchor_group_v1"
+].evolve(
+    model_type="siu3r_object_locus_v1",
+    workspace="/space/mawb/ssst/workspace_group_plus/object_locus_v1",
+    experiment_name="siu3r_object_locus_v1",
+    batch_size=1,
+    gradient_accumulation_steps=1,
+    num_workers=0,
+    seed=42,
+    num_input_views=2,
+    num_views=4,
+    mixed_precision="no",
+    random_reflect=False,
+    reconstruction_only=False,
+    instance_state_coupled=False,
+    instance_state_local3d=False,
+    instance_state_layers=(6, 8, 10, 12),
+    init_checkpoint=None,
+    dataset_kwargs={"data_root": "/space/mawb/SIU3R/data/scannet"},
+)
+
+config_doc["train_siu3r_object_locus_v2"] = (
+    "LOCUSGS_OBJECT_LOCUS_V2: scene-conditioned object states with independent "
+    "anchor/Gaussian memberships and child feature residuals."
+)
+config_defaults["train_siu3r_object_locus_v2"] = config_defaults[
+    "train_siu3r_object_locus_v1"
+].evolve(
+    model_type="siu3r_object_locus_v2",
+    workspace="/space/mawb/ssst/workspace_group_plus/object_locus_v2",
+    experiment_name="siu3r_object_locus_v2",
+)
+
+config_doc["train_siu3r_object_locus_v2_1"] = (
+    "LOCUSGS_OBJECT_LOCUS_V2_1: mask-conditioned category and separate objectness "
+    "on independent anchor/Gaussian memberships."
+)
+config_defaults["train_siu3r_object_locus_v2_1"] = config_defaults[
+    "train_siu3r_object_locus_v2"
+].evolve(
+    model_type="siu3r_object_locus_v2_1",
+    workspace="/space/mawb/ssst/workspace_group_plus/object_locus_v2_1",
+    experiment_name="siu3r_object_locus_v2_1",
+)
+
+config_doc["train_siu3r_object_locus_v3_set"] = (
+    "LOCUSGS_OBJECT_LOCUS_V3_SET: context-rendered set prediction with a single "
+    "18-class plus no-object head and independent Gaussian instance masks."
+)
+config_defaults["train_siu3r_object_locus_v3_set"] = config_defaults[
+    "train_siu3r_object_locus_v2_1"
+].evolve(
+    model_type="siu3r_object_locus_v3_set",
+    workspace="/space/mawb/ssst/workspace_group_plus/object_locus_v3_set",
+    experiment_name="siu3r_object_locus_v3_set",
+)
+
+config_doc["train_siu3r_object_locus_joint_v1"] = "Fixed Object-Locus Joint V1 paired coupling experiment."
+config_defaults["train_siu3r_object_locus_joint_v1"] = config_defaults[
+    "train_siu3r_object_locus_v3_set"
+].evolve(model_type="siu3r_object_locus_joint_v1",
+         workspace="/space/mawb/ssst/workspace_group_plus/object_locus_joint_v1",
+         experiment_name="siu3r_object_locus_joint_v1")
+config_doc["train_siu3r_official_locusgs_recon"] = "Pinned official LocusGS; one fresh full ScanNet reconstruction run."
+config_defaults["train_siu3r_official_locusgs_recon"] = config_defaults["train_siu3r_locusgs_recon"].evolve(
+    model_type="siu3r_official_locusgs_recon", seed=42, batch_size=1,
+    num_workers=0, num_input_views=2, num_views=4, random_reflect=False,
+    mixed_precision="no", deferred_bp=False, reconstruction_only=True,
+    init_checkpoint=None, use_input_supervision=False,
+    workspace="/space/mawb/ssst/workspace_recon_diag/official_source_scannet_v1/run",
+    experiment_name="official_source_scannet_v1",
+)
+
+config_doc["train_siu3r_object_locus_panoptic_v1"] = "Fixed pretrained panoptic joint FP32 eight-GPU recipe."
+config_defaults["train_siu3r_object_locus_panoptic_v1"] = config_defaults["train_siu3r_object_locus_v3_set"].evolve(
+    model_type="siu3r_object_locus_panoptic_v1", workspace="/space/mawb/ssst/workspace_group_plus/object_locus_panoptic_v1_8gpu",
+    experiment_name="siu3r_object_locus_panoptic_v1", batch_size=1, mixed_precision="no")
+
+config_doc["train_siu3r_object_locus_frozen_vggt_posefree_v1"] = "Frozen official VGGT pose-free Object-Locus review recipe; training is not auto-started."
+config_defaults["train_siu3r_object_locus_frozen_vggt_posefree_v1"] = config_defaults["train_siu3r_object_locus_panoptic_v1"].evolve(
+    model_type="siu3r_object_locus_frozen_vggt_posefree_v1",
+    workspace="/space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1",
+    experiment_name="object_locus_frozen_vggt_posefree_v1", batch_size=1, mixed_precision="no")
+
+config_doc["train_siu3r_object_locus_dual_stream_v1"] = "New Omega point/SAM seeded dual stream; no old understanding weights; write off by default."
+config_defaults["train_siu3r_object_locus_dual_stream_v1"] = config_defaults["train_siu3r_object_locus_panoptic_v1"].evolve(
+    model_type="siu3r_object_locus_dual_stream_v1",
+    workspace="/space/mawb/ssst/workspace_group_plus/object_locus_dual_stream_v1",
+    experiment_name="object_locus_dual_stream_v1", batch_size=1, mixed_precision="no",
+    locusgs_freeze_decode_radius=False)
+
+config_doc["train_siu3r_object_locus_gfm_dual_stream_v2"] = "Shared frozen Omega GFM, independent reconstruction/semantic adapters, SAM raw-GFM pooling queries."
+config_defaults["train_siu3r_object_locus_gfm_dual_stream_v2"] = config_defaults["train_siu3r_object_locus_dual_stream_v1"].evolve(
+    model_type="siu3r_object_locus_gfm_dual_stream_v2", experiment_name="object_locus_gfm_dual_stream_v2",
+    workspace="/space/mawb/ssst/workspace_group_plus/object_locus_gfm_dual_stream_v2")
+
+config_doc["train_siu3r_object_locus_gfm_dual_stream_v3"] = "Dual GFM adapters; pool semantic adapter output under SAM masks to initialize queries."
+config_defaults["train_siu3r_object_locus_gfm_dual_stream_v3"] = config_defaults["train_siu3r_object_locus_gfm_dual_stream_v2"].evolve(
+    model_type="siu3r_object_locus_gfm_dual_stream_v3", experiment_name="object_locus_gfm_dual_stream_v3",
+    workspace="/space/mawb/ssst/workspace_group_plus/object_locus_gfm_dual_stream_v3")
+
+config_doc['train_siu3r_object_locus_gfm_dual_stream_v4'] = 'V3 with geometric-aware SAM semantic pooling; decoder unchanged.'
+config_defaults['train_siu3r_object_locus_gfm_dual_stream_v4'] = config_defaults['train_siu3r_object_locus_gfm_dual_stream_v3'].evolve(
+    model_type='siu3r_object_locus_gfm_dual_stream_v4', experiment_name='object_locus_gfm_dual_stream_v4',
+    workspace='/space/mawb/ssst/workspace_group_plus/object_locus_gfm_dual_stream_v4')
+
+config_doc['train_siu3r_unified_query_v1'] = 'Frozen Omega -> 3D point encoding -> superpoint unified queries -> shared decoder and two task heads.'
+config_defaults['train_siu3r_unified_query_v1'] = config_defaults['train_siu3r_object_locus_gfm_dual_stream_v4'].evolve(
+    model_type='siu3r_unified_query_v1',experiment_name='unified_query_v1',
+    workspace='/space/mawb/ssst/workspace_group_plus/unified_query_v1',enc_embed_dim=256,enc_num_heads=8,num_gs_tokens=512)
+
+AllConfigs = tyro.extras.subcommand_type_from_defaults(config_defaults, config_doc)

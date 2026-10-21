@@ -1,0 +1,36 @@
+# SPDX-FileCopyrightText: Copyright (c) 2025 NVIDIA CORPORATION & AFFILIATES. All rights reserved.
+# SPDX-License-Identifier: Apache-2.0
+#
+# Licensed under the Apache License, Version 2.0 (the "License");
+# you may not use this file except in compliance with the License.
+# You may obtain a copy of the License at
+#
+# http://www.apache.org/licenses/LICENSE-2.0
+#
+# Unless required by applicable law or agreed to in writing, software
+# distributed under the License is distributed on an "AS IS" BASIS,
+# WITHOUT WARRANTIES OR CONDITIONS OF ANY KIND, either express or implied.
+# See the License for the specific language governing permissions and
+# limitations under the License.
+
+# Common data fields shared by most datasets
+DF_IMAGE_RGB = "image_rgb"
+# [B, 4, 4], float32, camera-to-world transformation matrix.
+DF_CAMERA_C2W_TRANSFORM = "camera_c2w_transform"
+# [B, 4], float32, pinhole intrinsics represented as [fx, fy, cx, cy].
+DF_CAMERA_INTRINSICS = "camera_intrinsics"
+# [B, H, W, 1], float32, foreground mask.
+DF_FOREGROUND_MASK = "foreground_mask"
+# [B, H, W, 1], float32, depth map.
+DF_DEPTH = "depth"
+
+# --- optional scene/instance supervision fields (only read by datasets that set
+# `has_semantic_labels` / `has_instance_labels`) ---
+# [V], int64, dataset frame IDs in the same order as the returned view tensors.
+DF_FRAME_IDS = "frame_ids"
+# str, dataset scene identifier.
+DF_SCENE_NAME = "scene_name"
+# [V, H, W], int64, per-pixel semantic label (255 = void).
+DF_SEMANTIC_LABEL = "semantic_label"
+# [V, H, W], int64, per-pixel instance ID (0 = no instance).
+DF_INSTANCE_LABEL = "instance_label"

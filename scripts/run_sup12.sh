@@ -1,0 +1,14 @@
+#!/bin/bash
+set -euo pipefail
+run_root="$1"
+cd "${SLURM_SUBMIT_DIR:?}"
+export PYTHONUNBUFFERED=1 OMP_NUM_THREADS=4 MKL_NUM_THREADS=4 OPENBLAS_NUM_THREADS=4
+export HF_HUB_OFFLINE=1 TRANSFORMERS_OFFLINE=1 TORCH_NCCL_ASYNC_ERROR_HANDLING=1
+export RG_SUPERVISED=12
+trap 'code=$?; printf "{\"exit_code\":%s,\"stage\":\"sup12\"}\n" "$code" > "$run_root/JOB_FAILED.json"' ERR
+/space/mawb/anaconda3/envs/tokengs/bin/python -m torch.distributed.run --standalone --nnodes=1 --nproc_per_node=8 \
+  scripts/train_unified_query_v1.py --architecture dual_superpoint --output-dir "$run_root" \
+  --epochs 1 --understanding-weight .05 --understanding-warmup 1043 --learning-rate 1e-5 \
+  --checkpoint-every 250 --epoch-probes \
+  --initial-checkpoint "$run_root/checkpoint_untrained_initial.pt" \
+  --initial-sha256 "$(cat "$run_root/untrained_initial.sha256")"
