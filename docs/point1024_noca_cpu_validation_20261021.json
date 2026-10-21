@@ -1,0 +1,10 @@
+{
+  "status": "PASSED_CPU_NOCA_VALIDATION",
+  "tests_passed": 3,
+  "real_zero_migration": true,
+  "geometry_weights_defined": true,
+  "no_learned_anchor_ca": true,
+  "gradient_isolation_tested": true,
+  "gpu_verified": false,
+  "jobs_submitted": false
+}

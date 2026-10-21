@@ -47,7 +47,7 @@ class Task(nn.Module):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir',type=Path,required=True);parser.add_argument('--understanding-weight',type=float,required=True)
-    parser.add_argument('--architecture',choices=('unified','dual_superpoint','unified_direct','dual_superpoint_recon_qp','dual_fps1024_superpoint','dual_point1024_isoadapter'),default='unified')
+    parser.add_argument('--architecture',choices=('unified','dual_superpoint','unified_direct','dual_superpoint_recon_qp','dual_fps1024_superpoint','dual_point1024_isoadapter','dual_point1024_isoadapter_noca'),default='unified')
     parser.add_argument('--epochs',type=int,default=4);parser.add_argument('--max-updates',type=int)
     parser.add_argument('--learning-rate',type=float,default=1e-4);parser.add_argument('--understanding-warmup',type=int,default=1043)
     parser.add_argument('--short-validation',action='store_true',help='16 fixed training scenes, 256 updates, initial/final probes')
@@ -66,9 +66,9 @@ def main():
     if args.recon_qp_slots<1 or (args.architecture!='dual_superpoint_recon_qp' and args.recon_qp_slots!=20):parser.error('Invalid reconstruction Q+P slot setting')
     if args.initialize_recon_qp_from_legacy_zero and (args.architecture!='dual_superpoint_recon_qp' or not args.initial_checkpoint or args.resume):parser.error('Legacy Q+P migration requires fresh Q+P with an explicit zero source')
     if args.initialize_fps_superpoint_from_legacy_zero and (args.architecture!='dual_fps1024_superpoint' or not args.initial_checkpoint or args.resume):parser.error('FPS migration requires fresh FPS architecture and explicit zero source')
-    if args.initialize_point1024_isoadapter_from_legacy_zero and (args.architecture!='dual_point1024_isoadapter' or not args.initial_checkpoint or args.resume):parser.error('Point1024 isolated migration requires explicit zero source and fresh matching architecture')
-    if args.architecture=='dual_point1024_isoadapter' and (args.epochs!=4 or args.short_validation):parser.error('This control requires the A4 four-epoch schedule')
-    if args.training_window_manifest and args.architecture!='dual_point1024_isoadapter':parser.error('2+4 manifest is dedicated to the isolated point1024 control')
+    if args.initialize_point1024_isoadapter_from_legacy_zero and (args.architecture not in ('dual_point1024_isoadapter','dual_point1024_isoadapter_noca') or not args.initial_checkpoint or args.resume):parser.error('Point1024 isolated migration requires explicit zero source and fresh matching architecture')
+    if args.architecture in ('dual_point1024_isoadapter','dual_point1024_isoadapter_noca') and (args.epochs!=4 or args.short_validation):parser.error('This control requires the A4 four-epoch schedule')
+    if args.training_window_manifest and args.architecture not in ('dual_point1024_isoadapter','dual_point1024_isoadapter_noca'):parser.error('2+4 manifest is dedicated to the isolated point1024 control')
     if args.short_validation:
         if args.resume or args.max_updates is not None:parser.error('Short validation uses a fresh bounded run')
         args.epochs=128;args.max_updates=256;args.understanding_warmup=20
@@ -81,7 +81,7 @@ def main():
     config=UnifiedQueryConfig(**json.loads(args.config.read_text())) if args.config else UnifiedQueryConfig()
     opt=config_defaults['train_siu3r_unified_query_v1'];windows,chosen,validation=cohorts()
     training_identity={}
-    if args.architecture=='dual_point1024_isoadapter':
+    if args.architecture in ('dual_point1024_isoadapter','dual_point1024_isoadapter_noca'):
         from scripts.training_windows_2ctx4novel import load_training_windows,DEFAULT_MANIFEST
         windows,training_identity=load_training_windows(args.training_window_manifest or DEFAULT_MANIFEST,windows,digest(MANIFEST))
         opt=opt.evolve(num_views=6)
@@ -134,8 +134,10 @@ def main():
         meta.update(recon_qp_slots=args.recon_qp_slots,supervised_layers=list(model.supervised_layers),layer_weights=list(model.layer_weights))
     if args.architecture=='dual_fps1024_superpoint':
         meta.update(reconstruction_anchor_count=1024,reconstruction_initialization='fps_xyz_plus_learned_embedding_plus_superpoint',supervised_layers=list(model.supervised_layers),layer_weights=list(model.layer_weights))
-    if args.architecture=='dual_point1024_isoadapter':
+    if args.architecture in ('dual_point1024_isoadapter','dual_point1024_isoadapter_noca'):
         meta.update(reconstruction_anchor_count=1024,seed_feature_source='exact_source_pixel_shared_projection_256',understanding_seed_feature_source='semantic_memory_fm_256',gradient_isolation=True,adapter_hidden=64,adapter_read_layers=[6,8,10,12],supervised_layers=list(model.supervised_layers),layer_weights=list(model.layer_weights))
+    if args.architecture=='dual_point1024_isoadapter_noca':
+        meta.update(object_anchor_attention='none',geometry_routing='normalized_geometric_distance_softmax_v1')
     meta.update(training_identity)
     progress=dict(epoch=0,update_in_epoch=0,full_updates=0)
     if args.resume:

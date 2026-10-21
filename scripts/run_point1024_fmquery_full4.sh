@@ -16,7 +16,7 @@ stage=train
 # The wrapper itself imports only stdlib; no retry after STARTED or any update.
 /usr/bin/python3 scripts/run_with_io_bootstrap_retry.py --run-root "$R" -- \
  /space/mawb/anaconda3/envs/tokengs/bin/python -m torch.distributed.run --standalone --nnodes=1 --nproc_per_node=8 \
- scripts/train_unified_query_v1.py --architecture dual_point1024_isoadapter --output-dir "$R" \
+ scripts/train_unified_query_v1.py --architecture dual_point1024_isoadapter_noca --output-dir "$R" \
  --config "$R/model_config.json" --epochs 4 --learning-rate .0001 \
  --understanding-weight .05 --understanding-warmup 1043 --checkpoint-every 50 --epoch-probes \
  --training-window-manifest /space/mawb/ssst/group_plus/semantic_resolution_v1/point1024_fmquery_training2ctx4novel_20261021_v1/training_windows.json \

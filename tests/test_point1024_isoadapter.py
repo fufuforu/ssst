@@ -73,7 +73,7 @@ class RoutingTests(unittest.TestCase):
         from tests.test_unified_query_v1 import config,opt,FakeOmega,FakeSAM,FakeRenderer
         from tokengs.models.input_types import ModelInputDecoder,ModelSupervision
         cfg=replace(config(),dim=256,heads=8,depth=12,superpoint_source='esam_sam',matching_mode='source_many_to_one')
-        model=LocusGSPoint1024IsolatedAdapter(opt().evolve(dec_patch_size=8,img_size=(8,8)),config=cfg,
+        model=getattr(self,'model_type',LocusGSPoint1024IsolatedAdapter)(opt().evolve(dec_patch_size=8,img_size=(8,8)),config=cfg,
             omega=FakeOmega(),sam=FakeSAM(),renderer=FakeRenderer())
         self.assertEqual(model.reconstruction_count,1024)
         self.assertEqual(model.supervised_layers,(6,12));self.assertEqual(model.layer_weights,[1/3,2/3])
@@ -83,7 +83,7 @@ class RoutingTests(unittest.TestCase):
         # Nonzero readout/geometry weights expose leaks hidden by baseline's zero
         # initial readout projections and zero child residual head.
         for layer in model.core.panoptic.layers.values():
-            nn.init.normal_(layer.anchor_attention.O.weight,std=.01)
+            if hasattr(layer,'anchor_attention'):nn.init.normal_(layer.anchor_attention.O.weight,std=.01)
         nn.init.normal_(model.core.panoptic.child_mlp[-1].weight,std=.01)
         def small_memory(layers,rgb):
             module=model.core.semantic_memory;b,v=rgb.shape[:2]
@@ -150,7 +150,9 @@ class RoutingTests(unittest.TestCase):
             for prefix in ('core.initializer.understanding.','core.panoptic.','core.semantic_memory.'):
                 self.assertGreater(norm(gu,prefix),0,prefix)
             for layer in (6,8,10,12):
-                self.assertGreater(norm(gu,f'core.understanding_adapters.L{layer}.net.2.'),0)
+                value=norm(gu,f'core.understanding_adapters.L{layer}.net.2.')
+                if getattr(self,'no_anchor_ca',False) and layer!=12:self.assertEqual(value,0)
+                else:self.assertGreater(value,0)
             # Identity adapters must give exactly the same forward values as
             # detached, adapter-free reads on the same weights and input.
             with torch.no_grad():

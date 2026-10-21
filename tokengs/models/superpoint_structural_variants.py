@@ -96,3 +96,6 @@ MODELS['dual_fps1024_superpoint']=LocusGSSuperpointDualFPSSuperpoint
 
 from tokengs.models.point1024_isoadapter_model import LocusGSPoint1024IsolatedAdapter
 MODELS['dual_point1024_isoadapter']=LocusGSPoint1024IsolatedAdapter
+
+from tokengs.models.point1024_isoadapter_noca import LocusGSPoint1024IsolatedNoCA
+MODELS['dual_point1024_isoadapter_noca']=LocusGSPoint1024IsolatedNoCA
