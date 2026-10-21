@@ -34,6 +34,7 @@ from __future__ import annotations
 
 import json
 import random
+from scripts.io_resilience import scene_depth_frames
 from pathlib import Path
 
 import numpy as np
@@ -186,7 +187,7 @@ class SIU3RProcessedScanNet:
         self.training = True
         self.val_pairs = None
         self.scan_items = {
-            p.name: sorted(int(x.stem) for x in (p / "depth").glob("*.png"))
+            p.name: list(scene_depth_frames(str(p)))
             for p in self.sample_list
         }
         if val_pair_json:

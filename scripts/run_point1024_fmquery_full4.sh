@@ -13,7 +13,9 @@ trap 'printf "{\"status\":\"FAILED\",\"stage\":\"scheduler_signal\",\"exit_code\
 [[ "$(git rev-parse HEAD)" == "$(cat "$R/code.sha")" ]]
 git diff --quiet HEAD -- tokengs scripts tests
 stage=train
-/space/mawb/anaconda3/envs/tokengs/bin/python -m torch.distributed.run --standalone --nnodes=1 --nproc_per_node=8 \
+# The wrapper itself imports only stdlib; no retry after STARTED or any update.
+/usr/bin/python3 scripts/run_with_io_bootstrap_retry.py --run-root "$R" -- \
+ /space/mawb/anaconda3/envs/tokengs/bin/python -m torch.distributed.run --standalone --nnodes=1 --nproc_per_node=8 \
  scripts/train_unified_query_v1.py --architecture dual_point1024_isoadapter --output-dir "$R" \
  --config "$R/model_config.json" --epochs 4 --learning-rate .0001 \
  --understanding-weight .05 --understanding-warmup 1043 --checkpoint-every 50 --epoch-probes \

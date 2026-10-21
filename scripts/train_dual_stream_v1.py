@@ -90,7 +90,12 @@ def build_batch(opt,window,device):
     py=random.getstate();npstate=np.random.get_state();ts=torch.get_rng_state()
     seed=42+int(window.get('source_index',window.get('index',0)))
     random.seed(seed);np.random.seed(seed);torch.set_rng_state(torch.Generator().manual_seed(seed).get_state())
-    try: batch=original(opt,window,device)
+    from scripts.io_resilience import retry_io
+    def read_fixed_batch():
+        # A failed read may consume CPU augmentation RNG: replay the exact seed.
+        random.seed(seed);np.random.seed(seed);torch.set_rng_state(torch.Generator().manual_seed(seed).get_state())
+        return original(opt,window,device)
+    try: batch=retry_io(read_fixed_batch,label=f"fixed batch {window['scene']} {window['context']}")
     finally:random.setstate(py);np.random.set_state(npstate);torch.set_rng_state(ts)
     if 'expected_rgb_sha256' in window:
         actual=hashlib.sha256(batch['images_all'].detach().float().cpu().contiguous().numpy().tobytes()).hexdigest()

@@ -2,8 +2,8 @@
 import datetime,hashlib,json,subprocess
 from pathlib import Path
 ROOT=Path(__file__).resolve().parents[1]
-EXPECTED_ROOT=Path('/space/mawb/ssst_point1024_fmquery_2ctx4novel_full4_code_20261021_v1_node13')
-RUN=Path('/space/mawb/ssst/group_plus/semantic_resolution_v1/point1024_fmquery_2ctx4novel_full4_20261021_v1_node13_8gpu')
+EXPECTED_ROOT=Path('/space/mawb/ssst_point1024_fmquery_2ctx4novel_full4_code_20261021_v2_iofix_node13')
+RUN=Path('/space/mawb/ssst/group_plus/semantic_resolution_v1/point1024_fmquery_2ctx4novel_full4_20261021_v2_iofix_node13_8gpu')
 SMOKE=Path('/space/mawb/ssst/group_plus/semantic_resolution_v1/point1024_fmquery_2ctx4novel_gpu_smoke_20261021_v1_node13')
 
 def main():
@@ -14,18 +14,19 @@ def main():
     if smoke!=json.loads((SMOKE/'SMOKE_PASSED.json').read_text()):raise ValueError('Smoke evidence differs')
     pre=json.loads((RUN/'PREFLIGHT.json').read_text())
     if pre['status']!='PASSED_CPU_AND_GPU_SMOKE' or pre['full_updates']!=4172 or pre['initial_updates']!=0:raise ValueError('Preflight incomplete')
+    if json.loads((RUN/'IO_RESILIENCE_CPU_AUDIT.json').read_text())['status']!='REAL_DATA_IO_RESILIENCE_PASSED':raise ValueError('Missing real-data I/O regression audit')
     if (RUN/'STARTED.json').exists() or (RUN/'checkpoint_latest.pt').exists():raise ValueError('Refusing duplicate training')
     for key in ('training_window_manifest','initial_checkpoint','model_config'):
         if hashlib.sha256(Path(pre[key]).read_bytes()).hexdigest()!=pre[key+'_sha256']:raise ValueError('Changed preflight asset: '+key)
     sha=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
     with (RUN/'SUBMISSION_REQUESTED.json').open('x') as f:json.dump(dict(code_sha=sha,training_only=True),f)
     (RUN/'code.sha').write_text(sha+'\n')
-    argv=['sbatch','--parsable','--job-name=P1024iso2p4A4','--partition=3090','--nodelist=3dimage-13',
+    argv=['sbatch','--parsable','--job-name=P1024isoIO_A4','--partition=3090','--nodelist=3dimage-13',
         '--nodes=1','--ntasks=1','--gres=gpu:3090:8','--cpus-per-task=32','--mem=192G',
         '--time=1-00:00:00','--signal=B:TERM@60','--output='+str(RUN/'slurm-%j.out'),
         'scripts/run_point1024_fmquery_full4.sh',str(RUN)]
     job=int(subprocess.check_output(argv,cwd=ROOT,text=True).strip().split(';')[0])
-    record=dict(training_job=job,evaluation_job=None,summary_job=None,node='3dimage-13',gpus=8,world_size=8,
+    record=dict(training_job=job,resubmitted_from=70008,old_trainings_not_resumed=[69254,69481],evaluation_job=None,summary_job=None,node='3dimage-13',gpus=8,world_size=8,
         global_batch=8,local_batch=1,epochs=4,full_updates=4172,context_views=2,novel_views=4,
         code_root=str(ROOT),code_sha=sha,run_root=str(RUN),smoke_job=69992,initial_updates=0,
         submitted_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),submission_argv=argv,
