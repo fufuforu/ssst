@@ -1,0 +1,15 @@
+{
+  "status": "PREPARED",
+  "path": "/space/mawb/ssst/group_plus/semantic_resolution_v1/point1024_fmquery_training2ctx4novel_20261021_v1/training_windows.json",
+  "sha256": "8fe72589a2b8f1b52fa517cde39a0fce37d104adc2ee3a28585d1747292313f1",
+  "windows": 8337,
+  "scenes": 1191,
+  "context_views": 2,
+  "novel_views": 4,
+  "supervised_views": 6,
+  "parent_contexts_unchanged": true,
+  "parent_novel_frames_retained": true,
+  "new_novel_observations": 16674,
+  "unique_selected_scene_frames": 49021,
+  "selected_assets_verified": true
+}

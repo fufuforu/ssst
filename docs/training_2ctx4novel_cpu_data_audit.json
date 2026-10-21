@@ -1,0 +1,153 @@
+{
+  "status": "REAL_DATA_CPU_2CTX4NOVEL_PASSED",
+  "identity": {
+    "training_view_protocol": "point1024_2context_4novel_v1",
+    "training_window_manifest": "/space/mawb/ssst/group_plus/semantic_resolution_v1/point1024_fmquery_training2ctx4novel_20261021_v1/training_windows.json",
+    "training_window_manifest_sha256": "8fe72589a2b8f1b52fa517cde39a0fce37d104adc2ee3a28585d1747292313f1",
+    "parent_training_manifest_sha256": "87e3cde298569c4e7735cf75ee596868eadf01e9a6a95438c6be51e42f55a523",
+    "context_views": 2,
+    "novel_views": 4,
+    "total_supervised_views": 6
+  },
+  "windows": 8337,
+  "scenes": 1191,
+  "optimizer_updates": 4172,
+  "validation_windows": 128,
+  "chosen_train_probe_indices_preserved": true,
+  "rows": [
+    {
+      "index": 0,
+      "scene": "scene0000_00",
+      "original_frames": [
+        3551,
+        3596,
+        3581,
+        3592
+      ],
+      "expanded_frames": [
+        3551,
+        3596,
+        3555,
+        3581,
+        3583,
+        3592
+      ],
+      "added_novel": [
+        3555,
+        3583
+      ],
+      "contract": {
+        "status": "PASSED",
+        "shapes": {
+          "images_input": [
+            1,
+            2,
+            3,
+            256,
+            256
+          ],
+          "images_all": [
+            1,
+            6,
+            3,
+            256,
+            256
+          ],
+          "images_output": [
+            1,
+            4,
+            3,
+            256,
+            256
+          ],
+          "frame_ids": [
+            1,
+            6
+          ]
+        },
+        "frame_ids": [
+          3551,
+          3596,
+          3555,
+          3581,
+          3583,
+          3592
+        ],
+        "context_views": 2,
+        "novel_views": 4,
+        "supervised_views": 6
+      },
+      "context_rgb_bitwise_equal": true,
+      "context_labels_camera_depth_bitwise_equal": true,
+      "all_original_rgb_bitwise_equal": true
+    },
+    {
+      "index": 8205,
+      "scene": "scene0683_00",
+      "original_frames": [
+        122,
+        174,
+        142,
+        156
+      ],
+      "expanded_frames": [
+        122,
+        174,
+        142,
+        156,
+        160,
+        166
+      ],
+      "added_novel": [
+        160,
+        166
+      ],
+      "contract": {
+        "status": "PASSED",
+        "shapes": {
+          "images_input": [
+            1,
+            2,
+            3,
+            256,
+            256
+          ],
+          "images_all": [
+            1,
+            6,
+            3,
+            256,
+            256
+          ],
+          "images_output": [
+            1,
+            4,
+            3,
+            256,
+            256
+          ],
+          "frame_ids": [
+            1,
+            6
+          ]
+        },
+        "frame_ids": [
+          122,
+          174,
+          142,
+          156,
+          160,
+          166
+        ],
+        "context_views": 2,
+        "novel_views": 4,
+        "supervised_views": 6
+      },
+      "context_rgb_bitwise_equal": true,
+      "context_labels_camera_depth_bitwise_equal": true,
+      "all_original_rgb_bitwise_equal": true
+    }
+  ],
+  "gpu_verified": false,
+  "jobs_submitted": false
+}

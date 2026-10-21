@@ -58,6 +58,7 @@ def main():
     parser.add_argument('--initialize-recon-qp-from-legacy-zero',action='store_true',help='Explicit zero-only migration preserving every baseline tensor and adding only reconstruction Q')
     parser.add_argument('--initialize-fps-superpoint-from-legacy-zero',action='store_true',help='Strict zero migration adding only the FPS slot embedding')
     parser.add_argument('--initialize-point1024-isoadapter-from-legacy-zero',action='store_true',help='Strict original-zero migration for isolated point-seeded control')
+    parser.add_argument('--training-window-manifest',type=Path,help='Frozen 2context+4novel extension; defaults to dedicated manifest for isolated architecture')
     parser.add_argument('--config',type=Path);parser.add_argument('--resume',action='store_true');parser.add_argument('--checkpoint-every',type=int,default=50)
     args=parser.parse_args()
     if args.understanding_weight<0 or not math.isfinite(args.understanding_weight) or args.epochs<1 or args.learning_rate<=0 or args.understanding_warmup<0 or args.checkpoint_every<1 or args.max_updates is not None and args.max_updates<1:parser.error('Invalid training settings')
@@ -67,6 +68,7 @@ def main():
     if args.initialize_fps_superpoint_from_legacy_zero and (args.architecture!='dual_fps1024_superpoint' or not args.initial_checkpoint or args.resume):parser.error('FPS migration requires fresh FPS architecture and explicit zero source')
     if args.initialize_point1024_isoadapter_from_legacy_zero and (args.architecture!='dual_point1024_isoadapter' or not args.initial_checkpoint or args.resume):parser.error('Point1024 isolated migration requires explicit zero source and fresh matching architecture')
     if args.architecture=='dual_point1024_isoadapter' and (args.epochs!=4 or args.short_validation):parser.error('This control requires the A4 four-epoch schedule')
+    if args.training_window_manifest and args.architecture!='dual_point1024_isoadapter':parser.error('2+4 manifest is dedicated to the isolated point1024 control')
     if args.short_validation:
         if args.resume or args.max_updates is not None:parser.error('Short validation uses a fresh bounded run')
         args.epochs=128;args.max_updates=256;args.understanding_warmup=20
@@ -78,6 +80,11 @@ def main():
     torch.backends.cuda.matmul.allow_tf32=False;torch.backends.cudnn.allow_tf32=False
     config=UnifiedQueryConfig(**json.loads(args.config.read_text())) if args.config else UnifiedQueryConfig()
     opt=config_defaults['train_siu3r_unified_query_v1'];windows,chosen,validation=cohorts()
+    training_identity={}
+    if args.architecture=='dual_point1024_isoadapter':
+        from scripts.training_windows_2ctx4novel import load_training_windows,DEFAULT_MANIFEST
+        windows,training_identity=load_training_windows(args.training_window_manifest or DEFAULT_MANIFEST,windows,digest(MANIFEST))
+        opt=opt.evolve(num_views=6)
     if args.short_validation:windows=[windows[i] for i in chosen]
     from tokengs.models.superpoint_structural_variants import build_structural_model
     model_kwargs=dict(recon_qp_slots=args.recon_qp_slots) if args.architecture=='dual_superpoint_recon_qp' else {}
@@ -89,6 +96,7 @@ def main():
         if args.initialize_point1024_isoadapter_from_legacy_zero:
             from scripts.point1024_isoadapter_initial_state import initialize_point1024_isoadapter_from_legacy_zero
             evidence=initialize_point1024_isoadapter_from_legacy_zero(initial,model,manifest_sha256=digest(MANIFEST),heldout_sha256=digest(HELDOUT),world=world)
+            evidence['training_data_extension']=training_identity
             if rank==0:
                 args.output_dir.mkdir(parents=True,exist_ok=True)
                 (args.output_dir/'POINT1024_ISO_INITIALIZATION.json').write_text(json.dumps(evidence,indent=2)+'\n')
@@ -128,6 +136,7 @@ def main():
         meta.update(reconstruction_anchor_count=1024,reconstruction_initialization='fps_xyz_plus_learned_embedding_plus_superpoint',supervised_layers=list(model.supervised_layers),layer_weights=list(model.layer_weights))
     if args.architecture=='dual_point1024_isoadapter':
         meta.update(reconstruction_anchor_count=1024,seed_feature_source='exact_source_pixel_shared_projection_256',understanding_seed_feature_source='semantic_memory_fm_256',gradient_isolation=True,adapter_hidden=64,adapter_read_layers=[6,8,10,12],supervised_layers=list(model.supervised_layers),layer_weights=list(model.layer_weights))
+    meta.update(training_identity)
     progress=dict(epoch=0,update_in_epoch=0,full_updates=0)
     if args.resume:
         saved=torch.load(root/'checkpoint_latest.pt',map_location='cpu',weights_only=False,mmap=True)

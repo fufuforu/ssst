@@ -9,8 +9,10 @@ def verify(root):
         if not condition:raise ValueError(message)
     b=read('BUDGET.json');steps=read('STEP_RESULTS.json');d=read('DIRECTIONAL_GRADIENTS.json');first=read('FIRST_UPDATE_VERIFIED.json')
     contract=read('BATCH_SHAPES.json')
-    require(contract['status']=='PASSED' and contract['shapes']==dict(images_input=[1,2,3,256,256],images_all=[1,4,3,256,256],images_output=[1,2,3,256,256],frame_ids=[1,4]),'Wrong A4 input/supervision shapes')
-    require(contract['frame_ids']==b['window']['context']+b['window']['novel'] and contract['supervised_views']==4,'Wrong A4 frame order')
+    require(contract['status']=='PASSED' and contract['shapes']==dict(images_input=[1,2,3,256,256],images_all=[1,6,3,256,256],images_output=[1,4,3,256,256],frame_ids=[1,6]),'Wrong 2+4 input/supervision shapes')
+    require(contract['frame_ids']==b['window']['context']+b['window']['novel'] and contract['supervised_views']==6,'Wrong 2+4 frame order')
+    from scripts.training_windows_2ctx4novel import PROTOCOL
+    require(b.get('training_view_protocol')==PROTOCOL and len(b['window']['novel'])==4,'Missing 2+4 protocol')
     require(b['architecture']=='OMEGA_POINT1024_SOURCE256_FMQUERY_ISOLATED_RESIDUAL_ADAPTER_V2','Wrong architecture')
     require(read('POINT1024_ISO_INITIALIZATION.json')['copied_tensor_count']==657,'Wrong zero migration')
     require(b['world_size']==1 and b['global_batch']==8 and b['accumulation_steps']==8 and b['unique_windows']==1,'Wrong smoke batch/window')

@@ -1,3 +1,5 @@
+> 当前目录已派生为2context+4novel数据版本；请先读 docs/training_2ctx4novel_implementation_20261021.md。下文2+2及69969节点记录属于父版本历史，不代表本目录已提交或完成GPU。
+
 # Point1024 / source256 / isolated residual adapters：仅代码准备
 
 用户确认先detach输入再加可学习adapter、重建种子按精确视图/像素来源采样，并进一步要求理解query改用fm采样到点云的特征。用户本轮明确**先不提交作业**。本快照独立于69787及其自动16epoch流水线；本轮未查询、更改、取消或提交任何Slurm作业。

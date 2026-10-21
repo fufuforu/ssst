@@ -22,12 +22,12 @@ def batch_shapes(batch):
 def validate_batch_contract(batch,window):
     context=list(window['context']);novel=list(window['novel']);frames=context+novel
     actual=batch_shapes(batch)
-    expected=dict(images_input=[1,2,3,256,256],images_all=[1,4,3,256,256],images_output=[1,2,3,256,256],frame_ids=[1,4])
-    if len(context)!=2 or len(novel)!=2 or len(set(frames))!=4 or actual!=expected:
-        raise ValueError(f'Original A4 four-view contract differs: actual={actual}, expected={expected}, frames={frames}')
+    expected=dict(images_input=[1,2,3,256,256],images_all=[1,6,3,256,256],images_output=[1,4,3,256,256],frame_ids=[1,6])
+    if len(context)!=2 or len(novel)!=4 or len(set(frames))!=6 or actual!=expected:
+        raise ValueError(f'Frozen 2+4 six-view contract differs: actual={actual}, expected={expected}, frames={frames}')
     actual_frames=batch['frame_ids'][0].tolist()
     if actual_frames!=frames:raise ValueError(f'Batch frame order differs: actual={actual_frames}, expected={frames}')
-    return dict(status='PASSED',shapes=actual,frame_ids=actual_frames,context_views=2,novel_views=2,supervised_views=4)
+    return dict(status='PASSED',shapes=actual,frame_ids=actual_frames,context_views=2,novel_views=4,supervised_views=6)
 
 
 def main(root):
@@ -59,13 +59,17 @@ def main(root):
         if digest(source)!=(root/'untrained_initial.sha256').read_text().strip():raise ValueError('Source SHA differs')
         saved=torch.load(source,map_location='cpu',weights_only=False,mmap=True)
         config=UnifiedQueryConfig(**saved['meta']['config'])
-        windows,_,_=cohorts();index=epoch_order(len(windows),0)[0];window=windows[index]
+        windows,_,_=cohorts()
+        from scripts.training_windows_2ctx4novel import load_training_windows,DEFAULT_MANIFEST
+        windows,training_identity=load_training_windows(DEFAULT_MANIFEST,windows,digest(MANIFEST))
+        index=epoch_order(len(windows),0)[0];window=windows[index]
         if len(windows)!=8337 or len({w['scene'] for w in windows})!=1191:raise ValueError('Training cohort differs')
         stage='model_and_zero_migration'
-        opt=config_defaults['train_siu3r_unified_query_v1']
+        opt=config_defaults['train_siu3r_unified_query_v1'].evolve(num_views=6)
         model=build_structural_model('dual_point1024_isoadapter',opt,config).to(device)
         evidence=initialize_point1024_isoadapter_from_legacy_zero(saved,model,
             manifest_sha256=digest(MANIFEST),heldout_sha256=digest(HELDOUT),world=1)
+        evidence['training_data_extension']=training_identity
         write(root,'POINT1024_ISO_INITIALIZATION.json',evidence)
         restore_rng(saved['rank_rng'][0]);del saved
         grouped={}
@@ -94,12 +98,13 @@ def main(root):
             supervised_layers=list(model.supervised_layers),layer_weights=list(model.layer_weights),image_hw=list(opt.img_size),
             gpu_name=torch.cuda.get_device_name(0),gpu_total_memory_bytes=torch.cuda.get_device_properties(0).total_memory,
             color_prior=False,write_strength=0.,full_training_submitted=False)
+        budget.update(training_identity)
         write(root,'BUDGET.json',budget)
         stage='batch_load';batch=build_batch(opt,window,device)
         write(root,'BATCH_SHAPES.json',dict(status='OBSERVED',shapes=batch_shapes(batch)))
         contract=validate_batch_contract(batch,window)
         write(root,'BATCH_SHAPES.json',contract);print(json.dumps(contract),flush=True)
-        budget.update(context_views=2,novel_views=2,supervised_views=4,batch_contract=contract)
+        budget.update(context_views=2,novel_views=4,supervised_views=6,batch_contract=contract)
         write(root,'BUDGET.json',budget)
         model.train()
         for update in range(2):

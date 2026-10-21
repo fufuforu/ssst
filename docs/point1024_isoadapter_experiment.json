@@ -60,5 +60,12 @@
   "gpu_smoke_performed": false,
   "understanding_seed_feature_source": "semantic_memory_fm_256",
   "understanding_point_sampling": "same_source_indices_and_source_to_point_mean_fusion",
-  "understanding_seed_fm_detached": false
+  "understanding_seed_fm_detached": false,
+  "training_view_protocol": "point1024_2context_4novel_v1",
+  "novel_views": 4,
+  "total_supervised_views": 6,
+  "target_views_definition": "novel-only; context frames are additionally supervised",
+  "training_window_manifest": "/space/mawb/ssst/group_plus/semantic_resolution_v1/point1024_fmquery_training2ctx4novel_20261021_v1/training_windows.json",
+  "parent_contexts_unchanged": true,
+  "parent_novel_frames_retained": true
 }

@@ -1,0 +1,18 @@
+{
+  "status": "CPU_2CTX4NOVEL_PREPARATION_PASSED",
+  "unit_tests_passed": 7,
+  "real_data_windows_tested": [
+    0,
+    8205
+  ],
+  "training_windows": 8337,
+  "training_scenes": 1191,
+  "planned_updates": 4172,
+  "parent_contexts_retained": true,
+  "parent_novel_frames_retained": true,
+  "real_context_tensors_bitwise_equal": true,
+  "supervised_views": 6,
+  "model_parameter_layout_unchanged": true,
+  "gpu_verified": false,
+  "jobs_submitted": false
+}

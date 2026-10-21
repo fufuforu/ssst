@@ -39,6 +39,11 @@ def main():
     if meta.get('short_validation') and not args.smoke:raise ValueError('Short trainability run is not full-data training; use --smoke only')
     if not args.smoke and saved['progress']['epoch']!=meta['epochs']:raise ValueError('Incomplete training; only --smoke export allowed')
     training,_,_=cohorts()
+    training_identity={}
+    if meta['architecture']=='OMEGA_POINT1024_SOURCE256_FMQUERY_ISOLATED_RESIDUAL_ADAPTER_V2':
+        from scripts.training_windows_2ctx4novel import load_training_windows,DEFAULT_MANIFEST
+        training,training_identity=load_training_windows(meta.get('training_window_manifest',DEFAULT_MANIFEST),training,digest(MANIFEST))
+        if any(meta.get(k)!=v for k,v in training_identity.items()):raise ValueError('2+4 training manifest/protocol identity differs')
     if not args.smoke and saved['progress']['full_updates']!=meta['epochs']*(len(epoch_order(len(training),0))//8):raise ValueError('Training update count differs')
     if meta['architecture']=='OMEGA_3D_FPS1024_SUPERPOINT_RECON_V1':
         if meta.get('reconstruction_anchor_count')!=1024 or meta.get('reconstruction_initialization')!='fps_xyz_plus_learned_embedding_plus_superpoint':raise ValueError('FPS initialization identity differs')
@@ -48,7 +53,9 @@ def main():
     if meta['architecture']=='OMEGA_3D_SUPERPOINT_RECON_QP_V1':
         if 'recon_qp_slots' not in meta or meta['recon_qp_slots']<1:raise ValueError('Missing reconstruction Q bank identity')
         constructor_kwargs['recon_qp_slots']=meta['recon_qp_slots']
-    opt=config_defaults['train_siu3r_unified_query_v1'];model=constructors[meta['architecture']](opt,config=UnifiedQueryConfig(**meta['config']),**constructor_kwargs).to(device)
+    opt=config_defaults['train_siu3r_unified_query_v1']
+    if training_identity:opt=opt.evolve(num_views=6)
+    model=constructors[meta['architecture']](opt,config=UnifiedQueryConfig(**meta['config']),**constructor_kwargs).to(device)
     if meta['architecture']=='OMEGA_3D_FPS1024_SUPERPOINT_RECON_V1':
         from tokengs.models.canonical_recon import supervised_layer_weights
         layers=tuple(meta['supervised_layers'])
