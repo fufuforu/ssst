@@ -67,3 +67,27 @@ class LocusGSSuperpointDualReconQP(LocusGSSuperpointDual):
         return output,metrics
 
 MODELS['dual_superpoint_recon_qp']=LocusGSSuperpointDualReconQP
+
+
+from tokengs.models.reconstruction_fps_superpoint_core import FPSSuperpointDualCore
+
+class LocusGSSuperpointDualFPSSuperpoint(LocusGSSuperpointDual):
+    architecture_name='OMEGA_3D_FPS1024_SUPERPOINT_RECON_V1'
+    core_type=FPSSuperpointDualCore
+
+    def __init__(self,opt,**kwargs):
+        super().__init__(opt,**kwargs)
+        import os
+        if not os.environ.get('RG_SUPERVISED'):
+            from tokengs.models.canonical_recon import supervised_layer_weights
+            self.supervised_layers=(6,12)
+            self.layer_weights=supervised_layer_weights(self.supervised_layers)
+
+    def step_loss(self,*args,**kwargs):
+        output,metrics=super().step_loss(*args,**kwargs)
+        pred=output['prediction']
+        for key in ('num_superpoint_queries','num_reconstruction_anchors','num_object_queries','num_stuff_queries','num_gaussians','num_sampled_superpoints','sampled_superpoint_coverage'):
+            metrics[key]=pred[key]
+        return output,metrics
+
+MODELS['dual_fps1024_superpoint']=LocusGSSuperpointDualFPSSuperpoint

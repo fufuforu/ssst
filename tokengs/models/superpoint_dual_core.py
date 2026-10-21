@@ -50,7 +50,7 @@ class SuperpointDualCore(nn.Module):
             rays=patch_plucker_rays(rays_o,rays_d,patch_size=8),renderer=renderer,
             decoder=ModelInputDecoder(cam_view=torch.linalg.inv(omega['c2w']).transpose(-1,-2),intrinsics=camera_vectors(omega['k'])))
 
-    def initialize_reconstruction_anchors(self,reconstruction_seed):
+    def initialize_reconstruction_anchors(self,reconstruction_seed,cloud=None):
         tokens=self.reconstruction_seed_projection(reconstruction_seed['query'])
         n=tokens.shape[1]
         return dict(tokens=tokens,centers=reconstruction_seed['centers'],radii=reconstruction_seed['radii'],
@@ -60,7 +60,7 @@ class SuperpointDualCore(nn.Module):
     def forward(self,cloud,memory,superpoint_ids=None):
         if superpoint_ids is not None:cloud=dict(cloud,point_superpoint_ids=superpoint_ids)
         seed=self.initializer(cloud,cloud['features'],cloud['features']);rec,under=seed['reconstruction'],seed['understanding']
-        rec_anchors=self.initialize_reconstruction_anchors(rec)
+        rec_anchors=self.initialize_reconstruction_anchors(rec,cloud)
         tokens=rec_anchors['tokens'];fm=memory['fm'];radius=under['radii'][...,None].expand(-1,-1,3)
         states,_=self.anchor_decoder.forward_stateful(tokens,memory['latent'],memory['rays'],self.panoptic,fm,under['query'],self.semantic_memory.mask_embedder,0,
             seed_mu=rec_anchors['centers'],seed_radius=rec_anchors['radii'],seed_c=under['centers'],seed_s=radius,write_strength=0.,normalization_fn=superpoint_scene_normalization)
@@ -76,7 +76,7 @@ class SuperpointDualCore(nn.Module):
         logits=features@self.semantic_memory.mask_embedder(q).transpose(1,2);classification=self.panoptic.classify(q)
         final.update(classification)
         pred_iou=(torch.sigmoid(self.iou_head(q[:, :n])).squeeze(-1) if self.iou_head is not None else None)
-        return dict(states=states,gaussians=gaussians,gaussian_membership=logits.sigmoid(),gaussian_mask_logits=logits,
+        result=dict(states=states,gaussians=gaussians,gaussian_membership=logits.sigmoid(),gaussian_mask_logits=logits,
             thing_logits19=classification['thing_logits19'],p_class=classification['p_class'],q_pre=under['query'],unified_query=q[:,:n],
             superpoints=under,cloud=cloud,
             anchor_to_superpoint=rec_anchors['anchor_to_superpoint'],anchor_slot_ids=rec_anchors['anchor_slot_ids'],
@@ -86,9 +86,14 @@ class SuperpointDualCore(nn.Module):
             num_object_queries=n,num_stuff_queries=2,num_gaussians=gaussians.shape[1],
             recon_qp_slots=getattr(getattr(self,'reconstruction_qp',None),'num_slots',1),
             num_thing_queries=n,pred_iou=pred_iou)
+        if 'anchor_point_indices' in rec_anchors:
+            result.update(initial_anchor_mu=rec_anchors['centers'],initial_anchor_radius=rec_anchors['radii'])
+        for key in ('anchor_point_indices','num_sampled_superpoints','sampled_superpoint_coverage'):
+            if key in rec_anchors:result[key]=rec_anchors[key]
+        return result
 
     def parameter_groups(self):
         groups=dict(shared=[],reconstruction=[],understanding=[])
-        prefixes=('reconstruction_qp.','initializer.reconstruction.','reconstruction_seed_projection.','reconstruction_memory.','blocks.','anchor_decoder.','activation_head.')
+        prefixes=('reconstruction_fps.','reconstruction_qp.','initializer.reconstruction.','reconstruction_seed_projection.','reconstruction_memory.','blocks.','anchor_decoder.','activation_head.')
         for name,p in self.named_parameters():groups['reconstruction' if name.startswith(prefixes) else 'understanding'].append(p)
         return groups

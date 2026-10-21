@@ -47,7 +47,7 @@ class Task(nn.Module):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir',type=Path,required=True);parser.add_argument('--understanding-weight',type=float,required=True)
-    parser.add_argument('--architecture',choices=('unified','dual_superpoint','unified_direct','dual_superpoint_recon_qp'),default='unified')
+    parser.add_argument('--architecture',choices=('unified','dual_superpoint','unified_direct','dual_superpoint_recon_qp','dual_fps1024_superpoint'),default='unified')
     parser.add_argument('--epochs',type=int,default=4);parser.add_argument('--max-updates',type=int)
     parser.add_argument('--learning-rate',type=float,default=1e-4);parser.add_argument('--understanding-warmup',type=int,default=1043)
     parser.add_argument('--short-validation',action='store_true',help='16 fixed training scenes, 256 updates, initial/final probes')
@@ -56,12 +56,14 @@ def main():
     parser.add_argument('--initial-checkpoint',type=Path);parser.add_argument('--initial-sha256')
     parser.add_argument('--recon-qp-slots',type=int,default=20,help='Persistent reconstruction Q vectors per scene-dependent P; only for dual_superpoint_recon_qp')
     parser.add_argument('--initialize-recon-qp-from-legacy-zero',action='store_true',help='Explicit zero-only migration preserving every baseline tensor and adding only reconstruction Q')
+    parser.add_argument('--initialize-fps-superpoint-from-legacy-zero',action='store_true',help='Strict zero migration adding only the FPS slot embedding')
     parser.add_argument('--config',type=Path);parser.add_argument('--resume',action='store_true');parser.add_argument('--checkpoint-every',type=int,default=50)
     args=parser.parse_args()
     if args.understanding_weight<0 or not math.isfinite(args.understanding_weight) or args.epochs<1 or args.learning_rate<=0 or args.understanding_warmup<0 or args.checkpoint_every<1 or args.max_updates is not None and args.max_updates<1:parser.error('Invalid training settings')
     if bool(args.initial_checkpoint)!=bool(args.initial_sha256) or args.initial_checkpoint and (args.resume or args.short_validation):parser.error('Zero-step initialization requires SHA and fresh full training')
     if args.recon_qp_slots<1 or (args.architecture!='dual_superpoint_recon_qp' and args.recon_qp_slots!=20):parser.error('Invalid reconstruction Q+P slot setting')
     if args.initialize_recon_qp_from_legacy_zero and (args.architecture!='dual_superpoint_recon_qp' or not args.initial_checkpoint or args.resume):parser.error('Legacy Q+P migration requires fresh Q+P with an explicit zero source')
+    if args.initialize_fps_superpoint_from_legacy_zero and (args.architecture!='dual_fps1024_superpoint' or not args.initial_checkpoint or args.resume):parser.error('FPS migration requires fresh FPS architecture and explicit zero source')
     if args.short_validation:
         if args.resume or args.max_updates is not None:parser.error('Short validation uses a fresh bounded run')
         args.epochs=128;args.max_updates=256;args.understanding_warmup=20
@@ -81,7 +83,13 @@ def main():
         if digest(args.initial_checkpoint)!=args.initial_sha256:raise ValueError('Zero-step checkpoint SHA differs')
         from scripts.unified_query_initial_state import validate_zero_initial
         initial=torch.load(args.initial_checkpoint,map_location='cpu',weights_only=False,mmap=True)
-        if args.initialize_recon_qp_from_legacy_zero:
+        if args.initialize_fps_superpoint_from_legacy_zero:
+            from scripts.recon_fps_superpoint_initial_state import initialize_fps_superpoint_from_legacy_zero
+            evidence=initialize_fps_superpoint_from_legacy_zero(initial,model,manifest_sha256=digest(MANIFEST),heldout_sha256=digest(HELDOUT),world=world)
+            if rank==0:
+                args.output_dir.mkdir(parents=True,exist_ok=True)
+                (args.output_dir/'FPS_SUPERPOINT_INITIALIZATION.json').write_text(json.dumps(evidence,indent=2)+'\n')
+        elif args.initialize_recon_qp_from_legacy_zero:
             from scripts.recon_qp_initial_state import initialize_recon_qp_from_legacy_zero
             evidence=initialize_recon_qp_from_legacy_zero(initial,model,manifest_sha256=digest(MANIFEST),heldout_sha256=digest(HELDOUT),world=world)
             if rank==0:
@@ -107,6 +115,8 @@ def main():
         initial_checkpoint=str(args.initial_checkpoint.resolve()) if args.initial_checkpoint else None,initial_sha256=args.initial_sha256,initial_updates=0,epoch_probes=args.epoch_probes,short_validation=args.short_validation,training_windows=windows if args.short_validation else None,world_size=world,global_batch=8,epochs=args.epochs,understanding_weight=args.understanding_weight,understanding_warmup=args.understanding_warmup,learning_rate=args.learning_rate)
     if args.architecture=='dual_superpoint_recon_qp':
         meta.update(recon_qp_slots=args.recon_qp_slots,supervised_layers=list(model.supervised_layers),layer_weights=list(model.layer_weights))
+    if args.architecture=='dual_fps1024_superpoint':
+        meta.update(reconstruction_anchor_count=1024,reconstruction_initialization='fps_xyz_plus_learned_embedding_plus_superpoint',supervised_layers=list(model.supervised_layers),layer_weights=list(model.layer_weights))
     progress=dict(epoch=0,update_in_epoch=0,full_updates=0)
     if args.resume:
         saved=torch.load(root/'checkpoint_latest.pt',map_location='cpu',weights_only=False,mmap=True)
@@ -159,6 +169,11 @@ def main():
                     value=float(torch.stack([p.grad.detach().float().square().sum() for p in parameters if p.grad is not None]).sum().sqrt())
                     if not math.isfinite(value) or value<=0:raise ValueError('Missing/nonfinite first gradient: '+name)
                     gradient_evidence[name]=value
+                if hasattr(model.core,'reconstruction_fps'):
+                    grad=model.core.reconstruction_fps.learned_embedding.grad
+                    value=float(grad.detach().float().norm()) if grad is not None else 0.
+                    if not math.isfinite(value) or value<=0:raise ValueError('Missing/nonfinite FPS embedding gradient')
+                    gradient_evidence['fps_learned_embedding']=value
                 if hasattr(model.core,'reconstruction_qp'):
                     grad=model.core.reconstruction_qp.learned_q.grad
                     value=float(grad.detach().float().norm()) if grad is not None else 0.
@@ -185,7 +200,7 @@ def main():
                 for _k in ('loss','loss_recon','loss_understanding','psnr','psnr_layer6','psnr_layer8','psnr_layer10','psnr_layer12',
                            'loss_rgb_layer12','loss_ssim_layer12','loss_gaussian_visibility_layer12','loss_extra','loss_extra_depth','loss_extra_tsem',
                            'loss_iou','pred_iou_min','pred_iou_max','grad_norm','understanding_weight','matched_gt_count','matched_query_count','unsupported_GT_count',
-                           'num_thing_queries','num_superpoint_queries','num_reconstruction_anchors','num_object_queries','num_gaussians','recon_qp_slots','peak_cuda_memory_bytes'):
+                           'num_thing_queries','num_superpoint_queries','num_reconstruction_anchors','num_object_queries','num_gaussians','num_sampled_superpoints','sampled_superpoint_coverage','recon_qp_slots','peak_cuda_memory_bytes'):
                     if _k in row:writer.add_scalar('train/'+_k,row[_k],step+1)
                 for _gi,_g in enumerate(optimizer.param_groups):writer.add_scalar('lr/group%d'%_gi,_g['lr'],step+1)
                 if (step+1)%50==0:writer.flush()

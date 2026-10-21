@@ -1,0 +1,396 @@
+diff --git a/scripts/audit_recon_fps_superpoint_zero.py b/scripts/audit_recon_fps_superpoint_zero.py
+new file mode 100644
+index 0000000..f22d04e
+--- /dev/null
++++ b/scripts/audit_recon_fps_superpoint_zero.py
+@@ -0,0 +1,48 @@
++"""CPU state-layout/zero-migration audit; does not run or submit GPU work."""
++from pathlib import Path
++import sys
++ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
++from scripts.runtime_bootstrap import prepare_runtime
++prepare_runtime(ROOT)
++import argparse,hashlib,json
++from types import SimpleNamespace
++import torch
++from torch import nn
++from tokengs.options import config_defaults
++from tokengs.models.unified_superpoints import UnifiedQueryConfig
++from tokengs.models.reconstruction_fps_superpoint_core import FPSSuperpointDualCore
++from scripts.recon_fps_superpoint_initial_state import BANK_KEY,initialize_fps_superpoint_from_legacy_zero
++
++def digest(p):
++    h=hashlib.sha256()
++    with p.open('rb') as f:
++        for b in iter(lambda:f.read(8*1024*1024),b''):h.update(b)
++    return h.hexdigest()
++
++p=argparse.ArgumentParser();p.add_argument('--output',type=Path,required=True);args=p.parse_args()
++source=Path('/space/mawb/ssst/group_plus/unified_query_training_v1/attempt05_legacy_dual_superpoint_full_node13_8gpu/checkpoint_untrained_initial.pt')
++sha='3c7f1860f3897e1fba305564b30f8e4d67954e6280891bf8a33296bf42b25744';assert digest(source)==sha
++saved=torch.load(source,map_location='cpu',weights_only=False,mmap=True)
++cfg=UnifiedQueryConfig(**saved['meta']['config']);torch.manual_seed(42)
++model=nn.Module();model.architecture_name='OMEGA_3D_FPS1024_SUPERPOINT_RECON_V1';model.config=cfg
++model.frozen_omega=SimpleNamespace(source_identity=saved['meta']['omega_identity'])
++model.sam_proposals=SimpleNamespace(source_identity=saved['meta']['sam_identity'])
++model.gfm_projection=nn.Sequential(nn.LayerNorm(2048),nn.Linear(2048,256))
++model.core=FPSSuperpointDualCore(config_defaults['train_siu3r_unified_query_v1'],cfg)
++q_before=model.core.reconstruction_fps.learned_embedding.detach().clone()
++evidence=initialize_fps_superpoint_from_legacy_zero(saved,model,
++    manifest_sha256=digest(Path('/space/mawb/ssst/group_plus/object_locus_panoptic_full1201_8gpu/manifest.json')),
++    heldout_sha256=digest(Path('/space/mawb/ssst/group_plus/vggt_understanding_bottleneck_v1/representative128_cohort_20261014.json')),world=8)
++state=model.state_dict()
++for key in evidence['copied_keys']:assert torch.equal(state[key],saved['model'][key]),key
++assert torch.equal(state[BANK_KEY],q_before)
++parent=Path('/space/mawb/ssst_iouhead_code_20261020_v1')
++for name in ['dynamic_panoptic_controller.py','object_locus_panoptic_v1_controller.py','dual_stream_decoder.py','unified_query_loss.py','unified_query_v1.py','dual_superpoint_initialization.py','unified_superpoints.py']:
++    assert (ROOT/'tokengs/models'/name).read_bytes()==(parent/'tokengs/models'/name).read_bytes(),name
++result=dict(status='CPU_FPS_SUPERPOINT_ZERO_AUDIT_PASSED',source_sha256=sha,baseline_tensors_copied=len(evidence['copied_keys']),
++    baseline_tensors_bitwise_equal=True,understanding_code_and_initial_tensors_preserved=True,
++    only_new_parameter=BANK_KEY,new_parameter_shape=list(q_before.shape),new_parameter_count=q_before.numel(),
++    total_trainable_parameters=sum(p.numel() for p in model.parameters()),frozen_backbones_used_identity_stubs=True,
++    gpu_verified=False,jobs_submitted=False)
++args.output.parent.mkdir(parents=True,exist_ok=True);args.output.write_text(json.dumps(result,indent=2)+'\n')
++print(json.dumps(result),flush=True)
+diff --git a/scripts/export_unified_query_checkpoint.py b/scripts/export_unified_query_checkpoint.py
+index df722cf..a9dd2c1 100644
+--- a/scripts/export_unified_query_checkpoint.py
++++ b/scripts/export_unified_query_checkpoint.py
+@@ -42,0 +43,2 @@ def main():
++    if meta['architecture']=='OMEGA_3D_FPS1024_SUPERPOINT_RECON_V1':
++        if meta.get('reconstruction_anchor_count')!=1024 or meta.get('reconstruction_initialization')!='fps_xyz_plus_learned_embedding_plus_superpoint':raise ValueError('FPS initialization identity differs')
+@@ -47,0 +50,7 @@ def main():
++    if meta['architecture']=='OMEGA_3D_FPS1024_SUPERPOINT_RECON_V1':
++        from tokengs.models.canonical_recon import supervised_layer_weights
++        layers=tuple(meta['supervised_layers'])
++        if not layers or layers[-1]!=12 or tuple(sorted(set(layers)))!=layers or any(x<1 or x>12 for x in layers):raise ValueError('Invalid saved supervision layers')
++        weights=supervised_layer_weights(layers)
++        if list(weights)!=meta['layer_weights']:raise ValueError('Saved supervision weights differ')
++        model.supervised_layers=layers;model.layer_weights=weights
+diff --git a/scripts/recon_fps_superpoint_initial_state.py b/scripts/recon_fps_superpoint_initial_state.py
+new file mode 100644
+index 0000000..b32779a
+--- /dev/null
++++ b/scripts/recon_fps_superpoint_initial_state.py
+@@ -0,0 +1,24 @@
++"""Explicit zero-only legacy -> FPS-superpoint migration; only the learned FPS embedding is new."""
++BANK_KEY='core.reconstruction_fps.learned_embedding'
++
++def initialize_fps_superpoint_from_legacy_zero(saved,model,*,manifest_sha256,heldout_sha256,world):
++    import torch
++    if model.architecture_name!='OMEGA_3D_FPS1024_SUPERPOINT_RECON_V1':raise ValueError('Wrong target FPS-superpoint architecture')
++    meta=saved['meta']
++    if saved['progress']!=dict(epoch=0,update_in_epoch=0,full_updates=0) or saved['optimizer']['state']:
++        raise ValueError('FPS-superpoint initialization requires true zero updates and empty Adam')
++    expected=dict(architecture='OMEGA_3D_SUPERPOINT_LEGACY_DUAL_V1',config=model.config.to_dict(),
++        manifest_sha256=manifest_sha256,heldout_sha256=heldout_sha256,global_batch=8,
++        omega_identity=model.frozen_omega.source_identity,
++        sam_identity=model.sam_proposals.source_identity if model.sam_proposals is not None else None)
++    if any(meta.get(k)!=v for k,v in expected.items()):raise ValueError('Legacy FPS-superpoint source assets/data/config/architecture differ')
++    if meta['world_size']!=8 or len(saved['rank_rng'])!=8 or world not in (1,2,4,8):raise ValueError('Expected original eight-rank zero and a divisor rank count')
++    target={k:v for k,v in model.state_dict().items() if not k.startswith(('frozen_omega.','sam_proposals.'))}
++    source=saved['model']
++    if BANK_KEY not in target or set(source)!=(set(target)-{BANK_KEY}):raise ValueError('Only the new reconstruction FPS embedding may differ')
++    if any(target[k].shape!=source[k].shape for k in source):raise ValueError('Legacy tensor shape mismatch')
++    with torch.no_grad():
++        for k,v in source.items():target[k].copy_(v)
++    return dict(status='LEGACY_ZERO_PLUS_FPS_SUPERPOINT_EMBEDDING',copied_tensor_count=len(source),copied_keys=sorted(source),new_parameter=BANK_KEY,
++        embedding_shape=list(target[BANK_KEY].shape),source_world=8,target_world=world,rank_rng_selection=list(range(world)),
++        understanding_parameters_preserved=True,source_updates=0,empty_adam=True)
+diff --git a/scripts/train_unified_query_v1.py b/scripts/train_unified_query_v1.py
+index e92c1b8..6cfa192 100644
+--- a/scripts/train_unified_query_v1.py
++++ b/scripts/train_unified_query_v1.py
+@@ -50 +50 @@ def main():
+-    parser.add_argument('--architecture',choices=('unified','dual_superpoint','unified_direct','dual_superpoint_recon_qp'),default='unified')
++    parser.add_argument('--architecture',choices=('unified','dual_superpoint','unified_direct','dual_superpoint_recon_qp','dual_fps1024_superpoint'),default='unified')
+@@ -58,0 +59 @@ def main():
++    parser.add_argument('--initialize-fps-superpoint-from-legacy-zero',action='store_true',help='Strict zero migration adding only the FPS slot embedding')
+@@ -64,0 +66 @@ def main():
++    if args.initialize_fps_superpoint_from_legacy_zero and (args.architecture!='dual_fps1024_superpoint' or not args.initial_checkpoint or args.resume):parser.error('FPS migration requires fresh FPS architecture and explicit zero source')
+@@ -84 +86,7 @@ def main():
+-        if args.initialize_recon_qp_from_legacy_zero:
++        if args.initialize_fps_superpoint_from_legacy_zero:
++            from scripts.recon_fps_superpoint_initial_state import initialize_fps_superpoint_from_legacy_zero
++            evidence=initialize_fps_superpoint_from_legacy_zero(initial,model,manifest_sha256=digest(MANIFEST),heldout_sha256=digest(HELDOUT),world=world)
++            if rank==0:
++                args.output_dir.mkdir(parents=True,exist_ok=True)
++                (args.output_dir/'FPS_SUPERPOINT_INITIALIZATION.json').write_text(json.dumps(evidence,indent=2)+'\n')
++        elif args.initialize_recon_qp_from_legacy_zero:
+@@ -109,0 +118,2 @@ def main():
++    if args.architecture=='dual_fps1024_superpoint':
++        meta.update(reconstruction_anchor_count=1024,reconstruction_initialization='fps_xyz_plus_learned_embedding_plus_superpoint',supervised_layers=list(model.supervised_layers),layer_weights=list(model.layer_weights))
+@@ -161,0 +172,5 @@ def main():
++                if hasattr(model.core,'reconstruction_fps'):
++                    grad=model.core.reconstruction_fps.learned_embedding.grad
++                    value=float(grad.detach().float().norm()) if grad is not None else 0.
++                    if not math.isfinite(value) or value<=0:raise ValueError('Missing/nonfinite FPS embedding gradient')
++                    gradient_evidence['fps_learned_embedding']=value
+@@ -188 +203 @@ def main():
+-                           'num_thing_queries','num_superpoint_queries','num_reconstruction_anchors','num_object_queries','num_gaussians','recon_qp_slots','peak_cuda_memory_bytes'):
++                           'num_thing_queries','num_superpoint_queries','num_reconstruction_anchors','num_object_queries','num_gaussians','num_sampled_superpoints','sampled_superpoint_coverage','recon_qp_slots','peak_cuda_memory_bytes'):
+diff --git a/tests/test_reconstruction_fps_superpoint.py b/tests/test_reconstruction_fps_superpoint.py
+new file mode 100644
+index 0000000..9f5b02e
+--- /dev/null
++++ b/tests/test_reconstruction_fps_superpoint.py
+@@ -0,0 +1,114 @@
++import io
++import unittest
++from pathlib import Path
++from dataclasses import replace
++from unittest.mock import patch
++import torch
++from torch import nn
++from scripts.runtime_bootstrap import prepare_runtime
++prepare_runtime(Path(__file__).resolve().parents[1],log=lambda *args:None)
++from tokengs.models.reconstruction_fps_superpoint import deterministic_fps,FPSWithSuperpointFeatures
++from tokengs.models.superpoint_structural_variants import LocusGSSuperpointDualFPSSuperpoint
++from tokengs.models.unified_query_loss import unified_instance_loss
++
++class FPSSeedTests(unittest.TestCase):
++    def test_global_fps_unique_deterministic_and_small_cloud_repeat(self):
++        x=torch.tensor([[0.,0,0],[1,0,0],[2,0,0],[3,0,0]])
++        self.assertEqual(deterministic_fps(x,4).tolist(),[0,3,1,2])
++        self.assertEqual(deterministic_fps(x,6).tolist(),[0,3,1,2,0,3])
++        self.assertEqual(deterministic_fps(torch.zeros(5,3),5).unique().numel(),5)
++        for bad in (torch.empty(0,3),torch.tensor([[float('nan'),0,0]])):
++            with self.assertRaises(ValueError):deterministic_fps(bad,1024)
++
++    def test_1024_exact_add_sampled_positions_gradients_and_persistence(self):
++        torch.manual_seed(7)
++        module=FPSWithSuperpointFeatures()
++        points=torch.randn(1100,3);ids=torch.arange(1100)%7
++        features=torch.randn(1,7,1024,requires_grad=True)
++        seed=dict(point_superpoint_ids=ids,radii=torch.arange(1.,8.)[None])
++        cloud=dict(points=points)
++        out=module(cloud,seed,features);idx=out['anchor_point_indices'];parent=ids[idx]
++        self.assertEqual(out['tokens'].shape,(1,1024,1024));self.assertEqual(idx.unique().numel(),1024)
++        torch.testing.assert_close(out['tokens'],module.learned_embedding[None]+features[:,parent])
++        torch.testing.assert_close(out['centers'],points[idx][None]);torch.testing.assert_close(out['radii'],seed['radii'][:,parent])
++        self.assertEqual(out['num_sampled_superpoints'],parent.unique().numel())
++        before=module.learned_embedding.detach().clone();optimizer=torch.optim.SGD(module.parameters(),lr=.1)
++        out['tokens'].square().mean().backward()
++        self.assertGreater(float(features.grad.norm()),0);self.assertTrue((module.learned_embedding.grad.norm(dim=-1)>0).all())
++        optimizer.step();self.assertFalse(torch.equal(before,module.learned_embedding))
++        buf=io.BytesIO();torch.save(module.state_dict(),buf);buf.seek(0)
++        restored=FPSWithSuperpointFeatures();restored.load_state_dict(torch.load(buf,weights_only=True))
++        torch.testing.assert_close(restored(cloud,seed,features)['tokens'],module(cloud,seed,features)['tokens'])
++
++class FPSCoreTests(unittest.TestCase):
++    def test_full_native_core_decouples_anchor_and_object_counts_and_backpropagates(self):
++        from tests.test_unified_query_v1 import config,opt,FakeOmega,FakeSAM,FakeRenderer
++        cfg=replace(config(),dim=256,heads=8,depth=12,superpoint_source='esam_sam',matching_mode='source_many_to_one')
++        model=LocusGSSuperpointDualFPSSuperpoint(opt().evolve(dec_patch_size=8,img_size=(8,8)),config=cfg,
++            omega=FakeOmega(),sam=FakeSAM(),renderer=FakeRenderer())
++        model.core.reconstruction_fps=FPSWithSuperpointFeatures(count=6)
++        def small_memory(layers,rgb):
++            module=model.core.semantic_memory;b,v=rgb.shape[:2]
++            patches=sum(w*proj(x.float().mean(-2)) for w,proj,x in zip(module.layer_logits.softmax(0),module.projections,layers))
++            grid=patches.reshape(b*v,256,1,1).expand(-1,-1,8,8)
++            local=module.local(torch.nn.functional.interpolate(rgb.flatten(0,1),size=(8,8),mode='bilinear',align_corners=False))
++            return module.refine(grid+local).reshape(b,v,256,8,8)
++        self.assertEqual(model.supervised_layers,(6,12))
++        with patch.object(model.core.semantic_memory,'forward',side_effect=small_memory):
++            out=model.generate(torch.rand(1,2,3,256,256))
++            n=out['num_thing_queries'];a=n*3;g=a*64
++            self.assertEqual(n,2);self.assertEqual(out['num_reconstruction_anchors'],6)
++            self.assertEqual(out['states'][-1]['tokens'].shape,(1,a,1024))
++            self.assertEqual(out['unified_query'].shape,(1,n,256))
++            self.assertEqual(out['gaussians'].shape,(1,g,14));self.assertEqual(out['gaussian_membership'].shape,(1,g,n+2))
++            self.assertEqual(out['p_class'].shape,(1,n,19));self.assertEqual(out['num_gaussians'],g)
++            index=out['anchor_point_indices'];parent=out['superpoints']['point_superpoint_ids'][index]
++            torch.testing.assert_close(out['anchor_to_superpoint'],parent)
++            torch.testing.assert_close(out['initial_anchor_mu'],out['cloud']['points'][index][None])
++            torch.testing.assert_close(out['gaussian_parent_query'],parent.repeat_interleave(64))
++            self.assertEqual(out['gaussian_parent_anchor'].tolist(),torch.arange(a).repeat_interleave(64).tolist())
++            batch=dict(semantic_label_all=torch.full((1,2,8,8),2),instance_label_all=torch.ones(1,2,8,8,dtype=torch.long))
++            semloss,metrics=unified_instance_loss(out,batch,cfg)
++            self.assertEqual(metrics['matched_query_count'],n)
++            loss=out['gaussians'].square().mean()+.05*semloss
++            loss.backward();self.assertGreater(float(model.core.reconstruction_fps.learned_embedding.grad.norm()),0.)
++            self.assertGreater(float(model.core.initializer.understanding.point_encoder.layers[0][0].weight.grad.norm()),0.)
++            groups=model.parameter_groups();q=model.core.reconstruction_fps.learned_embedding
++            self.assertIn(id(q),{id(p) for p in groups['reconstruction']});self.assertNotIn(id(q),{id(p) for p in groups['understanding']})
++            all_ids=[id(p) for ps in groups.values() for p in ps]
++            self.assertEqual(len(all_ids),len(set(all_ids)));self.assertEqual(set(all_ids),{id(p) for p in model.parameters() if p.requires_grad})
++
++
++
++from scripts.recon_fps_superpoint_initial_state import BANK_KEY,initialize_fps_superpoint_from_legacy_zero
++class FakeFPS(nn.Module):
++    architecture_name='OMEGA_3D_FPS1024_SUPERPOINT_RECON_V1'
++    def __init__(self):
++        super().__init__()
++        from types import SimpleNamespace
++        self.core=nn.Module();self.core.baseline=nn.Linear(3,3);self.core.reconstruction_fps=FPSWithSuperpointFeatures(count=2)
++        self.config=SimpleNamespace(to_dict=lambda:{'dim':256});self.frozen_omega=SimpleNamespace(source_identity={'sha':'omega'});self.sam_proposals=None
++
++class InitializationTests(unittest.TestCase):
++    def test_exactly_one_new_bank_and_no_other_relaxation(self):
++        import copy
++        model=FakeFPS();state={k:torch.full_like(v,.3) for k,v in model.state_dict().items() if k!=BANK_KEY}
++        saved=dict(model=state,meta=dict(architecture='OMEGA_3D_SUPERPOINT_LEGACY_DUAL_V1',config={'dim':256},global_batch=8,world_size=8,manifest_sha256='train',heldout_sha256='val',omega_identity={'sha':'omega'},sam_identity=None),progress=dict(epoch=0,update_in_epoch=0,full_updates=0),optimizer=dict(state={}),rank_rng=[{}]*8)
++        before=model.core.reconstruction_fps.learned_embedding.detach().clone()
++        def apply(s):return initialize_fps_superpoint_from_legacy_zero(s,model,manifest_sha256='train',heldout_sha256='val',world=4)
++        result=apply(saved);self.assertEqual(result['new_parameter'],BANK_KEY)
++        torch.testing.assert_close(before,model.core.reconstruction_fps.learned_embedding)
++        for k in state:torch.testing.assert_close(model.state_dict()[k],state[k])
++        for case in ('data','trained','adam','missing','extra','shape','bank_in_source','rng'):
++            s=copy.deepcopy(saved)
++            if case=='data':s['meta']['heldout_sha256']='wrong'
++            if case=='trained':s['progress']['full_updates']=1
++            if case=='adam':s['optimizer']['state'][0]={'step':1}
++            if case=='missing':del s['model']['core.baseline.bias']
++            if case=='extra':s['model']['extra']=torch.zeros(1)
++            if case=='shape':s['model']['core.baseline.weight']=torch.zeros(1)
++            if case=='bank_in_source':s['model'][BANK_KEY]=before
++            if case=='rng':s['rank_rng']=[{}]
++            with self.subTest(case=case):
++                with self.assertRaises(ValueError):apply(s)
++if __name__=='__main__':unittest.main()
+diff --git a/tokengs/models/reconstruction_fps_superpoint.py b/tokengs/models/reconstruction_fps_superpoint.py
+new file mode 100644
+index 0000000..0e8ffc1
+--- /dev/null
++++ b/tokengs/models/reconstruction_fps_superpoint.py
+@@ -0,0 +1,59 @@
++"""Fixed-budget point positions plus persistent slots and superpoint content."""
++import torch
++from torch import nn
++
++
++@torch.no_grad()
++def deterministic_fps(points, count):
++    """Global XYZ FPS; deterministic centroid-farthest start, no label quotas.
++
++    Select distinct input indices until exhausted, then repeat their FPS order.
++    Coordinates are never jittered or replaced with superpoint centers.
++    """
++    if points.ndim != 2 or points.shape[-1] != 3 or not len(points) or not torch.isfinite(points).all():
++        raise ValueError('FPS requires finite nonempty [M,3] points')
++    if isinstance(count, bool) or not isinstance(count, int) or count < 1:
++        raise ValueError('Positive integer FPS count required')
++    xyz = points.detach().float()
++    distance = torch.full((len(xyz),), float('inf'), device=xyz.device)
++    selected = torch.zeros(len(xyz), dtype=torch.bool, device=xyz.device)
++    current = (xyz - xyz.mean(0)).square().sum(-1).argmax()
++    indices = torch.empty(min(count, len(xyz)), dtype=torch.long, device=xyz.device)
++    for i in range(len(indices)):
++        indices[i] = current
++        selected[current] = True
++        distance = torch.minimum(distance, (xyz - xyz[current]).square().sum(-1))
++        current = distance.masked_fill(selected, -1).argmax()
++    return indices.repeat((count + len(indices) - 1) // len(indices))[:count]
++
++
++class FPSWithSuperpointFeatures(nn.Module):
++    def __init__(self, count=1024, dim=1024, std=.02):
++        super().__init__()
++        if isinstance(count, bool) or not isinstance(count, int) or count < 1:
++            raise ValueError('Positive integer anchor count required')
++        self.count = count
++        self.learned_embedding = nn.Parameter(torch.empty(count, dim))
++        nn.init.normal_(self.learned_embedding, std=std)
++
++    def forward(self, cloud, seed, projected_features):
++        points = cloud['points']
++        ids = seed['point_superpoint_ids']  # compact IDs matching seed query order
++        if ids.shape != (len(points),) or ids.dtype != torch.long:
++            raise ValueError('Point labels must match the sampled cloud')
++        if projected_features.ndim != 3 or projected_features.shape[0] != 1 or projected_features.shape[-1] != self.learned_embedding.shape[-1]:
++            raise ValueError('Expected single-scene projected superpoint features')
++        if (ids < 0).any() or (ids >= projected_features.shape[1]).any():
++            raise ValueError('Invalid point-to-superpoint mapping')
++        index = deterministic_fps(points, self.count)
++        parent = ids[index]
++        covered = parent.unique().numel()
++        return dict(tokens=self.learned_embedding[None] + projected_features[:, parent],
++            centers=points[index].detach()[None],
++            # Retain existing superpoint scale; only center changes to sampled XYZ.
++            radii=seed['radii'][:, parent],
++            anchor_to_superpoint=parent,
++            anchor_slot_ids=torch.arange(self.count, device=points.device),
++            anchor_point_indices=index,
++            num_sampled_superpoints=covered,
++            sampled_superpoint_coverage=covered / projected_features.shape[1])
+diff --git a/tokengs/models/reconstruction_fps_superpoint_core.py b/tokengs/models/reconstruction_fps_superpoint_core.py
+new file mode 100644
+index 0000000..f8d1df1
+--- /dev/null
++++ b/tokengs/models/reconstruction_fps_superpoint_core.py
+@@ -0,0 +1,16 @@
++"""1024 FPS reconstruction anchors; native 256D understanding is retained."""
++import os
++from tokengs.models.superpoint_dual_core import SuperpointDualCore
++from tokengs.models.reconstruction_fps_superpoint import FPSWithSuperpointFeatures
++
++
++class FPSSuperpointDualCore(SuperpointDualCore):
++    def __init__(self, opt, config):
++        if os.environ.get('RG_IOUHEAD') not in (None, '', '0'):
++            raise ValueError('FPS-superpoint control uses baseline understanding without IoU-head changes')
++        super().__init__(opt, config)
++        self.reconstruction_fps = FPSWithSuperpointFeatures()
++
++    def initialize_reconstruction_anchors(self, reconstruction_seed, cloud=None):
++        return self.reconstruction_fps(cloud, reconstruction_seed,
++            self.reconstruction_seed_projection(reconstruction_seed['query']))
+diff --git a/tokengs/models/reconstruction_qp_core.py b/tokengs/models/reconstruction_qp_core.py
+index 477ff0e..80a2e6f 100644
+--- a/tokengs/models/reconstruction_qp_core.py
++++ b/tokengs/models/reconstruction_qp_core.py
+@@ -17 +17 @@ class ReconstructionQPSuperpointDualCore(SuperpointDualCore):
+-    def initialize_reconstruction_anchors(self,reconstruction_seed):
++    def initialize_reconstruction_anchors(self,reconstruction_seed,cloud=None):
+diff --git a/tokengs/models/superpoint_dual_core.py b/tokengs/models/superpoint_dual_core.py
+index 20df69a..f2ad7ab 100644
+--- a/tokengs/models/superpoint_dual_core.py
++++ b/tokengs/models/superpoint_dual_core.py
+@@ -53 +53 @@ class SuperpointDualCore(nn.Module):
+-    def initialize_reconstruction_anchors(self,reconstruction_seed):
++    def initialize_reconstruction_anchors(self,reconstruction_seed,cloud=None):
+@@ -63 +63 @@ class SuperpointDualCore(nn.Module):
+-        rec_anchors=self.initialize_reconstruction_anchors(rec)
++        rec_anchors=self.initialize_reconstruction_anchors(rec,cloud)
+@@ -79 +79 @@ class SuperpointDualCore(nn.Module):
+-        return dict(states=states,gaussians=gaussians,gaussian_membership=logits.sigmoid(),gaussian_mask_logits=logits,
++        result=dict(states=states,gaussians=gaussians,gaussian_membership=logits.sigmoid(),gaussian_mask_logits=logits,
+@@ -88,0 +89,5 @@ class SuperpointDualCore(nn.Module):
++        if 'anchor_point_indices' in rec_anchors:
++            result.update(initial_anchor_mu=rec_anchors['centers'],initial_anchor_radius=rec_anchors['radii'])
++        for key in ('anchor_point_indices','num_sampled_superpoints','sampled_superpoint_coverage'):
++            if key in rec_anchors:result[key]=rec_anchors[key]
++        return result
+@@ -92 +97 @@ class SuperpointDualCore(nn.Module):
+-        prefixes=('reconstruction_qp.','initializer.reconstruction.','reconstruction_seed_projection.','reconstruction_memory.','blocks.','anchor_decoder.','activation_head.')
++        prefixes=('reconstruction_fps.','reconstruction_qp.','initializer.reconstruction.','reconstruction_seed_projection.','reconstruction_memory.','blocks.','anchor_decoder.','activation_head.')
+diff --git a/tokengs/models/superpoint_structural_variants.py b/tokengs/models/superpoint_structural_variants.py
+index c6a3722..1486ba1 100644
+--- a/tokengs/models/superpoint_structural_variants.py
++++ b/tokengs/models/superpoint_structural_variants.py
+@@ -69,0 +70,24 @@ MODELS['dual_superpoint_recon_qp']=LocusGSSuperpointDualReconQP
++
++
++from tokengs.models.reconstruction_fps_superpoint_core import FPSSuperpointDualCore
++
++class LocusGSSuperpointDualFPSSuperpoint(LocusGSSuperpointDual):
++    architecture_name='OMEGA_3D_FPS1024_SUPERPOINT_RECON_V1'
++    core_type=FPSSuperpointDualCore
++
++    def __init__(self,opt,**kwargs):
++        super().__init__(opt,**kwargs)
++        import os
++        if not os.environ.get('RG_SUPERVISED'):
++            from tokengs.models.canonical_recon import supervised_layer_weights
++            self.supervised_layers=(6,12)
++            self.layer_weights=supervised_layer_weights(self.supervised_layers)
++
++    def step_loss(self,*args,**kwargs):
++        output,metrics=super().step_loss(*args,**kwargs)
++        pred=output['prediction']
++        for key in ('num_superpoint_queries','num_reconstruction_anchors','num_object_queries','num_stuff_queries','num_gaussians','num_sampled_superpoints','sampled_superpoint_coverage'):
++            metrics[key]=pred[key]
++        return output,metrics
++
++MODELS['dual_fps1024_superpoint']=LocusGSSuperpointDualFPSSuperpoint

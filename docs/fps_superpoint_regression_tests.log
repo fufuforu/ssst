@@ -1,0 +1,20 @@
+/space/mawb/anaconda3/envs/tokengs/lib/python3.11/site-packages/torch/cuda/__init__.py:174: UserWarning: CUDA initialization: The NVIDIA driver on your system is too old (found version 10010). Please update your GPU driver by downloading and installing a new version from the URL: http://www.nvidia.com/Download/index.aspx Alternatively, go to: https://pytorch.org to install a PyTorch version that has been compiled with your version of the CUDA driver. (Triggered internally at /pytorch/c10/cuda/CUDAFunctions.cpp:109.)
+  return torch._C._cuda_getDeviceCount() > 0
+test_full_native_core_decouples_anchor_and_object_counts_and_backpropagates (tests.test_reconstruction_fps_superpoint.FPSCoreTests.test_full_native_core_decouples_anchor_and_object_counts_and_backpropagates) ... ok
+test_1024_exact_add_sampled_positions_gradients_and_persistence (tests.test_reconstruction_fps_superpoint.FPSSeedTests.test_1024_exact_add_sampled_positions_gradients_and_persistence) ... ok
+test_global_fps_unique_deterministic_and_small_cloud_repeat (tests.test_reconstruction_fps_superpoint.FPSSeedTests.test_global_fps_unique_deterministic_and_small_cloud_repeat) ... ok
+test_exactly_one_new_bank_and_no_other_relaxation (tests.test_reconstruction_fps_superpoint.InitializationTests.test_exactly_one_new_bank_and_no_other_relaxation) ... ok
+test_cartesian_sum_geometry_order_and_no_truncation (tests.test_reconstruction_qp.ExpansionTests.test_cartesian_sum_geometry_order_and_no_truncation) ... ok
+test_one_zero_q_reproduces_original_seed_and_invalid_shapes_fail (tests.test_reconstruction_qp.ExpansionTests.test_one_zero_q_reproduces_original_seed_and_invalid_shapes_fail) ... ok
+test_persistent_q_gets_gradient_updates_and_checkpoint_roundtrip (tests.test_reconstruction_qp.ExpansionTests.test_persistent_q_gets_gradient_updates_and_checkpoint_roundtrip) ... ok
+test_exactly_one_new_bank_and_no_other_relaxation (tests.test_reconstruction_qp.InitializationTests.test_exactly_one_new_bank_and_no_other_relaxation) ... ok
+test_full_native_core_decouples_anchor_and_object_counts_and_backpropagates (tests.test_reconstruction_qp.QPModelTests.test_full_native_core_decouples_anchor_and_object_counts_and_backpropagates) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 13.839s
+
+OK
+/space/mawb/anaconda3/envs/tokengs/lib/python3.11/site-packages/torch/cuda/__init__.py:789: UserWarning: Can't initialize NVML
+  warnings.warn("Can't initialize NVML")
+/space/mawb/anaconda3/envs/tokengs/lib/python3.11/site-packages/torch/cuda/__init__.py:991: UserWarning: CUDA initialization: The NVIDIA driver on your system is too old (found version 10010). Please update your GPU driver by downloading and installing a new version from the URL: http://www.nvidia.com/Download/index.aspx Alternatively, go to: https://pytorch.org to install a PyTorch version that has been compiled with your version of the CUDA driver. (Triggered internally at /pytorch/c10/cuda/CUDAFunctions.cpp:109.)
+  r = torch._C._cuda_getDeviceCount() if nvml_count < 0 else nvml_count

@@ -40,11 +40,20 @@ def main():
     if not args.smoke and saved['progress']['epoch']!=meta['epochs']:raise ValueError('Incomplete training; only --smoke export allowed')
     training,_,_=cohorts()
     if not args.smoke and saved['progress']['full_updates']!=meta['epochs']*(len(epoch_order(len(training),0))//8):raise ValueError('Training update count differs')
+    if meta['architecture']=='OMEGA_3D_FPS1024_SUPERPOINT_RECON_V1':
+        if meta.get('reconstruction_anchor_count')!=1024 or meta.get('reconstruction_initialization')!='fps_xyz_plus_learned_embedding_plus_superpoint':raise ValueError('FPS initialization identity differs')
     constructor_kwargs={}
     if meta['architecture']=='OMEGA_3D_SUPERPOINT_RECON_QP_V1':
         if 'recon_qp_slots' not in meta or meta['recon_qp_slots']<1:raise ValueError('Missing reconstruction Q bank identity')
         constructor_kwargs['recon_qp_slots']=meta['recon_qp_slots']
     opt=config_defaults['train_siu3r_unified_query_v1'];model=constructors[meta['architecture']](opt,config=UnifiedQueryConfig(**meta['config']),**constructor_kwargs).to(device)
+    if meta['architecture']=='OMEGA_3D_FPS1024_SUPERPOINT_RECON_V1':
+        from tokengs.models.canonical_recon import supervised_layer_weights
+        layers=tuple(meta['supervised_layers'])
+        if not layers or layers[-1]!=12 or tuple(sorted(set(layers)))!=layers or any(x<1 or x>12 for x in layers):raise ValueError('Invalid saved supervision layers')
+        weights=supervised_layer_weights(layers)
+        if list(weights)!=meta['layer_weights']:raise ValueError('Saved supervision weights differ')
+        model.supervised_layers=layers;model.layer_weights=weights
     if model.frozen_omega.source_identity!=meta['omega_identity']:raise ValueError('Frozen source identity differs')
     if (model.sam_proposals.source_identity if model.sam_proposals is not None else None)!=meta['sam_identity']:raise ValueError('SAM source identity differs')
     restore_state(model,saved['model']);_,_,windows=cohorts()
