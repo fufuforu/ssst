@@ -1,0 +1,15 @@
+{
+  "status": "PASSED",
+  "tests": 2,
+  "runtime_seconds": 11.144,
+  "checks": [
+    "NoCA joint vs isolated full-core forward exact equality",
+    "LU -> reconstruction zero gradient",
+    "LR -> understanding/shared zero gradient",
+    "All nine V4 initializer tensors receive reconstruction gradients",
+    "Only mu/rho heads get 0.1 LR",
+    "Warmup and cosine geometry LR ratio"
+  ],
+  "cpu_rendering": "synthetic 8x8 rendering/6 anchors; full GPU verification gated before training",
+  "gpu_verified": false
+}

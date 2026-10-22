@@ -1,0 +1,4 @@
+             JOBID                 NAME      STATE       PARTITION             NODELIST NODELIST(REASON)
+             71000      V4isoNoCA_smoke    RUNNING            3090           3dimage-12 3dimage-12
+             71002       V4isoNoCA_eval    PENDING       3090,4090                      (Dependency)
+             71001      V4isoNoCA_train    PENDING       3090,4090                      (Dependency)

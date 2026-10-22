@@ -1,0 +1,23 @@
+{
+  "code_root": "/space/mawb/ssst_v4init_isolated_noca_code_20261022_v1",
+  "code_sha": "310d49d04b6ac1feda55439bb21b6c88a8fc5882",
+  "submitted_utc": "2026-10-22T09:44:44.084720+00:00",
+  "eligible_nodes": [
+    12,
+    13,
+    14,
+    17,
+    18
+  ],
+  "jobs": {
+    "smoke": 71000,
+    "train": 71001,
+    "eval": 71002
+  },
+  "dependencies": {
+    "smoke": null,
+    "train": 71000,
+    "eval": 71001
+  },
+  "stop_polling_after_single_check": true
+}

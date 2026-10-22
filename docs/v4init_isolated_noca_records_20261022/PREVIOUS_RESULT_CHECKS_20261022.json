@@ -1,0 +1,48 @@
+{
+  "V4init": {
+    "progress": {
+      "epoch": 4,
+      "update_in_epoch": 0,
+      "full_updates": 4172
+    },
+    "changed_tensor_count": 654,
+    "unchanged_tensor_count": 10,
+    "nonfinite_model_tensors": [],
+    "optimizer_steps": [
+      4172
+    ],
+    "rank_rng_count": 8,
+    "final_sha256": "c9fc05033674fe558b132eca417cb99bc59ba465be534ad250b031d7f477e3de",
+    "frozen_sha256_matches": true,
+    "eval_hardlink_same_inode": true,
+    "changed_v4_initialization_tensors": [
+      "core.v4_initialization.gs_tokens",
+      "core.v4_initialization.anchor_content.0.weight",
+      "core.v4_initialization.anchor_content.0.bias",
+      "core.v4_initialization.anchor_content.2.weight",
+      "core.v4_initialization.anchor_content.2.bias",
+      "core.v4_initialization.anchor_visual_projection.0.weight",
+      "core.v4_initialization.anchor_visual_projection.0.bias",
+      "core.v4_initialization.anchor_visual_projection.1.weight",
+      "core.v4_initialization.anchor_visual_projection.1.bias"
+    ]
+  },
+  "NoCA": {
+    "progress": {
+      "epoch": 4,
+      "update_in_epoch": 0,
+      "full_updates": 4172
+    },
+    "changed_tensor_count": 633,
+    "unchanged_tensor_count": 28,
+    "nonfinite_model_tensors": [],
+    "optimizer_steps": [
+      4172
+    ],
+    "rank_rng_count": 8,
+    "final_sha256": "73db1ace60d8e9c92bf643749108e4454e8e28f2ff24cc1f5262e3f5d9251e9a",
+    "frozen_sha256_matches": true,
+    "eval_hardlink_same_inode": true,
+    "changed_v4_initialization_tensors": []
+  }
+}

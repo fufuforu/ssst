@@ -1,0 +1,32 @@
+{
+  "status": "PASSED",
+  "source_checkpoint": "/space/mawb/ssst/group_plus/semantic_resolution_v1/oldA4_v4init_noca_ablation_20261022_v1/V4init/train/checkpoint_initial.pt",
+  "source_sha256": "bf5b5325adcc8346eb89ebdceac36149c510402d18e8c7dd0c8fe8046f245397",
+  "source_updates": 0,
+  "empty_adam": true,
+  "retained_tensors": 632,
+  "removed_tensors": 32,
+  "new_tensors": 0,
+  "retained_tensors_bitwise_equal": true,
+  "v4_initialization_tensors_preserved": [
+    "core.v4_initialization.gs_tokens",
+    "core.v4_initialization.anchor_content.0.weight",
+    "core.v4_initialization.anchor_content.0.bias",
+    "core.v4_initialization.anchor_content.2.weight",
+    "core.v4_initialization.anchor_content.2.bias",
+    "core.v4_initialization.anchor_visual_projection.0.weight",
+    "core.v4_initialization.anchor_visual_projection.0.bias",
+    "core.v4_initialization.anchor_visual_projection.1.weight",
+    "core.v4_initialization.anchor_visual_projection.1.bias"
+  ],
+  "invalid_migration_cases_rejected": 8,
+  "trainable_parameters": 195961456,
+  "gpu_verified": false,
+  "training_windows": 8337,
+  "training_scenes": 1191,
+  "view_protocol": "2context+2novel",
+  "global_batch": 8,
+  "updates": 4172,
+  "code_sha": "310d49d04b6ac1feda55439bb21b6c88a8fc5882",
+  "immutable_source_code_sha": "5335430b6f0e40fccb042162ae47f4723da32669"
+}
