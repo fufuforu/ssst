@@ -3,7 +3,6 @@
 Independent architecture: no old Anchor/Object decoder, no random query table,
 no MASt3R weights and no implicit checkpoint migration. SAM supplies partitions only.
 """
-import os as _os3
 import torch
 from torch import nn
 from tokengs.models.dual_stream_frozen_backbones import FrozenOmega,FrozenESAMSAM
@@ -36,9 +35,7 @@ class LocusGSUnifiedQueryV1(nn.Module):
             from tokengs.rendering.gs import GaussianRenderer
             renderer=GaussianRenderer(opt)
         self.gs=renderer
-        _sup=_os3.environ.get('RG_SUPERVISED')
-        self.supervised_layers=(tuple(int(x) for x in _sup.split(',') if int(x)<=self.config.depth)
-            if _sup else tuple(x for x in (6,8,10,12) if x<=self.config.depth))
+        self.supervised_layers=tuple(x for x in (6,8,10,12) if x<=self.config.depth)
         if not self.supervised_layers or self.supervised_layers[-1]!=self.config.depth:self.supervised_layers=tuple(sorted(set(self.supervised_layers+(self.config.depth,))))
         self.layer_weights=supervised_layer_weights(self.supervised_layers);self.understanding_step=0
 
@@ -64,7 +61,7 @@ class LocusGSUnifiedQueryV1(nn.Module):
         semantic[:,:,2:]=torch.einsum('bvqhw,bqc->bvchw',regions[:,:,:n],p[...,:18])
         semantic=semantic/(semantic.sum(2,keepdim=True)+1e-6)
         return dict(**({'instance_eligible':generated['instance_eligible']} if 'instance_eligible' in generated else {}),**render,region_mass=regions,pixel_membership=regions,alpha=alpha,semantic_scores=semantic,p_class=p,
-            states=generated['states'],gaussians=generated['gaussians'],gaussian_membership=generated['gaussian_membership'],num_thing_queries=n,pred_iou=generated.get('pred_iou'))
+            states=generated['states'],gaussians=generated['gaussians'],gaussian_membership=generated['gaussian_membership'],num_thing_queries=n)
 
     def encode_context(self,context_rgb):
         if context_rgb.shape!=(1,2,3,256,256):raise ValueError('Expected one two-view 256 scene')
@@ -116,50 +113,6 @@ class LocusGSUnifiedQueryV1(nn.Module):
         metrics.update(under_metrics,loss_recon=reconstruction,loss_understanding=understanding,loss=reconstruction+understanding_weight*understanding,
             psnr=metrics[f'psnr_layer{self.supervised_layers[-1]}'],num_thing_queries=prediction['num_thing_queries'])
         prediction['target_camera_calibration']=calibration
-
-        import os as _os
-        if _os.environ.get('RG_EXTRA') not in (None, '', '0'):
-            _extra = torch.zeros((), device=prediction['states'][-1]['tokens'].device)
-            if _os.environ.get('RG_DEPTH'):
-                _st = prediction['states'][-1]
-                _g = self.activation_head(_st['tokens'], _st['mu'], _st['radii'])
-                _rec = self._reconstruction_from_gaussians(_g)
-                _r = self.render_reconstruction(_rec, decoder)
-                _dp = _r.get('depths_pred', _r.get('depth'))
-                if _dp is None:
-                    raise RuntimeError('depth render key missing')
-                _dg = batch['depth_gt_m_all'].reshape(_dp.shape)
-                _dv = batch['depth_gt_valid_all'].reshape(_dp.shape)
-                _dl = torch.zeros((), device=_dp.device)
-                _n = 0
-                for _v in range(_dp.shape[1]):
-                    _p = _dp[0, _v, 0]; _t = _dg[0, _v, 0]; _m = _dv[0, _v, 0]
-                    if int(_m.sum()) < 16:
-                        continue
-                    _x = _p[_m]; _y = _t[_m]
-                    _a = (_x * _y).mean() - _x.mean() * _y.mean()
-                    _b = (_x * _x).mean() - _x.mean() ** 2 + 1e-8
-                    _s = _a / _b
-                    _o = _y.mean() - _s * _x.mean()
-                    _dl = _dl + (_s * _x + _o - _y).abs().mean()
-                    _n += 1
-                _extra = _extra + (1.0 * _dl / max(_n, 1))
-                metrics['loss_extra_depth'] = float(_extra.detach())
-            if _os.environ.get('RG_TSEM'):
-                _cal = prediction['target_camera_calibration']
-                _d6 = ModelInputDecoder(cam_view=torch.linalg.inv(_cal['c2w']).transpose(-1, -2),
-                                        intrinsics=_cal['intrinsics'])
-                _out = self._render_understanding(prediction, _d6)
-                _sc = _out['semantic_scores']
-                _lab = batch['semantic_label_all']
-                _v = (_lab >= 0) & (_lab < 20)
-                _ce = torch.nn.functional.cross_entropy(_sc[:, 2:].permute(0, 1, 3, 4, 2).reshape(-1, 20)[_v[:, 2:].reshape(-1)],
-                                                        _lab[:, 2:].reshape(-1)[_v[:, 2:].reshape(-1)])
-                _extra = _extra + 0.1 * _ce
-                metrics['loss_extra_tsem'] = float(_ce.detach())
-            metrics['loss_extra'] = float(_extra.detach())
-            metrics['loss_total_with_extra'] = float((metrics['loss'] + _extra).detach())
-            metrics['loss'] = metrics['loss'] + _extra
         return dict(prediction=prediction),metrics
 
     def forward(self,context_rgb,skip_loss=False):

@@ -14,6 +14,6 @@ class ReconstructionQPSuperpointDualCore(SuperpointDualCore):
         if num_slots!=self.reconstruction_qp.num_slots:
             reference=self.reconstruction_qp.learned_q
             self.reconstruction_qp=LearnedReconstructionAnchorExpansion(num_slots=num_slots,dim=1024).to(device=reference.device,dtype=reference.dtype)
-    def initialize_reconstruction_anchors(self,reconstruction_seed,cloud=None):
+    def initialize_reconstruction_anchors(self,reconstruction_seed,cloud=None,memory=None):
         p=self.reconstruction_seed_projection(reconstruction_seed['query'])
         return self.reconstruction_qp(p,reconstruction_seed['centers'],reconstruction_seed['radii'])

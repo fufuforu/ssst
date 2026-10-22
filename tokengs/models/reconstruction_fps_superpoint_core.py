@@ -11,6 +11,6 @@ class FPSSuperpointDualCore(SuperpointDualCore):
         super().__init__(opt, config)
         self.reconstruction_fps = FPSWithSuperpointFeatures()
 
-    def initialize_reconstruction_anchors(self, reconstruction_seed, cloud=None):
+    def initialize_reconstruction_anchors(self, reconstruction_seed, cloud=None, memory=None):
         return self.reconstruction_fps(cloud, reconstruction_seed,
             self.reconstruction_seed_projection(reconstruction_seed['query']))

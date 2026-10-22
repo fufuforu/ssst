@@ -50,7 +50,10 @@ class SuperpointDualCore(nn.Module):
             rays=patch_plucker_rays(rays_o,rays_d,patch_size=8),renderer=renderer,
             decoder=ModelInputDecoder(cam_view=torch.linalg.inv(omega['c2w']).transpose(-1,-2),intrinsics=camera_vectors(omega['k'])))
 
-    def initialize_reconstruction_anchors(self,reconstruction_seed,cloud=None):
+    def initialize_branch_queries(self,cloud,memory):
+        return self.initializer(cloud,cloud['features'],cloud['features'])
+
+    def initialize_reconstruction_anchors(self,reconstruction_seed,cloud=None,memory=None):
         tokens=self.reconstruction_seed_projection(reconstruction_seed['query'])
         n=tokens.shape[1]
         return dict(tokens=tokens,centers=reconstruction_seed['centers'],radii=reconstruction_seed['radii'],
@@ -59,8 +62,8 @@ class SuperpointDualCore(nn.Module):
 
     def forward(self,cloud,memory,superpoint_ids=None):
         if superpoint_ids is not None:cloud=dict(cloud,point_superpoint_ids=superpoint_ids)
-        seed=self.initializer(cloud,cloud['features'],cloud['features']);rec,under=seed['reconstruction'],seed['understanding']
-        rec_anchors=self.initialize_reconstruction_anchors(rec,cloud)
+        seed=self.initialize_branch_queries(cloud,memory);rec,under=seed['reconstruction'],seed['understanding']
+        rec_anchors=self.initialize_reconstruction_anchors(rec,cloud,memory)
         tokens=rec_anchors['tokens'];fm=memory['fm'];radius=under['radii'][...,None].expand(-1,-1,3)
         states,_=self.anchor_decoder.forward_stateful(tokens,memory['latent'],memory['rays'],self.panoptic,fm,under['query'],self.semantic_memory.mask_embedder,0,
             seed_mu=rec_anchors['centers'],seed_radius=rec_anchors['radii'],seed_c=under['centers'],seed_s=radius,write_strength=0.,normalization_fn=superpoint_scene_normalization)

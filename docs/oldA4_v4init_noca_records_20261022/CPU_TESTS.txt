@@ -1,0 +1,16 @@
+/space/mawb/anaconda3/envs/tokengs/lib/python3.11/site-packages/torch/cuda/__init__.py:174: UserWarning: CUDA initialization: The NVIDIA driver on your system is too old (found version 10010). Please update your GPU driver by downloading and installing a new version from the URL: http://www.nvidia.com/Download/index.aspx Alternatively, go to: https://pytorch.org to install a PyTorch version that has been compiled with your version of the CUDA driver. (Triggered internally at /pytorch/c10/cuda/CUDAFunctions.cpp:109.)
+  return torch._C._cuda_getDeviceCount() > 0
+test_old_four_view_contract_rejects_six_views (tests.test_olda4_ablation.BatchContractTests.test_old_four_view_contract_rejects_six_views) ... ok
+test_exact_v4_formula_and_each_new_input (tests.test_olda4_ablation.InitializationTests.test_exact_v4_formula_and_each_new_input) ... ok
+test_geometry_normalized_fm_still_read_and_anchor_features_unused (tests.test_olda4_ablation.NoCALayerTests.test_geometry_normalized_fm_still_read_and_anchor_features_unused) ... ok
+test_olda4_no_ca_joint_actual_loss_routing (tests.test_olda4_ablation.RealCoreTests.test_olda4_no_ca_joint_actual_loss_routing) ... ok
+test_v4_init_joint_actual_loss_routing (tests.test_olda4_ablation.RealCoreTests.test_v4_init_joint_actual_loss_routing) ... ok
+
+----------------------------------------------------------------------
+Ran 5 tests in 16.148s
+
+OK
+/space/mawb/anaconda3/envs/tokengs/lib/python3.11/site-packages/torch/cuda/__init__.py:789: UserWarning: Can't initialize NVML
+  warnings.warn("Can't initialize NVML")
+/space/mawb/anaconda3/envs/tokengs/lib/python3.11/site-packages/torch/cuda/__init__.py:991: UserWarning: CUDA initialization: The NVIDIA driver on your system is too old (found version 10010). Please update your GPU driver by downloading and installing a new version from the URL: http://www.nvidia.com/Download/index.aspx Alternatively, go to: https://pytorch.org to install a PyTorch version that has been compiled with your version of the CUDA driver. (Triggered internally at /pytorch/c10/cuda/CUDAFunctions.cpp:109.)
+  r = torch._C._cuda_getDeviceCount() if nvml_count < 0 else nvml_count

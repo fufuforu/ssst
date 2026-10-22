@@ -70,24 +70,13 @@ def unified_instance_loss(prediction,batch,config):
         bce=instance_mean(bce_values) if config.matching_mode=='source_many_to_one' else bce_values.mean()
         dice=instance_mean(dice_values) if config.matching_mode=='source_many_to_one' else dice_values.mean()
     else:bce=dice=zero
-    loss_iou=zero
-    _pi=prediction.get('pred_iou')
-    if _pi is not None and (not torch.isfinite(_pi).all() or ((_pi<0)|(_pi>1)).any()):
-        raise FloatingPointError('IoU head predictions must be finite in [0,1]')
-    if _pi is not None and len(qi):
-        _p,_y=flat[qi].detach(),gt[ki]
-        _inter=(_p*_y).sum(-1);_union=_p.sum(-1)+_y.sum(-1)-_inter
-        _tiou=(_inter/(_union+1e-6)).detach()
-        loss_iou=F.l1_loss(_pi.reshape(-1)[qi],_tiou)
     stuff_bce=[];stuff_dice=[];sem=batch['semantic_label_all'][0,:2][valid]
     for cls in (0,1):
         p=flat[n+cls];y=(sem==cls).float()
         stuff_bce.append(F.binary_cross_entropy(p,y));stuff_dice.append(1-(2*(p*y).sum()+1)/(p.sum()+y.sum()+1))
     sb=torch.stack(stuff_bce).mean();sd=torch.stack(stuff_dice).mean()
-    import os as _os_iouw
-    _wiou=float(_os_iouw.environ.get('RG_IOU_W','0.5'))
-    loss=.1*(2*classification+5*bce+5*dice+5*sb+5*sd)+_wiou*loss_iou
+    loss=.1*(2*classification+5*bce+5*dice+5*sb+5*sd)
     prediction['final_pairs']=[(qi,ki)];prediction['final_targets']=targets
-    return loss,dict(**(dict(pred_iou_min=_pi.detach().min(),pred_iou_max=_pi.detach().max()) if _pi is not None else {}),loss_classification=classification.detach(),loss_thing_bce=bce.detach(),loss_thing_dice=dice.detach(),loss_stuff_bce=sb.detach(),loss_stuff_dice=sd.detach(),loss_iou=loss_iou.detach(),matched_gt_count=len(ki.unique()),matched_query_count=len(qi),gt_count=k,
+    return loss,dict(loss_classification=classification.detach(),loss_thing_bce=bce.detach(),loss_thing_dice=dice.detach(),loss_stuff_bce=sb.detach(),loss_stuff_dice=sd.detach(),matched_gt_count=len(ki.unique()),matched_query_count=len(qi),gt_count=k,
         mean_positive_queries_per_matched_gt=len(qi)/max(1,len(ki.unique())),
         unsupported_GT_count=int((~allowed.any(0)).sum()) if k else 0,matched_classification_accuracy=float((logits[0,qi].argmax(-1)==classes[ki]-2).float().mean()) if len(qi) else 0.)

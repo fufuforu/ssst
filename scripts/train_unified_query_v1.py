@@ -47,7 +47,7 @@ class Task(nn.Module):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir',type=Path,required=True);parser.add_argument('--understanding-weight',type=float,required=True)
-    parser.add_argument('--architecture',choices=('unified','dual_superpoint','unified_direct','dual_superpoint_recon_qp','dual_fps1024_superpoint','dual_point1024_isoadapter','dual_point1024_isoadapter_noca','dual_point1024_anchor_only','dual_point1024_neither_ca'),default='unified')
+    parser.add_argument('--architecture',choices=('unified','dual_superpoint','unified_direct','dual_superpoint_recon_qp','dual_fps1024_superpoint','dual_point1024_isoadapter','dual_point1024_isoadapter_noca','dual_point1024_anchor_only','dual_point1024_neither_ca','dual_olda4_v4init','dual_olda4_noca'),default='unified')
     parser.add_argument('--epochs',type=int,default=4);parser.add_argument('--max-updates',type=int)
     parser.add_argument('--learning-rate',type=float,default=1e-4);parser.add_argument('--understanding-warmup',type=int,default=1043)
     parser.add_argument('--short-validation',action='store_true',help='16 fixed training scenes, 256 updates, initial/final probes')
@@ -58,6 +58,7 @@ def main():
     parser.add_argument('--initialize-recon-qp-from-legacy-zero',action='store_true',help='Explicit zero-only migration preserving every baseline tensor and adding only reconstruction Q')
     parser.add_argument('--initialize-fps-superpoint-from-legacy-zero',action='store_true',help='Strict zero migration adding only the FPS slot embedding')
     parser.add_argument('--initialize-point1024-isoadapter-from-legacy-zero',action='store_true',help='Strict original-zero migration for isolated point-seeded control')
+    parser.add_argument('--initialize-olda4-ablation-from-legacy-zero',action='store_true')
     parser.add_argument('--training-window-manifest',type=Path,help='Frozen 2context+4novel extension; defaults to dedicated manifest for isolated architecture')
     parser.add_argument('--config',type=Path);parser.add_argument('--resume',action='store_true');parser.add_argument('--checkpoint-every',type=int,default=50)
     args=parser.parse_args()
@@ -69,6 +70,11 @@ def main():
     if args.initialize_point1024_isoadapter_from_legacy_zero and (args.architecture not in ('dual_point1024_isoadapter','dual_point1024_isoadapter_noca','dual_point1024_anchor_only','dual_point1024_neither_ca') or not args.initial_checkpoint or args.resume):parser.error('Point1024 isolated migration requires explicit zero source and fresh matching architecture')
     if args.architecture in ('dual_point1024_isoadapter','dual_point1024_isoadapter_noca','dual_point1024_anchor_only','dual_point1024_neither_ca') and (args.epochs!=4 or args.short_validation):parser.error('This control requires the A4 four-epoch schedule')
     if args.training_window_manifest and args.architecture not in ('dual_point1024_isoadapter','dual_point1024_isoadapter_noca','dual_point1024_anchor_only','dual_point1024_neither_ca'):parser.error('2+4 manifest is dedicated to the isolated point1024 control')
+    if args.architecture in ('dual_olda4_v4init','dual_olda4_noca'):
+        if args.epochs!=4 or args.short_validation or args.training_window_manifest or not args.initialize_olda4_ablation_from_legacy_zero and not args.resume:
+            parser.error('Old A4 ablations require original 2+2 full4 and explicit zero migration')
+    elif args.initialize_olda4_ablation_from_legacy_zero:parser.error('Wrong old A4 migration target')
+    if args.initialize_olda4_ablation_from_legacy_zero and (not args.initial_checkpoint or args.resume):parser.error('Old A4 migration requires explicit fresh zero source')
     if args.short_validation:
         if args.resume or args.max_updates is not None:parser.error('Short validation uses a fresh bounded run')
         args.epochs=128;args.max_updates=256;args.understanding_warmup=20
@@ -93,7 +99,13 @@ def main():
         if digest(args.initial_checkpoint)!=args.initial_sha256:raise ValueError('Zero-step checkpoint SHA differs')
         from scripts.unified_query_initial_state import validate_zero_initial
         initial=torch.load(args.initial_checkpoint,map_location='cpu',weights_only=False,mmap=True)
-        if args.initialize_point1024_isoadapter_from_legacy_zero:
+        if args.initialize_olda4_ablation_from_legacy_zero:
+            from scripts.olda4_ablation_initial_state import initialize_olda4_ablation
+            evidence=initialize_olda4_ablation(initial,model,manifest_sha256=digest(MANIFEST),heldout_sha256=digest(HELDOUT),world=world)
+            if rank==0:
+                args.output_dir.mkdir(parents=True,exist_ok=True)
+                (args.output_dir/'OLDA4_INITIALIZATION.json').write_text(json.dumps(evidence,indent=2)+'\n')
+        elif args.initialize_point1024_isoadapter_from_legacy_zero:
             from scripts.point1024_isoadapter_initial_state import initialize_point1024_isoadapter_from_legacy_zero
             evidence=initialize_point1024_isoadapter_from_legacy_zero(initial,model,manifest_sha256=digest(MANIFEST),heldout_sha256=digest(HELDOUT),world=world)
             evidence['training_data_extension']=training_identity
@@ -140,6 +152,9 @@ def main():
         meta.update(object_anchor_attention='none',geometry_routing='normalized_geometric_distance_softmax_v1')
     if args.architecture in ('dual_point1024_anchor_only','dual_point1024_neither_ca'):
         meta.update(object_fm_attention='none',object_anchor_attention='learned_cross_attention' if args.architecture=='dual_point1024_anchor_only' else 'none',geometry_routing='learned_attention_weights' if args.architecture=='dual_point1024_anchor_only' else 'normalized_geometric_distance_softmax_v1')
+    if args.architecture in ('dual_olda4_v4init','dual_olda4_noca'):
+        from scripts.olda4_ablation_initial_state import recipe_identity
+        meta.update(recipe_identity(args.architecture))
     meta.update(training_identity)
     progress=dict(epoch=0,update_in_epoch=0,full_updates=0)
     if args.resume:

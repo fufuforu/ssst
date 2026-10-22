@@ -27,9 +27,9 @@ class SemanticMemory(nn.Module):
         b,v=rgb.shape[:2]
         patches=sum(w*proj(x.float()) for w,proj,x in zip(self.layer_logits.softmax(0),self.projections,layers))
         grid=patches.reshape(b*v,32,32,256).permute(0,3,1,2)
-        grid=F.interpolate(grid,size=(256,256),mode='bilinear',align_corners=False)
-        local=self.local(F.interpolate(rgb.flatten(0,1),size=(256,256),mode='bilinear',align_corners=False))
-        return self.refine(grid+local).reshape(b,v,256,256,256)
+        grid=F.interpolate(grid,size=(128,128),mode='bilinear',align_corners=False)
+        local=self.local(F.interpolate(rgb.flatten(0,1),size=(128,128),mode='bilinear',align_corners=False))
+        return self.refine(grid+local).reshape(b,v,256,128,128)
 
 class LocusGSDualStreamV1(LocusGSRecon):
     architecture_name='LOCUSGS_OMEGA_POINT_SAM_DUAL_STREAM_V1'

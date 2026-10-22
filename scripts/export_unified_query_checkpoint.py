@@ -54,6 +54,9 @@ def main():
     from scripts.point1024_isoadapter_initial_state import NOFM_ARCHS,C_ARCH
     if meta['architecture'] in NOFM_ARCHS:
         if meta.get('object_fm_attention')!='none' or meta.get('object_anchor_attention')!=('learned_cross_attention' if meta['architecture']==C_ARCH else 'none') or meta.get('geometry_routing')!=('learned_attention_weights' if meta['architecture']==C_ARCH else 'normalized_geometric_distance_softmax_v1'):raise ValueError('C/D attention identity differs')
+    from scripts.olda4_ablation_initial_state import MODEL_KEYS,recipe_identity
+    if meta['architecture'] in MODEL_KEYS:
+        if any(meta.get(k)!=v for k,v in recipe_identity(MODEL_KEYS[meta['architecture']]).items()):raise ValueError('Old A4 ablation recipe identity differs')
     constructor_kwargs={}
     if meta['architecture']=='OMEGA_3D_SUPERPOINT_RECON_QP_V1':
         if 'recon_qp_slots' not in meta or meta['recon_qp_slots']<1:raise ValueError('Missing reconstruction Q bank identity')

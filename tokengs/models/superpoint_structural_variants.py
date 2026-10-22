@@ -103,3 +103,7 @@ MODELS['dual_point1024_isoadapter_noca']=LocusGSPoint1024IsolatedNoCA
 from tokengs.models.point1024_nofmca import LocusGSPoint1024AnchorOnly,LocusGSPoint1024NeitherCA
 MODELS['dual_point1024_anchor_only']=LocusGSPoint1024AnchorOnly
 MODELS['dual_point1024_neither_ca']=LocusGSPoint1024NeitherCA
+
+from tokengs.models.olda4_initialization_ablation import LocusGSOldA4V4Init,LocusGSOldA4NoCA
+MODELS['dual_olda4_v4init']=LocusGSOldA4V4Init
+MODELS['dual_olda4_noca']=LocusGSOldA4NoCA

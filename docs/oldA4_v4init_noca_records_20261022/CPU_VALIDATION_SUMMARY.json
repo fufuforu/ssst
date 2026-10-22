@@ -1,0 +1,35 @@
+{
+  "status": "PASSED",
+  "tests": 5,
+  "source_sha256": "3c7f1860f3897e1fba305564b30f8e4d67954e6280891bf8a33296bf42b25744",
+  "training_windows": 8337,
+  "training_scenes": 1191,
+  "view_protocol": "2context+2novel",
+  "global_batch": 8,
+  "updates": 4172,
+  "gpu_verified": false,
+  "branches": {
+    "V4init": {
+      "status": "PASSED",
+      "retained_tensors_bitwise_equal": true,
+      "retained_tensors": 655,
+      "removed_tensors": 38,
+      "new_tensors": 9,
+      "trainable_parameters": 197014128,
+      "invalid_migration_cases_rejected": 7,
+      "gpu_verified": false
+    },
+    "NoCA": {
+      "status": "PASSED",
+      "retained_tensors_bitwise_equal": true,
+      "retained_tensors": 661,
+      "removed_tensors": 32,
+      "new_tensors": 0,
+      "trainable_parameters": 192746609,
+      "invalid_migration_cases_rejected": 7,
+      "gpu_verified": false
+    }
+  },
+  "final_test_seconds": 16.148,
+  "old_A4_unchanged_source_bodies": 8
+}
