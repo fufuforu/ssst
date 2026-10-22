@@ -99,3 +99,7 @@ MODELS['dual_point1024_isoadapter']=LocusGSPoint1024IsolatedAdapter
 
 from tokengs.models.point1024_isoadapter_noca import LocusGSPoint1024IsolatedNoCA
 MODELS['dual_point1024_isoadapter_noca']=LocusGSPoint1024IsolatedNoCA
+
+from tokengs.models.point1024_nofmca import LocusGSPoint1024AnchorOnly,LocusGSPoint1024NeitherCA
+MODELS['dual_point1024_anchor_only']=LocusGSPoint1024AnchorOnly
+MODELS['dual_point1024_neither_ca']=LocusGSPoint1024NeitherCA

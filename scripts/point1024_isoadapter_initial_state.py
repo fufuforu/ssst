@@ -1,6 +1,11 @@
 """Explicit A4 true-zero migration: remove unused recon initializer, add adapters."""
 ARCH='OMEGA_POINT1024_SOURCE256_FMQUERY_ISOLATED_RESIDUAL_ADAPTER_V2'
 NO_CA_ARCH='OMEGA_POINT1024_FMQUERY_ISOLATED_NO_ANCHOR_CA_GEOMETRIC_ROUTING_V1'
+C_ARCH='OMEGA_POINT1024_FMQUERY_ISOLATED_ANCHOR_CA_NO_FM_CA_V1'
+D_ARCH='OMEGA_POINT1024_FMQUERY_ISOLATED_NO_ANCHOR_CA_NO_FM_CA_GEOMETRIC_ROUTING_V1'
+ISOLATED_ARCHS=(ARCH,NO_CA_ARCH,C_ARCH,D_ARCH)
+GEOMETRIC_ARCHS=(NO_CA_ARCH,D_ARCH)
+NOFM_ARCHS=(C_ARCH,D_ARCH)
 REMOVED='core.initializer.reconstruction.'
 ADAPTERS='core.understanding_adapters.'
 
@@ -8,7 +13,7 @@ ADAPTERS='core.understanding_adapters.'
 def initialize_point1024_isoadapter_from_legacy_zero(saved,model,*,manifest_sha256,heldout_sha256,world):
     import torch
     from tokengs.models.unified_superpoints import SuperpointQueryInitializer
-    if model.architecture_name not in (ARCH,NO_CA_ARCH):raise ValueError('Wrong isolated point1024 target')
+    if model.architecture_name not in ISOLATED_ARCHS:raise ValueError('Wrong isolated point1024 target')
     if saved['progress']!=dict(epoch=0,update_in_epoch=0,full_updates=0) or saved['optimizer']['state']:
         raise ValueError('Requires original zero updates and empty Adam')
     meta=saved['meta']
@@ -24,8 +29,12 @@ def initialize_point1024_isoadapter_from_legacy_zero(saved,model,*,manifest_sha2
     # do not tolerate arbitrary missing keys under the prefix. Preserve RNG.
     with torch.random.fork_rng(devices=[]):
         removed={REMOVED+k:v.shape for k,v in SuperpointQueryInitializer(model.config).state_dict().items()}
-    if model.architecture_name==NO_CA_ARCH:
+    if model.architecture_name in GEOMETRIC_ARCHS:
         removed.update({f'core.panoptic.layers.L{layer}.anchor_attention.{projection}.{kind}':shape
+            for layer in (6,8,10,12) for projection in ('Q','K','V','O')
+            for kind,shape in [('weight',(256,256)),('bias',(256,))]})
+    if model.architecture_name in NOFM_ARCHS:
+        removed.update({f'core.panoptic.layers.L{layer}.image_attention.{projection}.{kind}':shape
             for layer in (6,8,10,12) for projection in ('Q','K','V','O')
             for kind,shape in [('weight',(256,256)),('bias',(256,))]})
     added={ADAPTERS+f'L{layer}.net.{suffix}':shape for layer in (6,8,10,12)
@@ -45,5 +54,6 @@ def initialize_point1024_isoadapter_from_legacy_zero(saved,model,*,manifest_sha2
         seed_feature_source='exact_source_pixel_shared_projection_256',adapter_input_detached=True,
         adapter_residual_output_detached=False,shared_understanding_gradient_disabled=True,
         understanding_seed_feature_source='semantic_memory_fm_256',
-        object_anchor_attention='none' if model.architecture_name==NO_CA_ARCH else 'learned_cross_attention',
-        geometry_routing='normalized_geometric_distance_softmax_v1' if model.architecture_name==NO_CA_ARCH else 'learned_attention_weights')
+        object_anchor_attention='none' if model.architecture_name in GEOMETRIC_ARCHS else 'learned_cross_attention',
+        geometry_routing='normalized_geometric_distance_softmax_v1' if model.architecture_name in GEOMETRIC_ARCHS else 'learned_attention_weights',
+        object_fm_attention='none' if model.architecture_name in NOFM_ARCHS else 'learned_cross_attention')

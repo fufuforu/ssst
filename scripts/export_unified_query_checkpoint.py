@@ -40,17 +40,20 @@ def main():
     if not args.smoke and saved['progress']['epoch']!=meta['epochs']:raise ValueError('Incomplete training; only --smoke export allowed')
     training,_,_=cohorts()
     training_identity={}
-    if meta['architecture'] in ('OMEGA_POINT1024_SOURCE256_FMQUERY_ISOLATED_RESIDUAL_ADAPTER_V2','OMEGA_POINT1024_FMQUERY_ISOLATED_NO_ANCHOR_CA_GEOMETRIC_ROUTING_V1'):
+    if meta['architecture'] in ('OMEGA_POINT1024_SOURCE256_FMQUERY_ISOLATED_RESIDUAL_ADAPTER_V2','OMEGA_POINT1024_FMQUERY_ISOLATED_NO_ANCHOR_CA_GEOMETRIC_ROUTING_V1','OMEGA_POINT1024_FMQUERY_ISOLATED_ANCHOR_CA_NO_FM_CA_V1','OMEGA_POINT1024_FMQUERY_ISOLATED_NO_ANCHOR_CA_NO_FM_CA_GEOMETRIC_ROUTING_V1'):
         from scripts.training_windows_2ctx4novel import load_training_windows,DEFAULT_MANIFEST
         training,training_identity=load_training_windows(meta.get('training_window_manifest',DEFAULT_MANIFEST),training,digest(MANIFEST))
         if any(meta.get(k)!=v for k,v in training_identity.items()):raise ValueError('2+4 training manifest/protocol identity differs')
     if not args.smoke and saved['progress']['full_updates']!=meta['epochs']*(len(epoch_order(len(training),0))//8):raise ValueError('Training update count differs')
     if meta['architecture']=='OMEGA_3D_FPS1024_SUPERPOINT_RECON_V1':
         if meta.get('reconstruction_anchor_count')!=1024 or meta.get('reconstruction_initialization')!='fps_xyz_plus_learned_embedding_plus_superpoint':raise ValueError('FPS initialization identity differs')
-    if meta['architecture'] in ('OMEGA_POINT1024_SOURCE256_FMQUERY_ISOLATED_RESIDUAL_ADAPTER_V2','OMEGA_POINT1024_FMQUERY_ISOLATED_NO_ANCHOR_CA_GEOMETRIC_ROUTING_V1'):
+    if meta['architecture'] in ('OMEGA_POINT1024_SOURCE256_FMQUERY_ISOLATED_RESIDUAL_ADAPTER_V2','OMEGA_POINT1024_FMQUERY_ISOLATED_NO_ANCHOR_CA_GEOMETRIC_ROUTING_V1','OMEGA_POINT1024_FMQUERY_ISOLATED_ANCHOR_CA_NO_FM_CA_V1','OMEGA_POINT1024_FMQUERY_ISOLATED_NO_ANCHOR_CA_NO_FM_CA_GEOMETRIC_ROUTING_V1'):
         if meta.get('reconstruction_anchor_count')!=1024 or meta.get('seed_feature_source')!='exact_source_pixel_shared_projection_256' or meta.get('understanding_seed_feature_source')!='semantic_memory_fm_256' or meta.get('gradient_isolation') is not True or meta.get('adapter_hidden')!=64 or meta.get('adapter_read_layers')!=[6,8,10,12] or meta.get('supervised_layers')!=[6,12] or meta.get('layer_weights')!=[1/3,2/3] or meta.get('epochs')!=4 or meta.get('global_batch')!=8:raise ValueError('Isolated point1024 checkpoint identity differs')
     if meta['architecture']=='OMEGA_POINT1024_FMQUERY_ISOLATED_NO_ANCHOR_CA_GEOMETRIC_ROUTING_V1':
         if meta.get('object_anchor_attention')!='none' or meta.get('geometry_routing')!='normalized_geometric_distance_softmax_v1':raise ValueError('No-CA routing identity differs')
+    from scripts.point1024_isoadapter_initial_state import NOFM_ARCHS,C_ARCH
+    if meta['architecture'] in NOFM_ARCHS:
+        if meta.get('object_fm_attention')!='none' or meta.get('object_anchor_attention')!=('learned_cross_attention' if meta['architecture']==C_ARCH else 'none') or meta.get('geometry_routing')!=('learned_attention_weights' if meta['architecture']==C_ARCH else 'normalized_geometric_distance_softmax_v1'):raise ValueError('C/D attention identity differs')
     constructor_kwargs={}
     if meta['architecture']=='OMEGA_3D_SUPERPOINT_RECON_QP_V1':
         if 'recon_qp_slots' not in meta or meta['recon_qp_slots']<1:raise ValueError('Missing reconstruction Q bank identity')

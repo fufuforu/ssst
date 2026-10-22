@@ -19,10 +19,13 @@ class DynamicObjectLayer(RegisteredObjectLayer):
     def _read_anchor(self,q,a,bias):
         return self.anchor_attention(q,a,bias)
 
+    def _read_image(self,q,image):
+        return self.image_attention(q,self.image_ln(image))
+
     def forward(self,h,a,mu,q,c,s,ell,image,mask_embedder,f_anchor,exposure,**kwargs):
         if kwargs:raise ValueError('Legacy diagnostic overrides are not supported in this explicit variant')
         ev,R=self._read_anchor(q,a,geometry_bias(mu,c,s));q1=self.norms[0](q+ev)
-        im,_=self.image_attention(q1,self.image_ln(image));q2=self.norms[1](q1+im)
+        im,_=self._read_image(q1,image);q2=self.norms[1](q1+im)
         q3=self.norms[2](q2+self.self_attn(q2,q2,q2,need_weights=False)[0]);qnew=self.norms[3](q3+self.ffn(q3))
         cnew,snew=self.update_geometry(R.mean(1),mu,qnew[:,:c.shape[1]],c,s,ell)
         mq=mask_embedder(qnew)

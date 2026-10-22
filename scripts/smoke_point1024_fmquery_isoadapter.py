@@ -66,7 +66,8 @@ def main(root):
         if len(windows)!=8337 or len({w['scene'] for w in windows})!=1191:raise ValueError('Training cohort differs')
         stage='model_and_zero_migration'
         opt=config_defaults['train_siu3r_unified_query_v1'].evolve(num_views=6)
-        model=build_structural_model('dual_point1024_isoadapter',opt,config).to(device)
+        variant=json.loads((root/'configuration.json').read_text()).get('model_key','dual_point1024_isoadapter') if (root/'configuration.json').exists() else 'dual_point1024_isoadapter'
+        model=build_structural_model(variant,opt,config).to(device)
         evidence=initialize_point1024_isoadapter_from_legacy_zero(saved,model,
             manifest_sha256=digest(MANIFEST),heldout_sha256=digest(HELDOUT),world=1)
         evidence['training_data_extension']=training_identity
@@ -98,6 +99,9 @@ def main(root):
             supervised_layers=list(model.supervised_layers),layer_weights=list(model.layer_weights),image_hw=list(opt.img_size),
             gpu_name=torch.cuda.get_device_name(0),gpu_total_memory_bytes=torch.cuda.get_device_properties(0).total_memory,
             color_prior=False,write_strength=0.,full_training_submitted=False)
+        if variant in ('dual_point1024_anchor_only','dual_point1024_neither_ca'):
+            budget['full_training_submitted']=(root.parent/'train'/'SUBMITTED.json').exists()
+            budget['formal_weights_from_smoke']=False
         budget.update(training_identity)
         write(root,'BUDGET.json',budget)
         stage='batch_load';batch=build_batch(opt,window,device)
@@ -107,6 +111,10 @@ def main(root):
         budget.update(context_views=2,novel_views=4,supervised_views=6,batch_contract=contract)
         write(root,'BUDGET.json',budget)
         model.train()
+        if variant in ('dual_point1024_anchor_only','dual_point1024_neither_ca'):
+            if any(hasattr(layer,'image_attention') for layer in model.core.panoptic.layers.values()):raise ValueError('FM CA still registered')
+            expected=variant=='dual_point1024_anchor_only'
+            if any(hasattr(layer,'anchor_attention')!=expected for layer in model.core.panoptic.layers.values()):raise ValueError('Anchor CA state differs')
         for update in range(2):
             stage=f'update_{update+1}';optimizer.zero_grad(set_to_none=True)
             for group in optimizer.param_groups:group['lr']=1e-4*lr_factor('full',update,4172)
