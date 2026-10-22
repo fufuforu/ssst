@@ -20,3 +20,11 @@ Smoke failure blocks downstream jobs. Formal training always reloads original ol
 Polling stopped after the one acceptance query. Wait for the user's completion/status instruction before inspecting GPU logs or results. Previous C/D jobs70691–70696 were not queried, cancelled, changed or resubmitted.
 
 This publication worktree advances only documentation; the sealed execution HEAD remains unchanged. No checkpoints, datasets or large intermediate tensors are published.
+
+## Later verified updates; earlier paragraphs retain submission-time history
+
+- 2026-10-22 09:24 CST: user cancelled previous P1024iso C/D training70692/70695 and dependent evaluations70693/70696. All four confirmed CANCELLED; local USER_CANCELLED.json records it. This supersedes the earlier statement that they had not been cancelled at submission time. Old-A470714–70719 untouched.
+- 2026-10-22 09:49 CST: on the user's duration question, one bounded scheduler check found70715 RUNNING on13 (8×3090),70718 RUNNING on12 (8×3090),70716/70719 PENDING(Dependency). Follow-up receipt/log parsing confirmed smoke gates passed and eight-rank first-update hashes matched and changed for both arms. Rank0 updates were approximately150/4172 and163/4172, recent100 step means6.036s and5.304s. These are historical observations, not live status.
+- No queue/progress checks were made solely to write the new handoff. Do not resubmit from stale records.
+
+Latest handoff: [codex_handoff_olda4_v4init_noca_20261022.md](../codex_handoff_olda4_v4init_noca_20261022.md).
