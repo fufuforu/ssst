@@ -1,0 +1,7 @@
+             JOBID               NAME      STATE       PARTITION             NODELIST NODELIST(REASON)
+             70719        A4NoCA_eval    PENDING       3090,4090                      (Dependency)
+             70718       A4NoCA_train    PENDING       3090,4090                      (Dependency)
+             70717       A4NoCA_smoke    PENDING       3090,4090                      (None)
+             70716      A4V4init_eval    PENDING       3090,4090                      (Dependency)
+             70715     A4V4init_train    PENDING       3090,4090                      (Dependency)
+             70714     A4V4init_smoke    PENDING       3090,4090                      (None)

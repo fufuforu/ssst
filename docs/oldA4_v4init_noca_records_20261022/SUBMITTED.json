@@ -1,0 +1,25 @@
+{
+  "code_root": "/space/mawb/ssst_olda4_v4init_noca_code_20261022_v1",
+  "code_sha": "5335430b6f0e40fccb042162ae47f4723da32669",
+  "submitted_utc": "2026-10-22T01:23:22.786698+00:00",
+  "eligible_nodes": [
+    12,
+    13,
+    14,
+    17,
+    18
+  ],
+  "branches": {
+    "V4init": {
+      "smoke": 70714,
+      "train": 70715,
+      "eval": 70716
+    },
+    "NoCA": {
+      "smoke": 70717,
+      "train": 70718,
+      "eval": 70719
+    }
+  },
+  "stop_polling_after_single_check": true
+}
