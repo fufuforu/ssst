@@ -1,0 +1,304 @@
+{
+  "checked_at": "2026-10-23T07:46:28.670307+08:00",
+  "checkpoint_audit": {
+    "Baseline": {
+      "epoch4": {
+        "file": "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_noca_v4recipe_20261022_v1/train/checkpoint_epoch4.pt",
+        "progress": {
+          "epoch": 4,
+          "update_in_epoch": 0,
+          "full_updates": 4172
+        },
+        "model_tensors": 632,
+        "nonfinite_model": [],
+        "nonfinite_optimizer": [],
+        "adam_states": 604,
+        "adam_steps": [
+          4172.0
+        ],
+        "rng_count": 8,
+        "changed_model_tensors": 604,
+        "changed_geometry_tensors": 48,
+        "changed_reconstruction_tokens": [
+          "core.blocks.0.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.0.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.1.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.1.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.2.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.2.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.3.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.3.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.4.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.4.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.5.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.5.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.6.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.6.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.7.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.7.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.8.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.8.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.9.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.9.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.10.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.10.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.11.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.11.gs_cross_attn.gs_token_norm.bias",
+          "core.v4_initialization.gs_tokens"
+        ],
+        "source_zero_sha": "bf5b5325adcc8346eb89ebdceac36149c510402d18e8c7dd0c8fe8046f245397"
+      },
+      "continuation_latest": {
+        "file": "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_20261022_v1/Baseline/train/checkpoint_latest.pt",
+        "progress": {
+          "epoch": 5,
+          "update_in_epoch": 285,
+          "full_updates": 5500
+        },
+        "model_tensors": 632,
+        "nonfinite_model": [],
+        "nonfinite_optimizer": [],
+        "adam_states": 604,
+        "adam_steps": [
+          5500.0
+        ],
+        "rng_count": 8,
+        "changed_model_tensors": 604,
+        "changed_geometry_tensors": 48,
+        "changed_reconstruction_tokens": [
+          "core.blocks.0.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.0.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.1.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.1.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.2.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.2.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.3.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.3.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.4.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.4.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.5.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.5.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.6.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.6.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.7.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.7.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.8.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.8.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.9.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.9.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.10.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.10.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.11.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.11.gs_cross_attn.gs_token_norm.bias",
+          "core.v4_initialization.gs_tokens"
+        ],
+        "source_zero_sha": "bf5b5325adcc8346eb89ebdceac36149c510402d18e8c7dd0c8fe8046f245397"
+      },
+      "epoch5_progress": {
+        "epoch": 5,
+        "update_in_epoch": 0,
+        "full_updates": 5215
+      }
+    },
+    "U005": {
+      "epoch4": {
+        "file": "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_weight_views_20261022_v1/U005/train/checkpoint_epoch4.pt",
+        "progress": {
+          "epoch": 4,
+          "update_in_epoch": 0,
+          "full_updates": 4172
+        },
+        "model_tensors": 632,
+        "nonfinite_model": [],
+        "nonfinite_optimizer": [],
+        "adam_states": 604,
+        "adam_steps": [
+          4172.0
+        ],
+        "rng_count": 8,
+        "changed_model_tensors": 604,
+        "changed_geometry_tensors": 48,
+        "changed_reconstruction_tokens": [
+          "core.blocks.0.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.0.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.1.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.1.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.2.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.2.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.3.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.3.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.4.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.4.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.5.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.5.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.6.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.6.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.7.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.7.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.8.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.8.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.9.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.9.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.10.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.10.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.11.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.11.gs_cross_attn.gs_token_norm.bias",
+          "core.v4_initialization.gs_tokens"
+        ],
+        "source_zero_sha": "bf5b5325adcc8346eb89ebdceac36149c510402d18e8c7dd0c8fe8046f245397"
+      },
+      "continuation_latest": {
+        "file": "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_20261022_v1/U005/train/checkpoint_latest.pt",
+        "progress": {
+          "epoch": 4,
+          "update_in_epoch": 0,
+          "full_updates": 4172
+        },
+        "model_tensors": 632,
+        "nonfinite_model": [],
+        "nonfinite_optimizer": [],
+        "adam_states": 604,
+        "adam_steps": [
+          4172.0
+        ],
+        "rng_count": 8,
+        "changed_model_tensors": 0,
+        "changed_geometry_tensors": 0,
+        "changed_reconstruction_tokens": [],
+        "source_zero_sha": "bf5b5325adcc8346eb89ebdceac36149c510402d18e8c7dd0c8fe8046f245397"
+      }
+    },
+    "Views2ctx4": {
+      "epoch4": {
+        "file": "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_weight_views_20261022_v1/Views2ctx4/train/checkpoint_epoch4.pt",
+        "progress": {
+          "epoch": 4,
+          "update_in_epoch": 0,
+          "full_updates": 4172
+        },
+        "model_tensors": 632,
+        "nonfinite_model": [],
+        "nonfinite_optimizer": [],
+        "adam_states": 604,
+        "adam_steps": [
+          4172.0
+        ],
+        "rng_count": 8,
+        "changed_model_tensors": 604,
+        "changed_geometry_tensors": 48,
+        "changed_reconstruction_tokens": [
+          "core.blocks.0.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.0.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.1.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.1.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.2.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.2.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.3.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.3.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.4.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.4.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.5.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.5.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.6.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.6.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.7.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.7.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.8.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.8.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.9.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.9.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.10.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.10.gs_cross_attn.gs_token_norm.bias",
+          "core.blocks.11.gs_cross_attn.gs_token_norm.weight",
+          "core.blocks.11.gs_cross_attn.gs_token_norm.bias",
+          "core.v4_initialization.gs_tokens"
+        ],
+        "source_zero_sha": "bf5b5325adcc8346eb89ebdceac36149c510402d18e8c7dd0c8fe8046f245397"
+      }
+    }
+  },
+  "official_epoch4_summary": {
+    "status": "PASSED",
+    "windows": 1860,
+    "scenes": 312,
+    "target_protocol": "target-all6",
+    "same_zero_and_budget": true,
+    "checks": {
+      "baseline_U1_2ctx2": {
+        "status": "PASSED",
+        "initial_sha256": "bf5b5325adcc8346eb89ebdceac36149c510402d18e8c7dd0c8fe8046f245397",
+        "progress": {
+          "epoch": 4,
+          "full_updates": 4172
+        },
+        "matched_inputs_and_gt": true,
+        "parameter_updates": 0
+      },
+      "U005_2ctx2": {
+        "status": "PASSED",
+        "initial_sha256": "bf5b5325adcc8346eb89ebdceac36149c510402d18e8c7dd0c8fe8046f245397",
+        "progress": {
+          "epoch": 4,
+          "full_updates": 4172
+        },
+        "matched_inputs_and_gt": true,
+        "parameter_updates": 0
+      },
+      "U1_2ctx4": {
+        "status": "PASSED",
+        "initial_sha256": "bf5b5325adcc8346eb89ebdceac36149c510402d18e8c7dd0c8fe8046f245397",
+        "progress": {
+          "epoch": 4,
+          "full_updates": 4172
+        },
+        "matched_inputs_and_gt": true,
+        "parameter_updates": 0
+      }
+    },
+    "rows": [
+      {
+        "model": "baseline_U1_2ctx2",
+        "psnr": 23.05196244336371,
+        "absrel": 0.05272796110205826,
+        "rmse": 0.17645892476446853,
+        "context_miou": 58.16584423184394,
+        "context_pq": 68.41936202117024,
+        "context_map": 24.535201489925385,
+        "target_miou": 57.78259947896004,
+        "target_pq": 66.06432887279455,
+        "target_map": 23.135530948638916
+      },
+      {
+        "model": "U005_2ctx2",
+        "psnr": 23.19739713062095,
+        "absrel": 0.052387333433577744,
+        "rmse": 0.17451705494340622,
+        "context_miou": 57.260959446430206,
+        "context_pq": 67.75472297776305,
+        "context_map": 23.697736859321594,
+        "target_miou": 56.97564959526063,
+        "target_pq": 65.5858668359739,
+        "target_map": 22.22793847322464
+      },
+      {
+        "model": "U1_2ctx4",
+        "psnr": 22.978475085424265,
+        "absrel": 0.05186947855679485,
+        "rmse": 0.1733342209630596,
+        "context_miou": 57.44749888777733,
+        "context_pq": 68.71044454754,
+        "context_map": 24.500170350074768,
+        "target_miou": 57.22554340958595,
+        "target_pq": 66.31539774146749,
+        "target_map": 23.054257035255432
+      }
+    ],
+    "single_seed": true,
+    "axis_comparisons": [
+      "U005 vs baseline: understanding_weight only",
+      "2ctx4 vs baseline: reconstruction training views only"
+    ]
+  },
+  "inputs_and_gt_rechecked_equal": true,
+  "no_new_jobs": true
+}
