@@ -1,18 +1,26 @@
 """Sealed V4-init/NoCA recipe, exact zero migration and geometry LR policy."""
 ARCH='OMEGA_V4INIT_NO_ANCHOR_CA_ISOLATED_V4_RECIPE_V1'
 KEY='dual_v4init_isolated_noca'
+LOW_KEY='dual_v4init_isolated_ulow'
+VIEWS_KEY='dual_v4init_isolated_2ctx4'
+LOW_ARCH='OMEGA_V4INIT_NO_ANCHOR_CA_ISOLATED_U005_V1'
+VIEWS_ARCH='OMEGA_V4INIT_NO_ANCHOR_CA_ISOLATED_2CTX4_V1'
+MODEL_KEYS={ARCH:KEY,LOW_ARCH:LOW_KEY,VIEWS_ARCH:VIEWS_KEY}
+LOW_WEIGHT=.05
 SOURCE_ARCH='OMEGA_OLD_A4_V4_RECON_INITIALIZATION_JOINT_V1'
 
-def recipe_identity():
+def recipe_identity(key=KEY):
+    if key not in MODEL_KEYS.values():raise ValueError('Unknown isolated V4 variant')
+    from scripts.training_windows_2ctx4novel import PROTOCOL
     return dict(gradient_isolation=True,gradient_isolation_method='detached_reconstruction_reads_and_mask_geometry',
-        understanding_adapters=False,training_view_protocol='2context+2novel',training_windows=8337,training_scenes=1191,
+        understanding_adapters=False,training_view_protocol=PROTOCOL if key==VIEWS_KEY else '2context+2novel',training_windows=8337,training_scenes=1191,
         supervised_layers=[6,12],layer_weights=[1/3,2/3],semantic_memory_resolution=128,
         understanding_seed_feature_source='old_shared_projected_cloud256',
         reconstruction_initialization='v4_fps1024_learned_base_xyz_radius_rgb_raw_gfm2048',reconstruction_anchor_count=1024,
         object_anchor_attention='none',object_fm_attention='learned_cross_attention',
         geometry_routing='normalized_geometric_distance_softmax_v1',write_strength=0.,
         geometry_refinement_lr=1e-5,gradient_clip='global_norm_1_as_early_v4',
-        understanding_weight=1.,understanding_warmup=1043)
+        understanding_weight=LOW_WEIGHT if key==LOW_KEY else 1.,understanding_warmup=1043)
 
 def removed_keys():
     return {f'core.panoptic.layers.L{l}.anchor_attention.{p}.{k}':shape
@@ -21,7 +29,7 @@ def removed_keys():
 
 def initialize_from_v4init_zero(saved,model,*,manifest_sha256,heldout_sha256,world):
     import torch
-    if model.architecture_name!=ARCH:raise ValueError('Wrong target architecture')
+    if model.architecture_name not in MODEL_KEYS:raise ValueError('Wrong target architecture')
     if saved['progress']!=dict(epoch=0,update_in_epoch=0,full_updates=0) or saved['optimizer']['state']:
         raise ValueError('Requires V4init ZERO with empty Adam; trained endpoints forbidden')
     meta=saved['meta']
@@ -40,7 +48,7 @@ def initialize_from_v4init_zero(saved,model,*,manifest_sha256,heldout_sha256,wor
     with torch.no_grad():
         for k,v in target.items():v.copy_(source[k])
     return dict(status='V4INIT_ZERO_MIGRATED',source_updates=0,empty_adam=True,source_world=8,target_world=world,
-        copied_keys=sorted(target),removed_keys=sorted(removed),new_keys=[],**recipe_identity())
+        copied_keys=sorted(target),removed_keys=sorted(removed),new_keys=[],**recipe_identity(MODEL_KEYS[model.architecture_name]))
 
 def optimizer_groups(model):
     # Keep the original weight-decay rule, changing ONLY mu/rho head base LR.
@@ -56,9 +64,13 @@ def optimizer_groups(model):
             for (family,lr,wd),ps in groups.items()]
 
 def check_meta(meta,cfg):
-    if meta['architecture']!=ARCH or meta['code_sha']!=cfg['code_sha']:raise ValueError('Code/architecture differs')
+    if meta['architecture']!=cfg['architecture'] or meta['architecture'] not in MODEL_KEYS or meta['code_sha']!=cfg['code_sha']:raise ValueError('Code/architecture differs')
     for k in ('manifest_sha256','heldout_sha256'):
         if meta[k]!=cfg[k]:raise ValueError('Data identity differs: '+k)
     if meta['initial_sha256']!=cfg['initial_checkpoint_sha256']:raise ValueError('Zero source differs')
-    expected=dict(epochs=4,world_size=8,global_batch=8,learning_rate=1e-4,**recipe_identity())
+    expected=dict(epochs=4,world_size=8,global_batch=8,learning_rate=1e-4,**recipe_identity(cfg['model_key']))
     if any(meta.get(k)!=v for k,v in expected.items()):raise ValueError('Recipe identity differs')
+
+    if cfg['model_key']==VIEWS_KEY:
+        from scripts.training_windows_2ctx4novel import sha256
+        if meta.get('training_window_manifest_sha256')!=cfg['training_window_manifest_sha256'] or meta.get('training_window_manifest_sha256')!=sha256(cfg['training_window_manifest']) or meta.get('training_window_manifest')!=cfg['training_window_manifest'] or meta.get('context_views')!=2 or meta.get('novel_views')!=4 or meta.get('total_supervised_views')!=6:raise ValueError('Six-view data identity differs')

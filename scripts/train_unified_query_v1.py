@@ -47,7 +47,7 @@ class Task(nn.Module):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir',type=Path,required=True);parser.add_argument('--understanding-weight',type=float,required=True)
-    parser.add_argument('--architecture',choices=('unified','dual_superpoint','unified_direct','dual_superpoint_recon_qp','dual_fps1024_superpoint','dual_point1024_isoadapter','dual_point1024_isoadapter_noca','dual_point1024_anchor_only','dual_point1024_neither_ca','dual_olda4_v4init','dual_olda4_noca','dual_v4init_isolated_noca'),default='unified')
+    parser.add_argument('--architecture',choices=('unified','dual_superpoint','unified_direct','dual_superpoint_recon_qp','dual_fps1024_superpoint','dual_point1024_isoadapter','dual_point1024_isoadapter_noca','dual_point1024_anchor_only','dual_point1024_neither_ca','dual_olda4_v4init','dual_olda4_noca','dual_v4init_isolated_noca','dual_v4init_isolated_ulow','dual_v4init_isolated_2ctx4'),default='unified')
     parser.add_argument('--epochs',type=int,default=4);parser.add_argument('--max-updates',type=int)
     parser.add_argument('--learning-rate',type=float,default=1e-4);parser.add_argument('--understanding-warmup',type=int,default=1043)
     parser.add_argument('--short-validation',action='store_true',help='16 fixed training scenes, 256 updates, initial/final probes')
@@ -70,16 +70,18 @@ def main():
     if args.initialize_fps_superpoint_from_legacy_zero and (args.architecture!='dual_fps1024_superpoint' or not args.initial_checkpoint or args.resume):parser.error('FPS migration requires fresh FPS architecture and explicit zero source')
     if args.initialize_point1024_isoadapter_from_legacy_zero and (args.architecture not in ('dual_point1024_isoadapter','dual_point1024_isoadapter_noca','dual_point1024_anchor_only','dual_point1024_neither_ca') or not args.initial_checkpoint or args.resume):parser.error('Point1024 isolated migration requires explicit zero source and fresh matching architecture')
     if args.architecture in ('dual_point1024_isoadapter','dual_point1024_isoadapter_noca','dual_point1024_anchor_only','dual_point1024_neither_ca') and (args.epochs!=4 or args.short_validation):parser.error('This control requires the A4 four-epoch schedule')
-    if args.training_window_manifest and args.architecture not in ('dual_point1024_isoadapter','dual_point1024_isoadapter_noca','dual_point1024_anchor_only','dual_point1024_neither_ca'):parser.error('2+4 manifest is dedicated to the isolated point1024 control')
+    if args.training_window_manifest and args.architecture not in ('dual_v4init_isolated_2ctx4','dual_point1024_isoadapter','dual_point1024_isoadapter_noca','dual_point1024_anchor_only','dual_point1024_neither_ca'):parser.error('2+4 manifest is dedicated to the isolated point1024 control')
     if args.architecture in ('dual_olda4_v4init','dual_olda4_noca'):
         if args.epochs!=4 or args.short_validation or args.training_window_manifest or not args.initialize_olda4_ablation_from_legacy_zero and not args.resume:
             parser.error('Old A4 ablations require original 2+2 full4 and explicit zero migration')
     elif args.initialize_olda4_ablation_from_legacy_zero:parser.error('Wrong old A4 migration target')
     if args.initialize_olda4_ablation_from_legacy_zero and (not args.initial_checkpoint or args.resume):parser.error('Old A4 migration requires explicit fresh zero source')
-    if args.architecture=='dual_v4init_isolated_noca':
-        if args.epochs!=4 or args.short_validation or args.training_window_manifest or args.learning_rate!=1e-4 or args.understanding_weight!=1. or args.understanding_warmup!=1043 or not args.initialize_v4init_isolated_zero and not args.resume:
-            parser.error('V4 recipe requires full4 2+2 LR1e-4 U1/1043 and explicit V4init zero migration')
-    if args.initialize_v4init_isolated_zero and (args.architecture!='dual_v4init_isolated_noca' or not args.initial_checkpoint or args.resume):parser.error('Wrong V4init zero migration target')
+    from scripts.v4init_isolated_recipe import MODEL_KEYS as V4ISO_MODELS,recipe_identity as v4iso_recipe
+    if args.architecture in V4ISO_MODELS.values():
+        expected_understanding_weight=v4iso_recipe(args.architecture)['understanding_weight']
+        if args.epochs!=4 or args.short_validation or args.training_window_manifest and args.architecture!='dual_v4init_isolated_2ctx4' or args.learning_rate!=1e-4 or args.understanding_weight!=expected_understanding_weight or args.understanding_warmup!=1043 or not args.initialize_v4init_isolated_zero and not args.resume:
+            parser.error('V4 isolated variant requires declared view protocol/weight, full4 LR1e-4 U-warmup1043 and explicit V4init zero migration')
+    if args.initialize_v4init_isolated_zero and (args.architecture not in V4ISO_MODELS.values() or not args.initial_checkpoint or args.resume):parser.error('Wrong V4init zero migration target')
     if args.short_validation:
         if args.resume or args.max_updates is not None:parser.error('Short validation uses a fresh bounded run')
         args.epochs=128;args.max_updates=256;args.understanding_warmup=20
@@ -93,6 +95,10 @@ def main():
     opt=config_defaults['train_siu3r_unified_query_v1'];windows,chosen,validation=cohorts()
     training_identity={}
     if args.architecture in ('dual_point1024_isoadapter','dual_point1024_isoadapter_noca','dual_point1024_anchor_only','dual_point1024_neither_ca'):
+        from scripts.training_windows_2ctx4novel import load_training_windows,DEFAULT_MANIFEST
+        windows,training_identity=load_training_windows(args.training_window_manifest or DEFAULT_MANIFEST,windows,digest(MANIFEST))
+        opt=opt.evolve(num_views=6)
+    if args.architecture=='dual_v4init_isolated_2ctx4':
         from scripts.training_windows_2ctx4novel import load_training_windows,DEFAULT_MANIFEST
         windows,training_identity=load_training_windows(args.training_window_manifest or DEFAULT_MANIFEST,windows,digest(MANIFEST))
         opt=opt.evolve(num_views=6)
@@ -143,7 +149,7 @@ def main():
     for name,p in model.named_parameters():
         if p.requires_grad:grouped.setdefault(0. if p.ndim<2 or getattr(p,'_no_weight_decay',False) else .05,[]).append(p)
     optimizer_specs=[dict(params=ps,weight_decay=wd) for wd,ps in grouped.items()]
-    if args.architecture=='dual_v4init_isolated_noca':
+    if args.architecture in V4ISO_MODELS.values():
         from scripts.v4init_isolated_recipe import optimizer_groups
         optimizer_specs=optimizer_groups(model)
     optimizer=torch.optim.AdamW(optimizer_specs,lr=args.learning_rate,betas=(.9,.95),eps=1e-8)
@@ -170,9 +176,9 @@ def main():
     if args.architecture in ('dual_olda4_v4init','dual_olda4_noca'):
         from scripts.olda4_ablation_initial_state import recipe_identity
         meta.update(recipe_identity(args.architecture))
-    if args.architecture=='dual_v4init_isolated_noca':
+    if args.architecture in V4ISO_MODELS.values():
         from scripts.v4init_isolated_recipe import recipe_identity
-        meta.update(recipe_identity())
+        meta.update(recipe_identity(args.architecture))
         meta['optimizer_groups']=[{k:v for k,v in g.items() if k!='params'} for g in optimizer_specs]
     meta.update(training_identity)
     progress=dict(epoch=0,update_in_epoch=0,full_updates=0)
@@ -256,7 +262,7 @@ def main():
             if step==0:synchronized_first_update(model,initial_digest,root,rank,world)
             progress.update(epoch=epoch+int(update+1==updates_per_epoch),update_in_epoch=0 if update+1==updates_per_epoch else update+1,full_updates=step+1)
             row={k:sum(r[k] for r in rows)/len(rows) for k in rows[0]};row.update(update=step+1,epoch=epoch,grad_norm=float(norm),understanding_weight=args.understanding_weight*beta,local_indices=indices,seconds=time.monotonic()-started,peak_cuda_memory_bytes=torch.cuda.max_memory_allocated(device))
-            if args.architecture=='dual_v4init_isolated_noca':row['learning_rates']={g['family']:g['lr'] for g in optimizer.param_groups}
+            if args.architecture in V4ISO_MODELS.values():row['learning_rates']={g['family']:g['lr'] for g in optimizer.param_groups}
             row['microbatch_query_counts']=[dict(local_index=index,num_superpoints=r['num_thing_queries'],
                 num_reconstruction_anchors=r.get('num_reconstruction_anchors',r['num_thing_queries']),
                 num_object_queries=r['num_thing_queries'],num_stuff_queries=2,

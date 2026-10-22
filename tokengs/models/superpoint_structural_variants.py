@@ -110,3 +110,11 @@ MODELS['dual_olda4_noca']=LocusGSOldA4NoCA
 
 from tokengs.models.v4init_isolated_noca import LocusGSV4InitIsolatedNoCA
 MODELS['dual_v4init_isolated_noca']=LocusGSV4InitIsolatedNoCA
+
+from scripts.v4init_isolated_recipe import LOW_KEY,LOW_ARCH,VIEWS_KEY,VIEWS_ARCH
+class LocusGSV4InitIsolatedLowWeight(LocusGSV4InitIsolatedNoCA):
+    architecture_name=LOW_ARCH
+class LocusGSV4InitIsolatedSixViews(LocusGSV4InitIsolatedNoCA):
+    architecture_name=VIEWS_ARCH
+MODELS[LOW_KEY]=LocusGSV4InitIsolatedLowWeight
+MODELS[VIEWS_KEY]=LocusGSV4InitIsolatedSixViews

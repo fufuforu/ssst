@@ -58,8 +58,13 @@ def main():
     if meta['architecture'] in MODEL_KEYS:
         if any(meta.get(k)!=v for k,v in recipe_identity(MODEL_KEYS[meta['architecture']]).items()):raise ValueError('Old A4 ablation recipe identity differs')
     from scripts.v4init_isolated_recipe import ARCH as V4ISO_ARCH,recipe_identity as v4iso_recipe
-    if meta['architecture']==V4ISO_ARCH:
-        if any(meta.get(k)!=v for k,v in v4iso_recipe().items()) or meta['learning_rate']!=1e-4:raise ValueError('V4 isolated recipe differs')
+    from scripts.v4init_isolated_recipe import MODEL_KEYS as V4ISO_MODELS,VIEWS_ARCH
+    if meta['architecture'] in V4ISO_MODELS:
+        if any(meta.get(k)!=v for k,v in v4iso_recipe(V4ISO_MODELS[meta['architecture']]).items()) or meta['learning_rate']!=1e-4:raise ValueError('V4 isolated recipe differs')
+    if meta['architecture']==VIEWS_ARCH:
+        from scripts.training_windows_2ctx4novel import load_training_windows,DEFAULT_MANIFEST
+        training,training_identity=load_training_windows(meta.get('training_window_manifest',DEFAULT_MANIFEST),training,digest(MANIFEST))
+        if any(meta.get(k)!=v for k,v in training_identity.items()):raise ValueError('V4 six-view manifest identity differs')
     constructor_kwargs={}
     if meta['architecture']=='OMEGA_3D_SUPERPOINT_RECON_QP_V1':
         if 'recon_qp_slots' not in meta or meta['recon_qp_slots']<1:raise ValueError('Missing reconstruction Q bank identity')
