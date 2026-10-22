@@ -60,7 +60,12 @@ def main():
     from scripts.v4init_isolated_recipe import ARCH as V4ISO_ARCH,recipe_identity as v4iso_recipe
     from scripts.v4init_isolated_recipe import MODEL_KEYS as V4ISO_MODELS,VIEWS_ARCH
     if meta['architecture'] in V4ISO_MODELS:
-        if any(meta.get(k)!=v for k,v in v4iso_recipe(V4ISO_MODELS[meta['architecture']]).items()) or meta['learning_rate']!=1e-4:raise ValueError('V4 isolated recipe differs')
+        expected=v4iso_recipe(V4ISO_MODELS[meta['architecture']])
+        if meta.get('continuation_policy'):
+            from scripts.v4init_extend8_policy import POLICY,START,END
+            if meta['continuation_policy']!=POLICY or meta['epochs']!=8 or saved['progress']!=dict(epoch=8,update_in_epoch=0,full_updates=END) or meta['continuation_start_updates']!=START:raise ValueError('Incomplete/invalid V4 continuation export')
+            expected['geometry_refinement_lr']=3e-6
+        if any(meta.get(k)!=v for k,v in expected.items()) or meta['learning_rate']!=(3e-5 if meta.get('continuation_policy') else 1e-4):raise ValueError('V4 isolated recipe differs')
     if meta['architecture']==VIEWS_ARCH:
         from scripts.training_windows_2ctx4novel import load_training_windows,DEFAULT_MANIFEST
         training,training_identity=load_training_windows(meta.get('training_window_manifest',DEFAULT_MANIFEST),training,digest(MANIFEST))

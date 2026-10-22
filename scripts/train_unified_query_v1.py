@@ -60,11 +60,14 @@ def main():
     parser.add_argument('--initialize-point1024-isoadapter-from-legacy-zero',action='store_true',help='Strict original-zero migration for isolated point-seeded control')
     parser.add_argument('--initialize-olda4-ablation-from-legacy-zero',action='store_true')
     parser.add_argument('--initialize-v4init-isolated-zero',action='store_true')
+    parser.add_argument('--continue-checkpoint',type=Path);parser.add_argument('--continue-sha256')
     parser.add_argument('--training-window-manifest',type=Path,help='Frozen 2context+4novel extension; defaults to dedicated manifest for isolated architecture')
     parser.add_argument('--config',type=Path);parser.add_argument('--resume',action='store_true');parser.add_argument('--checkpoint-every',type=int,default=50)
     args=parser.parse_args()
     if args.understanding_weight<0 or not math.isfinite(args.understanding_weight) or args.epochs<1 or args.learning_rate<=0 or args.understanding_warmup<0 or args.checkpoint_every<1 or args.max_updates is not None and args.max_updates<1:parser.error('Invalid training settings')
     if bool(args.initial_checkpoint)!=bool(args.initial_sha256) or args.initial_checkpoint and (args.resume or args.short_validation):parser.error('Zero-step initialization requires SHA and fresh full training')
+    if bool(args.continue_checkpoint)!=bool(args.continue_sha256) or args.continue_checkpoint and (args.resume or args.initial_checkpoint or args.short_validation or args.initialize_v4init_isolated_zero):parser.error('Continuation requires source SHA and preserved state without zero initialization')
+    if args.continue_checkpoint and args.architecture not in ('dual_v4init_isolated_noca','dual_v4init_isolated_ulow','dual_v4init_isolated_2ctx4'):parser.error('Continuation limited to three authorized V4 isolated arms')
     if args.recon_qp_slots<1 or (args.architecture!='dual_superpoint_recon_qp' and args.recon_qp_slots!=20):parser.error('Invalid reconstruction Q+P slot setting')
     if args.initialize_recon_qp_from_legacy_zero and (args.architecture!='dual_superpoint_recon_qp' or not args.initial_checkpoint or args.resume):parser.error('Legacy Q+P migration requires fresh Q+P with an explicit zero source')
     if args.initialize_fps_superpoint_from_legacy_zero and (args.architecture!='dual_fps1024_superpoint' or not args.initial_checkpoint or args.resume):parser.error('FPS migration requires fresh FPS architecture and explicit zero source')
@@ -79,8 +82,10 @@ def main():
     from scripts.v4init_isolated_recipe import MODEL_KEYS as V4ISO_MODELS,recipe_identity as v4iso_recipe
     if args.architecture in V4ISO_MODELS.values():
         expected_understanding_weight=v4iso_recipe(args.architecture)['understanding_weight']
-        if args.epochs!=4 or args.short_validation or args.training_window_manifest and args.architecture!='dual_v4init_isolated_2ctx4' or args.learning_rate!=1e-4 or args.understanding_weight!=expected_understanding_weight or args.understanding_warmup!=1043 or not args.initialize_v4init_isolated_zero and not args.resume:
-            parser.error('V4 isolated variant requires declared view protocol/weight, full4 LR1e-4 U-warmup1043 and explicit V4init zero migration')
+        expected_epochs=8 if args.continue_checkpoint or args.resume and (args.output_dir/'CONTINUATION_SOURCE.json').exists() else 4
+        expected_lr=3e-5 if expected_epochs==8 else 1e-4
+        if args.epochs!=expected_epochs or args.short_validation or args.training_window_manifest and args.architecture!='dual_v4init_isolated_2ctx4' or args.learning_rate!=expected_lr or args.understanding_weight!=expected_understanding_weight or args.understanding_warmup!=1043 or not args.initialize_v4init_isolated_zero and not args.resume and not args.continue_checkpoint:
+            parser.error('V4 isolated run requires its declared views/weight and explicit zero or epoch4 continuation source')
     if args.initialize_v4init_isolated_zero and (args.architecture not in V4ISO_MODELS.values() or not args.initial_checkpoint or args.resume):parser.error('Wrong V4init zero migration target')
     if args.short_validation:
         if args.resume or args.max_updates is not None:parser.error('Short validation uses a fresh bounded run')
@@ -182,10 +187,29 @@ def main():
         meta['optimizer_groups']=[{k:v for k,v in g.items() if k!='params'} for g in optimizer_specs]
     meta.update(training_identity)
     progress=dict(epoch=0,update_in_epoch=0,full_updates=0)
+    continuation_witness=None
+    if args.continue_checkpoint:
+        from scripts.v4init_extend8_policy import validate_source,validate_optimizer_layout,transition_meta,source_parameter_digest
+        if world!=8:raise ValueError('Continuation preserves all eight ranks')
+        if digest(args.continue_checkpoint)!=args.continue_sha256:raise ValueError('Continuation checkpoint SHA differs')
+        saved=torch.load(args.continue_checkpoint,map_location='cpu',weights_only=False,mmap=True)
+        cfg=json.loads((root/'configuration.json').read_text());source_cfg=json.loads((root/'source_configuration.json').read_text())
+        source_evidence=validate_source(saved,source_cfg,model,optimizer)
+        continuation_witness=source_parameter_digest(model,saved['model'])
+        restore_state(model,saved['model']);optimizer.load_state_dict(saved['optimizer'])
+        progress=dict(saved['progress'])
+        meta=transition_meta(saved['meta'],meta,optimizer,checkpoint=args.continue_checkpoint.resolve(),sha256=args.continue_sha256)
+        from scripts.v4init_extend8_policy import check_meta as check_continuation_meta
+        check_continuation_meta(meta,cfg)
+        restore_rng(saved['rank_rng'][rank]);del saved
     if args.resume:
         saved=torch.load(root/'checkpoint_latest.pt',map_location='cpu',weights_only=False,mmap=True)
         for key in ('initial_checkpoint','initial_sha256','initial_updates'):meta[key]=saved['meta'][key]
-        if saved['meta']!=meta:raise ValueError('Resume source/config/code/data differ')
+        if saved['meta'].get('continuation_policy'):
+            from scripts.v4init_extend8_policy import check_meta as check_continuation_meta
+            check_continuation_meta(saved['meta'],json.loads((root/'configuration.json').read_text()))
+            meta=saved['meta']
+        elif saved['meta']!=meta:raise ValueError('Resume source/config/code/data differ')
         restore_state(model,saved['model']);optimizer.load_state_dict(saved['optimizer']);progress=saved['progress'];restore_rng(saved['rank_rng'][rank]);del saved
     else:
         refusal=['Refusing duplicate run; use own --resume' if rank==0 and ((root/'STARTED.json').exists() or (root/'checkpoint_latest.pt').exists()) else None]
@@ -195,10 +219,14 @@ def main():
         if world>1:dist.barrier()
     if args.max_updates is not None and progress['full_updates']>=args.max_updates:raise ValueError('Requested update limit already reached; no updates replayed')
     if rank==0:(root/'last_request.json').write_text(json.dumps(dict(resume=args.resume,max_updates=args.max_updates),indent=2)+'\n')
+    first_update=progress['full_updates']
     from scripts.unified_query_validation import run_probes,parameter_digest,synchronized_first_update
     probe_train=windows if args.short_validation else [windows[i] for i in chosen]
     if not args.resume and (args.short_validation or args.epoch_probes):run_probes(model,opt,probe_train,validation,root,'initial',rank,world,device,args.understanding_weight)
     initial_digest=parameter_digest(model)
+    if continuation_witness is not None:
+        if initial_digest!=continuation_witness:raise ValueError('Loaded continuation weights differ from source')
+        (root/f'CONTINUATION_LOADED_rank{rank:02}.json').write_text(json.dumps(dict(status='PASSED',source_sha256=args.continue_sha256,all_trainable_parameters_exact=True,model_parameter_sha256=initial_digest,progress=dict(progress),adam_states=len(optimizer.state),adam_steps=sorted({float(s['step']) for s in optimizer.state.values()}),rank_rng_restored=True,source_learning_rates=meta['source_learning_rates']),indent=2)+'\n')
     before_ddp=rng()
     task=Task(model);task=DDP(task,device_ids=[local],find_unused_parameters=True) if world>1 else task
     restore_rng(before_ddp)
@@ -219,7 +247,12 @@ def main():
         for update in range(progress['update_in_epoch'],updates_per_epoch):
             started=time.monotonic();model.train();optimizer.zero_grad(set_to_none=True);rows=[]
             step=progress['full_updates'];beta=min(1.,(step+1)/max(1,args.understanding_warmup))
-            for group in optimizer.param_groups:group['lr']=group.get('base_lr',args.learning_rate)*lr_factor('short' if args.short_validation else 'full',step,total)
+            if meta.get('continuation_policy'):
+                from scripts.v4init_extend8_policy import continuation_lr
+                rate=continuation_lr(step,meta['source_learning_rates']['main'])
+                for group in optimizer.param_groups:group['lr']=rate*(.1 if group['family']=='geometry' else 1.)
+            else:
+                for group in optimizer.param_groups:group['lr']=group.get('base_lr',args.learning_rate)*lr_factor('short' if args.short_validation else 'full',step,total)
             indices=rank_microbatches(order,update,rank,world)
             for micro,index in enumerate(indices):
                 batch=build_batch(opt,windows[index],device)
@@ -227,7 +260,7 @@ def main():
                 with sync:
                     loss,row=task(batch,step*8,args.understanding_weight*beta);(loss/len(indices)).backward()
                 rows.append(row)
-            if step==0:
+            if step==first_update:
                 gradient_evidence={}
                 for name,parameters in model.parameter_groups().items():
                     value=float(torch.stack([p.grad.detach().float().square().sum() for p in parameters if p.grad is not None]).sum().sqrt())
@@ -259,7 +292,7 @@ def main():
                 (root/f'FIRST_GRADIENTS_rank{rank:02}.json').write_text(json.dumps(gradient_evidence,indent=2)+'\n')
             norm=torch.nn.utils.clip_grad_norm_([p for p in model.parameters() if p.requires_grad],1.,error_if_nonfinite=True)
             optimizer.step()
-            if step==0:synchronized_first_update(model,initial_digest,root,rank,world)
+            if step==first_update:synchronized_first_update(model,initial_digest,root,rank,world)
             progress.update(epoch=epoch+int(update+1==updates_per_epoch),update_in_epoch=0 if update+1==updates_per_epoch else update+1,full_updates=step+1)
             row={k:sum(r[k] for r in rows)/len(rows) for k in rows[0]};row.update(update=step+1,epoch=epoch,grad_norm=float(norm),understanding_weight=args.understanding_weight*beta,local_indices=indices,seconds=time.monotonic()-started,peak_cuda_memory_bytes=torch.cuda.max_memory_allocated(device))
             if args.architecture in V4ISO_MODELS.values():row['learning_rates']={g['family']:g['lr'] for g in optimizer.param_groups}
@@ -276,7 +309,7 @@ def main():
                     if _k in row:writer.add_scalar('train/'+_k,row[_k],step+1)
                 for _gi,_g in enumerate(optimizer.param_groups):writer.add_scalar('lr/group%d'%_gi,_g['lr'],step+1)
                 if (step+1)%50==0:writer.flush()
-            if rank==0 and (step<3 or (step+1)%10==0):print(json.dumps(row),flush=True)
+            if rank==0 and (step-first_update<3 or (step+1)%10==0):print(json.dumps(row),flush=True)
             if (step+1)%args.checkpoint_every==0:save()
             if args.max_updates is not None and step+1>=args.max_updates:stop=True;break
         if not stop:progress.update(epoch=epoch+1,update_in_epoch=0)

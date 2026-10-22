@@ -64,6 +64,9 @@ def optimizer_groups(model):
             for (family,lr,wd),ps in groups.items()]
 
 def check_meta(meta,cfg):
+    if meta.get('continuation_policy'):
+        from scripts.v4init_extend8_policy import check_meta as check_continuation
+        return check_continuation(meta,cfg)
     if meta['architecture']!=cfg['architecture'] or meta['architecture'] not in MODEL_KEYS or meta['code_sha']!=cfg['code_sha']:raise ValueError('Code/architecture differs')
     for k in ('manifest_sha256','heldout_sha256'):
         if meta[k]!=cfg[k]:raise ValueError('Data identity differs: '+k)
