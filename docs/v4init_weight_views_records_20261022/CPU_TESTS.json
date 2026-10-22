@@ -1,0 +1,17 @@
+{
+  "status": "PASSED",
+  "tests": 9,
+  "runtime_seconds": 11.211,
+  "checks": [
+    "one experimental axis per arm",
+    "actual six-view RGB reconstruction objective responds to added novel",
+    "novel GT excluded from understanding",
+    "U005 scales understanding gradients while reconstruction gradients stay unchanged before clipping",
+    "batch frame/shape contracts",
+    "window extension deterministic; original views preserved",
+    "bad window metadata rejected",
+    "real core forward-equivalence and two-way isolation",
+    "geometry LR and warmup ratio"
+  ],
+  "gpu_verified": false
+}

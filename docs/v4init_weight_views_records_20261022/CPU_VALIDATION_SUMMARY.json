@@ -1,0 +1,128 @@
+{
+  "status": "PASSED",
+  "source_sha256": "bf5b5325adcc8346eb89ebdceac36149c510402d18e8c7dd0c8fe8046f245397",
+  "training_windows": 8337,
+  "training_scenes": 1191,
+  "views_manifest_sha256": "8fe72589a2b8f1b52fa517cde39a0fce37d104adc2ee3a28585d1747292313f1",
+  "all_8337_parent_contexts_and_original_novel_preserved": true,
+  "global_batch": 8,
+  "updates": 4172,
+  "gpu_verified": false,
+  "code_sha": "ef98a6f9d8ffdba3c39c5cb4660eb65726bd1f2e",
+  "arms": {
+    "U005": {
+      "status": "PASSED",
+      "source_sha256": "bf5b5325adcc8346eb89ebdceac36149c510402d18e8c7dd0c8fe8046f245397",
+      "source_updates": 0,
+      "empty_adam": true,
+      "retained_tensors": 632,
+      "removed_tensors": 32,
+      "new_tensors": 0,
+      "retained_tensors_bitwise_equal": true,
+      "invalid_migration_cases_rejected": 8,
+      "trainable_parameters": 195961456,
+      "recipe_changed_fields": [
+        "understanding_weight"
+      ],
+      "real_cpu_batch_contract": {
+        "status": "PASSED",
+        "shapes": {
+          "images_input": [
+            1,
+            2,
+            3,
+            256,
+            256
+          ],
+          "images_all": [
+            1,
+            4,
+            3,
+            256,
+            256
+          ],
+          "images_output": [
+            1,
+            2,
+            3,
+            256,
+            256
+          ],
+          "frame_ids": [
+            1,
+            4
+          ]
+        },
+        "frame_ids": [
+          122,
+          174,
+          142,
+          156
+        ],
+        "context_views": 2,
+        "novel_views": 2,
+        "supervised_views": 4
+      },
+      "original_views_rgb_and_gt_bitwise_preserved": true,
+      "gpu_verified": false
+    },
+    "Views2ctx4": {
+      "status": "PASSED",
+      "source_sha256": "bf5b5325adcc8346eb89ebdceac36149c510402d18e8c7dd0c8fe8046f245397",
+      "source_updates": 0,
+      "empty_adam": true,
+      "retained_tensors": 632,
+      "removed_tensors": 32,
+      "new_tensors": 0,
+      "retained_tensors_bitwise_equal": true,
+      "invalid_migration_cases_rejected": 8,
+      "trainable_parameters": 195961456,
+      "recipe_changed_fields": [
+        "training_view_protocol"
+      ],
+      "real_cpu_batch_contract": {
+        "status": "PASSED",
+        "shapes": {
+          "images_input": [
+            1,
+            2,
+            3,
+            256,
+            256
+          ],
+          "images_all": [
+            1,
+            6,
+            3,
+            256,
+            256
+          ],
+          "images_output": [
+            1,
+            4,
+            3,
+            256,
+            256
+          ],
+          "frame_ids": [
+            1,
+            6
+          ]
+        },
+        "frame_ids": [
+          122,
+          174,
+          142,
+          156,
+          160,
+          166
+        ],
+        "context_views": 2,
+        "novel_views": 4,
+        "supervised_views": 6
+      },
+      "original_views_rgb_and_gt_bitwise_preserved": true,
+      "gpu_verified": false
+    }
+  }
+}

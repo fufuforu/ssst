@@ -1,0 +1,54 @@
+{
+  "code_root": "/space/mawb/ssst_v4init_weight_views_code_20261022_v1",
+  "code_sha": "ef98a6f9d8ffdba3c39c5cb4660eb65726bd1f2e",
+  "submitted_utc": "2026-10-22T10:03:58.302550+00:00",
+  "eligible_nodes": [
+    12,
+    13,
+    14,
+    17,
+    18
+  ],
+  "branches": {
+    "U005": {
+      "smoke": 71008,
+      "train": 71009,
+      "eval": 71010
+    },
+    "Views2ctx4": {
+      "smoke": 71011,
+      "train": 71012,
+      "eval": 71013
+    }
+  },
+  "baseline_train_job": 71001,
+  "baseline_eval_job": 71002,
+  "stop_polling_after_single_check": true,
+  "summary": {
+    "job": 71014,
+    "dependency": [
+      71002,
+      71010,
+      71013
+    ],
+    "submission_argv": [
+      "sbatch",
+      "--parsable",
+      "--partition=3090,4090",
+      "--exclude=3dimage-11",
+      "--nodes=1",
+      "--ntasks=1",
+      "--no-requeue",
+      "--signal=B:TERM@60",
+      "--job-name=V4weightviews_summary",
+      "--cpus-per-task=4",
+      "--mem=16G",
+      "--time=01:00:00",
+      "--dependency=afterok:71002:71010:71013",
+      "--kill-on-invalid-dep=yes",
+      "--output=/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_weight_views_20261022_v1/summary-%j.out",
+      "scripts/run_v4init_weight_views_summary.sh",
+      "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_weight_views_20261022_v1"
+    ]
+  }
+}

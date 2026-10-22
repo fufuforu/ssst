@@ -1,0 +1,14 @@
+{
+  "status": "PASSED",
+  "baseline_code_sha": "310d49d04b6ac1feda55439bb21b6c88a8fc5882",
+  "byte_identical_sources": {
+    "tokengs/models/v4init_isolated_noca.py": "36ba8367589e01b1ea5f0ab1145417899255b6ba5cb27a047c3070f48838d3a1",
+    "tokengs/models/olda4_initialization_ablation.py": "417e581f41153d0b352d7fc9a6fa5774287bb1546d16534fd5bf86862411b770",
+    "tokengs/models/dual_stream_decoder.py": "c2bfd5b264a79a1c1f96938137f6024b3445b1c3c4cd7b874892caef200b699e",
+    "tokengs/models/superpoint_dual_core.py": "a28ead656d7f56c32dbb2660acc86b5464a4a048d4d6385cd0f7654dcf3770c2",
+    "tokengs/models/unified_query_v1.py": "ebf3be6c5d9e68aba5ed46ed97f5c0e9660bc8131e5e0ce33f4f6f858e229d0c",
+    "tokengs/models/unified_query_loss.py": "7643d47ed0cc92d149c5392a6e0fc102767c0d57b05c54cc3055b31681f4aef0",
+    "scripts/dual_stream_training_policy.py": "1b9aa1d0ea5ded64aa08c565e199295a666600d0841c02f65c7c77613566864f",
+    "scripts/training_windows_2ctx4novel.py": "8ae23c68a46f09d29af074f25ce39796b62da4f3f5113952f346d86b9b34211c"
+  }
+}

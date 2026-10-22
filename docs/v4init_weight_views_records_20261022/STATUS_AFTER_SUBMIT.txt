@@ -1,0 +1,8 @@
+             JOBID                 NAME      STATE       PARTITION             NODELIST NODELIST(REASON)
+             71014 V4weightviews_summar    PENDING       3090,4090                      (Dependency)
+             71013    V4Views2ctx4_eval    PENDING       3090,4090                      (Dependency)
+             71012   V4Views2ctx4_train    PENDING       3090,4090                      (Dependency)
+             71011   V4Views2ctx4_smoke    PENDING       3090,4090                      (None)
+             71010          V4U005_eval    PENDING       3090,4090                      (Dependency)
+             71009         V4U005_train    PENDING       3090,4090                      (Dependency)
+             71008         V4U005_smoke    PENDING       3090,4090                      (None)
