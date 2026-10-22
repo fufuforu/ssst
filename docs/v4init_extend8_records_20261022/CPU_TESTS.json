@@ -1,0 +1,16 @@
+{
+  "status": "PASSED",
+  "tests": 9,
+  "runtime_seconds": 8.495,
+  "checks": [
+    "resume Adam next-update equality",
+    "optimizer name/order/moments validation",
+    "partial epoch/reset/clock/RNG/recipe rejection",
+    "actual source freeze gate and duplicate refusal",
+    "LR start/100-step rewarm/cosine endpoint/geometry 0.1 ratio",
+    "no understanding warmup replay",
+    "epoch5 sampling and CPU RNG restoration",
+    "real core exact forward equality and two-way isolation"
+  ],
+  "gpu_verified": false
+}

@@ -1,0 +1,20 @@
+/space/mawb/anaconda3/envs/tokengs/lib/python3.11/site-packages/torch/cuda/__init__.py:174: UserWarning: CUDA initialization: The NVIDIA driver on your system is too old (found version 10010). Please update your GPU driver by downloading and installing a new version from the URL: http://www.nvidia.com/Download/index.aspx Alternatively, go to: https://pytorch.org to install a PyTorch version that has been compiled with your version of the CUDA driver. (Triggered internally at /pytorch/c10/cuda/CUDAFunctions.cpp:109.)
+  return torch._C._cuda_getDeviceCount() > 0
+test_adam_restore_next_update_matches_reference_and_source_unchanged (tests.test_v4init_extend8.ContinuationTests.test_adam_restore_next_update_matches_reference_and_source_unchanged) ... ok
+test_afterok_gate_freezes_only_completed_epoch4_and_refuses_replay (tests.test_v4init_extend8.ContinuationTests.test_afterok_gate_freezes_only_completed_epoch4_and_refuses_replay) ... ok
+test_optimizer_names_order_and_moments_are_checked (tests.test_v4init_extend8.ContinuationTests.test_optimizer_names_order_and_moments_are_checked) ... ok
+test_rng_roundtrip_and_cumulative_sampling (tests.test_v4init_extend8.ContinuationTests.test_rng_roundtrip_and_cumulative_sampling) ... ok
+test_schedule_boundaries_ratio_and_no_understanding_rewarm (tests.test_v4init_extend8.ContinuationTests.test_schedule_boundaries_ratio_and_no_understanding_rewarm) ... ok
+test_source_rejects_partial_reset_rng_or_wrong_recipe (tests.test_v4init_extend8.ContinuationTests.test_source_rejects_partial_reset_rng_or_wrong_recipe) ... ok
+test_transition_preserves_recipe_and_changes_only_authorized_fields (tests.test_v4init_extend8.ContinuationTests.test_transition_preserves_recipe_and_changes_only_authorized_fields) ... ok
+test_real_core_forward_equivalence_and_both_loss_directions (tests.test_v4init_isolated_noca.V4IsolationTests.test_real_core_forward_equivalence_and_both_loss_directions) ... ok
+test_schedule_keeps_geometry_ratio_and_warmup (tests.test_v4init_isolated_noca.V4IsolationTests.test_schedule_keeps_geometry_ratio_and_warmup) ... ok
+
+----------------------------------------------------------------------
+Ran 9 tests in 8.495s
+
+OK
+/space/mawb/anaconda3/envs/tokengs/lib/python3.11/site-packages/torch/cuda/__init__.py:789: UserWarning: Can't initialize NVML
+  warnings.warn("Can't initialize NVML")
+/space/mawb/anaconda3/envs/tokengs/lib/python3.11/site-packages/torch/cuda/__init__.py:991: UserWarning: CUDA initialization: The NVIDIA driver on your system is too old (found version 10010). Please update your GPU driver by downloading and installing a new version from the URL: http://www.nvidia.com/Download/index.aspx Alternatively, go to: https://pytorch.org to install a PyTorch version that has been compiled with your version of the CUDA driver. (Triggered internally at /pytorch/c10/cuda/CUDAFunctions.cpp:109.)
+  r = torch._C._cuda_getDeviceCount() if nvml_count < 0 else nvml_count

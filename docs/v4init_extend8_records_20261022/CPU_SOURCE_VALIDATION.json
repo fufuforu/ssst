@@ -1,0 +1,181 @@
+{
+  "status": "PASSED",
+  "source_observations": 3,
+  "arms": {
+    "Baseline": {
+      "status": "PASSED",
+      "progress": {
+        "epoch": 2,
+        "update_in_epoch": 214,
+        "full_updates": 2300
+      },
+      "adam_states": 604,
+      "adam_steps": [
+        2300.0
+      ],
+      "source_learning_rates": {
+        "main": 4.9355871205976614e-05,
+        "geometry": 4.935587120597661e-06
+      },
+      "rank_rng_count": 8,
+      "source_checkpoint_observed_once": "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_noca_v4recipe_20261022_v1/train/checkpoint_latest.pt",
+      "observed_checkpoint_sha256": "4e9a8ab538a486a55e503753a4bfc71415153a88bace64c3a3ff0a71b846cefa",
+      "model_tensor_count": 632,
+      "all_model_tensors_restored_exact": true,
+      "all_adam_moments_and_steps_restored_exact": true,
+      "post_rebase_adam_moments_and_steps_unchanged": true,
+      "source_final_sha_deferred_until_afterok": true,
+      "source_job": 71001,
+      "source_code_sha": "310d49d04b6ac1feda55439bb21b6c88a8fc5882",
+      "gpu_continuation_verified": false,
+      "first_continued_window_index": 746,
+      "real_epoch5_batch_shapes": {
+        "images_input": [
+          1,
+          2,
+          3,
+          256,
+          256
+        ],
+        "images_all": [
+          1,
+          4,
+          3,
+          256,
+          256
+        ],
+        "images_output": [
+          1,
+          2,
+          3,
+          256,
+          256
+        ],
+        "frame_ids": [
+          1,
+          4
+        ]
+      }
+    },
+    "U005": {
+      "status": "PASSED",
+      "progress": {
+        "epoch": 1,
+        "update_in_epoch": 507,
+        "full_updates": 1550
+      },
+      "adam_states": 604,
+      "adam_steps": [
+        1550.0
+      ],
+      "source_learning_rates": {
+        "main": 7.468994170507707e-05,
+        "geometry": 7.468994170507707e-06
+      },
+      "rank_rng_count": 8,
+      "source_checkpoint_observed_once": "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_weight_views_20261022_v1/U005/train/checkpoint_latest.pt",
+      "observed_checkpoint_sha256": "352775fd7d6650f2ca26903c5135e4b2b25a27432c18c2f0c083e17fb01a7eb4",
+      "model_tensor_count": 632,
+      "all_model_tensors_restored_exact": true,
+      "all_adam_moments_and_steps_restored_exact": true,
+      "post_rebase_adam_moments_and_steps_unchanged": true,
+      "source_final_sha_deferred_until_afterok": true,
+      "source_job": 71009,
+      "source_code_sha": "ef98a6f9d8ffdba3c39c5cb4660eb65726bd1f2e",
+      "gpu_continuation_verified": false,
+      "first_continued_window_index": 746,
+      "real_epoch5_batch_shapes": {
+        "images_input": [
+          1,
+          2,
+          3,
+          256,
+          256
+        ],
+        "images_all": [
+          1,
+          4,
+          3,
+          256,
+          256
+        ],
+        "images_output": [
+          1,
+          2,
+          3,
+          256,
+          256
+        ],
+        "frame_ids": [
+          1,
+          4
+        ]
+      }
+    },
+    "Views2ctx4": {
+      "status": "PASSED",
+      "progress": {
+        "epoch": 1,
+        "update_in_epoch": 207,
+        "full_updates": 1250
+      },
+      "adam_states": 604,
+      "adam_steps": [
+        1250.0
+      ],
+      "source_learning_rates": {
+        "main": 8.344693830535513e-05,
+        "geometry": 8.344693830535513e-06
+      },
+      "rank_rng_count": 8,
+      "source_checkpoint_observed_once": "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_weight_views_20261022_v1/Views2ctx4/train/checkpoint_latest.pt",
+      "observed_checkpoint_sha256": "f25786a5fbe6b83c3be9379296d9ba9e1f7272f2a482f5126189914e9b89d68f",
+      "model_tensor_count": 632,
+      "all_model_tensors_restored_exact": true,
+      "all_adam_moments_and_steps_restored_exact": true,
+      "post_rebase_adam_moments_and_steps_unchanged": true,
+      "source_final_sha_deferred_until_afterok": true,
+      "source_job": 71012,
+      "source_code_sha": "ef98a6f9d8ffdba3c39c5cb4660eb65726bd1f2e",
+      "gpu_continuation_verified": false,
+      "first_continued_window_index": 746,
+      "real_epoch5_batch_shapes": {
+        "images_input": [
+          1,
+          2,
+          3,
+          256,
+          256
+        ],
+        "images_all": [
+          1,
+          6,
+          3,
+          256,
+          256
+        ],
+        "images_output": [
+          1,
+          4,
+          3,
+          256,
+          256
+        ],
+        "frame_ids": [
+          1,
+          6
+        ]
+      }
+    }
+  },
+  "source_final_sha_deferred_until_afterok": true,
+  "training_windows": 8337,
+  "training_scenes": 1191,
+  "source_epoch": 4,
+  "target_epoch": 8,
+  "source_updates": 4172,
+  "added_updates": 4172,
+  "full_updates": 8344,
+  "gpu_verified": false,
+  "code_sha": "ce8446d102ac1d9a7347c8525ec38935d4922de3"
+}

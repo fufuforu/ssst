@@ -1,0 +1,39 @@
+{
+  "code_root": "/space/mawb/ssst_v4init_extend8_code_20261022_v1",
+  "code_sha": "ce8446d102ac1d9a7347c8525ec38935d4922de3",
+  "submitted_utc": "2026-10-22T13:13:04.568638+00:00",
+  "branches": {
+    "Baseline": {
+      "source_train": 71001,
+      "source_eval": 71002,
+      "jobs": {
+        "train": 71031,
+        "eval": 71032
+      }
+    },
+    "U005": {
+      "source_train": 71009,
+      "source_eval": 71010,
+      "jobs": {
+        "train": 71033,
+        "eval": 71034
+      }
+    },
+    "Views2ctx4": {
+      "source_train": 71012,
+      "source_eval": 71013,
+      "jobs": {
+        "train": 71035,
+        "eval": 71036
+      }
+    }
+  },
+  "eligible_nodes": [
+    12,
+    13,
+    14,
+    17,
+    18
+  ],
+  "stop_polling_after_single_check": true
+}
