@@ -47,7 +47,7 @@ class Task(nn.Module):
 def main():
     parser=argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--output-dir',type=Path,required=True);parser.add_argument('--understanding-weight',type=float,required=True)
-    parser.add_argument('--architecture',choices=('unified','dual_superpoint','unified_direct','dual_superpoint_recon_qp','dual_fps1024_superpoint','dual_point1024_isoadapter','dual_point1024_isoadapter_noca','dual_point1024_anchor_only','dual_point1024_neither_ca','dual_olda4_v4init','dual_olda4_noca'),default='unified')
+    parser.add_argument('--architecture',choices=('unified','dual_superpoint','unified_direct','dual_superpoint_recon_qp','dual_fps1024_superpoint','dual_point1024_isoadapter','dual_point1024_isoadapter_noca','dual_point1024_anchor_only','dual_point1024_neither_ca','dual_olda4_v4init','dual_olda4_noca','dual_v4init_isolated_noca'),default='unified')
     parser.add_argument('--epochs',type=int,default=4);parser.add_argument('--max-updates',type=int)
     parser.add_argument('--learning-rate',type=float,default=1e-4);parser.add_argument('--understanding-warmup',type=int,default=1043)
     parser.add_argument('--short-validation',action='store_true',help='16 fixed training scenes, 256 updates, initial/final probes')
@@ -59,6 +59,7 @@ def main():
     parser.add_argument('--initialize-fps-superpoint-from-legacy-zero',action='store_true',help='Strict zero migration adding only the FPS slot embedding')
     parser.add_argument('--initialize-point1024-isoadapter-from-legacy-zero',action='store_true',help='Strict original-zero migration for isolated point-seeded control')
     parser.add_argument('--initialize-olda4-ablation-from-legacy-zero',action='store_true')
+    parser.add_argument('--initialize-v4init-isolated-zero',action='store_true')
     parser.add_argument('--training-window-manifest',type=Path,help='Frozen 2context+4novel extension; defaults to dedicated manifest for isolated architecture')
     parser.add_argument('--config',type=Path);parser.add_argument('--resume',action='store_true');parser.add_argument('--checkpoint-every',type=int,default=50)
     args=parser.parse_args()
@@ -75,6 +76,10 @@ def main():
             parser.error('Old A4 ablations require original 2+2 full4 and explicit zero migration')
     elif args.initialize_olda4_ablation_from_legacy_zero:parser.error('Wrong old A4 migration target')
     if args.initialize_olda4_ablation_from_legacy_zero and (not args.initial_checkpoint or args.resume):parser.error('Old A4 migration requires explicit fresh zero source')
+    if args.architecture=='dual_v4init_isolated_noca':
+        if args.epochs!=4 or args.short_validation or args.training_window_manifest or args.learning_rate!=1e-4 or args.understanding_weight!=1. or args.understanding_warmup!=1043 or not args.initialize_v4init_isolated_zero and not args.resume:
+            parser.error('V4 recipe requires full4 2+2 LR1e-4 U1/1043 and explicit V4init zero migration')
+    if args.initialize_v4init_isolated_zero and (args.architecture!='dual_v4init_isolated_noca' or not args.initial_checkpoint or args.resume):parser.error('Wrong V4init zero migration target')
     if args.short_validation:
         if args.resume or args.max_updates is not None:parser.error('Short validation uses a fresh bounded run')
         args.epochs=128;args.max_updates=256;args.understanding_warmup=20
@@ -99,7 +104,13 @@ def main():
         if digest(args.initial_checkpoint)!=args.initial_sha256:raise ValueError('Zero-step checkpoint SHA differs')
         from scripts.unified_query_initial_state import validate_zero_initial
         initial=torch.load(args.initial_checkpoint,map_location='cpu',weights_only=False,mmap=True)
-        if args.initialize_olda4_ablation_from_legacy_zero:
+        if args.initialize_v4init_isolated_zero:
+            from scripts.v4init_isolated_recipe import initialize_from_v4init_zero
+            evidence=initialize_from_v4init_zero(initial,model,manifest_sha256=digest(MANIFEST),heldout_sha256=digest(HELDOUT),world=world)
+            if rank==0:
+                args.output_dir.mkdir(parents=True,exist_ok=True)
+                (args.output_dir/'V4INIT_ZERO_INITIALIZATION.json').write_text(json.dumps(evidence,indent=2)+'\n')
+        elif args.initialize_olda4_ablation_from_legacy_zero:
             from scripts.olda4_ablation_initial_state import initialize_olda4_ablation
             evidence=initialize_olda4_ablation(initial,model,manifest_sha256=digest(MANIFEST),heldout_sha256=digest(HELDOUT),world=world)
             if rank==0:
@@ -131,7 +142,11 @@ def main():
     grouped={}
     for name,p in model.named_parameters():
         if p.requires_grad:grouped.setdefault(0. if p.ndim<2 or getattr(p,'_no_weight_decay',False) else .05,[]).append(p)
-    optimizer=torch.optim.AdamW([dict(params=ps,weight_decay=wd) for wd,ps in grouped.items()],lr=args.learning_rate,betas=(.9,.95),eps=1e-8)
+    optimizer_specs=[dict(params=ps,weight_decay=wd) for wd,ps in grouped.items()]
+    if args.architecture=='dual_v4init_isolated_noca':
+        from scripts.v4init_isolated_recipe import optimizer_groups
+        optimizer_specs=optimizer_groups(model)
+    optimizer=torch.optim.AdamW(optimizer_specs,lr=args.learning_rate,betas=(.9,.95),eps=1e-8)
     root=args.output_dir;root.mkdir(parents=True,exist_ok=True)
     writer=None
     if rank==0:
@@ -155,6 +170,10 @@ def main():
     if args.architecture in ('dual_olda4_v4init','dual_olda4_noca'):
         from scripts.olda4_ablation_initial_state import recipe_identity
         meta.update(recipe_identity(args.architecture))
+    if args.architecture=='dual_v4init_isolated_noca':
+        from scripts.v4init_isolated_recipe import recipe_identity
+        meta.update(recipe_identity())
+        meta['optimizer_groups']=[{k:v for k,v in g.items() if k!='params'} for g in optimizer_specs]
     meta.update(training_identity)
     progress=dict(epoch=0,update_in_epoch=0,full_updates=0)
     if args.resume:
@@ -194,7 +213,7 @@ def main():
         for update in range(progress['update_in_epoch'],updates_per_epoch):
             started=time.monotonic();model.train();optimizer.zero_grad(set_to_none=True);rows=[]
             step=progress['full_updates'];beta=min(1.,(step+1)/max(1,args.understanding_warmup))
-            for group in optimizer.param_groups:group['lr']=args.learning_rate*lr_factor('short' if args.short_validation else 'full',step,total)
+            for group in optimizer.param_groups:group['lr']=group.get('base_lr',args.learning_rate)*lr_factor('short' if args.short_validation else 'full',step,total)
             indices=rank_microbatches(order,update,rank,world)
             for micro,index in enumerate(indices):
                 batch=build_batch(opt,windows[index],device)
@@ -237,6 +256,7 @@ def main():
             if step==0:synchronized_first_update(model,initial_digest,root,rank,world)
             progress.update(epoch=epoch+int(update+1==updates_per_epoch),update_in_epoch=0 if update+1==updates_per_epoch else update+1,full_updates=step+1)
             row={k:sum(r[k] for r in rows)/len(rows) for k in rows[0]};row.update(update=step+1,epoch=epoch,grad_norm=float(norm),understanding_weight=args.understanding_weight*beta,local_indices=indices,seconds=time.monotonic()-started,peak_cuda_memory_bytes=torch.cuda.max_memory_allocated(device))
+            if args.architecture=='dual_v4init_isolated_noca':row['learning_rates']={g['family']:g['lr'] for g in optimizer.param_groups}
             row['microbatch_query_counts']=[dict(local_index=index,num_superpoints=r['num_thing_queries'],
                 num_reconstruction_anchors=r.get('num_reconstruction_anchors',r['num_thing_queries']),
                 num_object_queries=r['num_thing_queries'],num_stuff_queries=2,

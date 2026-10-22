@@ -57,6 +57,9 @@ def main():
     from scripts.olda4_ablation_initial_state import MODEL_KEYS,recipe_identity
     if meta['architecture'] in MODEL_KEYS:
         if any(meta.get(k)!=v for k,v in recipe_identity(MODEL_KEYS[meta['architecture']]).items()):raise ValueError('Old A4 ablation recipe identity differs')
+    from scripts.v4init_isolated_recipe import ARCH as V4ISO_ARCH,recipe_identity as v4iso_recipe
+    if meta['architecture']==V4ISO_ARCH:
+        if any(meta.get(k)!=v for k,v in v4iso_recipe().items()) or meta['learning_rate']!=1e-4:raise ValueError('V4 isolated recipe differs')
     constructor_kwargs={}
     if meta['architecture']=='OMEGA_3D_SUPERPOINT_RECON_QP_V1':
         if 'recon_qp_slots' not in meta or meta['recon_qp_slots']<1:raise ValueError('Missing reconstruction Q bank identity')
