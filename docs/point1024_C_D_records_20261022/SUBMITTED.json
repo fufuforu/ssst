@@ -1,0 +1,25 @@
+{
+  "code_root": "/space/mawb/ssst_point1024_nofmca_ablation_code_20261022_v1",
+  "code_sha": "526572b9657ade79865188d168db1028ee74e680",
+  "submitted_utc": "2026-10-22T01:03:23.539479+00:00",
+  "eligible_nodes": [
+    12,
+    13,
+    14,
+    17,
+    18
+  ],
+  "branches": {
+    "C": {
+      "smoke": 70691,
+      "train": 70692,
+      "eval": 70693
+    },
+    "D": {
+      "smoke": 70694,
+      "train": 70695,
+      "eval": 70696
+    }
+  },
+  "stop_polling_after_single_check": true
+}

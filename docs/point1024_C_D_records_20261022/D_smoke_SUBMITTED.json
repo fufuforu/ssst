@@ -1,0 +1,25 @@
+{
+  "job": 70694,
+  "stage": "smoke",
+  "dependency": null,
+  "submission_argv": [
+    "sbatch",
+    "--parsable",
+    "--partition=3090,4090",
+    "--exclude=3dimage-11",
+    "--nodes=1",
+    "--ntasks=1",
+    "--no-requeue",
+    "--signal=B:TERM@60",
+    "--job-name=P1024D_smoke",
+    "--gres=gpu:1",
+    "--cpus-per-task=8",
+    "--mem=128G",
+    "--time=01:30:00",
+    "--output=/space/mawb/ssst/group_plus/semantic_resolution_v1/point1024_nofmca_ablation_20261022_v1/D/smoke/slurm-%j.out",
+    "scripts/run_point1024_nofmca.sh",
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/point1024_nofmca_ablation_20261022_v1/D/smoke",
+    "smoke"
+  ],
+  "code_sha": "526572b9657ade79865188d168db1028ee74e680"
+}

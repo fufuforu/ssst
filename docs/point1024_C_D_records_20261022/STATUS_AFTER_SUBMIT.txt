@@ -1,0 +1,7 @@
+             JOBID               NAME      STATE       PARTITION             NODELIST NODELIST(REASON)
+             70696        P1024D_eval    PENDING       3090,4090                      (Dependency)
+             70695       P1024D_train    PENDING       3090,4090                      (Dependency)
+             70694       P1024D_smoke    PENDING       3090,4090                      (None)
+             70693        P1024C_eval    PENDING       3090,4090                      (Dependency)
+             70692       P1024C_train    PENDING       3090,4090                      (Dependency)
+             70691       P1024C_smoke    PENDING       3090,4090                      (None)

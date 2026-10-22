@@ -1,0 +1,27 @@
+{
+  "job": 70692,
+  "stage": "train",
+  "dependency": 70691,
+  "submission_argv": [
+    "sbatch",
+    "--parsable",
+    "--partition=3090,4090",
+    "--exclude=3dimage-11",
+    "--nodes=1",
+    "--ntasks=1",
+    "--no-requeue",
+    "--signal=B:TERM@60",
+    "--job-name=P1024C_train",
+    "--gres=gpu:8",
+    "--cpus-per-task=32",
+    "--mem=192G",
+    "--time=1-00:00:00",
+    "--output=/space/mawb/ssst/group_plus/semantic_resolution_v1/point1024_nofmca_ablation_20261022_v1/C/train/slurm-%j.out",
+    "--dependency=afterok:70691",
+    "--kill-on-invalid-dep=yes",
+    "scripts/run_point1024_nofmca.sh",
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/point1024_nofmca_ablation_20261022_v1/C/train",
+    "train"
+  ],
+  "code_sha": "526572b9657ade79865188d168db1028ee74e680"
+}

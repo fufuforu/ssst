@@ -70,3 +70,7 @@ smoke是**两个optimizer step**，单窗口、每步累积8个microbatch；实�
 - `scripts/prepare_point1024_nofmca.py` / `tests/test_point1024_nofmca.py`：真实CPU验证与独立运行目录；
 - `scripts/run_point1024_nofmca.sh` / `scripts/point1024_nofmca_pipeline.py`：依赖门禁、原配方训练、原官方评测与对比；
 - `scripts/submit_point1024_nofmca.py`：只提交本次C/D六个作业、仅一次状态核对。
+
+## 实际提交记录
+
+C：70691 smoke →70692 train →70693 eval；D：70694 smoke →70695 train →70696 eval。唯一一次核对均为PENDING，GPU未验证，已停止轮询。[提交与交接](point1024_C_D_records_20261022/RUN_STATUS.md)。
