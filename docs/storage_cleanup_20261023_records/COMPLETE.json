@@ -1,0 +1,13 @@
+{
+  "status": "COMPLETE",
+  "at": "2026-10-23T07:54:24.627511",
+  "deleted_files": 21,
+  "deleted_logical_bytes": 48822322317,
+  "deleted_allocated_bytes": 48822316032,
+  "available_before_bytes": 465707008,
+  "available_after_bytes": 49288019968,
+  "free_space_delta_bytes": 48822312960,
+  "protected_checkpoint_entries_verified": 26,
+  "experiments_restarted": false,
+  "evaluation_artifacts_deleted": false
+}
