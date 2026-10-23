@@ -1,0 +1,31 @@
+{
+  "current_experiment_family": "V4init NoCA isolated earlyV4 recipe; geometry head base LR 1e-5 at original epoch4 training",
+  "current_arms": [
+    {
+      "name": "Baseline_U1_2ctx2",
+      "understanding_weight": 1.0,
+      "training_views": "2+2",
+      "train_job": 71192,
+      "epoch8_eval_job": 71193
+    },
+    {
+      "name": "U005_2ctx2",
+      "understanding_weight": 0.05,
+      "training_views": "2+2",
+      "train_job": 71194,
+      "epoch8_eval_job": 71195
+    },
+    {
+      "name": "U1_2ctx4",
+      "understanding_weight": 1.0,
+      "training_views": "2+4",
+      "train_job": 71188,
+      "epoch8_eval_job": 71189
+    }
+  ],
+  "available_formal_metrics_epoch": 4,
+  "available_formal_metrics_updates": 4172,
+  "formal_epoch8_metrics_not_available_at_this_inspection": true,
+  "older_runs_are_historical_controls_not_current_baselines": true,
+  "retirement_plan_status": "REVIEW_ONLY_NOT_DELETED"
+}
