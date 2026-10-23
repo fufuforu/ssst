@@ -1,0 +1,48 @@
+{
+  "code_root": "/space/mawb/ssst_v4init_extend8_recovery_code_20261023_v1",
+  "code_sha": "9c9ffcca5580a1b05003cc31d112177dd5000354",
+  "submitted_utc": "2026-10-23T00:06:13.919309+00:00",
+  "branches": {
+    "Baseline": {
+      "jobs": {
+        "train": 71184,
+        "eval": 71185
+      },
+      "recovery_progress": {
+        "epoch": 5,
+        "update_in_epoch": 285,
+        "full_updates": 5500
+      }
+    },
+    "U005": {
+      "jobs": {
+        "train": 71186,
+        "eval": 71187
+      },
+      "recovery_progress": {
+        "epoch": 4,
+        "update_in_epoch": 0,
+        "full_updates": 4172
+      }
+    },
+    "Views2ctx4": {
+      "jobs": {
+        "train": 71188,
+        "eval": 71189
+      },
+      "recovery_progress": {
+        "epoch": 4,
+        "update_in_epoch": 0,
+        "full_updates": 4172
+      }
+    }
+  },
+  "eligible_nodes": [
+    12,
+    13,
+    14,
+    17,
+    18
+  ],
+  "gpus_per_job": 8
+}

@@ -1,0 +1,27 @@
+{
+  "job": 71185,
+  "stage": "eval",
+  "dependency": 71184,
+  "submission_argv": [
+    "sbatch",
+    "--parsable",
+    "--partition=3090,4090",
+    "--exclude=3dimage-11",
+    "--nodes=1",
+    "--ntasks=1",
+    "--no-requeue",
+    "--signal=B:TERM@60",
+    "--gres=gpu:8",
+    "--cpus-per-task=32",
+    "--mem=192G",
+    "--kill-on-invalid-dep=yes",
+    "--job-name=V4recover_Baseline_eval",
+    "--time=08:00:00",
+    "--output=/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v1/Baseline/eval/slurm-%j.out",
+    "--dependency=afterok:71184",
+    "scripts/run_v4init_recovery.sh",
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v1/Baseline/eval",
+    "eval"
+  ],
+  "code_sha": "9c9ffcca5580a1b05003cc31d112177dd5000354"
+}

@@ -1,0 +1,26 @@
+{
+  "job": 71186,
+  "stage": "train",
+  "dependency": null,
+  "submission_argv": [
+    "sbatch",
+    "--parsable",
+    "--partition=3090,4090",
+    "--exclude=3dimage-11",
+    "--nodes=1",
+    "--ntasks=1",
+    "--no-requeue",
+    "--signal=B:TERM@60",
+    "--gres=gpu:8",
+    "--cpus-per-task=32",
+    "--mem=192G",
+    "--kill-on-invalid-dep=yes",
+    "--job-name=V4recover_U005_train",
+    "--time=1-00:00:00",
+    "--output=/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v1/U005/train/slurm-%j.out",
+    "scripts/run_v4init_recovery.sh",
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v1/U005/train",
+    "train"
+  ],
+  "code_sha": "9c9ffcca5580a1b05003cc31d112177dd5000354"
+}
