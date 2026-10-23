@@ -27,5 +27,8 @@
   "available_formal_metrics_updates": 4172,
   "formal_epoch8_metrics_not_available_at_this_inspection": true,
   "older_runs_are_historical_controls_not_current_baselines": true,
-  "retirement_plan_status": "REVIEW_ONLY_NOT_DELETED"
+  "retirement_plan_status": "COMPLETED",
+  "retired_checkpoint_paths": 102,
+  "retired_unique_inodes": 84,
+  "cleanup_completed_at": "2026-10-23T09:14:11.106496"
 }
