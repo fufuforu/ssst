@@ -1,0 +1,18 @@
+{
+  "status": "COMPLETE",
+  "at": "2026-10-23T09:42:29.184546",
+  "deleted_paths": 90,
+  "deleted_unique_inodes": 89,
+  "released_allocated_bytes": 368179017216,
+  "released_allocated_GiB": 342.8934302330017,
+  "available_before_bytes": 143655419904,
+  "available_after_bytes": 518705790976,
+  "free_space_delta_bytes": 375050371072,
+  "protected_paths_verified": 39,
+  "skipped": [],
+  "affected_folders": 42,
+  "all_current_runs_preserved": true,
+  "other_active_spatial_run_preserved": true,
+  "logs_configs_metrics_raw_outputs_preserved": true,
+  "no_jobs_submitted_cancelled_or_modified": true
+}

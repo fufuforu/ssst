@@ -1,0 +1,1681 @@
+{
+  "status": "READY_FOR_AUTHORIZED_DELETION",
+  "at": "2026-10-23T09:42:28.502430",
+  "authorization": "User: \u4e4b\u524d\u7528mast3r\u90a3\u4e9b\u7248\u672c\uff0c\u4e5f\u53ef\u4ee5\u5220\u9664",
+  "reviewed_candidates": 90,
+  "selected_paths": 90,
+  "selected_unique_inodes": 89,
+  "selected_allocated_bytes": 368179017216,
+  "selected_allocated_GiB": 342.8934302330017,
+  "selected": [
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_understanding_probes_v1/attempt01/u_no_anchor_read/checkpoint_update_0500.pt",
+      "family": "workspace_group_plus/vggt_understanding_probes_v1",
+      "device": 56,
+      "inode": 35215108098,
+      "size": 2290977330,
+      "blocks": 4474565,
+      "nlink": 1,
+      "mtime_ns": 1791876966000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_understanding_probes_v1/attempt01/u_no_anchor_read/checkpoint_update_0100.pt",
+      "family": "workspace_group_plus/vggt_understanding_probes_v1",
+      "device": 56,
+      "inode": 35202708738,
+      "size": 2290977394,
+      "blocks": 4474565,
+      "nlink": 1,
+      "mtime_ns": 1791876077000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_understanding_probes_v1/attempt01/u_no_anchor_read/checkpoint_update_0020.pt",
+      "family": "workspace_group_plus/vggt_understanding_probes_v1",
+      "device": 56,
+      "inode": 35159608322,
+      "size": 2290977394,
+      "blocks": 4474565,
+      "nlink": 1,
+      "mtime_ns": 1791875900000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_understanding_probes_v1/attempt01/u_no_anchor_read/checkpoint_update_0000.pt",
+      "family": "workspace_group_plus/vggt_understanding_probes_v1",
+      "device": 56,
+      "inode": 37563280897,
+      "size": 2145278889,
+      "blocks": 4189997,
+      "nlink": 1,
+      "mtime_ns": 1791875844000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_understanding_probes_v1/attempt01/u_no_anchor_read/checkpoint_update_0300.pt",
+      "family": "workspace_group_plus/vggt_understanding_probes_v1",
+      "device": 56,
+      "inode": 35248206081,
+      "size": 2290977330,
+      "blocks": 4474565,
+      "nlink": 1,
+      "mtime_ns": 1791876511000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_understanding_probes_v1/attempt01/u_read/checkpoint_update_0500.pt",
+      "family": "workspace_group_plus/vggt_understanding_probes_v1",
+      "device": 56,
+      "inode": 35185199106,
+      "size": 2299494440,
+      "blocks": 4491200,
+      "nlink": 1,
+      "mtime_ns": 1791876437000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_understanding_probes_v1/attempt01/u_read/checkpoint_update_0100.pt",
+      "family": "workspace_group_plus/vggt_understanding_probes_v1",
+      "device": 56,
+      "inode": 35198553090,
+      "size": 2299494504,
+      "blocks": 4491200,
+      "nlink": 1,
+      "mtime_ns": 1791875533000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_understanding_probes_v1/attempt01/u_read/checkpoint_update_0020.pt",
+      "family": "workspace_group_plus/vggt_understanding_probes_v1",
+      "device": 56,
+      "inode": 35176731394,
+      "size": 2299494504,
+      "blocks": 4491200,
+      "nlink": 1,
+      "mtime_ns": 1791875342000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_understanding_probes_v1/attempt01/u_read/checkpoint_update_0000.pt",
+      "family": "workspace_group_plus/vggt_understanding_probes_v1",
+      "device": 56,
+      "inode": 25572599297,
+      "size": 2145278889,
+      "blocks": 4189997,
+      "nlink": 1,
+      "mtime_ns": 1791875293000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_understanding_probes_v1/attempt01/u_read/checkpoint_update_0300.pt",
+      "family": "workspace_group_plus/vggt_understanding_probes_v1",
+      "device": 56,
+      "inode": 37571691009,
+      "size": 2299494440,
+      "blocks": 4491200,
+      "nlink": 1,
+      "mtime_ns": 1791875998000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_understanding_probes_v1/attempt01/joint_full/checkpoint_update_0500.pt",
+      "family": "workspace_group_plus/vggt_understanding_probes_v1",
+      "device": 56,
+      "inode": 35174184193,
+      "size": 6435833275,
+      "blocks": 12569986,
+      "nlink": 1,
+      "mtime_ns": 1791878123000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_understanding_probes_v1/attempt01/joint_full/checkpoint_update_0100.pt",
+      "family": "workspace_group_plus/vggt_understanding_probes_v1",
+      "device": 56,
+      "inode": 37549346049,
+      "size": 6435833339,
+      "blocks": 12569986,
+      "nlink": 1,
+      "mtime_ns": 1791876098000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_understanding_probes_v1/attempt01/joint_full/checkpoint_update_0020.pt",
+      "family": "workspace_group_plus/vggt_understanding_probes_v1",
+      "device": 56,
+      "inode": 37554357761,
+      "size": 6435833339,
+      "blocks": 12569986,
+      "nlink": 1,
+      "mtime_ns": 1791875685000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_understanding_probes_v1/attempt01/joint_full/checkpoint_update_0000.pt",
+      "family": "workspace_group_plus/vggt_understanding_probes_v1",
+      "device": 56,
+      "inode": 35194723842,
+      "size": 2145278825,
+      "blocks": 4189997,
+      "nlink": 1,
+      "mtime_ns": 1791875573000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_understanding_probes_v1/attempt01/joint_full/checkpoint_update_0300.pt",
+      "family": "workspace_group_plus/vggt_understanding_probes_v1",
+      "device": 56,
+      "inode": 35192681474,
+      "size": 6435833275,
+      "blocks": 12569986,
+      "nlink": 1,
+      "mtime_ns": 1791877103000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_understanding_probes_v1/attempt01/u_fusion/checkpoint_update_0500.pt",
+      "family": "workspace_group_plus/vggt_understanding_probes_v1",
+      "device": 56,
+      "inode": 37547528961,
+      "size": 2305052432,
+      "blocks": 4502055,
+      "nlink": 1,
+      "mtime_ns": 1791880647000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_understanding_probes_v1/attempt01/u_fusion/checkpoint_update_0100.pt",
+      "family": "workspace_group_plus/vggt_understanding_probes_v1",
+      "device": 56,
+      "inode": 35303683841,
+      "size": 2305052496,
+      "blocks": 4502055,
+      "nlink": 1,
+      "mtime_ns": 1791878663000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_understanding_probes_v1/attempt01/u_fusion/checkpoint_update_0020.pt",
+      "family": "workspace_group_plus/vggt_understanding_probes_v1",
+      "device": 56,
+      "inode": 37581717249,
+      "size": 2305052432,
+      "blocks": 4502055,
+      "nlink": 1,
+      "mtime_ns": 1791878313000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_understanding_probes_v1/attempt01/u_fusion/checkpoint_update_0000.pt",
+      "family": "workspace_group_plus/vggt_understanding_probes_v1",
+      "device": 56,
+      "inode": 35185408258,
+      "size": 2147130707,
+      "blocks": 4193614,
+      "nlink": 1,
+      "mtime_ns": 1791878231000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_understanding_probes_v1/attempt01/u_fusion/checkpoint_update_0300.pt",
+      "family": "workspace_group_plus/vggt_understanding_probes_v1",
+      "device": 56,
+      "inode": 33007112450,
+      "size": 2305052432,
+      "blocks": 4502055,
+      "nlink": 1,
+      "mtime_ns": 1791879639000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_interaction_controls_v1/attempt02/bidirectional/checkpoint_update_0500.pt",
+      "family": "workspace_group_plus/vggt_interaction_controls_v1",
+      "device": 56,
+      "inode": 35163449602,
+      "size": 6435770747,
+      "blocks": 12569864,
+      "nlink": 1,
+      "mtime_ns": 1791867667000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/object_locus_vggt_recon_adapt_freeze_adapter_u001_v1/checkpoint_latest.pt",
+      "family": "workspace_group_plus/object_locus_vggt_recon_adapt_freeze_adapter_u001_v1",
+      "device": 56,
+      "inode": 35207296258,
+      "size": 6435824353,
+      "blocks": 12569969,
+      "nlink": 1,
+      "mtime_ns": 1791887757000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/object_locus_vggt_recon_adapt_freeze_adapter_u001_v1/checkpoint_frozen_joint_epoch_02.pt",
+      "family": "workspace_group_plus/object_locus_vggt_recon_adapt_freeze_adapter_u001_v1",
+      "device": 56,
+      "inode": 35151191042,
+      "size": 6435908287,
+      "blocks": 12570133,
+      "nlink": 1,
+      "mtime_ns": 1791871477000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/object_locus_vggt_recon_adapt_freeze_adapter_u001_v1/checkpoint_frozen_joint_epoch_01.pt",
+      "family": "workspace_group_plus/object_locus_vggt_recon_adapt_freeze_adapter_u001_v1",
+      "device": 56,
+      "inode": 35171725570,
+      "size": 6435908351,
+      "blocks": 12570133,
+      "nlink": 1,
+      "mtime_ns": 1791863413000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/object_locus_vggt_recon_adapt_freeze_adapter_u001_v1/checkpoint_frozen_joint_epoch_04.pt",
+      "family": "workspace_group_plus/object_locus_vggt_recon_adapt_freeze_adapter_u001_v1",
+      "device": 56,
+      "inode": 37587357953,
+      "size": 6435908415,
+      "blocks": 12570133,
+      "nlink": 1,
+      "mtime_ns": 1791887779000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/object_locus_vggt_recon_adapt_freeze_adapter_u001_v1/checkpoint_frozen_joint_epoch_03.pt",
+      "family": "workspace_group_plus/object_locus_vggt_recon_adapt_freeze_adapter_u001_v1",
+      "device": 56,
+      "inode": 37585551617,
+      "size": 6435908351,
+      "blocks": 12570133,
+      "nlink": 1,
+      "mtime_ns": 1791879610000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_adapter_gradient_diagnostic_v1/attempt01/adapter_u001/checkpoint_update_0000.pt",
+      "family": "workspace_group_plus/vggt_adapter_gradient_diagnostic_v1",
+      "device": 56,
+      "inode": 37492744705,
+      "size": 2145343645,
+      "blocks": 4190124,
+      "nlink": 1,
+      "mtime_ns": 1791805704000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_adapter_gradient_diagnostic_v1/attempt01/adapter_u001/checkpoint_update_0300.pt",
+      "family": "workspace_group_plus/vggt_adapter_gradient_diagnostic_v1",
+      "device": 56,
+      "inode": 37541989889,
+      "size": 3615511130,
+      "blocks": 7061545,
+      "nlink": 1,
+      "mtime_ns": 1791808798000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_adapter_gradient_diagnostic_v1/attempt01/adapter_u0/checkpoint_update_0000.pt",
+      "family": "workspace_group_plus/vggt_adapter_gradient_diagnostic_v1",
+      "device": 56,
+      "inode": 32983279106,
+      "size": 2145343645,
+      "blocks": 4190124,
+      "nlink": 1,
+      "mtime_ns": 1791809177000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_adapter_gradient_diagnostic_v1/attempt01/adapter_u0/checkpoint_update_0300.pt",
+      "family": "workspace_group_plus/vggt_adapter_gradient_diagnostic_v1",
+      "device": 56,
+      "inode": 20814821890,
+      "size": 3615511066,
+      "blocks": 7061545,
+      "nlink": 1,
+      "mtime_ns": 1791812377000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_overfit_diagnostic_v1/pred_joint/checkpoint_update_0000.pt",
+      "family": "workspace_group_plus/vggt_overfit_diagnostic_v1",
+      "device": 56,
+      "inode": 35146573570,
+      "size": 2145343389,
+      "blocks": 4190123,
+      "nlink": 1,
+      "mtime_ns": 1791789739000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_overfit_diagnostic_v1/pred_joint/checkpoint_update_0300.pt",
+      "family": "workspace_group_plus/vggt_overfit_diagnostic_v1",
+      "device": 56,
+      "inode": 33005339394,
+      "size": 3615510810,
+      "blocks": 7061544,
+      "nlink": 1,
+      "mtime_ns": 1791792875000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_overfit_diagnostic_v1/gt_recon/checkpoint_update_0000.pt",
+      "family": "workspace_group_plus/vggt_overfit_diagnostic_v1",
+      "device": 56,
+      "inode": 35161683202,
+      "size": 2145343389,
+      "blocks": 4190123,
+      "nlink": 1,
+      "mtime_ns": 1791795930000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_overfit_diagnostic_v1/gt_recon/checkpoint_update_0300.pt",
+      "family": "workspace_group_plus/vggt_overfit_diagnostic_v1",
+      "device": 56,
+      "inode": 35139220482,
+      "size": 3615510810,
+      "blocks": 7061544,
+      "nlink": 1,
+      "mtime_ns": 1791798332000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_overfit_diagnostic_v1/pred_recon/checkpoint_update_0000.pt",
+      "family": "workspace_group_plus/vggt_overfit_diagnostic_v1",
+      "device": 56,
+      "inode": 24614609154,
+      "size": 2145343389,
+      "blocks": 4190123,
+      "nlink": 1,
+      "mtime_ns": 1791793034000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_overfit_diagnostic_v1/pred_recon/checkpoint_update_0300.pt",
+      "family": "workspace_group_plus/vggt_overfit_diagnostic_v1",
+      "device": 56,
+      "inode": 35114422274,
+      "size": 3615510810,
+      "blocks": 7061544,
+      "nlink": 1,
+      "mtime_ns": 1791795732000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/object_locus_vggt_recon_adapt_freeze_v1/checkpoint_frozen_joint_epoch_02.pt",
+      "family": "workspace_group_plus/object_locus_vggt_recon_adapt_freeze_v1",
+      "device": 56,
+      "inode": 23589951490,
+      "size": 6435907519,
+      "blocks": 12570131,
+      "nlink": 1,
+      "mtime_ns": 1791727699000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/object_locus_vggt_recon_adapt_freeze_v1/checkpoint_reconstruction_adaptation_epoch_02.pt",
+      "family": "workspace_group_plus/object_locus_vggt_recon_adapt_freeze_v1",
+      "device": 56,
+      "inode": 32886859522,
+      "size": 12477803013,
+      "blocks": 24370709,
+      "nlink": 1,
+      "mtime_ns": 1791709183000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/object_locus_vggt_recon_adapt_freeze_v1/checkpoint_frozen_joint_epoch_04.pt",
+      "family": "workspace_group_plus/object_locus_vggt_recon_adapt_freeze_v1",
+      "device": 56,
+      "inode": 35136282369,
+      "size": 6435907647,
+      "blocks": 12570132,
+      "nlink": 1,
+      "mtime_ns": 1791745754000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1_calibration_v2_monitor/checkpoint_epoch_08.pt",
+      "family": "workspace_group_plus/object_locus_frozen_vggt_posefree_v1_calibration_v2_monitor",
+      "device": 56,
+      "inode": 17427964161,
+      "size": 6435967853,
+      "blocks": 12570249,
+      "nlink": 1,
+      "mtime_ns": 1791609652000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/object_locus_frozen_vggt_posefree_v1_calibration_v2_monitor/checkpoint_epoch_04.pt",
+      "family": "workspace_group_plus/object_locus_frozen_vggt_posefree_v1_calibration_v2_monitor",
+      "device": 56,
+      "inode": 35062097409,
+      "size": 6435967661,
+      "blocks": 12570249,
+      "nlink": 1,
+      "mtime_ns": 1791583932000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/object_locus_competition_gc001_v1/comp_gc001/checkpoint_epoch8.pt",
+      "family": "workspace_group_plus/object_locus_competition_gc001_v1",
+      "device": 56,
+      "inode": 35242211073,
+      "size": 6871332121,
+      "blocks": 13420570,
+      "nlink": 1,
+      "mtime_ns": 1791373506000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/object_locus_gc_sweep_v1/gc001/checkpoint_epoch8.pt",
+      "family": "workspace_group_plus/object_locus_gc_sweep_v1",
+      "device": 56,
+      "inode": 16448775937,
+      "size": 6871314771,
+      "blocks": 13420536,
+      "nlink": 1,
+      "mtime_ns": 1791353319000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/object_locus_gc_sweep_v1/gc100/checkpoint_epoch8.pt",
+      "family": "workspace_group_plus/object_locus_gc_sweep_v1",
+      "device": 56,
+      "inode": 23793180673,
+      "size": 6871314771,
+      "blocks": 13420536,
+      "nlink": 1,
+      "mtime_ns": 1791365144000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/object_locus_gc_sweep_v1/gc010/checkpoint_epoch8.pt",
+      "family": "workspace_group_plus/object_locus_gc_sweep_v1",
+      "device": 56,
+      "inode": 35230709249,
+      "size": 6871314771,
+      "blocks": 13420536,
+      "nlink": 1,
+      "mtime_ns": 1791359205000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/object_locus_vggt_recon_adapt_freeze_adapter_u001_feedback_b005_v1/checkpoint_latest.pt",
+      "family": "workspace_group_plus/object_locus_vggt_recon_adapt_freeze_adapter_u001_feedback_b005_v1",
+      "device": 56,
+      "inode": 37614586625,
+      "size": 6435824609,
+      "blocks": 12569969,
+      "nlink": 1,
+      "mtime_ns": 1791929067000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/object_locus_vggt_recon_adapt_freeze_adapter_u001_feedback_b005_v1/checkpoint_frozen_joint_epoch_04.pt",
+      "family": "workspace_group_plus/object_locus_vggt_recon_adapt_freeze_adapter_u001_feedback_b005_v1",
+      "device": 56,
+      "inode": 35231440898,
+      "size": 6435908671,
+      "blocks": 12570134,
+      "nlink": 1,
+      "mtime_ns": 1791929083000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_joint_short_controls_v1/attempt01/frozen_warm/checkpoint_update_0100.pt",
+      "family": "workspace_group_plus/vggt_joint_short_controls_v1",
+      "device": 56,
+      "inode": 29980135169,
+      "size": 6435795887,
+      "blocks": 12569913,
+      "nlink": 1,
+      "mtime_ns": 1791823048000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_joint_short_controls_v1/attempt01/frozen_warm/checkpoint_update_0000.pt",
+      "family": "workspace_group_plus/vggt_joint_short_controls_v1",
+      "device": 56,
+      "inode": 35144196866,
+      "size": 2145279581,
+      "blocks": 4189999,
+      "nlink": 1,
+      "mtime_ns": 1791819919000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_joint_short_controls_v1/attempt01/aa_warm/checkpoint_update_0100.pt",
+      "family": "workspace_group_plus/vggt_joint_short_controls_v1",
+      "device": 56,
+      "inode": 35138054146,
+      "size": 13693720227,
+      "blocks": 26745547,
+      "nlink": 1,
+      "mtime_ns": 1791828972000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_joint_short_controls_v1/attempt01/aa_warm/checkpoint_update_0000.pt",
+      "family": "workspace_group_plus/vggt_joint_short_controls_v1",
+      "device": 56,
+      "inode": 37544057601,
+      "size": 4564494245,
+      "blocks": 8915027,
+      "nlink": 1,
+      "mtime_ns": 1791823277000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_joint_short_controls_v1/attempt01/frozen_scratch/checkpoint_update_0100.pt",
+      "family": "workspace_group_plus/vggt_joint_short_controls_v1",
+      "device": 56,
+      "inode": 35154250498,
+      "size": 6435999343,
+      "blocks": 12570311,
+      "nlink": 1,
+      "mtime_ns": 1791832464000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/vggt_joint_short_controls_v1/attempt01/frozen_scratch/checkpoint_update_0000.pt",
+      "family": "workspace_group_plus/vggt_joint_short_controls_v1",
+      "device": 56,
+      "inode": 37471700481,
+      "size": 2145482973,
+      "blocks": 4190396,
+      "nlink": 1,
+      "mtime_ns": 1791829206000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/object_locus_vggt_joint_continuation_ab_batch16_v1/joint_aa/checkpoint_continuation_epoch_02.pt",
+      "family": "workspace_group_plus/object_locus_vggt_joint_continuation_ab_batch16_v1",
+      "device": 56,
+      "inode": 37526102273,
+      "size": 15298344662,
+      "blocks": 29879579,
+      "nlink": 1,
+      "mtime_ns": 1791830653000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/object_locus_vggt_joint_continuation_ab_batch16_v1/frozen/checkpoint_continuation_epoch_02.pt",
+      "family": "workspace_group_plus/object_locus_vggt_joint_continuation_ab_batch16_v1",
+      "device": 56,
+      "inode": 37521332737,
+      "size": 6436140331,
+      "blocks": 12570586,
+      "nlink": 1,
+      "mtime_ns": 1791802482000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/object_locus_image_memory_u128_full8gpu_v1/u128/checkpoint_epoch_04_model_only.pt",
+      "family": "workspace_group_plus/object_locus_image_memory_u128_full8gpu_v1",
+      "device": 56,
+      "inode": 35064955137,
+      "size": 2290410128,
+      "blocks": 4473457,
+      "nlink": 1,
+      "mtime_ns": 1791575808000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/object_locus_image_memory_u128_full8gpu_v1/u128/checkpoint_epoch_08.pt",
+      "family": "workspace_group_plus/object_locus_image_memory_u128_full8gpu_v1",
+      "device": 56,
+      "inode": 20784208130,
+      "size": 6871439381,
+      "blocks": 13420780,
+      "nlink": 2,
+      "mtime_ns": 1791590389000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/object_locus_image_memory_u128_full8gpu_v1/u128/latest_epoch_08.pt",
+      "family": "workspace_group_plus/object_locus_image_memory_u128_full8gpu_v1",
+      "device": 56,
+      "inode": 20784208130,
+      "size": 6871439381,
+      "blocks": 13420780,
+      "nlink": 2,
+      "mtime_ns": 1791590389000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/object_locus_output_refine_gc001_v1/attempts/attempt02/checkpoint_epoch8.pt",
+      "family": "workspace_group_plus/object_locus_output_refine_gc001_v1",
+      "device": 56,
+      "inode": 17383079169,
+      "size": 6877716993,
+      "blocks": 13433041,
+      "nlink": 1,
+      "mtime_ns": 1791451843000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/object_locus_panoptic_full1201_8gpu/checkpoint_epoch_06.pt",
+      "family": "workspace_group_plus/object_locus_panoptic_full1201_8gpu",
+      "device": 56,
+      "inode": 18237470978,
+      "size": 6871444887,
+      "blocks": 13420790,
+      "nlink": 1,
+      "mtime_ns": 1791116843000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/object_locus_panoptic_full1201_8gpu/checkpoint_epoch_02.pt",
+      "family": "workspace_group_plus/object_locus_panoptic_full1201_8gpu",
+      "device": 56,
+      "inode": 33055988994,
+      "size": 6871444951,
+      "blocks": 13420790,
+      "nlink": 1,
+      "mtime_ns": 1791094424000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/object_locus_panoptic_full1201_8gpu/checkpoint_epoch_01.pt",
+      "family": "workspace_group_plus/object_locus_panoptic_full1201_8gpu",
+      "device": 56,
+      "inode": 32959501570,
+      "size": 6871444823,
+      "blocks": 13420790,
+      "nlink": 1,
+      "mtime_ns": 1791088792000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/object_locus_panoptic_full1201_8gpu/checkpoint_epoch_08.pt",
+      "family": "workspace_group_plus/object_locus_panoptic_full1201_8gpu",
+      "device": 56,
+      "inode": 35016850433,
+      "size": 6871444951,
+      "blocks": 13420790,
+      "nlink": 1,
+      "mtime_ns": 1791128307000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/object_locus_panoptic_full1201_8gpu/checkpoint_epoch_04.pt",
+      "family": "workspace_group_plus/object_locus_panoptic_full1201_8gpu",
+      "device": 56,
+      "inode": 35130931457,
+      "size": 6871444823,
+      "blocks": 13420790,
+      "nlink": 1,
+      "mtime_ns": 1791105674000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/workspace_group_plus/object_locus_panoptic_full1201_8gpu/checkpoint_epoch_00.pt",
+      "family": "workspace_group_plus/object_locus_panoptic_full1201_8gpu",
+      "device": 56,
+      "inode": 27254388993,
+      "size": 2290746830,
+      "blocks": 4474114,
+      "nlink": 1,
+      "mtime_ns": 1791083123000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/group_plus/vggt_reading_controls_v1/attempts/attempt04/baseline/training/checkpoint_latest.pt",
+      "family": "group_plus/vggt_reading_controls_v1",
+      "device": 56,
+      "inode": 35332240642,
+      "size": 2557665976,
+      "blocks": 4995441,
+      "nlink": 1,
+      "mtime_ns": 1792024237000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.mask2former.pixel_decoder.adapter_1.0.weight",
+        "understanding.mask2former.pixel_decoder.adapter_1.1.bias",
+        "understanding.mask2former.pixel_decoder.adapter_1.1.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/group_plus/vggt_reading_controls_v1/attempts/attempt04/reliable_depth/training/checkpoint_latest.pt",
+      "family": "group_plus/vggt_reading_controls_v1",
+      "device": 56,
+      "inode": 37692194561,
+      "size": 2558048130,
+      "blocks": 4996187,
+      "nlink": 1,
+      "mtime_ns": 1792030505000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.mask2former.pixel_decoder.adapter_1.0.weight",
+        "understanding.mask2former.pixel_decoder.adapter_1.1.bias",
+        "understanding.mask2former.pixel_decoder.adapter_1.1.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/group_plus/vggt_reading_controls_v1/attempts/attempt04/object_local_read/training/checkpoint_latest.pt",
+      "family": "group_plus/vggt_reading_controls_v1",
+      "device": 56,
+      "inode": 37693584897,
+      "size": 2557237399,
+      "blocks": 4994604,
+      "nlink": 1,
+      "mtime_ns": 1792001726000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.mask2former.pixel_decoder.adapter_1.0.weight",
+        "understanding.mask2former.pixel_decoder.adapter_1.1.bias",
+        "understanding.mask2former.pixel_decoder.adapter_1.1.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/group_plus/vggt_reading_controls_v1/attempts/attempt04/anchor_visual/training/checkpoint_latest.pt",
+      "family": "group_plus/vggt_reading_controls_v1",
+      "device": 56,
+      "inode": 37710149121,
+      "size": 2557312223,
+      "blocks": 4994750,
+      "nlink": 1,
+      "mtime_ns": 1792027383000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.mask2former.pixel_decoder.adapter_1.0.weight",
+        "understanding.mask2former.pixel_decoder.adapter_1.1.bias",
+        "understanding.mask2former.pixel_decoder.adapter_1.1.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/group_plus/vggt_feature_reading_v1/attempts/attempt01/probe_coefficients_windows0512.pt",
+      "family": "group_plus/vggt_feature_reading_v1",
+      "device": 56,
+      "inode": 35288995586,
+      "size": 403493,
+      "blocks": 788,
+      "nlink": 1,
+      "mtime_ns": 1791978429000000000,
+      "evidence": "documented MASt3R lineage/patch family",
+      "evidence_document": "docs/vggt_feature_reading_v1.md"
+    },
+    {
+      "path": "/space/mawb/ssst/group_plus/vggt_feature_reading_v1/attempts/attempt01/probe_coefficients_windows0256.pt",
+      "family": "group_plus/vggt_feature_reading_v1",
+      "device": 56,
+      "inode": 35281790466,
+      "size": 403493,
+      "blocks": 788,
+      "nlink": 1,
+      "mtime_ns": 1791978375000000000,
+      "evidence": "documented MASt3R lineage/patch family",
+      "evidence_document": "docs/vggt_feature_reading_v1.md"
+    },
+    {
+      "path": "/space/mawb/ssst/group_plus/vggt_feature_reading_v1/attempts/attempt01/probe_coefficients_windows1024.pt",
+      "family": "group_plus/vggt_feature_reading_v1",
+      "device": 56,
+      "inode": 37698199041,
+      "size": 403493,
+      "blocks": 788,
+      "nlink": 1,
+      "mtime_ns": 1791978538000000000,
+      "evidence": "documented MASt3R lineage/patch family",
+      "evidence_document": "docs/vggt_feature_reading_v1.md"
+    },
+    {
+      "path": "/space/mawb/ssst/group_plus/vggt_feature_reading_v1/attempts/attempt01/analysis/fusion_probe_coefficients.pt",
+      "family": "group_plus/vggt_feature_reading_v1",
+      "device": 56,
+      "inode": 35329104898,
+      "size": 251971,
+      "blocks": 492,
+      "nlink": 1,
+      "mtime_ns": 1791979939000000000,
+      "evidence": "documented MASt3R lineage/patch family",
+      "evidence_document": "docs/vggt_feature_reading_v1.md"
+    },
+    {
+      "path": "/space/mawb/ssst/group_plus/vggt_readout_probe_v1/attempts/attempt03/training/head_checkpoint_update0100.pt",
+      "family": "group_plus/vggt_readout_probe_v1",
+      "device": 56,
+      "inode": 37685420545,
+      "size": 90805449,
+      "blocks": 177354,
+      "nlink": 1,
+      "mtime_ns": 1791970484000000000,
+      "evidence": "documented MASt3R lineage/patch family",
+      "evidence_document": "docs/vggt_readout_probe_v1.md"
+    },
+    {
+      "path": "/space/mawb/ssst/group_plus/vggt_readout_probe_v1/attempts/attempt03/training/head_checkpoint_update0020.pt",
+      "family": "group_plus/vggt_readout_probe_v1",
+      "device": 56,
+      "inode": 37685417985,
+      "size": 18805105,
+      "blocks": 36728,
+      "nlink": 1,
+      "mtime_ns": 1791970298000000000,
+      "evidence": "documented MASt3R lineage/patch family",
+      "evidence_document": "docs/vggt_readout_probe_v1.md"
+    },
+    {
+      "path": "/space/mawb/ssst/group_plus/vggt_readout_probe_v1/attempts/attempt03/training/head_checkpoint_update0300.pt",
+      "family": "group_plus/vggt_readout_probe_v1",
+      "device": 56,
+      "inode": 35316748290,
+      "size": 270811321,
+      "blocks": 528928,
+      "nlink": 1,
+      "mtime_ns": 1791970929000000000,
+      "evidence": "documented MASt3R lineage/patch family",
+      "evidence_document": "docs/vggt_readout_probe_v1.md"
+    },
+    {
+      "path": "/space/mawb/ssst/group_plus/vggt_readout_probe_v1/attempts/attempt03/preflight/head_smoke.pt",
+      "family": "group_plus/vggt_readout_probe_v1",
+      "device": 56,
+      "inode": 35320919554,
+      "size": 267703,
+      "blocks": 522,
+      "nlink": 1,
+      "mtime_ns": 1791969203000000000,
+      "evidence": "documented MASt3R lineage/patch family",
+      "evidence_document": "docs/vggt_readout_probe_v1.md"
+    },
+    {
+      "path": "/space/mawb/ssst/group_plus/vggt_adapter_gradient_diagnostic_v1/attempts/attempt01/preflight/scale_0/checkpoint_update_0002.pt",
+      "family": "group_plus/vggt_adapter_gradient_diagnostic_v1",
+      "device": 56,
+      "inode": 35166677250,
+      "size": 3615511066,
+      "blocks": 7061545,
+      "nlink": 1,
+      "mtime_ns": 1791805517000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/group_plus/vggt_adapter_gradient_diagnostic_v1/attempts/attempt01/preflight/scale_0.01/checkpoint_update_0002.pt",
+      "family": "group_plus/vggt_adapter_gradient_diagnostic_v1",
+      "device": 56,
+      "inode": 35137920770,
+      "size": 3615511066,
+      "blocks": 7061545,
+      "nlink": 1,
+      "mtime_ns": 1791805336000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/group_plus/vggt_overfit_diagnostic_v1/checks/preflight_20261012T070457Z_bff606fc/pred_joint/checkpoint_update_0002.pt",
+      "family": "group_plus/vggt_overfit_diagnostic_v1",
+      "device": 56,
+      "inode": 23197518337,
+      "size": 3615510810,
+      "blocks": 7061544,
+      "nlink": 1,
+      "mtime_ns": 1791789160000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/group_plus/vggt_overfit_diagnostic_v1/checks/preflight_20261012T070457Z_bff606fc/gt_recon/checkpoint_update_0002.pt",
+      "family": "group_plus/vggt_overfit_diagnostic_v1",
+      "device": 56,
+      "inode": 23585502977,
+      "size": 3615510810,
+      "blocks": 7061544,
+      "nlink": 1,
+      "mtime_ns": 1791789522000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/group_plus/vggt_overfit_diagnostic_v1/checks/preflight_20261012T070457Z_bff606fc/pred_recon/checkpoint_update_0002.pt",
+      "family": "group_plus/vggt_overfit_diagnostic_v1",
+      "device": 56,
+      "inode": 35097539329,
+      "size": 3615510810,
+      "blocks": 7061544,
+      "nlink": 1,
+      "mtime_ns": 1791789345000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/group_plus/vggt_classification_readback_v1/attempts/attempt01/head_only/training/classification_patch_update0300.pt",
+      "family": "group_plus/vggt_classification_readback_v1",
+      "device": 56,
+      "inode": 37649480961,
+      "size": 197285,
+      "blocks": 385,
+      "nlink": 1,
+      "mtime_ns": 1791950299000000000,
+      "evidence": "documented MASt3R lineage/patch family",
+      "evidence_document": "docs/vggt_classification_readback_v1.md"
+    },
+    {
+      "path": "/space/mawb/ssst/group_plus/vggt_classification_readback_v1/attempts/attempt01/head_only/training/classification_patch_update0100.pt",
+      "family": "group_plus/vggt_classification_readback_v1",
+      "device": 56,
+      "inode": 35302178050,
+      "size": 197221,
+      "blocks": 385,
+      "nlink": 1,
+      "mtime_ns": 1791949588000000000,
+      "evidence": "documented MASt3R lineage/patch family",
+      "evidence_document": "docs/vggt_classification_readback_v1.md"
+    },
+    {
+      "path": "/space/mawb/ssst/group_plus/vggt_classification_readback_v1/attempts/attempt01/head_only/training/classification_patch_update0020.pt",
+      "family": "group_plus/vggt_classification_readback_v1",
+      "device": 56,
+      "inode": 35284323074,
+      "size": 197157,
+      "blocks": 385,
+      "nlink": 1,
+      "mtime_ns": 1791949265000000000,
+      "evidence": "documented MASt3R lineage/patch family",
+      "evidence_document": "docs/vggt_classification_readback_v1.md"
+    },
+    {
+      "path": "/space/mawb/ssst/group_plus/vggt_classification_readback_v1/attempts/attempt01/object_support/training/classification_patch_update0300.pt",
+      "family": "group_plus/vggt_classification_readback_v1",
+      "device": 56,
+      "inode": 35271204866,
+      "size": 1790501,
+      "blocks": 3497,
+      "nlink": 1,
+      "mtime_ns": 1791949808000000000,
+      "evidence": "documented MASt3R lineage/patch family",
+      "evidence_document": "docs/vggt_classification_readback_v1.md"
+    },
+    {
+      "path": "/space/mawb/ssst/group_plus/vggt_classification_readback_v1/attempts/attempt01/object_support/training/classification_patch_update0100.pt",
+      "family": "group_plus/vggt_classification_readback_v1",
+      "device": 56,
+      "inode": 37664888321,
+      "size": 1790437,
+      "blocks": 3496,
+      "nlink": 1,
+      "mtime_ns": 1791948981000000000,
+      "evidence": "documented MASt3R lineage/patch family",
+      "evidence_document": "docs/vggt_classification_readback_v1.md"
+    },
+    {
+      "path": "/space/mawb/ssst/group_plus/vggt_classification_readback_v1/attempts/attempt01/object_support/training/classification_patch_update0020.pt",
+      "family": "group_plus/vggt_classification_readback_v1",
+      "device": 56,
+      "inode": 37690789633,
+      "size": 1790437,
+      "blocks": 3496,
+      "nlink": 1,
+      "mtime_ns": 1791948560000000000,
+      "evidence": "documented MASt3R lineage/patch family",
+      "evidence_document": "docs/vggt_classification_readback_v1.md"
+    },
+    {
+      "path": "/space/mawb/ssst/group_plus/object_locus_vggt_joint_continuation_ab_v1/checks/migration_4to8_20261012/joint_aa_checkpoint_4rank_update20.pt",
+      "family": "group_plus/object_locus_vggt_joint_continuation_ab_v1",
+      "device": 56,
+      "inode": 23093443330,
+      "size": 15297997273,
+      "blocks": 29878900,
+      "nlink": 1,
+      "mtime_ns": 1791765268000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    },
+    {
+      "path": "/space/mawb/ssst/group_plus/object_locus_vggt_joint_continuation_ab_v1/checks/migration_4to8_20261012/frozen_checkpoint_4rank_update20.pt",
+      "family": "group_plus/object_locus_vggt_joint_continuation_ab_v1",
+      "device": 56,
+      "inode": 32894128898,
+      "size": 6435852001,
+      "blocks": 12570023,
+      "nlink": 1,
+      "mtime_ns": 1791764832000000000,
+      "evidence": "actual MASt3R/panoptic understanding state keys",
+      "evidence_keys": [
+        "understanding.encoder.enc_blocks.0.norm1.weight",
+        "understanding.encoder.enc_blocks.0.norm1.bias",
+        "understanding.encoder.enc_blocks.0.attn.qkv.weight"
+      ]
+    }
+  ],
+  "skipped": [],
+  "protected": {
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_noca_v4recipe_20261022_v1/train/checkpoint_latest.pt": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_20261022_v1/Baseline/eval/PREFLIGHT.json",
+      "device": 56,
+      "inode": 38012713985,
+      "size": 2343982797,
+      "mtime_ns": 1792683640000000000
+    },
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_weight_views_20261022_v1/U005/train/checkpoint_latest.pt": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_20261022_v1/U005/eval/PREFLIGHT.json",
+      "device": 56,
+      "inode": 35659694850,
+      "size": 2343982797,
+      "mtime_ns": 1792689636000000000
+    },
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_weight_views_20261022_v1/Views2ctx4/train/checkpoint_latest.pt": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_20261022_v1/Views2ctx4/eval/PREFLIGHT.json",
+      "device": 56,
+      "inode": 27233119233,
+      "size": 2343983309,
+      "mtime_ns": 1792691295000000000
+    },
+    "/space/mawb/ssst/group_plus/object_locus_panoptic_full1201_8gpu/manifest.json": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v1/Baseline/eval/configuration.json",
+      "device": 56,
+      "inode": 33105891074,
+      "size": 6098008,
+      "mtime_ns": 1791082369000000000
+    },
+    "/space/mawb/ssst/group_plus/vggt_understanding_bottleneck_v1/official1860_cohort_20261020.json": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v1/Baseline/eval/configuration.json",
+      "device": 56,
+      "inode": 32810327298,
+      "size": 1190205,
+      "mtime_ns": 1792498480000000000
+    },
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_weight_views_20261022_v1/Views2ctx4/train/checkpoint_untrained_initial.pt": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v1/Views2ctx4/eval/configuration.json",
+      "device": 56,
+      "inode": 35614147074,
+      "size": 788396909,
+      "mtime_ns": 1792632766000000000
+    },
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/oldA4_v4init_noca_ablation_20261022_v1/V4init/train/checkpoint_initial.pt": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v1/Baseline/eval/configuration.json",
+      "device": 56,
+      "inode": 35614147074,
+      "size": 788396909,
+      "mtime_ns": 1792632766000000000
+    },
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_weight_views_20261022_v1/training_windows_2ctx4novel.json": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v1/Views2ctx4/eval/configuration.json",
+      "device": 56,
+      "inode": 35638946562,
+      "size": 8038898,
+      "mtime_ns": 1792663255000000000
+    },
+    "/space/mawb/ssst_dual_stream_assets/sam_vit_b_01ec64.pth": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v1/Baseline/train/source_epoch4_meta.json",
+      "device": 56,
+      "inode": 19023122433,
+      "size": 375042383,
+      "mtime_ns": 1792050825000000000
+    },
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_weight_views_20261022_v1/U005/train/checkpoint_untrained_initial.pt": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v1/U005/eval/configuration.json",
+      "device": 56,
+      "inode": 35614147074,
+      "size": 788396909,
+      "mtime_ns": 1792632766000000000
+    },
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_20261022_v1/U005/train/checkpoint_source_epoch4.pt": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_20261022_v1/U005/train/CONTINUATION_SOURCE.json",
+      "device": 56,
+      "inode": 35659694850,
+      "size": 2343982797,
+      "mtime_ns": 1792689636000000000
+    },
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_weight_views_20261022_v1/U005/train/checkpoint_epoch4.pt": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_20261022_v1/U005/train/CONTINUATION_SOURCE.json",
+      "device": 56,
+      "inode": 35659694850,
+      "size": 2343982797,
+      "mtime_ns": 1792689636000000000
+    },
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_noca_v4recipe_20261022_v1/train/checkpoint_untrained_initial.pt": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v1/Baseline/eval/configuration.json",
+      "device": 56,
+      "inode": 35614147074,
+      "size": 788396909,
+      "mtime_ns": 1792632766000000000
+    },
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_20261022_v1/Baseline/train/checkpoint_source_epoch4.pt": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v2_jsonfix/Baseline/train/STARTED.json",
+      "device": 56,
+      "inode": 38012713985,
+      "size": 2343982797,
+      "mtime_ns": 1792683640000000000
+    },
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_noca_v4recipe_20261022_v1/train/checkpoint_epoch4.pt": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_20261022_v1/Baseline/train/CONTINUATION_SOURCE.json",
+      "device": 56,
+      "inode": 38012713985,
+      "size": 2343982797,
+      "mtime_ns": 1792683640000000000
+    },
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_weight_views_20261022_v1/Views2ctx4/smoke/checkpoint_untrained_initial.pt": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_weight_views_20261022_v1/Views2ctx4/smoke/configuration.json",
+      "device": 56,
+      "inode": 35614147074,
+      "size": 788396909,
+      "mtime_ns": 1792632766000000000
+    },
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_weight_views_20261022_v1/Views2ctx4/eval/evaluation/metrics.json": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_weight_views_20261022_v1/Views2ctx4/eval/COMPLETE.json",
+      "device": 56,
+      "inode": 23001980418,
+      "size": 13904,
+      "mtime_ns": 1792695042000000000
+    },
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_weight_views_20261022_v1/U005/smoke/checkpoint_untrained_initial.pt": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_weight_views_20261022_v1/U005/smoke/configuration.json",
+      "device": 56,
+      "inode": 35614147074,
+      "size": 788396909,
+      "mtime_ns": 1792632766000000000
+    },
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_weight_views_20261022_v1/U005/eval/evaluation/metrics.json": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_weight_views_20261022_v1/U005/eval/COMPLETE.json",
+      "device": 56,
+      "inode": 35651544066,
+      "size": 13912,
+      "mtime_ns": 1792693451000000000
+    },
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_noca_v4recipe_20261022_v1/smoke/checkpoint_untrained_initial.pt": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_noca_v4recipe_20261022_v1/smoke/configuration.json",
+      "device": 56,
+      "inode": 35614147074,
+      "size": 788396909,
+      "mtime_ns": 1792632766000000000
+    },
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_noca_v4recipe_20261022_v1/eval/evaluation/metrics.json": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_noca_v4recipe_20261022_v1/eval/COMPLETE.json",
+      "device": 56,
+      "inode": 35627244290,
+      "size": 13894,
+      "mtime_ns": 1792686471000000000
+    },
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_20261022_v1/Baseline/train/checkpoint_latest.pt": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v1/Baseline/eval/PREFLIGHT.json",
+      "device": 56,
+      "inode": 32800481026,
+      "size": 2343983693,
+      "mtime_ns": 1792693734000000000
+    },
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_20261022_v1/U005/train/checkpoint_latest.pt": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v1/U005/eval/PREFLIGHT.json",
+      "device": 56,
+      "inode": 32900657922,
+      "size": 2343981227,
+      "mtime_ns": 1792693822000000000
+    },
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v2_jsonfix/Baseline/train/checkpoint_recovery_source.pt": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v2_jsonfix/Baseline/train/RECOVERY_SOURCE.json",
+      "device": 56,
+      "inode": 32800481026,
+      "size": 2343983693,
+      "mtime_ns": 1792693734000000000
+    },
+    "/space/mawb/anaconda3/envs/tokengs/bin/python": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v1/CPU_TESTS.json",
+      "device": 56,
+      "inode": 29944919553,
+      "size": 25409784,
+      "mtime_ns": 1782738126000935467
+    },
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_weight_views_20261022_v1/Views2ctx4/train/checkpoint_epoch4.pt": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v1/Views2ctx4/eval/PREFLIGHT.json",
+      "device": 56,
+      "inode": 27233119233,
+      "size": 2343983309,
+      "mtime_ns": 1792691295000000000
+    },
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v1/Views2ctx4/train/checkpoint_source_epoch4.pt": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v1/Views2ctx4/train/CONTINUATION_SOURCE.json",
+      "device": 56,
+      "inode": 27233119233,
+      "size": 2343983309,
+      "mtime_ns": 1792691295000000000
+    },
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v1/U005/train/checkpoint_recovery_source.pt": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v1/U005/train/RECOVERY_SOURCE.json",
+      "device": 56,
+      "inode": 32900657922,
+      "size": 2343981227,
+      "mtime_ns": 1792693822000000000
+    },
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v1/Baseline/train/checkpoint_recovery_source.pt": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v1/Baseline/train/RECOVERY_SOURCE.json",
+      "device": 56,
+      "inode": 32800481026,
+      "size": 2343983693,
+      "mtime_ns": 1792693734000000000
+    },
+    "/space/mawb/ssst/group_plus/spatial_pair_20261023_v1/source_epoch4.pt": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/spatial_pair_20261023_v1/spatial/configuration.json",
+      "device": 56,
+      "inode": 38012713985,
+      "size": 2343982797,
+      "mtime_ns": 1792683640000000000
+    },
+    "/space/mawb/ssst/group_plus/spatial_pair_20261023_v1/cohort128.json": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/spatial_pair_20261023_v1/spatial/configuration.json",
+      "device": 56,
+      "inode": 35611535618,
+      "size": 38126,
+      "mtime_ns": 1792685412000000000
+    },
+    "/space/mawb/ssst/group_plus/spatial_pair_20261023_v1/control/evaluation/metrics.json": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/spatial_pair_20261023_v1/control/COMPLETE.json",
+      "device": 56,
+      "inode": 35620989954,
+      "size": 13795,
+      "mtime_ns": 1792689098000000000
+    },
+    "/space/mawb/ssst/group_plus/unified_query_training_v1/attempt05_legacy_dual_superpoint_full_node13_8gpu/checkpoint_untrained_initial.pt": {
+      "reason": "review protection: review protection: canonical legacy initialization source",
+      "device": 56,
+      "inode": 35414057730,
+      "size": 775533660,
+      "mtime_ns": 1792223986000000000
+    },
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/old_A4_official1860_20261021_node12_8gpu/evaluation/export_complete.json": {
+      "reason": "review protection: review protection: required reference/provenance records for current official evaluation",
+      "device": 56,
+      "inode": 37919128065,
+      "size": 3675765,
+      "mtime_ns": 1792575106000000000
+    },
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/old_A4_official1860_20261021_node12_8gpu/evaluation/gt_reference_manifest.jsonl": {
+      "reason": "review protection: review protection: required reference/provenance records for current official evaluation",
+      "device": 56,
+      "inode": 35562173954,
+      "size": 3823972,
+      "mtime_ns": 1792575106000000000
+    },
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/old_A4_official1860_20261021_node12_8gpu/evaluation/metrics.json": {
+      "reason": "review protection: review protection: required reference/provenance records for current official evaluation",
+      "device": 56,
+      "inode": 35562030850,
+      "size": 13900,
+      "mtime_ns": 1792577110000000000
+    },
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/old_A4_official1860_20261021_node12_8gpu/evaluation/checkpoint_identity.json": {
+      "reason": "review protection: review protection: required reference/provenance records for current official evaluation",
+      "device": 56,
+      "inode": 27675932162,
+      "size": 2847,
+      "mtime_ns": 1792575125000000000
+    },
+    "/space/mawb/ssst/group_plus/vggt_classification_readback_v1/attempts/attempt01/object_support/evaluation/siu3r_table1.csv": {
+      "reason": "current score_dual_stream_v1.py reference CSV",
+      "device": 56,
+      "inode": 35290003714,
+      "size": 341,
+      "mtime_ns": 1791950608000000000
+    },
+    "/space/mawb/ssst/group_plus/spatial_pair_20261023_v1/spatial_retry1/evaluation/metrics.json": {
+      "reason": "current reference: /space/mawb/ssst/group_plus/spatial_pair_20261023_v1/spatial_retry1/COMPLETE.json",
+      "device": 56,
+      "inode": 33044910850,
+      "size": 13796,
+      "mtime_ns": 1792718863000000000
+    }
+  },
+  "active_roots": [
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_20261022_v1",
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_weight_views_20261022_v1",
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_noca_v4recipe_20261022_v1",
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v2_jsonfix",
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v1",
+    "/space/mawb/ssst/group_plus/spatial_pair_20261023_v1"
+  ],
+  "scope": "identified MASt3R checkpoint/patch files only; retain current V4init/SAM baselines, code/config/logs/metrics/raw exports/pretrained assets"
+}
