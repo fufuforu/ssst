@@ -1,0 +1,54 @@
+{
+  "status": "PASSED",
+  "restart_mode": "recover",
+  "source": "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_20261022_v1/Baseline/train/checkpoint_latest.pt",
+  "source_sha256": "13232437521ff24eaf7b808f344ea20a0a8be9294423ff743d175ec0689fe70c",
+  "original_epoch4_sha256": "694d2991ea9f2a6cc02106a569de35ff907db219185cb58c94b8a352540c51fc",
+  "progress": {
+    "epoch": 5,
+    "update_in_epoch": 285,
+    "full_updates": 5500
+  },
+  "remaining_updates": 2844,
+  "model_tensors": 632,
+  "adam_states": 604,
+  "adam_steps": [
+    5500.0
+  ],
+  "rank_rng_count": 8,
+  "all_model_tensors_restored_exact": true,
+  "all_adam_moments_and_steps_restored_exact": true,
+  "next_rank_indices": [
+    1041,
+    6462,
+    5657,
+    172,
+    717,
+    2780,
+    5452,
+    7615
+  ],
+  "next_batch_shapes": {
+    "images_input": [
+      1,
+      2,
+      3,
+      256,
+      256
+    ],
+    "images_all": [
+      1,
+      4,
+      3,
+      256,
+      256
+    ],
+    "frame_ids": [
+      1,
+      4
+    ]
+  },
+  "gpu_first_update_verified": false,
+  "serialized_metadata_path_exercised": true,
+  "runtime_identity_rebuilt_from_actual_config_and_optimizer": true
+}

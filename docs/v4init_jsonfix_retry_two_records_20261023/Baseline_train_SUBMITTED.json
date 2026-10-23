@@ -1,0 +1,26 @@
+{
+  "job": 71192,
+  "stage": "train",
+  "dependency": null,
+  "submission_argv": [
+    "sbatch",
+    "--parsable",
+    "--partition=3090,4090",
+    "--exclude=3dimage-11",
+    "--nodes=1",
+    "--ntasks=1",
+    "--no-requeue",
+    "--signal=B:TERM@60",
+    "--gres=gpu:8",
+    "--cpus-per-task=32",
+    "--mem=192G",
+    "--kill-on-invalid-dep=yes",
+    "--job-name=V4jsonfix_Baseline_train",
+    "--time=1-00:00:00",
+    "--output=/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v2_jsonfix/Baseline/train/slurm-%j.out",
+    "scripts/run_v4init_recovery.sh",
+    "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v2_jsonfix/Baseline/train",
+    "train"
+  ],
+  "code_sha": "a959b9168f4a3049688171079ac63e52d616273c"
+}

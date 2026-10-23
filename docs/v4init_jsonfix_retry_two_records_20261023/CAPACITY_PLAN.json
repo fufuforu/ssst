@@ -1,0 +1,9 @@
+{
+  "available_bytes": 32784510976,
+  "planned_additional_upper_budget_bytes": 30064771072,
+  "checkpoint_retention": "initial+latest+atomic-temp+final-hardlink",
+  "intermediate_epochs_retained": false,
+  "evaluation_exports_included": true,
+  "existing_Views2ctx4_headroom_included": true,
+  "other_jobs_not_reserved": true
+}

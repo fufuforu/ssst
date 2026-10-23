@@ -1,0 +1,48 @@
+{
+  "at": "2026-10-23T08:57:57.208861",
+  "reason": "Previously user-cancelled C/D experiments; user authorized obsolete experiment cleanup and continuation submission",
+  "cancelled_jobs": [
+    70692,
+    70695
+  ],
+  "external_configuration_references": [],
+  "files": [
+    {
+      "path": "/space/mawb/ssst/group_plus/semantic_resolution_v1/point1024_nofmca_ablation_20261022_v1/C/train/checkpoint_latest.pt",
+      "device": 56,
+      "inode": 37917765377,
+      "size": 2302997437,
+      "blocks": 4498041,
+      "mtime_ns": 1792632095000000000
+    },
+    {
+      "path": "/space/mawb/ssst/group_plus/semantic_resolution_v1/point1024_nofmca_ablation_20261022_v1/C/train/checkpoint_initial.pt",
+      "device": 56,
+      "inode": 35580520706,
+      "size": 770511068,
+      "blocks": 1504904,
+      "mtime_ns": 1792631460000000000
+    },
+    {
+      "path": "/space/mawb/ssst/group_plus/semantic_resolution_v1/point1024_nofmca_ablation_20261022_v1/D/train/checkpoint_latest.pt",
+      "device": 56,
+      "inode": 35630247682,
+      "size": 2287077901,
+      "blocks": 4466949,
+      "mtime_ns": 1792632108000000000
+    },
+    {
+      "path": "/space/mawb/ssst/group_plus/semantic_resolution_v1/point1024_nofmca_ablation_20261022_v1/D/train/checkpoint_initial.pt",
+      "device": 56,
+      "inode": 37991134465,
+      "size": 766289020,
+      "blocks": 1496658,
+      "mtime_ns": 1792631488000000000
+    }
+  ],
+  "status": "COMPLETE",
+  "released_allocated_bytes": 6126874624,
+  "available_before_bytes": 32783507456,
+  "available_after_bytes": 38910382080,
+  "logs_configs_shared_zero_preserved": true
+}

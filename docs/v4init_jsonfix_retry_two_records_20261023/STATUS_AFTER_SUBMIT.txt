@@ -1,0 +1,5 @@
+             JOBID                             NAME      STATE       PARTITION             NODELIST NODELIST(REASON)
+             71192         V4jsonfix_Baseline_train    RUNNING            3090           3dimage-12 3dimage-12
+             71195              V4jsonfix_U005_eval    PENDING       3090,4090                      (Dependency)
+             71194             V4jsonfix_U005_train    PENDING       3090,4090                      (None)
+             71193          V4jsonfix_Baseline_eval    PENDING       3090,4090                      (Dependency)
