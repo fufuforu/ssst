@@ -61,9 +61,12 @@ def main():
     parser.add_argument('--initialize-olda4-ablation-from-legacy-zero',action='store_true')
     parser.add_argument('--initialize-v4init-isolated-zero',action='store_true')
     parser.add_argument('--continue-checkpoint',type=Path);parser.add_argument('--continue-sha256')
+    parser.add_argument('--recover-checkpoint',type=Path);parser.add_argument('--recover-sha256')
     parser.add_argument('--training-window-manifest',type=Path,help='Frozen 2context+4novel extension; defaults to dedicated manifest for isolated architecture')
     parser.add_argument('--config',type=Path);parser.add_argument('--resume',action='store_true');parser.add_argument('--checkpoint-every',type=int,default=50)
     args=parser.parse_args()
+    if bool(args.recover_checkpoint)!=bool(args.recover_sha256) or args.recover_checkpoint and (args.resume or args.initial_checkpoint or args.continue_checkpoint or args.short_validation or args.initialize_v4init_isolated_zero):parser.error('Recovery requires a SHA and a fresh independent continuation directory')
+    if args.recover_checkpoint and args.architecture not in ('dual_v4init_isolated_noca','dual_v4init_isolated_ulow','dual_v4init_isolated_2ctx4'):parser.error('Recovery limited to authorized V4init continuation arms')
     if args.understanding_weight<0 or not math.isfinite(args.understanding_weight) or args.epochs<1 or args.learning_rate<=0 or args.understanding_warmup<0 or args.checkpoint_every<1 or args.max_updates is not None and args.max_updates<1:parser.error('Invalid training settings')
     if bool(args.initial_checkpoint)!=bool(args.initial_sha256) or args.initial_checkpoint and (args.resume or args.short_validation):parser.error('Zero-step initialization requires SHA and fresh full training')
     if bool(args.continue_checkpoint)!=bool(args.continue_sha256) or args.continue_checkpoint and (args.resume or args.initial_checkpoint or args.short_validation or args.initialize_v4init_isolated_zero):parser.error('Continuation requires source SHA and preserved state without zero initialization')
@@ -82,9 +85,9 @@ def main():
     from scripts.v4init_isolated_recipe import MODEL_KEYS as V4ISO_MODELS,recipe_identity as v4iso_recipe
     if args.architecture in V4ISO_MODELS.values():
         expected_understanding_weight=v4iso_recipe(args.architecture)['understanding_weight']
-        expected_epochs=8 if args.continue_checkpoint or args.resume and (args.output_dir/'CONTINUATION_SOURCE.json').exists() else 4
+        expected_epochs=8 if args.continue_checkpoint or args.recover_checkpoint or args.resume and (args.output_dir/'CONTINUATION_SOURCE.json').exists() else 4
         expected_lr=3e-5 if expected_epochs==8 else 1e-4
-        if args.epochs!=expected_epochs or args.short_validation or args.training_window_manifest and args.architecture!='dual_v4init_isolated_2ctx4' or args.learning_rate!=expected_lr or args.understanding_weight!=expected_understanding_weight or args.understanding_warmup!=1043 or not args.initialize_v4init_isolated_zero and not args.resume and not args.continue_checkpoint:
+        if args.epochs!=expected_epochs or args.short_validation or args.training_window_manifest and args.architecture!='dual_v4init_isolated_2ctx4' or args.learning_rate!=expected_lr or args.understanding_weight!=expected_understanding_weight or args.understanding_warmup!=1043 or not args.initialize_v4init_isolated_zero and not args.resume and not args.continue_checkpoint and not args.recover_checkpoint:
             parser.error('V4 isolated run requires its declared views/weight and explicit zero or epoch4 continuation source')
     if args.initialize_v4init_isolated_zero and (args.architecture not in V4ISO_MODELS.values() or not args.initial_checkpoint or args.resume):parser.error('Wrong V4init zero migration target')
     if args.short_validation:
@@ -188,6 +191,18 @@ def main():
     meta.update(training_identity)
     progress=dict(epoch=0,update_in_epoch=0,full_updates=0)
     continuation_witness=None
+    if args.recover_checkpoint:
+        from scripts.v4init_recovery_policy import recovery_meta
+        from scripts.v4init_extend8_policy import source_parameter_digest
+        if world!=8:raise ValueError('Recovery preserves all eight ranks')
+        if digest(args.recover_checkpoint)!=args.recover_sha256:raise ValueError('Recovery source SHA differs')
+        cfg=json.loads((root/'configuration.json').read_text())
+        if digest(root/'source_epoch4_meta.json')!=cfg['source_epoch4_meta_sha256']:raise ValueError('Original epoch4 metadata changed')
+        saved=torch.load(args.recover_checkpoint,map_location='cpu',weights_only=False,mmap=True)
+        meta=recovery_meta(saved,cfg,json.loads((root/'source_epoch4_meta.json').read_text()),meta,optimizer,model)
+        continuation_witness=source_parameter_digest(model,saved['model'])
+        restore_state(model,saved['model']);optimizer.load_state_dict(saved['optimizer']);progress=dict(saved['progress'])
+        restore_rng(saved['rank_rng'][rank]);del saved
     if args.continue_checkpoint:
         from scripts.v4init_extend8_policy import validate_source,validate_optimizer_layout,transition_meta,source_parameter_digest
         if world!=8:raise ValueError('Continuation preserves all eight ranks')
@@ -222,11 +237,12 @@ def main():
     first_update=progress['full_updates']
     from scripts.unified_query_validation import run_probes,parameter_digest,synchronized_first_update
     probe_train=windows if args.short_validation else [windows[i] for i in chosen]
-    if not args.resume and (args.short_validation or args.epoch_probes):run_probes(model,opt,probe_train,validation,root,'initial',rank,world,device,args.understanding_weight)
+    if not args.resume and not args.recover_checkpoint and (args.short_validation or args.epoch_probes):run_probes(model,opt,probe_train,validation,root,'initial',rank,world,device,args.understanding_weight)
     initial_digest=parameter_digest(model)
     if continuation_witness is not None:
         if initial_digest!=continuation_witness:raise ValueError('Loaded continuation weights differ from source')
-        (root/f'CONTINUATION_LOADED_rank{rank:02}.json').write_text(json.dumps(dict(status='PASSED',source_sha256=args.continue_sha256,all_trainable_parameters_exact=True,model_parameter_sha256=initial_digest,progress=dict(progress),adam_states=len(optimizer.state),adam_steps=sorted({float(s['step']) for s in optimizer.state.values()}),rank_rng_restored=True,source_learning_rates=meta['source_learning_rates']),indent=2)+'\n')
+        receipt_kind='RECOVERY_LOADED' if args.recover_checkpoint else 'CONTINUATION_LOADED'
+        (root/f'{receipt_kind}_rank{rank:02}.json').write_text(json.dumps(dict(status='PASSED',source_sha256=args.recover_sha256 or args.continue_sha256,all_trainable_parameters_exact=True,model_parameter_sha256=initial_digest,progress=dict(progress),adam_states=len(optimizer.state),adam_steps=sorted({float(s['step']) for s in optimizer.state.values()}),rank_rng_restored=True,source_learning_rates=meta['source_learning_rates']),indent=2)+'\n')
     before_ddp=rng()
     task=Task(model);task=DDP(task,device_ids=[local],find_unused_parameters=True) if world>1 else task
     restore_rng(before_ddp)
