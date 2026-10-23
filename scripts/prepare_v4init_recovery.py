@@ -1,4 +1,4 @@
-"""Prepare three independent recovery directories and audit real model/Adam restoration."""
+"""Prepare two JSON-fixed independent recovery directories and audit real model/Adam restoration."""
 from pathlib import Path
 import sys,os,json,gc,copy
 ROOT=Path(__file__).resolve().parents[1];sys.path.insert(0,str(ROOT))
@@ -7,7 +7,7 @@ from torch import nn
 from tokengs.options import config_defaults
 from tokengs.models.unified_superpoints import UnifiedQueryConfig
 from tokengs.models.v4init_isolated_noca import V4InitIsolatedNoCACore
-from scripts.v4init_isolated_recipe import optimizer_groups,check_meta as check_original
+from scripts.v4init_isolated_recipe import optimizer_groups,check_meta as check_original,recipe_identity
 from scripts.v4init_extend8_policy import tensor_tree_equal,validate_source,START,END
 from scripts.v4init_recovery_policy import recovery_meta
 from scripts.olda4_ablation_pipeline import read,write,digest
@@ -15,7 +15,7 @@ from scripts.train_dual_stream_v1 import cohorts,MANIFEST,HELDOUT,build_batch
 from scripts.dual_stream_training_policy import epoch_order,rank_microbatches
 BASE=Path('/space/mawb/ssst/group_plus/semantic_resolution_v1')
 OLD=BASE/'v4init_isolated_extend8_20261022_v1'
-RUN=BASE/'v4init_isolated_extend8_recovery_20261023_v1'
+RUN=BASE/'v4init_isolated_extend8_recovery_20261023_v2_jsonfix'
 SOURCE_CODE='ce8446d102ac1d9a7347c8525ec38935d4922de3'
 
 
@@ -30,7 +30,7 @@ def main():
     assert not (RUN/'SUBMISSION_REQUESTED.json').exists(),'Refuse preparing submitted run'
     audits={};windows,_,_=cohorts()
     assert len(windows)==8337 and len({w['scene'] for w in windows})==1191
-    for label in ['Baseline','U005','Views2ctx4']:
+    for label in ['Baseline','U005']:
         old=OLD/label/'train';cfg=read(old/'configuration.json');original_root=Path(cfg['source_training_root'])
         original_cfg=read(old/'source_configuration.json');original_path=original_root/'checkpoint_epoch4.pt'
         original=torch.load(original_path,map_location='cpu',weights_only=False,mmap=True)
@@ -57,7 +57,14 @@ def main():
             step=5500 if label=='Baseline' else START
             assert saved['progress']==dict(epoch=step//1043,update_in_epoch=step%1043,full_updates=step)
             newcfg.update(recovery_source=str(source),recovery_sha256=digest(frozen),recovery_source_code_sha=SOURCE_CODE,recovery_progress=dict(saved['progress']))
-            current=dict(copy.deepcopy(original['meta']),code_sha='PREFLIGHT',epochs=8,learning_rate=3e-5)
+            current=dict(architecture=cfg['architecture'],config=model_cfg.to_dict(),code_sha='PREFLIGHT',
+                manifest_sha256=digest(MANIFEST),heldout_sha256=digest(HELDOUT),
+                omega_identity=original['meta']['omega_identity'],sam_identity=original['meta']['sam_identity'],
+                initial_checkpoint=None,initial_sha256=None,initial_updates=0,epoch_probes=True,short_validation=False,
+                training_windows=None,world_size=8,global_batch=8,epochs=8,understanding_weight=cfg['understanding_weight'],
+                understanding_warmup=1043,learning_rate=3e-5)
+            current.update(recipe_identity(cfg['model_key']))
+            current['optimizer_groups']=[{k:v for k,v in g.items() if k!='params'} for g in optimizer.param_groups]
             actual=recovery_meta(saved,newcfg,read(train/'source_epoch4_meta.json'),current,optimizer,model)
             assert actual==dict(saved['meta'],code_sha='PREFLIGHT')
         else:
@@ -79,7 +86,7 @@ def main():
         indices=[rank_microbatches(order,progress['update_in_epoch'],rank,8)[0] for rank in range(8)]
         batch=build_batch(opt.evolve(num_views=2+nv),train_windows[indices[0]],torch.device('cpu'))
         assert list(batch['images_input'].shape)==[1,2,3,256,256] and list(batch['images_all'].shape)==[1,2+nv,3,256,256]
-        audit=dict(status='PASSED',restart_mode=mode,source=str(source),source_sha256=newcfg.get('recovery_sha256',source4_sha),original_epoch4_sha256=source4_sha,progress=progress,remaining_updates=END-progress['full_updates'],model_tensors=len(saved['model']),adam_states=len(saved['optimizer']['state']),adam_steps=sorted({float(s['step']) for s in saved['optimizer']['state'].values()}),rank_rng_count=len(saved['rank_rng']),all_model_tensors_restored_exact=True,all_adam_moments_and_steps_restored_exact=True,next_rank_indices=indices,next_batch_shapes={k:list(batch[k].shape) for k in ['images_input','images_all','frame_ids']},gpu_first_update_verified=False)
+        audit=dict(status='PASSED',restart_mode=mode,source=str(source),source_sha256=newcfg.get('recovery_sha256',source4_sha),original_epoch4_sha256=source4_sha,progress=progress,remaining_updates=END-progress['full_updates'],model_tensors=len(saved['model']),adam_states=len(saved['optimizer']['state']),adam_steps=sorted({float(s['step']) for s in saved['optimizer']['state'].values()}),rank_rng_count=len(saved['rank_rng']),all_model_tensors_restored_exact=True,all_adam_moments_and_steps_restored_exact=True,next_rank_indices=indices,next_batch_shapes={k:list(batch[k].shape) for k in ['images_input','images_all','frame_ids']},gpu_first_update_verified=False,serialized_metadata_path_exercised=True,runtime_identity_rebuilt_from_actual_config_and_optimizer=True)
         audits[label]=audit
         for stage in ['train','eval']:
             root=branch/stage;ecfg=dict(newcfg)
@@ -88,10 +95,10 @@ def main():
         print(label,json.dumps(audit),flush=True)
         del saved,original,model,optimizer,target,batch;gc.collect()
     available=os.statvfs(RUN);free=available.f_bavail*available.f_frsize
-    # Three initial+latest states, atomic-save headroom and three official exports.
-    budget=32*2**30
+    # Two new chains plus future headroom for existing Views2ctx4; no third submission.
+    budget=28*2**30
     assert free>budget,('Insufficient capacity',free,budget)
-    write(RUN/'CAPACITY_PLAN.json',dict(available_bytes=free,planned_additional_upper_budget_bytes=budget,checkpoint_retention='initial+latest+atomic-temp+final-hardlink',intermediate_epochs_retained=False,evaluation_exports_included=True,other_jobs_not_reserved=True))
+    write(RUN/'CAPACITY_PLAN.json',dict(available_bytes=free,planned_additional_upper_budget_bytes=budget,checkpoint_retention='initial+latest+atomic-temp+final-hardlink',intermediate_epochs_retained=False,evaluation_exports_included=True,existing_Views2ctx4_headroom_included=True,other_jobs_not_reserved=True))
     identity={}
     for relative in ['tokengs/models/v4init_isolated_noca.py','tokengs/models/superpoint_structural_variants.py','tokengs/models/unified_query_v1.py','tokengs/models/unified_query_loss.py','scripts/v4init_extend8_policy.py','scripts/v4init_isolated_recipe.py','scripts/dual_stream_training_policy.py','scripts/training_windows_2ctx4novel.py','scripts/export_unified_query_checkpoint.py','scripts/score_dual_stream_v1.py']:
         oldfile=Path('/space/mawb/ssst_v4init_extend8_code_20261022_v1')/relative

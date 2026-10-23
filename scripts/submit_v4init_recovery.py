@@ -1,8 +1,8 @@
-"""Submit exactly three recovery trains and their afterok epoch8 evaluations."""
+"""Submit exactly two JSON-fixed recovery trains and their afterok epoch8 evaluations."""
 from pathlib import Path
 import os,json,subprocess,datetime,hashlib
 ROOT=Path(__file__).resolve().parents[1]
-RUN=Path('/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v1')
+RUN=Path('/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_extend8_recovery_20261023_v2_jsonfix')
 
 
 def write(p,v):p.write_text(json.dumps(v,indent=2)+'\n')
@@ -12,11 +12,13 @@ def digest(p):return hashlib.sha256(Path(p).read_bytes()).hexdigest()
 def main():
     assert not subprocess.check_output(['git','status','--porcelain'],cwd=ROOT,text=True).strip(),'Dirty snapshot'
     assert not (RUN/'SUBMISSION_REQUESTED.json').exists(),'Refuse duplicate submission'
-    assert json.loads((RUN/'CPU_SOURCE_VALIDATION.json').read_text())['status']=='PASSED'
+    audit=json.loads((RUN/'CPU_SOURCE_VALIDATION.json').read_text())
+    assert audit['status']=='PASSED' and set(audit['arms'])=={'Baseline','U005'}
+    assert not (RUN/'Views2ctx4').exists(),'Do not recreate the active 2+4 arm'
     assert json.loads((RUN/'CPU_TESTS.json').read_text())['status']=='PASSED'
-    assert os.statvfs(RUN).f_bavail*os.statvfs(RUN).f_frsize>32*2**30,'Capacity budget no longer fits'
+    assert os.statvfs(RUN).f_bavail*os.statvfs(RUN).f_frsize>28*2**30,'Capacity budget no longer fits'
     sha=subprocess.check_output(['git','rev-parse','HEAD'],cwd=ROOT,text=True).strip()
-    for label in ['Baseline','U005','Views2ctx4']:
+    for label in ['Baseline','U005']:
         for stage in ['train','eval']:
             r=RUN/label/stage;cfg=json.loads((r/'configuration.json').read_text())
             assert not (r/'STARTED.json').exists() and not (r/'checkpoint_latest.pt').exists()
@@ -27,15 +29,15 @@ def main():
     for stage,limit in [('train','1-00:00:00'),('eval','08:00:00')]:
         q=subprocess.run(['sbatch','--test-only']+common+[f'--time={limit}','scripts/run_v4init_recovery.sh',str(RUN/'Baseline'/stage),stage],cwd=ROOT,capture_output=True,text=True,timeout=30)
         assert q.returncode==0,q.stderr
-    receipt=dict(code_root=str(ROOT),code_sha=sha,submitted_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),branches={},eligible_nodes=[12,13,14,17,18],gpus_per_job=8)
+    receipt=dict(code_root=str(ROOT),code_sha=sha,submitted_utc=datetime.datetime.now(datetime.timezone.utc).isoformat(),branches={},eligible_nodes=[12,13,14,17,18],gpus_per_job=8,unchanged_existing_jobs=dict(Views2ctx4_train=71188,Views2ctx4_eval=71189))
     with (RUN/'SUBMISSION_REQUESTED.json').open('x') as f:json.dump(receipt,f,indent=2)
     write(RUN/'SUBMITTED.json',receipt)
-    for label in ['Baseline','U005','Views2ctx4']:
+    for label in ['Baseline','U005']:
         jobs={};receipt['branches'][label]=dict(jobs=jobs,recovery_progress=json.loads((RUN/label/'train/PREFLIGHT.json').read_text())['progress'])
         dependency=None
         for stage,limit in [('train','1-00:00:00'),('eval','08:00:00')]:
             r=RUN/label/stage
-            cmd=['sbatch','--parsable']+common+[f'--job-name=V4recover_{label}_{stage}',f'--time={limit}',f'--output={r}/slurm-%j.out']
+            cmd=['sbatch','--parsable']+common+[f'--job-name=V4jsonfix_{label}_{stage}',f'--time={limit}',f'--output={r}/slurm-%j.out']
             if dependency is not None:cmd += [f'--dependency=afterok:{dependency}']
             cmd += ['scripts/run_v4init_recovery.sh',str(r),stage]
             job=int(subprocess.check_output(cmd,cwd=ROOT,text=True).strip().split(';')[0]);jobs[stage]=job
