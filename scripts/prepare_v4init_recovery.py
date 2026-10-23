@@ -58,7 +58,7 @@ def main():
             assert saved['progress']==dict(epoch=step//1043,update_in_epoch=step%1043,full_updates=step)
             newcfg.update(recovery_source=str(source),recovery_sha256=digest(frozen),recovery_source_code_sha=SOURCE_CODE,recovery_progress=dict(saved['progress']))
             current=dict(copy.deepcopy(original['meta']),code_sha='PREFLIGHT',epochs=8,learning_rate=3e-5)
-            actual=recovery_meta(saved,newcfg,original['meta'],current,optimizer,model)
+            actual=recovery_meta(saved,newcfg,read(train/'source_epoch4_meta.json'),current,optimizer,model)
             assert actual==dict(saved['meta'],code_sha='PREFLIGHT')
         else:
             saved=original;source=original_path

@@ -1,0 +1,77 @@
+{
+  "observed_at_beijing": "2026-10-23T08:47:41+08:00",
+  "single_bounded_inspection": true,
+  "branches": {
+    "Baseline": {
+      "train_job": 71184,
+      "state": "FAILED",
+      "exit_code": "1:0",
+      "node": "3dimage-12",
+      "gpus": 8,
+      "elapsed": "00:04:44",
+      "eval_job": 71185,
+      "eval_state": "CANCELLED",
+      "started": false,
+      "new_updates": 0,
+      "source_updates": 5500
+    },
+    "U005": {
+      "train_job": 71186,
+      "state": "FAILED",
+      "exit_code": "1:0",
+      "node": "3dimage-13",
+      "gpus": 8,
+      "elapsed": "00:04:29",
+      "eval_job": 71187,
+      "eval_state": "CANCELLED",
+      "started": false,
+      "new_updates": 0,
+      "source_updates": 4172
+    },
+    "Views2ctx4": {
+      "train_job": 71188,
+      "state": "RUNNING",
+      "node": "3dimage-13",
+      "gpus": 8,
+      "elapsed_at_scheduler_check": "00:36:24",
+      "eval_job": 71189,
+      "eval_state": "PENDING(Dependency)",
+      "full_updates_at_log_read": 4455,
+      "source_updates": 4172,
+      "new_updates": 283,
+      "rank_log_rows": [
+        283,
+        283,
+        283,
+        283,
+        283,
+        283,
+        283,
+        283
+      ],
+      "all_rank_metrics_finite": true,
+      "source_restore_eight_ranks_passed": true,
+      "first_update_eight_ranks_synced": true,
+      "rank00_recent100_training_psnr": 23.07690273284912,
+      "remaining_updates": 3889
+    }
+  },
+  "failure_cause": "source_epoch4_meta.json converts four Adam optimizer_groups betas tuple fields to lists; exact runtime identity rejects same values with different Python container types",
+  "source_metadata_differences": {
+    "Baseline": [
+      "optimizer_groups[0].betas: tuple vs list",
+      "optimizer_groups[1].betas: tuple vs list",
+      "optimizer_groups[2].betas: tuple vs list",
+      "optimizer_groups[3].betas: tuple vs list"
+    ],
+    "U005": [
+      "optimizer_groups[0].betas: tuple vs list",
+      "optimizer_groups[1].betas: tuple vs list",
+      "optimizer_groups[2].betas: tuple vs list",
+      "optimizer_groups[3].betas: tuple vs list"
+    ]
+  },
+  "available_disk_approx_GiB": 35,
+  "no_new_submissions": true,
+  "live_execution_snapshot_unchanged": "9c9ffcca5580a1b05003cc31d112177dd5000354"
+}

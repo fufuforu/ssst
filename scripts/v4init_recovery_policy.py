@@ -1,10 +1,15 @@
 """Resume a failed continuation in a fresh directory without resetting its clocks."""
-import math
+import math,copy
 from scripts.v4init_extend8_policy import START,END,PEAK,check_meta,transition_meta,continuation_lr,validate_optimizer_layout
 
 
 def recovery_meta(saved,cfg,original_meta,current,optimizer,model=None):
     import torch
+    # JSON stores tuples as lists. Restore only this documented Adam field;
+    # keep all values and every other runtime identity comparison strict.
+    original_meta=copy.deepcopy(original_meta)
+    for group in original_meta.get('optimizer_groups',[]):
+        if isinstance(group.get('betas'),list):group['betas']=tuple(group['betas'])
     old=saved['meta']
     check_meta(old,dict(cfg,code_sha=cfg['recovery_source_code_sha']))
     p=saved['progress'];step=p['full_updates']

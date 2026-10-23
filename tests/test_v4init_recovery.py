@@ -20,6 +20,21 @@ def recovered_fixture(step=5500):
 
 
 class RecoveryTests(unittest.TestCase):
+    def test_original_metadata_json_roundtrip_matches_runtime(self):
+        import json
+        for step in [4172,5500]:
+            m,o,original,saved,cfg,current,new,opt=recovered_fixture(step)
+            serialized=json.loads(json.dumps(original['meta']))
+            result=recovery_meta(saved,cfg,serialized,current,opt)
+            self.assertEqual(result,dict(saved['meta'],code_sha='c'*40))
+
+    def test_serialized_metadata_still_rejects_real_beta_changes(self):
+        import json
+        m,o,original,saved,cfg,current,new,opt=recovered_fixture()
+        serialized=json.loads(json.dumps(original['meta']))
+        serialized['optimizer_groups'][0]['betas']=[.8,.95]
+        with self.assertRaises(ValueError):recovery_meta(saved,cfg,serialized,current,opt)
+
     def test_partial_and_unstarted_continuation_preserve_every_state(self):
         for step in [4172,5500]:
             m,o,original,saved,cfg,current,new,opt=recovered_fixture(step)

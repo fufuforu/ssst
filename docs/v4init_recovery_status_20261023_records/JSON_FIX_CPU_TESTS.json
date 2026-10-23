@@ -1,0 +1,5 @@
+{
+  "status": "PASSED",
+  "elapsed_seconds": 26.18087943457067,
+  "output": "/space/mawb/anaconda3/envs/tokengs/lib/python3.11/site-packages/torch/autograd/graph.py:824: UserWarning: CUDA initialization: The NVIDIA driver on your system is too old (found version 10010). Please update your GPU driver by downloading and installing a new version from the URL: http://www.nvidia.com/Download/index.aspx Alternatively, go to: https://pytorch.org to install a PyTorch version that has been compiled with your version of the CUDA driver. (Triggered internally at /pytorch/c10/cuda/CUDAFunctions.cpp:109.)\n  return Variable._execution_engine.run_backward(  # Calls into the C++ engine to run the backward pass\n.............\n----------------------------------------------------------------------\nRan 13 tests in 11.207s\n\nOK\n"
+}
