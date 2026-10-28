@@ -1,0 +1,22 @@
+{
+  "status": "READY",
+  "branch": "paper/c8-cal-baseline8-20261028",
+  "source_code_sha": "02392745114b538fe1c30901c5add8e6e18745e4",
+  "original_tracked_files_unchanged": 1162,
+  "source_model_identity_verified": true,
+  "added_files": [
+    "PAPER_READING_C8_CAL.md",
+    "PAPER_PROMPT_ZH.md",
+    "docs/paper_c8_cal/BASELINE8_SOURCE_CODE_IDENTITY.json",
+    "docs/paper_c8_cal/C8_CAL_MODEL_REFERENCE_20261025.json",
+    "docs/paper_c8_cal/codex_handoff_baseline_epoch8_completed_20261023.md",
+    "docs/paper_c8_cal/frozen_baseline8_gs_quality_completed_review_20261025.md",
+    "docs/paper_c8_cal/codex_handoff_baseline8_gs_quality_completed_20261025.md",
+    "docs/paper_c8_cal/configuration.json",
+    "docs/paper_c8_cal/formal_11metrics_comparison.csv"
+  ],
+  "weights_and_datasets_in_added_files": false,
+  "github_source_mirror_commit": "acd3618f63489138e947eb20e93106b1d58caa83",
+  "github_source_tree": "d15f5fcdabce49061b369ac93b2f20a43de4cc49",
+  "entire_source_tree_equal": true
+}
