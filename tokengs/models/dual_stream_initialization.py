@@ -14,7 +14,7 @@ def unproject(depth, k, c2w):
 
 
 @torch.no_grad()
-def seed_anchors(points, confidence, rgb, count=1024, candidate_side=48, return_source_indices=False):
+def seed_anchors(points, confidence, rgb, count=1024, candidate_side=48, return_source_indices=False, minimum_candidates=0, prefix=None):
     """Per-view image-grid coverage, confidence filtering, deterministic 3D FPS.
 
     Keep top confidence point per grid cell before FPS (not global top-k).
@@ -39,10 +39,29 @@ def seed_anchors(points, confidence, rgb, count=1024, candidate_side=48, return_
             ids.append(local+vi*h*w)
         if not ids: raise ValueError('No valid VGGT points; refusing fabricated anchors')
         ids=torch.cat(ids).unique(sorted=True)
+        if prefix is not None:
+            ids=torch.cat((ids,prefix[3][bi])).unique(sorted=True)
+        if minimum_candidates and len(ids)<minimum_candidates:
+            # Same deterministic pool for all ABC groups. Supplement from
+            # finite pixels by descending confidence; never repeat anchors.
+            remaining=valid.flatten().clone();remaining[ids]=False
+            extra=remaining.nonzero().flatten()
+            order=torch.argsort(confidence[bi].flatten()[extra],descending=True,stable=True)
+            ids=torch.cat((ids,extra[order[:minimum_candidates-len(ids)]] )).unique(sorted=True)
+        if minimum_candidates and len(ids)<max(count,minimum_candidates):
+            raise ValueError('Too few unique finite candidates for ABC coverage')
         p=points[bi].reshape(-1,3)[ids]; col=colors[bi].reshape(-1,3)[ids]
         chosen=[]; dist=torch.full((len(p),),torch.inf,device=p.device)
-        far=(p-p.mean(0)).square().sum(-1).argmax()
-        for _ in range(min(count,len(p))):
+        if prefix is not None:
+            prefix_ix=torch.searchsorted(ids,prefix[3][bi])
+            assert torch.equal(ids[prefix_ix],prefix[3][bi])
+            for ix0 in prefix_ix:
+                chosen.append(ix0);dist=torch.minimum(dist,(p-p[ix0]).square().sum(-1))
+            dist[prefix_ix]=-1
+            far=dist.argmax()
+        else:
+            far=(p-p.mean(0)).square().sum(-1).argmax()
+        for _ in range(min(count,len(p))-len(chosen)):
             chosen.append(far); dist=torch.minimum(dist,(p-p[far]).square().sum(-1)); dist[torch.stack(chosen)]=-1
             far=dist.argmax()
         ix=torch.stack(chosen)
@@ -52,7 +71,12 @@ def seed_anchors(points, confidence, rgb, count=1024, candidate_side=48, return_
         # Sixth-neighbor radius; duplicated/degenerate points use scene-relative floor.
         ell=(p-p.mean(0)).square().sum(-1).mean().sqrt().clamp_min(.05)
         radius=d.topk(min(6,count-1),largest=False).values[:,-1].clamp(min=.01*ell,max=.3*ell)
-        outputs.append((mu,radius,col[ix],ids[ix]))
+        selected_col=col[ix]
+        if prefix is not None:
+            n=prefix[0].shape[1]
+            mu[:n]=prefix[0][bi];radius[:n]=prefix[1][bi];selected_col[:n]=prefix[2][bi]
+            assert torch.equal(ids[ix][:n],prefix[3][bi])
+        outputs.append((mu,radius,selected_col,ids[ix]))
     return tuple(torch.stack([out[i] for out in outputs]) for i in range(4 if return_source_indices else 3))
 
 

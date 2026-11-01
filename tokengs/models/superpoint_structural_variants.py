@@ -118,3 +118,15 @@ class LocusGSV4InitIsolatedSixViews(LocusGSV4InitIsolatedNoCA):
     architecture_name=VIEWS_ARCH
 MODELS[LOW_KEY]=LocusGSV4InitIsolatedLowWeight
 MODELS[VIEWS_KEY]=LocusGSV4InitIsolatedSixViews
+
+from tokengs.models.reconstruction_abcd import variants
+from tokengs.models.reconstruction4096_scratch4 import Reconstruction4096Scratch4
+MODELS['reconstruction4096_scratch4'] = Reconstruction4096Scratch4
+MODELS.update(variants())
+
+from tokengs.models.querysplat_native_joint4 import QuerySplatNativeJoint4
+MODELS['querysplat_native_joint4']=QuerySplatNativeJoint4
+
+from tokengs.models.qp_anchor_joint4 import AnchorQPJoint4,AnchorQP2Joint4
+MODELS['qp_anchor1']=AnchorQPJoint4
+MODELS['qp_anchor2']=AnchorQP2Joint4

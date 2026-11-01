@@ -8,8 +8,8 @@ from tokengs.models.object_locus_v3_set_loss import build_context_instance_targe
 @torch.no_grad()
 def support_relation(prediction,batch,targets,purity,return_scores=False):
     cloud=prediction['cloud'];source=cloud['source_indices'];h,w=batch['semantic_label_all'].shape[-2:]
-    labels=batch['instance_label_all'][0,:2].reshape(-1)[source]
-    sem=batch['semantic_label_all'][0,:2].reshape(-1)[source]
+    labels=batch.get('support_instance_label',batch['instance_label_all'][:,:2])[0].reshape(-1)[source]
+    sem=batch.get('support_semantic_label',batch['semantic_label_all'][:,:2])[0].reshape(-1)[source]
     ids=prediction['superpoints']['source_superpoint_ids'];n=prediction['num_thing_queries']
     valid=(sem>=0)&(sem<=19)&((sem<2)|(labels>0))
     counts=torch.bincount(ids[valid],minlength=n).clamp_min(1)
@@ -25,8 +25,9 @@ def support_relation(prediction,batch,targets,purity,return_scores=False):
 def unified_instance_loss(prediction,batch,config):
     logits=prediction['thing_logits19'].float();n=logits.shape[1]
     if logits.shape[0]!=1:raise ValueError('Ragged unified loss expects one scene per rank')
+    views=int(batch.get('understanding_context_views',2))
     targets=build_context_instance_targets(batch);classes=targets['gt_classes'][0];k=len(classes)
-    regions=_probability(prediction['region_mass'][0,:2].float());valid=targets['valid_pixels'][0]
+    regions=_probability(prediction['region_mass'][0,:views].float());valid=targets['valid_pixels'][0]
     if not valid.any():raise ValueError('No valid context supervision')
     flat=regions.permute(1,0,2,3).reshape(n+2,-1)[:,valid.flatten()]
     gt=targets['gt_pixel_masks'][0].reshape(k,-1)[:,valid.flatten()].float() if k else flat.new_empty((0,flat.shape[1]))
@@ -70,7 +71,7 @@ def unified_instance_loss(prediction,batch,config):
         bce=instance_mean(bce_values) if config.matching_mode=='source_many_to_one' else bce_values.mean()
         dice=instance_mean(dice_values) if config.matching_mode=='source_many_to_one' else dice_values.mean()
     else:bce=dice=zero
-    stuff_bce=[];stuff_dice=[];sem=batch['semantic_label_all'][0,:2][valid]
+    stuff_bce=[];stuff_dice=[];sem=batch['semantic_label_all'][0,:views][valid]
     for cls in (0,1):
         p=flat[n+cls];y=(sem==cls).float()
         stuff_bce.append(F.binary_cross_entropy(p,y));stuff_dice.append(1-(2*(p*y).sum()+1)/(p.sum()+y.sum()+1))

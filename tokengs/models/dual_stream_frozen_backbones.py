@@ -63,7 +63,10 @@ class FrozenOmega(nn.Module):
         c2w=c2w.clone(); c2w[...,:3,3]*=(.25/scale[:,None,None])
         depth=depth*(.25/scale[:,None,None,None,None])
         points=unproject(depth,k,c2w); points=points.masked_fill(~valid.permute(0,1,3,4,2),float('nan'))
-        return dict(patch_layers=[values[i][:,:,start:] for i in self.indices],c2w=c2w,k=k,depth=depth,confidence=conf,points=points,median_depth=scale)
+        result=dict(patch_layers=[values[i][:,:,start:] for i in self.indices],c2w=c2w,k=k,depth=depth,confidence=conf,points=points,median_depth=scale)
+        if getattr(self,'retain_native_tokens',False):
+            result.update(native_layers={i:values[i] for i in self.indices},native_patch_start=start)
+        return result
 
 class FrozenSAM(nn.Module):
     def __init__(self,checkpoint='/space/mawb/ssst_dual_stream_assets/sam_vit_b_01ec64.pth'):

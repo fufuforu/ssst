@@ -1,5 +1,7 @@
 """Bounded retries for transient shared-filesystem faults; never skip records."""
 import errno
+import json
+import os
 import functools
 import sys
 import time
@@ -21,7 +23,17 @@ def retry_io(operation,*,label,attempts=3,delays=(1.,3.),sleep=time.sleep,log=No
 @functools.lru_cache(maxsize=2048)
 def scene_depth_frames(scene_path):
     """Same full sorted directory listing as the provider; cache only successes."""
-    depth=Path(scene_path)/'depth'
+    scene=Path(scene_path)
+    index=scene/'.depth_frame_index.json'
+    if index.is_file():
+        row=json.loads(index.read_text());frames=row['frame_ids']
+        if row['schema']!=1 or frames!=sorted(set(frames)) or not all(isinstance(x,int) and x>=0 for x in frames):
+            raise ValueError('Invalid preserved full-frame index: '+str(index))
+        return tuple(frames)
+    local_root=os.environ.get('SSST_SCANNET_LOCAL_ROOT')
+    if local_root and Path(local_root).resolve() in scene.resolve().parents:
+        raise FileNotFoundError('Node-local scene lacks preserved frame index: '+str(index))
+    depth=scene/'depth'
     # Batch-level retry covers directory enumeration and all subsequent reads.
     return tuple(sorted(int(x.stem) for x in depth.glob('*.png')))
 

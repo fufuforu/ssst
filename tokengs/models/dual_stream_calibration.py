@@ -11,9 +11,9 @@ def align_omega_targets(result,generated):
     aligned=[]; diagnostics=[]
     for bi in range(len(result['c2w'])):
         x=result['points'][bi,:2,4::8,4::8].reshape(2,-1,3).double()
-        y=generated['predicted_points'][bi,:,4::8,4::8].reshape(2,-1,3).double()
+        y=generated['predicted_points'][bi,:2,4::8,4::8].reshape(2,-1,3).double()
         ca=result['confidence'][bi,:2,0,4::8,4::8].reshape(2,-1).double()
-        cb=generated['confidence'][bi,:,0,4::8,4::8].reshape(2,-1).double()
+        cb=generated['confidence'][bi,:2,0,4::8,4::8].reshape(2,-1).double()
         xs=[]; ys=[]; ws=[]; sizes=[]
         for vi in range(2):
             valid=torch.isfinite(x[vi]).all(-1)&torch.isfinite(y[vi]).all(-1)&torch.isfinite(ca[vi])&torch.isfinite(cb[vi])
@@ -41,6 +41,7 @@ def align_omega_targets(result,generated):
         camera[:,:3,:3]=r[None]@camera[:,:3,:3]
         camera[:,:3,3]=scale*(camera[:,:3,3]@r.T)+translation
         aligned.append(camera.float()); diagnostics.append(dict(scale=float(scale),residual_median=float((scale*(x@r.T)+translation-y).norm(dim=-1).median())))
-    c2w=torch.stack(aligned); c2w[:,:2]=generated['predicted_context_c2w']
-    k=result['k'].clone(); k[:,:2]=generated['predicted_context_intrinsics_matrix']
+    v=generated['generation_context_rgb'].shape[1]
+    c2w=torch.stack(aligned); c2w[:,:v]=generated['predicted_context_c2w']
+    k=result['k'].clone(); k[:,:v]=generated['predicted_context_intrinsics_matrix']
     return dict(c2w=c2w,intrinsics_matrix=k,intrinsics=camera_vectors(k),diagnostics=diagnostics,calibration_protocol='omega_shared_context_depth_sim3_256_v1')

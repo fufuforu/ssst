@@ -44,6 +44,10 @@ class DynamicPanopticController(ObjectLocusPanopticV1Controller):
 
     def gaussian_child_features(self,a,f_anchor,gaussians,mu,radii):
         batch,anchors=a.shape[:2]
+        if gaussians.shape[-1]==23:
+            # Semantic child descriptor uses SH DC RGB, while RGB renderer
+            # evaluates all SH1 coefficients separately for each camera.
+            gaussians=torch.cat((gaussians[...,:11],gaussians[...,11:14]*.28209479177387814+.5),-1)
         if gaussians.shape!=(batch,anchors*64,14):raise ValueError('64 children per reconstruction superpoint required')
         child=gaussians.reshape(batch,anchors,64,14);radius=radii[:,:,None,None]
         delta=((child[...,:3]-mu[:,:,None])/(radius+1e-6)).clamp(-5,5)

@@ -185,7 +185,7 @@ class LocusGSRecon(_ReconstructionOnlyMixin, TokenGS):
         final_state = None
         for layer, weight in zip(self.supervised_layers, self.layer_weights):
             state = states[layer - 1]
-            gaussians = self.activation_head(state["tokens"], state["mu"], state["radii"])
+            gaussians = state["gaussians"] if "gaussians" in state else self.activation_head(state["tokens"], state["mu"], state["radii"])
             reconstruction = self._reconstruction_from_gaussians(gaussians)
             render = self.render_reconstruction(reconstruction, decoder_input)
             layer_loss = canonical_layer_loss(

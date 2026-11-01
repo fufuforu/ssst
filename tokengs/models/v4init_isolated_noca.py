@@ -26,6 +26,16 @@ class V4InitIsolatedNoCACore(OldA4V4InitCore):
             layer.__class__=OldA4GeometricObjectLayer
             del layer.anchor_attention
 
+    def reconstruction_states(self,args,kwargs,memory):
+        states,_=self.anchor_decoder.forward_stateful(*args,**kwargs,reconstruction_only=True)
+        return states
+
+    def semantic_gaussians(self,state,gaussians):
+        return gaussians.detach()
+
+    def decode_state(self,state,memory):
+        return self.activation_head(state['tokens'],state['mu'],state['radii'])
+
     def forward(self,cloud,memory,superpoint_ids=None):
         if superpoint_ids is not None:
             cloud=dict(cloud,point_superpoint_ids=superpoint_ids)
@@ -37,17 +47,18 @@ class V4InitIsolatedNoCACore(OldA4V4InitCore):
             write_strength=0.,normalization_fn=superpoint_scene_normalization)
         args=(tokens,memory['latent'],memory['rays'],self.panoptic,fm,
               under['query'],self.semantic_memory.mask_embedder,0)
-        states,_=self.anchor_decoder.forward_stateful(*args,**kwargs,reconstruction_only=True)
+        states=self.reconstruction_states(args,kwargs,memory)
         # The existing second-stage API detaches tokens/mu/rho at every layer.
         semantic_states,_=self.anchor_decoder.forward_stateful(*args,**kwargs,reconstruction_states=states)
         protected=('tokens','mu','rho','radii','layer','anchor_update','radius_update','beta')
         for state,semantic in zip(states,semantic_states):
             state.update({k:v for k,v in semantic.items() if k not in protected})
         final=states[-1];semantic=semantic_states[-1]
-        gaussians=self.activation_head(final['tokens'],final['mu'],final['radii'])
-        semantic_gaussians=gaussians.detach()
-        grid=F.interpolate(fm.flatten(0,1),size=self.activation_head.opt.img_size,
-            mode='bilinear',align_corners=False).reshape(1,2,256,*self.activation_head.opt.img_size)
+        gaussians=self.decode_state(final,memory)
+        final['gaussians']=gaussians
+        semantic_gaussians=self.semantic_gaussians(final,gaussians)
+        grid=F.interpolate(fm.flatten(0,1),size=getattr(self,'reconstruction_image_size',None) or self.activation_head.opt.img_size,
+            mode='bilinear',align_corners=False).reshape(1,2,256,*(getattr(self,'reconstruction_image_size',None) or self.activation_head.opt.img_size))
         evidence,gate,_=lift_features(grid,semantic_gaussians,memory['decoder'],memory['renderer'])
         child,_=self.panoptic.gaussian_child_features(semantic['anchor_embedding'],semantic['f_anchor'],
             semantic_gaussians,semantic['mu'].detach(),semantic['radii'].detach())

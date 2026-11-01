@@ -1,0 +1,12 @@
+{
+  "base_code_sha": "57249dd9f19fcee44533b1def8ba84a9b99670d6",
+  "base_snapshot": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3",
+  "modified_original_files": [
+    "native_scannet/core.py",
+    "scripts/export_unified_query_checkpoint.py",
+    "third_party/native_querysplat/scripts/models/enc_dec.py",
+    "tokengs/models/superpoint_structural_variants.py"
+  ],
+  "native_source_adaptations": "optional attention mask and checkpoint API; subclasses add anchored initialization/localXYZ/dynamic mu-rho/bias",
+  "original_user_workspace_edits_preserved": true
+}

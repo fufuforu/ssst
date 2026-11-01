@@ -64,7 +64,7 @@ class LocusGSUnifiedQueryV1(nn.Module):
             states=generated['states'],gaussians=generated['gaussians'],gaussian_membership=generated['gaussian_membership'],num_thing_queries=n)
 
     def encode_context(self,context_rgb):
-        if context_rgb.shape!=(1,2,3,256,256):raise ValueError('Expected one two-view 256 scene')
+        if context_rgb.shape!=(1,getattr(self,'context_views',2),3,256,256):raise ValueError('Context view shape differs from configured view count')
         if not torch.isfinite(context_rgb).all() or context_rgb.min()<0 or context_rgb.max()>1:raise ValueError('Finite RGB in[0,1] required')
         omega=self.frozen_omega(context_rgb)
         raw=gfm_grid(omega['patch_layers']);grid=self.gfm_projection(raw.permute(0,1,3,4,2)).permute(0,1,4,2,3).contiguous()
@@ -74,7 +74,7 @@ class LocusGSUnifiedQueryV1(nn.Module):
         return omega,cloud,memory
 
     def generate(self,context_rgb,*,superpoint_ids=None):
-        if context_rgb.shape!=(1,2,3,256,256):raise ValueError('Unified v1 uses one scene per rank: [1,2,3,256,256]')
+        if context_rgb.shape!=(1,getattr(self,'context_views',2),3,256,256):raise ValueError('Context view shape differs from configured view count')
         if not torch.isfinite(context_rgb).all() or context_rgb.min()<0 or context_rgb.max()>1:raise ValueError('Finite RGB in[0,1] required')
         omega,cloud,memory=self.encode_context(context_rgb)
         output=self.core(cloud,memory,superpoint_ids)
@@ -93,7 +93,7 @@ class LocusGSUnifiedQueryV1(nn.Module):
 
     @torch.no_grad()
     def calibrate_targets(self,context_and_target_rgb,generated):
-        if not torch.equal(context_and_target_rgb[:,:2],generated['generation_context_rgb']):raise ValueError('Calibration context mismatch')
+        if not torch.equal(context_and_target_rgb[:,:generated['generation_context_rgb'].shape[1]],generated['generation_context_rgb']):raise ValueError('Calibration context mismatch')
         from tokengs.models.dual_stream_calibration import align_omega_targets
         return align_omega_targets(self.frozen_omega(context_and_target_rgb),generated)
 

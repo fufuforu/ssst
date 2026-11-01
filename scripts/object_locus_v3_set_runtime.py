@@ -742,8 +742,10 @@ class ObjectLocusV1Provider(SIU3RProcessedProvider):
         return output
 
 
-TRAIN_ROOT = Path("/space/mawb/SIU3R/data/scannet/train")
-VAL_ROOT = Path("/space/mawb/SIU3R/data/scannet/val")
+from scripts.scannet_data_snapshot import configured_root
+SCANNET_ROOT = configured_root("/space/mawb/SIU3R/data/scannet")
+TRAIN_ROOT = SCANNET_ROOT / "train"
+VAL_ROOT = SCANNET_ROOT / "val"
 
 
 def build_batch(opt, window, device="cpu"):

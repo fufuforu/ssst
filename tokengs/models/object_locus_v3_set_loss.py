@@ -10,8 +10,9 @@ NO_OBJECT = 18
 
 
 def build_context_instance_targets(batch):
-    sem = batch["semantic_label_all"][:, :2].long()
-    ins = batch["instance_label_all"][:, :2].long()
+    views = int(batch.get("understanding_context_views", 2))
+    sem = batch["semantic_label_all"][:, :views].long()
+    ins = batch["instance_label_all"][:, :views].long()
     valid = (sem >= 0) & (sem <= 19) & ((sem < 2) | (ins > 0))
     ids_rows, classes_rows, masks_rows = [], [], []
     for b in range(sem.shape[0]):
@@ -30,7 +31,7 @@ def build_context_instance_targets(batch):
         ids_rows.append(torch.stack(row_ids).long() if row_ids else ins.new_empty((0,)))
         classes_rows.append(torch.stack(row_classes).long() if row_classes else ins.new_empty((0,)))
         masks_rows.append(torch.stack(row_masks) if row_masks else
-                          torch.zeros((0, 2, *sem.shape[-2:]), dtype=torch.bool, device=sem.device))
+                          torch.zeros((0, views, *sem.shape[-2:]), dtype=torch.bool, device=sem.device))
     return {"gt_instance_ids": ids_rows, "gt_classes": classes_rows,
             "gt_pixel_masks": masks_rows, "valid_pixels": valid}
 

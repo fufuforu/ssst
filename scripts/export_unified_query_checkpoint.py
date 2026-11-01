@@ -33,6 +33,12 @@ def main():
         else:dist.init_process_group('nccl')
     torch.cuda.set_device(local);device=torch.device('cuda',local)
     saved=torch.load(args.checkpoint,map_location='cpu',weights_only=False,mmap=True);meta=saved['meta']
+    if meta['architecture'].startswith(('RECONSTRUCTION_ABCD_', 'RECONSTRUCTION_4096_SCRATCH4_')):
+        loaded_renderer=Path(sys.modules['gsplat_cuda'].__file__).resolve()
+        if loaded_renderer!=Path(meta['renderer']).resolve() or digest(loaded_renderer)!=meta['renderer_sha256']:raise ValueError('ABCD renderer identity differs')
+    if meta['architecture'].startswith('QP_ANCHOR'):
+        if saved['progress']!=dict(epoch=4,update_in_epoch=0,full_updates=4172) or meta['source_task_updates']!=0 or meta['intermediate_reconstruction_supervision'] is not False:raise ValueError('Anchor recipe/progress differs')
+        if digest(meta['renderer'])!=meta['renderer_sha256']:raise ValueError('Anchor renderer differs')
     from tokengs.models.superpoint_structural_variants import MODELS
     constructors={model.architecture_name:model for model in MODELS.values()}
     if meta['architecture'] not in constructors or meta['manifest_sha256']!=digest(MANIFEST) or meta['heldout_sha256']!=digest(HELDOUT):raise ValueError('Checkpoint/data identity differs')
