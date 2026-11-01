@@ -1,0 +1,18 @@
+{
+  "status": "PASSED",
+  "original_base_model_anchors_and_loss_helpers_byte_identical": [
+    "tokengs/models/qp_anchor_joint4.py",
+    "native_scannet/anchor_geometry.py",
+    "native_scannet/core.py",
+    "scripts/qp_anchor_diagnostics.py",
+    "scripts/evaluate_ssst_validation.py",
+    "scripts/invoke_siu3r_official_evaluator.py",
+    "scripts/score_dual_stream_v1.py"
+  ],
+  "only_optional_scene_scale_head_between_new_arms": true,
+  "common_initialization_source": "bf5b5325adcc8346eb89ebdceac36149c510402d18e8c7dd0c8fe8046f245397",
+  "same_seed42_and_4ep4172_updates": true,
+  "shared_new_protocol": "Known K but no GT pose generation; GT render-only poses,black physical .1..100m",
+  "no_change_to_existing_v2": true,
+  "scene_scale_head_extra_parameters": 6145
+}

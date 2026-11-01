@@ -1,0 +1,33 @@
+{
+  "status": "PASSED",
+  "code_sha": "e0be5ea0a3ab994e4288ffb492a9c8fc64cd4167",
+  "updates": 3,
+  "world_size": 8,
+  "global_batch": 8,
+  "full_updates": 3,
+  "elapsed_seconds": 60.855576902627945,
+  "frozen_updates": 0,
+  "gradient_isolation_verified": true,
+  "cache_counts_rank0": {
+    "sam_hits": 6,
+    "sam_computed": 0,
+    "omega_hits": 0,
+    "calibration_hits": 0,
+    "sam_cache_errors": 0,
+    "sam_local_hits": 0,
+    "sam_parity_verified": 1,
+    "sam_online_determinism_verified": 0
+  },
+  "smoke_weights_used_for_training": false,
+  "camera_protocol": "Unposed_RGB_K_fixed_metric_GT_render_scale_ablation_v1",
+  "smoke_offsets": [
+    0,
+    1391,
+    4171
+  ],
+  "progress": {
+    "epoch": 0,
+    "update_in_epoch": 3,
+    "full_updates": 3
+  }
+}

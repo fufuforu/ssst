@@ -1,0 +1,16 @@
+{
+  "status": "PASSED",
+  "same_common_initial_weights_and_RNG": true,
+  "extra_parameters_on": 6145,
+  "initial_scale_identity": true,
+  "GT_poses_depth_Target_RGB_excluded_from_generation": true,
+  "only_known_Context_K_and_RGB_input": true,
+  "predicted_Context_pose_retained": true,
+  "GT_pose_changes_loss_not_generation": true,
+  "both_branches_have_own_nonzero_gradients": true,
+  "scene_scale_head_has_LR_grad_and_no_LU_grad": true,
+  "physical_GS_centers_sizes_scale_together": true,
+  "constant_output_units_and_depth_conversion": true,
+  "black_physical_clipping_equal": true,
+  "Context_Novel_PSNR_logged": true
+}

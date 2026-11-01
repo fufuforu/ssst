@@ -1,0 +1,421 @@
+{
+  "code_snapshot": "/space/mawb/ssst_vggt_overfit_diagnostics_v1/experiments/qpanchor1_unposed_GT_scale_ablation_20261031_v1/code",
+  "baseline4_root": "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_noca_v4recipe_20261022_v1",
+  "manifest": "/space/mawb/ssst/group_plus/object_locus_panoptic_full1201_8gpu/manifest.json",
+  "manifest_sha256": "87e3cde298569c4e7735cf75ee596868eadf01e9a6a95438c6be51e42f55a523",
+  "heldout_sha256": "9a310d764358ebd7cdd3d1844a48685264d25d48cced5d4263ef4da68c239a44",
+  "cohort": "/space/mawb/ssst/group_plus/vggt_understanding_bottleneck_v1/official1860_cohort_20261020.json",
+  "cohort_sha256": "0e4cec01a6fd17dd5a89ba0c89128af85f18017a1509dd4050c2315546dab951",
+  "formal_windows": 1860,
+  "formal_scenes": 312,
+  "quality_head": false,
+  "language_head": false,
+  "formal_protocol": "Context RGB+GT Context K generation; GT Target K/c2w rendering; fixed metric units; black background,physical .1..100m;1860/312",
+  "renderer": "/space/mawb/.cache/torch_extensions_backup/gsplat_cuda_partial_1406/gsplat_cuda.so",
+  "renderer_sha256": "82403af8b36fb4b64774afc7462ea6611896fcfe7a02785098bce9ff50d8d751",
+  "pinned_files": [
+    {
+      "path": "/datasets2/mengxl/vggt_omega/vggt_omega_1b_512.pt",
+      "sha256": "c02da418b18bb01d0392598d3f6147366bcde1bb70fd08a5e3bf7925b0667934"
+    },
+    {
+      "path": "/space/mawb/.cache/torch_extensions_backup/gsplat_cuda_partial_1406/gsplat_cuda.so",
+      "sha256": "82403af8b36fb4b64774afc7462ea6611896fcfe7a02785098bce9ff50d8d751"
+    },
+    {
+      "path": "/space/mawb/ssst_dual_stream_assets/sam_vit_b_01ec64.pth",
+      "sha256": "ec2df62732614e57411cdcf32a23ffdf28910380d03139ee0f4fcbe91eb8c912"
+    },
+    {
+      "path": "/space/mawb/.cache/torch/hub/checkpoints/vgg16-397923af.pth",
+      "sha256": "397923af8e79cdbb6a7127f12361acd7a2f83e06b05044ddf496e83de57a5bf0"
+    },
+    {
+      "path": "/space/mawb/anaconda3/envs/tokengs/lib/python3.11/site-packages/lpips/weights/v0.1/vgg.pth",
+      "sha256": "a78928a0af1e5f0fcb1f3b9e8f8c3a2a5a3de244d830ad5c1feddc79b8432868"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/LICENSE",
+      "sha256": "cfc7749b96f63bd31c3c42b5c471bf756814053e847c10f3eb003417bc523d30"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/scripts/output_utils.py",
+      "sha256": "b1038a3e32a678b3d8f279e2f325d1c8ae43ebd05e3ff7fc7ffa7a970825918d"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/scripts/options.py",
+      "sha256": "625ec32a32a03c9ac5482fd11297b8dbcf017da11b2dffff517d049c69410300"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/scripts/__init__.py",
+      "sha256": "a26bb7d9c9df47c1ffacd47157aa921b69770d4307ba27e483bb8c6d2a0b71d6"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/scripts/infer.py",
+      "sha256": "90e915ab01ae9442f040f86edb3b5c6fb1d539f5dbcab5c66a8773aa652cd0b5"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/scripts/utils/data.py",
+      "sha256": "99361331b005efca842bec11c9506bf4ad5a755fdbc9c98df7a5c2c336a0b746"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/scripts/utils/__init__.py",
+      "sha256": "f44195415e5e381ad54643dc7fdbb00487dfd3cb0e83c70bafd5ed1d0a69e52f"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/scripts/utils/gaussians.py",
+      "sha256": "036fafeba943126e51f8ec6b16b2665168648c7be4b7dafece9d63be1b214088"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/scripts/models/querysplat.py",
+      "sha256": "12eb89ed6d1874e4489d458d3c4e22c8c1539d8373d024a5009d3cf746139aa6"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/scripts/models/activations.py",
+      "sha256": "f21e62a95a6ccbbd973faaddd993687a8d5ffe3e79cd970ddf6b95831819ebc0"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/scripts/models/__init__.py",
+      "sha256": "be5c8a70ea56cf8092c1da446b21f3d285702c5993e141cd50725c4d3526f3cd"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/scripts/models/vggt_encoder.py",
+      "sha256": "8fb369dd52de51edb692c4ed6b4ace050216e4e3262e63ba857b38ffc62193a0"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/scripts/models/input_types.py",
+      "sha256": "e53a60126b3e9db2df88acaa47cfa5a5e394afaa58cf221332deacf6ae3bc675"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/scripts/models/enc_dec.py",
+      "sha256": "8c392bb213381a42be12553338517213967ee6435a2bf8cfad6a55541b2c32a6"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/scripts/models/attention.py",
+      "sha256": "986a248a9b86ae54c0572f95348488efceabbbca626a299a7361e00a5b75f280"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/scripts/rendering/gs.py",
+      "sha256": "863d9741cbda981155549ea4aa5de4a12adb96d8116e0c577e1c7a8a6c6b01a3"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/scripts/rendering/__init__.py",
+      "sha256": "44ee219214fc2a11713ecceeea89bad1ef8d051f086b19a424a518fd72a73020"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/scripts/rendering/fused_ssim.py",
+      "sha256": "ae3ef21a1bf6c27e7a76338fb36fd1b94b9142fe579004ab86bcc13fe2538848"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/third_party/vggt_omega/LICENSE",
+      "sha256": "27696e51930daf5d24222e2d9d65339f529153e853de0e2eb457133a1a6f5239"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/third_party/vggt_omega/__init__.py",
+      "sha256": "b24c63bfb1033deeba5527623fb2ca607e2d31e2341c40e0ef59afbc2f3c1dba"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/third_party/vggt_omega/vggt_omega/__init__.py",
+      "sha256": "abe836cd309d15d814afb3cf18e6eb7abd0726ea6ecc3091335bb82d7236c379"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/third_party/vggt_omega/vggt_omega/utils/rotation.py",
+      "sha256": "4f05fdf1f26c0dbcf6eb3246dc0dec0e050dd72003c964f44026d57e0b446669"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/third_party/vggt_omega/vggt_omega/utils/__init__.py",
+      "sha256": "abe836cd309d15d814afb3cf18e6eb7abd0726ea6ecc3091335bb82d7236c379"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/third_party/vggt_omega/vggt_omega/utils/pose_enc.py",
+      "sha256": "494b1b2482c748bc07499f5e695e0d36fd36dda4380d5a112b5e1b0937d31359"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/third_party/vggt_omega/vggt_omega/models/__init__.py",
+      "sha256": "abe836cd309d15d814afb3cf18e6eb7abd0726ea6ecc3091335bb82d7236c379"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/third_party/vggt_omega/vggt_omega/models/aggregator.py",
+      "sha256": "6b78e36ce52873edce789c97cd37dd0092b1fd5186c8e81bc650cf9c6af0fa3e"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/third_party/vggt_omega/vggt_omega/models/layers/vision_transformer.py",
+      "sha256": "7464c73e1f229c3fe230764887353d1072c0c8e1a61867856fffd24774b8afb6"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/third_party/vggt_omega/vggt_omega/models/layers/utils.py",
+      "sha256": "2c5fce71783d6cbb1eafe18619b1efd5814cb9eace72730516141d31cadc89bf"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/third_party/vggt_omega/vggt_omega/models/layers/layer_scale.py",
+      "sha256": "4817e001e32bc566a74ba9c17677e3c994a7802135dff42777a4fa95fa4f3b01"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/third_party/vggt_omega/vggt_omega/models/layers/__init__.py",
+      "sha256": "853b8aaeb5d19724dff73b8acb32296bbd514bd8f8c18bd48ab7e3f2208e2164"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/third_party/vggt_omega/vggt_omega/models/layers/rope_position_encoding.py",
+      "sha256": "75447ac59848596f0353009ce16fe024d911914debd81e23abd2255636ecc5a1"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/third_party/vggt_omega/vggt_omega/models/layers/rms_norm.py",
+      "sha256": "474a2f31700d8cbb6f7ba72ff696adc03b2b308dc4b715052c22c86c4e3d5b56"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/third_party/vggt_omega/vggt_omega/models/layers/patch_embed.py",
+      "sha256": "d2b8778793de1b2f31739263cd06e02214067bdde990da77d887b97a0d9c7be3"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/third_party/vggt_omega/vggt_omega/models/layers/ffn_layers.py",
+      "sha256": "f1ac17ac2c335edfb9c423a3b5e935ff0e11a635c17d031effa229eba98dba7d"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/third_party/vggt_omega/vggt_omega/models/layers/block.py",
+      "sha256": "a88f7108999a5f256a26026797c8aced443f690e6d4f44c244ea01e2b46a622c"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/third_party/vggt_omega/vggt_omega/models/layers/attention.py",
+      "sha256": "136d15af00bb08e135ae56c383323efefc366cf9c6aa95e2ed7e2bfa09c41cbd"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/third_party/vggt_omega/vggt_omega/models/heads/utils.py",
+      "sha256": "72b6c9edd0d0db49e780dd89e05c0f8c3e917df22b7ba373c3a1025fd598c468"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/third_party/vggt_omega/vggt_omega/models/heads/__init__.py",
+      "sha256": "abe836cd309d15d814afb3cf18e6eb7abd0726ea6ecc3091335bb82d7236c379"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/third_party/vggt_omega/vggt_omega/models/heads/dense_head.py",
+      "sha256": "40261c8ae7f12aca04f1ae0ff1dc6e2ae10d09daf2c6ecd781bbd3e2aad123d8"
+    },
+    {
+      "path": "/space/mawb/ssst_querysplat_native_joint4_code_20261026_v3/third_party/native_querysplat/third_party/vggt_omega/vggt_omega/models/heads/camera_head.py",
+      "sha256": "ff12f931f12df8cd2a65e58f13c2fed01e648747c9e06b0b966df283b600fd47"
+    }
+  ],
+  "kind": "native_joint",
+  "recipe": "QPanchor1_unposed_GT4_scale_off",
+  "source_checkpoint": "/space/mawb/ssst/group_plus/semantic_resolution_v1/v4init_isolated_noca_v4recipe_20261022_v1/train/checkpoint_untrained_initial.pt",
+  "source_sha256": "bf5b5325adcc8346eb89ebdceac36149c510402d18e8c7dd0c8fe8046f245397",
+  "training_root": "/space/mawb/ssst_vggt_overfit_diagnostics_v1/experiments/qpanchor1_unposed_GT_scale_ablation_20261031_v1/scale_off/train",
+  "baseline4096_eval": "/space/mawb/ssst/group_plus/semantic_resolution_v1/reconstruction4096_scratch4_formal_20261026_v1",
+  "architecture": "QP_ANCHOR1_UNPOSED_GT_SCALE_OFF_V1",
+  "config": {
+    "superpoint_source": "esam_sam",
+    "uncovered_clusters": 8,
+    "dim": 256,
+    "heads": 8,
+    "depth": 12,
+    "point_grid": 48,
+    "max_points": 4096,
+    "max_superpoints": 512,
+    "point_voxel": 0.01,
+    "superpoint_voxel": 0.08,
+    "neighbors": 12,
+    "point_layers": 2,
+    "checkpoint_blocks": true,
+    "matching_mode": "source_many_to_one",
+    "mask_nms_iou": 0.7,
+    "support_matching": true,
+    "support_purity": 0.5
+  },
+  "upstream_commit": "3465a1d2c789d8ebe71f4f9c0bae3f2c2fd726ae",
+  "options": {
+    "img_size": [
+      256,
+      256
+    ],
+    "patch_size": 8,
+    "dec_depth": 12,
+    "enc_embed_dim": 2048,
+    "enc_num_heads": 16,
+    "mlp_ratio": 4.0,
+    "bg_color": "grey",
+    "gaussian_scale_cap": 0.075,
+    "gaussian_z_offset": 1.0,
+    "gaussian_save_opacity_threshold": 0.005,
+    "gaussian_sh_degree": 1,
+    "gaussian_sh_rest_scale": 0.1,
+    "num_gs_tokens": 1024,
+    "num_gaussians_per_token": 64,
+    "token_dim": 2048,
+    "gs_token_std": 0.01,
+    "num_input_views": 2,
+    "vggt_checkpoint": "/datasets2/mengxl/vggt_omega/vggt_omega_1b_512.pt",
+    "vggt_input_size": 512,
+    "vggt_intermediate_layers": [
+      4,
+      11,
+      17,
+      23
+    ],
+    "vggt_keep_camera_token": true,
+    "vggt_keep_scene_token": true,
+    "vggt_use_eye_layer_mixer": true,
+    "vggt_original_encoder_patch_size": 16,
+    "vggt_original_encoder_post_decoder_depth": 6,
+    "vggt_original_encoder_post_use_color_tokens": true,
+    "vggt_original_encoder_post_detach_query": false,
+    "vggt_original_encoder_post_output_params": [
+      "rgb",
+      "alpha"
+    ],
+    "znear": 0.025,
+    "zfar": 125.0
+  },
+  "seed": 42,
+  "training_windows": 8337,
+  "training_scenes": 1191,
+  "world_size": 8,
+  "global_batch": 8,
+  "epochs": 4,
+  "updates": 4172,
+  "full_updates": 4172,
+  "training_views": "2Context+2Novel",
+  "understanding_weight": 1.0,
+  "understanding_warmup": 1043,
+  "required_update_parameters": [
+    "core.reconstruction.gs_tokens",
+    "core.reconstruction.post_rgb_gs_tokens",
+    "core.reconstruction.patch_embed.proj.weight",
+    "core.reconstruction.patch_plucker_embed.proj.weight",
+    "core.reconstruction.vggt_encoder.eye_token",
+    "core.reconstruction.vggt_encoder.eye_layer_mlp.1.weight",
+    "core.reconstruction.enc_dec_backbone.decoder_blocks.0.gs_cross_attn.q_proj.weight",
+    "core.reconstruction.non_rgb_activation_head.deconv.weight",
+    "core.reconstruction.post_rgb_decoder_blocks.0.gs_cross_attn.q_proj.weight",
+    "core.reconstruction.post_rgb_delta_head.weight",
+    "core.native_to_baseline.1.weight",
+    "core.panoptic.class_head.weight",
+    "core.semantic_memory.projections.0.1.weight",
+    "gfm_projection.1.weight",
+    "core.reconstruction.anchor_content.0.weight",
+    "core.reconstruction.anchor_content.2.weight",
+    "core.reconstruction.anchor_visual.1.weight"
+  ],
+  "native_parameters": 1096976836,
+  "total_task_parameters": 1108158964,
+  "initialization": "fresh native seed42; exact original baseline ZERO understanding tensors; empty Adam, no 8-window trained weights",
+  "gradient_isolation": "detached L6/8/10/12 tokens/geometry/mask rasterization; no feedback; independent branch clip_norm1 prevents LU scaling native updates",
+  "new_bridge": "LayerNorm2048+Linear2048to1024; all other understanding modules retain baseline shapes and zero tensors",
+  "native_objective": "L1+.2SSIM+visibility; Chamfer1/opacity.1 floor.1 anneal first279updates; LPIPS0to.05 from1/3to1/2 total",
+  "reconstruction_supervision": "original native final output only; no synthetic intermediate reconstruction supervision",
+  "optimizer": "ZeRO AdamW1e-4,beta.9/.95,eps1e-8,matrixWD.05/biasnorm0; native5%warmup209/understanding_baseline_warmup100+cosine floor.1; FP32 parameters; BF16 native training decoder/FP32 evaluation; FP32 understanding",
+  "coordinates": "Internal normalized predicted frame; fixed GT output public .15 units/m. Scene scale s maps internal GS to output units; s learned only in scale_on, identity in scale_off. No GT baseline/gauge fitting.",
+  "target_calibration": "Raw processed GT K/c2w first-Context frame for loss/evaluation only; no GT poses in generation; no Target RGB calibration",
+  "frozen_cache": "Read-only resilient ESAM; online frozen Omega Context features/geometry; no Target calibration cache",
+  "ema": "not accumulated or saved; live optimization and final scoring unaffected",
+  "checkpoint_policy": "rolling model+Adam at epochs; after final optimizer finite/step and exact live-weight hash audit, save model-only final_live and remove only this run rolling Adam checkpoint; no initial full-model duplicate",
+  "dependencies": "same code smoke3 passed -> fresh full4172 -> export1860 -> score -> comparison",
+  "disk_estimate": "about28GB checkpoint peak and4.5GB final weights per run, plusPNG exports; no EMA or initial model duplicate",
+  "allowed_nodes": [
+    "3dimage-12",
+    "3dimage-13",
+    "3dimage-14",
+    "3dimage-17",
+    "3dimage-18"
+  ],
+  "recovery_of": null,
+  "recovery_reason": "New user-authorized two-arm ablation; existing v2 job preserved",
+  "model_key": "qp_anchor1_unposed_gt_scale_ablation",
+  "run_root": "/space/mawb/ssst_vggt_overfit_diagnostics_v1/experiments/qpanchor1_unposed_GT_scale_ablation_20261031_v1/scale_off",
+  "native_control_root": "/space/mawb/ssst/group_plus/semantic_resolution_v1/querysplat_native_baseline_understanding_scratch4_20261026_v3",
+  "model_changes": [
+    "OriginalQPanchor1 fixed1024 FPS anchors,raw XYZ offsets,65536GS,SH1 retained in both",
+    "Known Context K replaces predicted K for geometry/rays, predicted Context c2w retained; no GT Context extrinsics",
+    "Optional6145-param LayerNorm2048+Linear2048to1 scene scale head from mean frozen Context features; identity initial scale",
+    "Positive scale applies to GS XYZ/size; normalized-space Chamfer retained; semantic GS detached incl scale",
+    "Shared physical GT render black/.1..100m with fixed public .15units/m; export depth /.15"
+  ],
+  "source_task_updates": 0,
+  "geometry_initialization": "VGGT RGB-predicted depth/poses; re-unproject with known Context K and predicted poses; original fixed1024anchors plus learned XYZ offsets in both arms",
+  "token_count": 1024,
+  "token_dim": 2048,
+  "children_per_token": 64,
+  "num_gaussians": 65536,
+  "dynamic_anchor_updates": false,
+  "geometric_attention_bias": false,
+  "intermediate_reconstruction_supervision": false,
+  "position_activation": "native raw XYZ becomes mu+r*delta; no absolute expm1 position activation or z offset; native scale/rotation activation preserved",
+  "geometry_bias": {
+    "sigma0": 0.1,
+    "bandwidth_floor_native": 4e-06,
+    "clamp_min": -20.0,
+    "gamma_raw_init": 0.0,
+    "eye_query": "zero bias",
+    "camera_register_keys": "zero bias",
+    "memory_order": "perview [camera,registers,32x32 patches]"
+  },
+  "center_refinement": "QPanchor1 static anchor centres; no dynamic QPanchor2 refinement layers",
+  "radius_refinement": "QPanchor1 static anchor radii; no dynamic QPanchor2 refinement layers",
+  "storage_peak_estimate_GB": 28,
+  "storage_final_weights_GB": 4.5,
+  "submission_scope": "Exactly two fresh4ep runs comparing optional scene scale head; no other ablation",
+  "attention_memory": "native checkpointed blocks; v2 ray-bias graph also checkpointed; differentiable bias uses math SDPA",
+  "original_recipe_code_sha": "8044069a67c156956ba3d0de97b6407a716adbfd",
+  "reference_run": "/space/mawb/ssst_vggt_overfit_diagnostics_v1/experiments/qp_anchor_pair_20261026_v1/v1",
+  "reference_metrics": {
+    "absrel": 0.047866706824761324,
+    "rmse": 0.16608678409683694,
+    "psnr": 23.111622323870233,
+    "ssim": 0.7649892646565659,
+    "lpips": 0.32179384370297726,
+    "context_miou": 58.21753174066544,
+    "context_pq": 69.32552468312389,
+    "context_map": 26.109296083450317,
+    "target_miou": 58.0100628733635,
+    "target_pq": 67.23647175094425,
+    "target_map": 24.68511164188385
+  },
+  "camera_protocol": "Unposed_RGB_K_fixed_metric_GT_render_scale_ablation_v1",
+  "readonly_frozen_cache": "/space/mawb/ssst_vggt_overfit_diagnostics_v1/experiments/qp_anchor_pair_20261026_v1/v1/frozen_cache",
+  "context_views": 2,
+  "smoke_offsets": [
+    0,
+    1391,
+    4171
+  ],
+  "artifact_root": "/space/blocks/mawb_qpanchor1_unposed_GT_scale_ablation_20261031_v1/eval_archives/scale_off",
+  "training_GT_camera_views": "all4:Context2+Novel2",
+  "understanding_GT_camera_views": "Context2 only, same original labels/objectives",
+  "new_GT_depth_supervision": false,
+  "comparison_caveat": "Between scale_on/off only new scene scale head differs. Both change input/camera/render protocol versus historical original; not a pure Target-camera comparison. SIU task camera conditions and physical background/clipping followed; native rasterizer/full-K/SH1 and original loss remain model-specific.",
+  "dataset_snapshot_manifest": "/space/blocks/mawb_qpanchor1_verified_data_20261028_v1/manifest.json",
+  "dataset_snapshot_sha256": "012e2846cec7d440bbad291ad5d0a4049306598b140d0a2d711eb8665c1e37f2",
+  "view_manifest_sha256": "f7d787783af6cee028c7ec814e310f0a231c9a89fce5c2a5bdab21403b62507b",
+  "experimental_changes": [
+    "GT Context K input, no GT Context pose input",
+    "GT render supervision/evaluation in fixed output scale",
+    "black physical .1..100m",
+    "compare scalehead only"
+  ],
+  "compute_resources": "each smoke/train8GPU/globalbatch8; each export4GPU; score1GPU; shared pair-gate/summaryCPU",
+  "checkpoint_storage": "isolated blocks dirs per arm; original run intact",
+  "context_camera_conditioned_generation": false,
+  "coordinate_policy": "No GT c2w/baseline/depth used during generation. GT poses only render loss/eval. Output physical conversion fixed .15; no scene-specific GT-derived units.",
+  "known_Context_intrinsics": true,
+  "physical_render": {
+    "units_per_meter": 0.15,
+    "background": "black",
+    "near_m": 0.1,
+    "far_m": 100.0,
+    "near_public": 0.015,
+    "far_public": 15.0,
+    "renderer": "Pinned SH1 gsplat full pixel K; not byte-identical SIU FoV rasterizer"
+  },
+  "scale_head_design": {
+    "input": "detached mean final frozen Omega Context patch features2048",
+    "network": "LayerNorm2048 + zero-init Linear2048to1",
+    "activation": "0.001+softplus(logit+inverse_softplus(.999)); initial scale1",
+    "extra_parameters": 6145,
+    "native_branch_only": true
+  },
+  "total_updates": 4172,
+  "arm": "scale_off",
+  "scene_scale_head": false,
+  "internal_options_note": "options describe the unchanged normalized native branch; physical_render controls actual RGB/mask supervision/export with explicit black background and fixed metric frustum",
+  "code_sha": "e0be5ea0a3ab994e4288ffb492a9c8fc64cd4167",
+  "source_code_sha": "e0be5ea0a3ab994e4288ffb492a9c8fc64cd4167"
+}

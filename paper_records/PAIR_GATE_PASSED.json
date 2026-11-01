@@ -1,0 +1,12 @@
+{
+  "status": "PASSED",
+  "code_sha": "e0be5ea0a3ab994e4288ffb492a9c8fc64cd4167",
+  "common_parameter_sha256": "c283b4260648652fbd1e51696d4a4396f82ea71b985bcbfd47f9a43ed5d38ada",
+  "config_sha256": {
+    "scale_off": "34a5805457cb03312ec1766faf101f6533cc89e2e4c473af747ccb58f17a5d08",
+    "scale_on": "c37b0a2c20b072a650c72cf8916b11e21fceacc8eb69835c019843ecaef9d8d8"
+  },
+  "only_optional_scale_head_differs": true,
+  "extra_parameters_on": 6145,
+  "smoke_weights_discarded": true
+}
